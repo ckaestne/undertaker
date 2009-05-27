@@ -1,0 +1,4 @@
+This directory must exist for Kconfig to work!
+
+Kconfig creates auto.conf and autoconf.h files for use with your
+Makefiles and source code.

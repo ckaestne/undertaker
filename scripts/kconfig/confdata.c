@@ -21,7 +21,7 @@ static void conf_warning(const char *fmt, ...)
 static const char *conf_filename;
 static int conf_lineno, conf_warnings, conf_unsaved;
 
-const char conf_defname[] = "arch/$ARCH/defconfig";
+const char conf_defname[] = "fm/main.fm";
 
 static void conf_warning(const char *fmt, ...)
 {
@@ -445,12 +445,7 @@ int conf_write(const char *name)
 
 	fprintf(out, _("#\n"
 		       "# Automatically generated make config: don't edit\n"
-		       "# Linux kernel version: %s\n"
-		       "%s%s"
-		       "#\n"),
-		     sym_get_string_value(sym),
-		     use_timestamp ? "# " : "",
-		     use_timestamp ? ctime(&now) : "");
+		       "#\n"));
 
 	if (!conf_get_changed())
 		sym_clear_all_valid();
@@ -563,10 +558,10 @@ int conf_split_config(void)
 
 	name = getenv("KCONFIG_AUTOCONFIG");
 	if (!name)
-		name = "include/config/auto.conf";
+		name = "include/auto.conf";
 	conf_read_simple(name, S_DEF_AUTO);
 
-	if (chdir("include/config"))
+	if (chdir("include"))
 		return 1;
 
 	res = 0;
@@ -660,7 +655,7 @@ int conf_split_config(void)
 		close(fd);
 	}
 out:
-	if (chdir("../.."))
+	if (chdir(".."))
 		return 1;
 
 	return res;
@@ -677,7 +672,7 @@ int conf_write_autoconf(void)
 
 	sym_clear_all_valid();
 
-	file_write_dep("include/config/auto.conf.cmd");
+	file_write_dep("include/auto.conf.cmd");
 
 	if (conf_split_config())
 		return 1;
@@ -697,17 +692,15 @@ int conf_write_autoconf(void)
 	time(&now);
 	fprintf(out, "#\n"
 		     "# Automatically generated make config: don't edit\n"
-		     "# Linux kernel version: %s\n"
 		     "# %s"
 		     "#\n",
-		     sym_get_string_value(sym), ctime(&now));
+		     ctime(&now));
 	fprintf(out_h, "/*\n"
 		       " * Automatically generated C config: don't edit\n"
-		       " * Linux kernel version: %s\n"
 		       " * %s"
 		       " */\n"
 		       "#define AUTOCONF_INCLUDED\n",
-		       sym_get_string_value(sym), ctime(&now));
+		       ctime(&now));
 
 	for_all_symbols(i, sym) {
 		sym_calc_value(sym);
@@ -770,12 +763,12 @@ int conf_write_autoconf(void)
 
 	name = getenv("KCONFIG_AUTOHEADER");
 	if (!name)
-		name = "include/linux/autoconf.h";
+		name = "include/autoconf.h";
 	if (rename(".tmpconfig.h", name))
 		return 1;
 	name = getenv("KCONFIG_AUTOCONFIG");
 	if (!name)
-		name = "include/config/auto.conf";
+		name = "include/auto.conf";
 	/*
 	 * This must be the last step, kbuild has a dependency on auto.conf
 	 * and this marks the successful completion of the previous steps.
