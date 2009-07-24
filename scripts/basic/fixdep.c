@@ -125,7 +125,6 @@ char *depfile;
 char *cmdline;
 
 static void usage(void)
-
 {
 	fprintf(stderr, "Usage: fixdep <depfile> <target> <cmdline>\n");
 	exit(1);
