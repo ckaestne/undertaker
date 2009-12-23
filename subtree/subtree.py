@@ -2,6 +2,7 @@
 
 import os
 import os.path
+import time
 
 filename = 'some-results-for-nur-in-source'
 
@@ -152,6 +153,25 @@ tree.parse("some-results-for-nur-in-source")
 
 graph = file("graph.html", "w+")
 
+def tagtable():
+    taglist = list(tags.alltags())
+    return '\n'.join(['<tr><td>%s</td><td>%s</td></tr>' % (i, '<br />'.join(tags.getconfigs(i)))
+                      for i in taglist])
+
+def tagtable_():
+    taglist = list(tags.alltags())
+    result = '<tr>'
+
+    for i in taglist:
+        result += '<td>%s</td>' % i
+
+    result += '</tr>\n<tr>'
+
+    for i in taglist:
+        result += '\n<td>%s</td>' % '<br />'.join(tags.getconfigs(i))
+
+    return result
+
 graph.write('''
 <html>
 <head>
@@ -159,6 +179,9 @@ graph.write('''
 .point {
 font-size: 0.5em;
 }
+td {
+border: solid 1px;
+} 
 </style>
 
 <script type="text/javascript" src="jquery.js"></script>
@@ -175,11 +198,17 @@ $(document).ready(function(){
 </script>
 </head>
 <body>
+<div><a href="." class="point">Tagstats</a>
+<table class="sub" style="border: solid 1px;">
+%s
+</table>
+</div>
 <ul>
 %s
 </ul>
+<p>%s</p>
 </body>
-</html>''' % tree.output(graph))
+</html>''' % (tagtable(), tree.output(graph), time.ctime()))
 
 
 
