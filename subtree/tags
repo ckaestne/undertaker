@@ -6,7 +6,7 @@ ATHEROS_AR71XX wip http://osdir.com/ml/linux-wireless/2009-09/msg00772.html
 B43LEGACY_RFKILL missed-on-rm f41f3f373dd72344c65d801d6381fe83ef3a2c54 obsolete
 BEFS_RW forever
 BIG_ENDIAN 2.6.8-2.6.24 obsolete
-BTRFS_POSIX_ACL typo BTRFS_FS_POSIX_ACL fixed-0eda294dfc980c1cbe4f8a0564bf543f86a01ddb
+BTRFS_POSIX_ACL typo BTRFS_FS_POSIX_ACL fixed 0eda294dfc980c1cbe4f8a0564bf543f86a01ddb
 BUFFER_DEBUG forever
 CASSINI_MULTICAST_REG_WRITE missing
 CASSINI_NAPI missing http://kerneltrap.org/mailarchive/linux-netdev/2007/11/21/436850
