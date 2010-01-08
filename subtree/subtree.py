@@ -8,7 +8,7 @@ filename = 'some-results-for-nur-in-source'
 
 arches = ["PPC", "PPC64", "X86", "ARM", "SPARC",
           "AMIGA", "AVR32", "M68K", "S390", "BLACKFIN",
-          "SPARC64", "IA64", "MIPS", "PPC32", "PARISC", 
+          "SPARC64", "IA64", "MIPS", "PPC32", "PARISC",
           "SPARC32"]
 
 false_pos = ["IP_PIMSM",]
@@ -58,7 +58,7 @@ class Config:
 
     def __str__(self):
         return '%s (%s)' % ( self.name, ", ".join(self.tags) )
-        
+
     def __hash__(self):
         return self.name.__hash__()
 
@@ -86,7 +86,7 @@ class Dir:
             if f.name == name:
                 f.add(config)
                 return
-        
+
         self.files.append(File(name, self.tags, [config]))
 
     def add(self, rempath, config):
@@ -154,12 +154,18 @@ tree.parse("some-results-for-nur-in-source")
 graph = file("graph.html", "w+")
 
 def tagtable():
-    taglist = list(tags.alltags())
+    import re
+    r = re.compile('[0-9a-f]{40}')
+
+    taglist = [i for i in tags.alltags() if not r.match(i)]
     return '\n'.join(['<tr><td>%s</td><td>%s</td></tr>' % (i, '<br />'.join(tags.getconfigs(i)))
                       for i in taglist])
 
 def tagtable_():
-    taglist = list(tags.alltags())
+    import re
+    r = re.compile('[0-9a-f]{40}')
+
+    taglist = [i for i in tags.alltags() if r.match(i)]
     result = '<tr>'
 
     for i in taglist:
