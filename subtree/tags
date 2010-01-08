@@ -1,9 +1,9 @@
-6~AIC7XXX_PROC_STATS forever marked-disabled
+AIC7XXX_PROC_STATS forever marked-disabled
 ARCH_HAS_ASYNC_TX_FIND_CHANNEL 47437b2c9a64315efeb3d84e97ffefd6c3c67ef1
 ARCH_KARO neu wip?
-B43LEGACY_RFKILL missed-on-rm f41f3f373dd72344c65d801d6381fe83ef3a2c54
+B43LEGACY_RFKILL missed-on-rm f41f3f373dd72344c65d801d6381fe83ef3a2c54 obsolete
 BEFS_RW forever
-BTRFS_POSIX_ACL typo BTRFS_FS_POSIX_ACL
+BTRFS_POSIX_ACL typo BTRFS_FS_POSIX_ACL fixed-0eda294dfc980c1cbe4f8a0564bf543f86a01ddb
 BUFFER_DEBUG forever
 CASSINI_MULTICAST_REG_WRITE missing
 CASSINI_NAPI missing http://kerneltrap.org/mailarchive/linux-netdev/2007/11/21/436850
@@ -11,7 +11,7 @@ CASSINI_QGE_DEBUG missing
 CIFS_QUOTA forever
 DEBUGFS typo DEBUG_FS was-wron-in-doc
 DVB_DIBCOM_DEBUG removed b6a235b1186dda0800c8bedc2526830a4a36b44e
-FB_SOFT_CURSOR in-defconfig in-kconfig c465e05a03209651078b95686158648fd7ed84c5
+FB_SOFT_CURSOR in-defconfig in-kconfig c465e05a03209651078b95686158648fd7ed84c5 obsolete
 FLEXONENAND define
 FLEXONENAND_SIM_DIE0_BOUNDARY define
 FLEXONENAND_SIM_DIE1_BOUNDARY define
@@ -19,7 +19,7 @@ FUSION_MAX_FC_SGE
 HARD_PPS forever
 INPUT_TWL4030_PWBUTTON typo INPUT_TWL4030_PWRBUTTON
 IP_PIMSM define
-IP_ROUTE_PERVASIVE forever
+IP_ROUTE_PERVASIVE forever pre-2.4
 IP_VS_DH_TAB_BITS forever? define
 IP_VS_LBLCR_TAB_BITS forever define
 IP_VS_LBLC_TAB_BITS forever define
@@ -27,7 +27,7 @@ IP_VS_SH_TAB_BITS forever define
 IRDA_DYNAMIC_WINDOW forever
 IWM_TX_CONCATENATED define
 KDB_MODULES sgi-xfs
-LMC_IGNORE_HARDWARE_HANDSHAKE define
+LMC_IGNORE_HARDWARE_HANDSHAKE define pre-2.4
 MPT_SCSI_FC_SG_DEPTH define
 NANDSIM_ACCESS_DELAY define
 NANDSIM_BUS_WIDTH define
@@ -42,11 +42,11 @@ NANDSIM_OUTPUT_CYCLE define
 NANDSIM_PROGRAMM_DELAY define
 NANDSIM_SECOND_ID_BYTE define
 NANDSIM_THIRD_ID_BYTE define
-NETWINDER_RX_DMA_PROBLEMS define
+NETWINDER_RX_DMA_PROBLEMS define pre-2.4
 NILFS_POSIX_ACL neu missed-on-rm d441b1c293149212045de00f346c8ea6cd41cce4
 NILFS_XATTR neu wip
 NO_ATA_LEGACY missing
-OCFS2_COMPAT_JBD missed-on-rm 53ef99cad9878f02f27bb30bc304fc42af8bdd6e
+OCFS2_COMPAT_JBD missed-on-rm 53ef99cad9878f02f27bb30bc304fc42af8bdd6e obsolete
 ONENAND_SIM_DEVICE_ID define
 ONENAND_SIM_MANUFACTURER define
 ONENAND_SIM_TECHNOLOGY_ID define
@@ -57,13 +57,13 @@ SERIAL_DETECT_IRQ define
 SND_HPET missed-on-rm forever alsa-driver
 SSB_SDIO neu
 SYS_ISDBT typo? drop-CONFIG?
-USB_GADGET_N9604 forever
-USB_GADGET_SUPERH forever
+USB_GADGET_N9604 obsolete? 0391c828ce75cc71ae301946699a6f2d515fd99d
+USB_GADGET_SUPERH forever http://article.gmane.org/gmane.linux.usb.devel/60740 discontinued-patch
 USE_PCXHRLOADER firmware
-USB_GADGET_MQ11XX missed-on-rm?
-USE_W977_PNP define
+USB_GADGET_MQ11XX missed-on-rm? 0391c828ce75cc71ae301946699a6f2d515fd99d
+USE_W977_PNP define pre-2.4
 USE_VXLOADER forever
-X86_MCE_P4THERMAL in-defconfig missed-on-rm 5bb38adcb54cf7192b154368ad62982caa11ca0b
+X86_MCE_P4THERMAL in-defconfig missed-on-rm 5bb38adcb54cf7192b154368ad62982caa11ca0b obsolete
 XEN_DOM0 xen
 XEN_BACKEND ?
 XFS_DMAPI forever
@@ -71,20 +71,21 @@ XFS_TRACE forever
 PPC_PMAC__disabled disabled-because-buggy
 PPC_OF__disabled disabled-because-buggy
 ATHEROS_AR71XX
-BIG_ENDIAN todo
+BIG_ENDIAN 2.6.8-2.6.24 obsolete
 CHELSIO_T1_COUGAR todo
 HSO_AUTOPM todo
 LWMON5 todo
-NETWINDER_TX_DMA_PROBLEMS forever ?
+NETWINDER_TX_DMA_PROBLEMS pre-2.4 ?
 SA1100_CT6001 forever to-remove?
 TWL4030_ALLOW_UNSUPPORTED todo
-TWL4030_BCI_BATTERY todo
-TWL4030_MADC todo
+TWL4030_BCI_BATTERY linux-omap discontinued-path http://linux.omap.com/pub/kernel/3430sdp/patches-applicable-over-linux-omap-2.6.git/twl4030_bci_battery_20080305.patch
+TWL4030_MADC wip linux-omap http://lwn.net/Articles/363701/
 USB_GADGET_MPC8272 todo
-USB_GADGET_MUSBHSFC todo 
-USB_GADGET_SA1100 todo
+USB_GADGET_MUSBHSFC obsolete? 0391c828ce75cc71ae301946699a6f2d515fd99d
+USB_GADGET_SA1100 obsolete? 0391c828ce75cc71ae301946699a6f2d515fd99d
 USB_HCD_DMA todo
 USB_HCD_STAT todo
-USE_INTERNAL_TIMER todo
+USE_INTERNAL_TIMER todo pre-2.4
 USE_MIXARTLOADER todo
 AHCI todo
+FUSION_MAX_FC_SGE todo pre-2.4
