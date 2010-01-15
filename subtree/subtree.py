@@ -157,8 +157,11 @@ def tagtable():
     import re
     r = re.compile('[0-9a-f]{40}')
 
-    taglist = [i for i in tags.alltags() if not r.match(i)]
-    return '\n'.join(['<tr><td>%s</td><td>%s</td></tr>' % (i, '<br />'.join(tags.getconfigs(i)))
+    f = lambda x: x if not x[len(x) - 1] == "?" else x[:-1]
+
+    taglist = list(set( [f(i) for i in tags.alltags() if not r.match(i)]))
+    return '\n'.join(['<tr><td>%s</td><td>%s</td></tr>' % (i, '<br />'.join(tags.getconfigs(i) +
+                                                                            tags.getconfigs('%s?' % i)))
                       for i in taglist])
 
 def tagtable_():
