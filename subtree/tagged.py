@@ -19,15 +19,26 @@ font-size: 0.5em;
 </html>'''
 
 
-# create dict
-f = [ i[:-1].split() for i in file('tags').readlines() ]
+tagdict = dict()
+tags = set()
 
-tagdict  = dict([ (i[0], i[1:] if len(i[1:]) else ('')) for i in f ])
+def init_dicts():
+    global tagdict
+    global tags
+    f = [ i[:-1].split() for i in file('tags').readlines() ]
 
-tags = set((''))
+    tagdict  = dict([ (i[0], i[1:] if len(i[1:]) else ('')) for i in f ])
 
-for i in tagdict.values():
-    tags |= set(i)
+    tags = set((''))
+
+    for i in tagdict.values():
+        tags |= set(i)
+
+init_dicts()
+
+def superset(str):
+    l = str.split('+')
+    return set(l) | set(['%s?' % (i) for  i in l])
 
 def wanted_not(config, ignored):
     return len(ignored.intersection(set(tagdict[config]))) == 0
@@ -48,9 +59,14 @@ def serve_stuff(environment, start_response):
         e = serve(set())
     else:
         if info[1] == 'not':
-            e = serve(set(info[2].split("+")), wanted_not)
+            e = serve(superset(info[2]), wanted_not)
         elif info[1] == 'only':
-            e = serve(set(info[2].split('+')), wanted_only)
+            e = serve(superset(info[2]), wanted_only)
+        elif info[1] == 'reload':
+            init_dicts()
+
+            start_response('301 Moved Permanently', [('Location', '/not/')])
+            return '';
         else:
             start_response('400 NOT FOUND', [])
             return ''
