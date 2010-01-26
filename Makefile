@@ -64,6 +64,10 @@ config: scripts_basic FORCE
 %config: scripts_basic FORCE
 	$(Q)$(MAKE) $(build)=scripts/kconfig $@
 
+dumpconf: scripts_basic FORCE
+	$(Q)$(MAKE) $(build)=scripts/kconfig $@
+	scripts/kconfig/dumpconf $(KBUILD_KCONFIG)
+
 clean:
 	@find . $(RCS_FIND_IGNORE) \
 		\( -name '*.[oas]' -o -name '*.ko' -o -name '.*.cmd' \

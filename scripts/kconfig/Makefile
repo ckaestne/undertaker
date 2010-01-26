@@ -69,6 +69,8 @@ localyesconfig: $(obj)/streamline_config.pl $(obj)/conf
 	fi
 	$(Q)rm -f .tmp.config
 
+dumpconf: $(obj)/dumpconf
+
 # Create new linux.pot file
 # Adjust charset to UTF-8 in .po file to accept UTF-8 in Kconfig files
 # The symlink is used to repair a deficiency in arch/um
@@ -161,8 +163,9 @@ lxdialog += lxdialog/textbox.o lxdialog/yesno.o lxdialog/menubox.o
 conf-objs	:= conf.o  zconf.tab.o
 mconf-objs	:= mconf.o zconf.tab.o $(lxdialog)
 kxgettext-objs	:= kxgettext.o zconf.tab.o
+dumpconf-objs	:= dumpconf.o zconf.tab.o
 
-hostprogs-y := conf qconf gconf kxgettext
+hostprogs-y := conf qconf gconf kxgettext dumpconf
 
 ifeq ($(MAKECMDGOALS),menuconfig)
 	hostprogs-y += mconf
