@@ -1,6 +1,6 @@
 AHCI todo
 AIC7XXX_PROC_STATS forever marked-disabled
-ARCH_HAS_ASYNC_TX_FIND_CHANNEL 47437b2c9a64315efeb3d84e97ffefd6c3c67ef1
+ARCH_HAS_ASYNC_TX_FIND_CHANNEL 47437b2c9a64315efeb3d84e97ffefd6c3c67ef1 fixed
 ARCH_KARO neu wip?
 ATHEROS_AR71XX wip http://osdir.com/ml/linux-wireless/2009-09/msg00772.html
 B43LEGACY_RFKILL missed-on-rm f41f3f373dd72344c65d801d6381fe83ef3a2c54 obsolete reported fixed
@@ -79,9 +79,9 @@ USB_GADGET_SUPERH forever http://article.gmane.org/gmane.linux.usb.devel/60740 d
 USB_HCD_DMA todo reported
 USB_HCD_STAT todo fixed
 USE_INTERNAL_TIMER todo pre-2.4
-USE_MIXARTLOADER todo reported
-USE_PCXHRLOADER firmware reported
-USE_VXLOADER forever reported
+USE_MIXARTLOADER todo reported out-of-tree-build
+USE_PCXHRLOADER reported out-of-tree-build
+USE_VXLOADER forever reported out-of-tere-build
 USE_W977_PNP define pre-2.4
 X86_MCE_P4THERMAL in-defconfig missed-on-rm 5bb38adcb54cf7192b154368ad62982caa11ca0b obsolete reported
 XEN_BACKEND ?
