@@ -1,18 +1,18 @@
-AHCI todo
+AHCI reported
 AIC7XXX_PROC_STATS forever marked-disabled
 ARCH_HAS_ASYNC_TX_FIND_CHANNEL 47437b2c9a64315efeb3d84e97ffefd6c3c67ef1 fixed
 ARCH_KARO neu wip?
 ATHEROS_AR71XX wip http://osdir.com/ml/linux-wireless/2009-09/msg00772.html
 B43LEGACY_RFKILL missed-on-rm f41f3f373dd72344c65d801d6381fe83ef3a2c54 obsolete reported fixed
-BEFS_RW forever
+BEFS_RW forever reported
 BIG_ENDIAN 2.6.8-2.6.24 obsolete reported
 BTRFS_POSIX_ACL typo BTRFS_FS_POSIX_ACL fixed 0eda294dfc980c1cbe4f8a0564bf543f86a01ddb
-BUFFER_DEBUG forever
+BUFFER_DEBUG forever reported
 CASSINI_MULTICAST_REG_WRITE missing
 CASSINI_NAPI missing http://kerneltrap.org/mailarchive/linux-netdev/2007/11/21/436850
 CASSINI_QGE_DEBUG missing
 CHELSIO_T1_COUGAR todo
-CIFS_QUOTA forever
+CIFS_QUOTA forever reported
 DEBUGFS typo DEBUG_FS was-wrong-in-doc reported fixed
 DVB_DIBCOM_DEBUG removed b6a235b1186dda0800c8bedc2526830a4a36b44e reported
 FB_SOFT_CURSOR in-defconfig in-kconfig c465e05a03209651078b95686158648fd7ed84c5 obsolete reported
@@ -20,11 +20,11 @@ FLEXONENAND define
 FLEXONENAND_SIM_DIE0_BOUNDARY define
 FLEXONENAND_SIM_DIE1_BOUNDARY define
 FUSION_MAX_FC_SGE todo pre-2.4
-HARD_PPS forever
-HSO_AUTOPM todo
+HARD_PPS forever reported
+HSO_AUTOPM reported
 INPUT_TWL4030_PWBUTTON typo INPUT_TWL4030_PWRBUTTON reported
 IP_PIMSM define
-IP_ROUTE_PERVASIVE forever pre-2.4
+IP_ROUTE_PERVASIVE forever pre-2.4 reported
 IP_VS_DH_TAB_BITS forever? define
 IP_VS_LBLCR_TAB_BITS forever define
 IP_VS_LBLC_TAB_BITS forever define
@@ -33,7 +33,7 @@ IRDA_DYNAMIC_WINDOW forever
 IWM_TX_CONCATENATED define
 KDB_MODULES sgi-xfs
 LMC_IGNORE_HARDWARE_HANDSHAKE define pre-2.4
-LWMON5 todo
+LWMON5 reported
 MPT_SCSI_FC_SG_DEPTH define
 NANDSIM_ACCESS_DELAY define
 NANDSIM_BUS_WIDTH define
@@ -61,25 +61,25 @@ ONENAND_SIM_VERSION_ID define
 PAS_BASE define
 PPC_OF__disabled disabled-because-buggy
 PPC_PMAC__disabled disabled-because-buggy
-SA1100_CT6001 forever to-remove?
-SCSI_DC395x_TRMS1040_TRADMAP forever
+SA1100_CT6001 forever to-remove? reported
+SCSI_DC395x_TRMS1040_TRADMAP forever reported
 SERIAL_DETECT_IRQ define
 SND_HPET missed-on-rm forever alsa-driver
-SSB_SDIO neu
+SSB_SDIO reported
 SYS_ISDBT typo? drop-CONFIG?
 TWL4030_ALLOW_UNSUPPORTED todo
 TWL4030_BCI_BATTERY linux-omap discontinued-path http://linux.omap.com/pub/kernel/3430sdp/patches-applicable-over-linux-omap-2.6.git/twl4030_bci_battery_20080305.patch reported fixed
 TWL4030_MADC wip linux-omap http://lwn.net/Articles/363701/
-USB_GADGET_MPC8272 todo
+USB_GADGET_MPC8272 reported
 USB_GADGET_MQ11XX missed-on-rm? 0391c828ce75cc71ae301946699a6f2d515fd99d reported
 USB_GADGET_MUSBHSFC obsolete? 0391c828ce75cc71ae301946699a6f2d515fd99d reported
 USB_GADGET_N9604 obsolete? 0391c828ce75cc71ae301946699a6f2d515fd99d reported
 USB_GADGET_SA1100 obsolete? 0391c828ce75cc71ae301946699a6f2d515fd99d reported
 USB_GADGET_SUPERH forever http://article.gmane.org/gmane.linux.usb.devel/60740 discontinued-patch reported
-USB_HCD_DMA todo reported
-USB_HCD_STAT todo fixed
-USE_INTERNAL_TIMER todo pre-2.4
-USE_MIXARTLOADER todo reported out-of-tree-build
+USB_HCD_DMA reported
+USB_HCD_STAT fixed
+USE_INTERNAL_TIMER reported pre-2.4
+USE_MIXARTLOADER reported out-of-tree-build
 USE_PCXHRLOADER reported out-of-tree-build
 USE_VXLOADER forever reported out-of-tere-build
 USE_W977_PNP define pre-2.4
@@ -88,3 +88,33 @@ XEN_BACKEND ?
 XEN_DOM0 xen
 XFS_DMAPI forever
 XFS_TRACE forever reported fixed
+ARCH_PNX010X 33
+BAND_CBAND 33 define
+BAND_LBAND 33
+BAND_SBAND 33
+BAND_UHF 33 define
+BAND_VHF 33 define
+DIB0090_USE_PWM_AGC 33 define
+MSND_CALSIGNAL 33 define
+MSND_WRITE_NDELAY 33 define
+NCR53C8XX_PREFETCH 33 define
+OPEN_FIRMWARE 33
+RALINK_RT288X 33
+RALINK_RT305X 33
+RT2800PCI_WISOC 33 define
+SCSI_G_NCR5380_MEM 33
+SCSI_NCR53C8XX_DISABLE_MPARITY_CHECK 33
+SCSI_NCR53C8XX_DISABLE_PARITY_CHECK 33
+SCSI_NCR53C8XX_FORCE_SYNC_NEGO 33
+SCSI_NCR53C8XX_IARB 33
+SCSI_NCR53C8XX_INTEGRITY_CHECK 33
+SCSI_NCR53C8XX_NO_WORD_TRANSFERS 33
+SCSI_NCR53C8XX_TAGGED_QUEUE 33
+SH_HICOSH4 33
+SLOW_WORK_PROC 33
+SND_DEBUG_ROM 33
+STANDARD_DAB 33
+STANDARD_DVBT 33
+TUNER_DIB0090_CAPTRIM_MEMORY 33
+TUNER_DIB0090_P1B_SUPPORT 33
+WLAN_80211 33
