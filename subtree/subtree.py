@@ -3,12 +3,16 @@
 import os
 import os.path
 import time
+import sys
 
 import tag.info
 import tag.tags
 import subtree.tree
 
-filename = 'missing-in-source-annotated'
+if (len(sys.argv) < 4):
+    sys.exit(-1)
+
+template = file("%s/graph.tmpl" % os.path.dirname(__file__)).read()
 
 arches = ["PPC", "PPC64", "X86", "ARM", "SPARC",
           "AMIGA", "AVR32", "M68K", "S390", "BLACKFIN",
@@ -17,13 +21,11 @@ arches = ["PPC", "PPC64", "X86", "ARM", "SPARC",
 
 false_pos = []
 
-conl = file('ttt', 'w')
-
-tags = tag.tags.Tags('tags.k-s')
+tags = tag.tags.Tags(sys.argv[2])
 tree = subtree.tree.Tree(tags)
-tree.parse("missing-in-source-annotated", false_pos + arches)
+tree.parse(sys.argv[1], false_pos + arches)
 
-graph = file("graph2.html", "w+")
+graph = file(sys.argv[3], "w+")
 
 def tagtable():
     import re
@@ -53,47 +55,8 @@ def tagtable_():
 
     return result
 
-graph.write('''
-<html>
-<head>
-<style type="text/css">
-.point {
-font-size: 0.5em;
-}
-td {
-border: solid 1px;
-} 
-</style>
+graph.write(template % (tagtable(), tree.output(graph), time.ctime()))
 
-<script type="text/javascript" src="jquery.js"></script>
-<script type="text/javascript">
-$(document).ready(function(){
-	$(".point").toggle(function(){
-		$(this).siblings().show('slow');
-	},function(){
-		$(this).siblings().hide('slow');
-	});
-	$(".sub").hide();
-	return false;
-});
-</script>
-</head>
-<body>
-<div><a href="." class="point">Tagstats</a>
-<table class="sub" style="border: solid 1px;">
-%s
-</table>
-</div>
-<ul>
-%s
-</ul>
-<p>%s</p>
-</body>
-</html>''' % (tagtable(), tree.output(graph), time.ctime()))
-
-
-
-import sys
 sys.stderr.write( str(list(tags.alltags())) )
 
 print '\n%s\n' % ('#'*60, ) * 2

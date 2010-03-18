@@ -1,0 +1,36 @@
+<html>
+  <head>
+	<style type="text/css">
+	  .point {
+	    font-size: 0.5em;
+	  }
+	  td {
+	    border: solid 1px;
+	  }
+	</style>
+
+	<script type="text/javascript" src="jquery.js"></script>
+	<script type="text/javascript">
+	  $(document).ready(function(){
+	    $(".point").toggle(function(){
+	      $(this).siblings().show('slow');
+	    },function(){
+	      $(this).siblings().hide('slow');
+	    });
+	    $(".sub").hide();
+	    return false;
+      });
+	</script>
+  </head>
+  <body>
+	<div><a href="." class="point">Tagstats</a>
+	  <table class="sub" style="border: solid 1px;">
+		%s
+	  </table>
+	</div>
+	<ul>
+	  %s
+	</ul>
+	<p>%s</p>
+  </body>
+</html>
