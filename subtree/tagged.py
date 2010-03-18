@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
+import tag.info
+
 html = '''
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+\t"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="de" lang="de">
 <head>
 <style type="text/css">
@@ -25,9 +28,13 @@ tags = set()
 def init_dicts():
     global tagdict
     global tags
-    f = [ i[:-1].split() for i in file('tags').readlines() ]
+    splitlines = [ i[:-1].split()
+                   for i in file('tags').readlines() ]
 
-    tagdict  = dict([ (i[0], i[1:] if len(i[1:]) else ('')) for i in f ])
+    tagdict  = dict([ (i[0], i[1:]
+                       if len(i[1:])
+                       else (''))
+                      for i in splitlines ])
 
     tags = set((''))
 
@@ -35,6 +42,12 @@ def init_dicts():
         tags |= set(i)
 
 init_dicts()
+
+def tagstring(item):
+    return ', '.join(['<span title="%s">%s</span>'
+                      % (tag.info.entry.get(i, ''), i)
+                      for i in tagdict[item]
+                      ])
 
 def superset(str):
     l = str.split('+')
@@ -49,7 +62,7 @@ def wanted_only(config, ignored):
 def serve(what, fn):
     c = filter(lambda x: fn(x, what) , tagdict.keys())
 
-    return [ '%s (%s)' % (d, ', '.join(tagdict[d])) for d in c]
+    return [ '%s (%s)' % (d, tagstring(d)) for d in c]
 
 def serve_stuff(environment, start_response):
     info = environment.get('PATH_INFO', '').split('/')
@@ -72,7 +85,7 @@ def serve_stuff(environment, start_response):
             return ''
 
     start_response('200 OK', [('Content-Type', 'application/xhtml+xml')])
-    
+
     return html % ('\n'.join(sorted( [ '  <li>%s</li>' % i for i in list(e) ] )))
 
 if __name__ == '__main__':
