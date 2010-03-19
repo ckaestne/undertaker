@@ -45,7 +45,7 @@ init_dicts()
 
 def tagstring(item):
     return ', '.join(['<span title="%s">%s</span>'
-                      % (tag.info.entry.get(i, ''), i)
+                      % (tag.info.entry[i], i)
                       for i in tagdict[item]
                       ])
 

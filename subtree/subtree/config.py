@@ -8,7 +8,7 @@ class Config:
         self.tags = tags[name]
 
     def _tags(self):
-        return ['<span title="%s">%s</span>' % (tag.info.entry.get(i, ''), i)
+        return ['<span title="%s">%s</span>' % (tag.info.entry[i], i)
                 for i in self.tags]
 
     def __str__(self):
