@@ -3,8 +3,6 @@
 RSFS=`find . -name '*.c.rsf'`
 WHAT=`cat $1`
 
-echo $i
-
 for j in $WHAT
 do
 	echo $j
