@@ -5,61 +5,106 @@ import os.path
 import time
 import sys
 
-import tag.info
-import tag.tags
+
 import subtree.tree
 
-if (len(sys.argv) < 4):
-    sys.exit(-1)
+def from_anotated_file(args):
+    if (len(args) != 2):
+        sys.exit(1)
 
-template = file("%s/graph.tmpl" % os.path.dirname(__file__)).read()
+    import tag.info
+    import tag.tags
 
-arches = ["PPC", "PPC64", "X86", "ARM", "SPARC",
-          "AMIGA", "AVR32", "M68K", "S390", "BLACKFIN",
-          "SPARC64", "IA64", "MIPS", "PPC32", "PARISC",
-          "SPARC32"]
+    arches = ["PPC", "PPC64", "X86", "ARM", "SPARC",
+              "AMIGA", "AVR32", "M68K", "S390", "BLACKFIN",
+              "SPARC64", "IA64", "MIPS", "PPC32", "PARISC",
+              "SPARC32"]
 
-false_pos = []
+    whitelist = []
 
-tags = tag.tags.Tags(sys.argv[2])
-tree = subtree.tree.Tree(tags)
-tree.parse(sys.argv[1], false_pos + arches)
+    def tagtable():
+        import re
+        r = re.compile('[0-9a-f]{40}')
 
-graph = file(sys.argv[3], "w+")
+        f = lambda x: x if not x[len(x) - 1] == "?" else x[:-1]
 
-def tagtable():
-    import re
-    r = re.compile('[0-9a-f]{40}')
+        taglist = list(set( [f(i) for i in tags.alltags() if not r.match(i)]))
+        return '\n'.join(['<tr><td>%s</td><td>%s</td></tr>' % (i, '<br />'.join(tags.getconfigs(i) +
+                                                                                tags.getconfigs('%s?' % i)))
+                          for i in taglist])
 
-    f = lambda x: x if not x[len(x) - 1] == "?" else x[:-1]
+    tags = tag.tags.Tags(args[1])
+    tree = subtree.tree.Tree(tags)
+    tree.parse([ x[:-1] for x in file(args[0]).readlines() ], whitelist + arches)
 
-    taglist = list(set( [f(i) for i in tags.alltags() if not r.match(i)]))
-    return '\n'.join(['<tr><td>%s</td><td>%s</td></tr>' % (i, '<br />'.join(tags.getconfigs(i) +
-                                                                            tags.getconfigs('%s?' % i)))
-                      for i in taglist])
+    return tree, tagtable()
 
-def tagtable_():
-    import re
-    r = re.compile('[0-9a-f]{40}')
+def from_satdead_tree(args):
+    if len(args) != 0:
+        sys.exit(1)
 
-    taglist = [i for i in tags.alltags() if r.match(i)]
-    result = '<tr>'
+    import subprocess
 
-    for i in taglist:
-        result += '<td>%s</td>' % i
+    class Tags:
+        def __getitem__(self, config):
+            return []
 
-    result += '</tr>\n<tr>'
+    tags = Tags()
+    tree = subtree.tree.Tree(tags)
 
-    for i in taglist:
-        result += '\n<td>%s</td>' % '<br />'.join(tags.getconfigs(i))
+    def extract(string):
+        tmp = string.split(':')[0].split('codesat')
+        return (tmp[0][:-1], tmp[1].split('.')[1])
 
-    return result
+    stuff = [ extract(i) for i in  subprocess.Popen(["grep", "-R", "UNSATISFIABLE", "."], stdout=subprocess.PIPE).communicate()[0].split('\n')[:-1] ]
 
-graph.write(template % (tagtable(), tree.output(graph), time.ctime()))
+    satdead = ['CONFIG_SATDEAD']
 
-sys.stderr.write( str(list(tags.alltags())) )
+    for thing in stuff:
+        f = [ i.split('\t') for i in file('%s.rsfout' % thing[0]).readlines() ]
+        f = [ i[2] for i in f if i[0] == 'CondBlockIsAtPos' and i[1] == thing[1][1:] ]
+        satdead += f
 
-print '\n%s\n' % ('#'*60, ) * 2
-for i in tags.alltags():
-    print ('<<<%s>>>\n\t' % i),
-    print '\n\t'.join(tags.getconfigs(i))
+    tree.parse(satdead, [])
+
+    return tree, ""
+
+def from_satdead_tree_extract(args):
+    if len(args) < 2:
+        sys.exit(1)
+
+    import subprocess
+
+    hardcoded_extract_base = '/proj/i4vamos/users/tartler/results/vamos1/'
+    date, version = args[:2]
+    for i in [ '%s/%s/v%s-%s-files.cpio' % (hardcoded_extract_base, date, version, i) for i in ('dead', 'rsfout') ]:
+        subprocess.call(["cpio", '-id'], stdin = file(i))
+
+    return from_satdead_tree(args[2:])
+
+def main():
+    if len(sys.argv) < 3:
+        sys.exit(1)
+
+    opmode, resultfile = sys.argv[1:3]
+
+    if opmode == '-a':
+        tree, tagtable = from_anotated_file(sys.argv[3:])
+    elif opmode == '-d':
+        tree, tagtable = from_satdead_tree(sys.argv[3:])
+    elif opmode == '-e':
+        tree, tagtable = from_satdead_tree_extract(sys.argv[3:])
+    else:
+        sys.stderr.write("Please specify source\n")
+        sys.stderr.write("-a for a anotated list\n")
+        sys.stderr.write("-d for a tree with .dead files\n")
+        sys.exit(1)
+
+    graph = file(resultfile, "w+")
+
+    template = file("%s/graph.tmpl" % os.path.dirname(__file__)).read()
+
+    graph.write(template % (tagtable, tree.output(), time.ctime()))
+
+if __name__ == '__main__':
+    main()

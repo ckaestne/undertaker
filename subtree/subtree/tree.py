@@ -78,8 +78,7 @@ class Tree:
         steps = path.split('/')
         self.root.add(steps[1:], config)
 
-    def parse(self, filename, ignores):
-        lines = [ x[:-1] for x in file(filename).readlines() ]
+    def parse(self, lines, ignores):
         conf = ""
         for line in lines:
             if line[:7] == "CONFIG_":
@@ -90,5 +89,5 @@ class Tree:
 #                    conl.write('%s\n' % conf)
                     self.add_node(line, conf)
 
-    def output(self, ondisk):
+    def output(self):
         return self.root.output("")
