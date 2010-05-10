@@ -62,7 +62,7 @@ def from_satdead_tree(args):
 
     for thing in stuff:
         f = [ i.split('\t') for i in file('%s.rsfout' % thing[0]).readlines() ]
-        f = [ i[2] for i in f if i[0] == 'CondBlockIsAtPos' and i[1] == thing[1][1:] ]
+        f = [ './%s' % i[2] for i in f if i[0] == 'CondBlockIsAtPos' and i[1] == thing[1][1:] ]
         satdead += f
 
     tree.parse(satdead, [])
