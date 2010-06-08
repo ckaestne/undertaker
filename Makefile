@@ -1,16 +1,19 @@
+CXX=g++
+LDXX=g++
 DEBUG = -g3
 CFLAGS = -Wall -Wextra -O2 $(DEBUG)
 CXXFLAGS = $(CFLAGS)
-LDFLAGS =
-LDLIBS = libziz.a
+LDXXFLAGS =
 
 ZIZOBJ = Ziz.o
 HEADERS = $(wildcard *.h)
 
 all: zizler
 
-zizler: ZizTest.cpp $(HEADERS) $(LDLIBS)
-	$(CXX) -o $@ $(CXXFLAGS) $^
+ZizTest.o: ZizTest.cpp $(HEADERS)
+
+zizler: ZizTest.o libziz.a
+	$(LDXX) -o $@ $(LDXXFLAGS) $^
 
 $(ZIZOBJ): $(HEADERS)
 libziz.a: $(ZIZOBJ) $(HEADERS)
@@ -20,6 +23,6 @@ check: all
 	@cd validation && ./test-suite.sh
 
 clean:
-	rm -rf *.o
+	rm -rf *.o *.a
 
 .PHONY: check
