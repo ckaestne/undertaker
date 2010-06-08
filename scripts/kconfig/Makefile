@@ -2,7 +2,8 @@
 # Kernel configuration targets
 # These targets are used from top-level makefile
 
-PHONY += oldconfig xconfig gconfig menuconfig config silentoldconfig update-po-config
+PHONY += oldconfig xconfig gconfig menuconfig config silentoldconfig update-po-config \
+	localmodconfig localyesconfig
 
 ifdef KBUILD_KCONFIG
 Kconfig := $(KBUILD_KCONFIG)
@@ -26,7 +27,47 @@ oldconfig: $(obj)/conf
 	$< -o $(Kconfig)
 
 silentoldconfig: $(obj)/conf
+	$(Q)mkdir -p include/generated
 	$< -s $(Kconfig)
+
+# if no path is given, then use src directory to find file
+ifdef LSMOD
+LSMOD_F := $(LSMOD)
+ifeq ($(findstring /,$(LSMOD)),)
+  LSMOD_F := $(objtree)/$(LSMOD)
+endif
+endif
+
+localmodconfig: $(obj)/streamline_config.pl $(obj)/conf
+	$(Q)mkdir -p include/generated
+	$(Q)perl $< $(srctree) $(Kconfig) $(LSMOD_F) > .tmp.config
+	$(Q)if [ -f .config ]; then 				\
+			cmp -s .tmp.config .config ||		\
+			(mv -f .config .config.old.1;		\
+			 mv -f .tmp.config .config;		\
+			 $(obj)/conf -s $(Kconfig);		\
+			 mv -f .config.old.1 .config.old)	\
+	else							\
+			mv -f .tmp.config .config;		\
+			$(obj)/conf -s $(Kconfig);		\
+	fi
+	$(Q)rm -f .tmp.config
+
+localyesconfig: $(obj)/streamline_config.pl $(obj)/conf
+	$(Q)mkdir -p include/generated
+	$(Q)perl $< $(srctree) $(Kconfig) $(LSMOD_F) > .tmp.config
+	$(Q)sed -i s/=m/=y/ .tmp.config
+	$(Q)if [ -f .config ]; then 				\
+			cmp -s .tmp.config .config ||		\
+			(mv -f .config .config.old.1;		\
+			 mv -f .tmp.config .config;		\
+			 $(obj)/conf -s $(Kconfig);		\
+			 mv -f .config.old.1 .config.old)	\
+	else							\
+			mv -f .tmp.config .config;		\
+			$(obj)/conf -s $(Kconfig);		\
+	fi
+	$(Q)rm -f .tmp.config
 
 # Create new linux.pot file
 # Adjust charset to UTF-8 in .po file to accept UTF-8 in Kconfig files
@@ -83,7 +124,9 @@ help:
 	@echo  '  xconfig	  - Update current config utilising a QT based front-end'
 	@echo  '  gconfig	  - Update current config utilising a GTK based front-end'
 	@echo  '  oldconfig	  - Update current config utilising a provided .config as base'
-	@echo  '  silentoldconfig - Same as oldconfig, but quietly'
+	@echo  '  localmodconfig  - Update current config disabling modules not loaded'
+	@echo  '  localyesconfig  - Update current config converting local mods to core'
+	@echo  '  silentoldconfig - Same as oldconfig, but quietly, additionally update deps'
 	@echo  '  randconfig	  - New config with random answer to all options'
 	@echo  '  defconfig	  - New config with default answer to all options'
 	@echo  '  allmodconfig	  - New config selecting modules when possible'
@@ -104,7 +147,7 @@ HOST_EXTRACFLAGS += -DLOCALE
 # ===========================================================================
 # Shared Makefile for the various kconfig executables:
 # conf:	  Used for defconfig, oldconfig and related targets
-# mconf:  Used for the mconfig target.
+# mconf:  Used for the menuconfig target
 #         Utilizes the lxdialog package
 # qconf:  Used for the xconfig target
 #         Based on QT which needs to be installed to compile it
