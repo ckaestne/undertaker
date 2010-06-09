@@ -25,4 +25,9 @@ check: all
 clean:
 	rm -rf *.o *.a
 
+test-clean:
+	rm -rf validation/*.got
+	rm -rf validation/*.diff
+	rm -rf validation/*.expected
+
 .PHONY: check
