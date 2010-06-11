@@ -3,10 +3,6 @@
 
 #include <string>
 
-class ZizTest {
-    public:
-        ZizTest() {}
-        bool Test(std::string file);
-};
+bool ziztest(std::string file);
 
 #endif /* ZIZTEST_H_ */

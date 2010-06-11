@@ -3,7 +3,7 @@ LDXX=g++
 DEBUG = -g3
 CFLAGS = -Wall -Wextra -O2 $(DEBUG)
 CXXFLAGS = $(CFLAGS)
-LDXXFLAGS =
+LDXXFLAGS = -lboost_wave-mt
 
 ZIZOBJ = Ziz.o
 HEADERS = $(wildcard *.h)
