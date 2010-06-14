@@ -5,6 +5,8 @@
 #include <iomanip>
 
 
+// Ziz
+
 CPPFile Ziz::Parse(std::string file)
 {
     try {
@@ -202,7 +204,6 @@ void Ziz::HandleToken(lexer_type& lexer)
     _p_curCodeBlock->AppendContent(lexer->get_value());
 }
 
-// TODO
 void Ziz::HandleIFDEF(lexer_type& lexer)
 {
     std::cerr << "HandleIFDEF() " << lexer->get_value() << std::endl;
@@ -211,10 +212,11 @@ void Ziz::HandleIFDEF(lexer_type& lexer)
 
     if (_p_curConditionalBlock != NULL)
         _condBlockStack.push(_p_curConditionalBlock);
-    _p_curConditionalBlock = _cppfile.CreateConditionalBlock(_curPos, lexer);
+
+    _p_curBlockContainer = _p_curConditionalBlock
+                         = _cppfile.CreateConditionalBlock(_curPos, lexer);
 }
 
-// TODO
 void Ziz::HandleENDIF(lexer_type& lexer)
 {
     std::cerr << "HandleENDIF() " << lexer->get_value() << std::endl;
@@ -247,12 +249,16 @@ void Ziz::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
         ++lexer;
     }
 
-    if (! _condBlockStack.empty()) {
-        _p_curConditionalBlock = _condBlockStack.top();
-        _condBlockStack.pop();
-    }
+    // add this block to current blocklist (either cppfile or inner block)
+    _p_curBlockContainer->AddBlock(_p_curConditionalBlock);
 
-    // TODO: add this block to some blocklist (file or curConditionalBlock)
+    if (! _condBlockStack.empty()) {        // we just left an inner block
+        _p_curBlockContainer = _p_curConditionalBlock = _condBlockStack.top();
+        _condBlockStack.pop();
+    } else {
+        _p_curBlockContainer = &_cppfile;   // we just left a top-level block
+        _p_curConditionalBlock = NULL;
+    }
 }
 
 
@@ -285,8 +291,9 @@ CPPFile::CreateConditionalBlock(position_type startPos, lexer_type& lexer)
 
 std::ostream & operator<<(std::ostream &stream, CPPFile const &t)
 {
+    std::vector<CPPBlock*> blocklist = t.InnerBlocks();
     std::vector<CPPBlock*>::const_iterator it;
-    for (it = t._blocklist.begin(); it != t._blocklist.end(); ++it)
+    for (it = blocklist.begin(); it != blocklist.end(); ++it)
         stream << **it;
     return stream;
 }

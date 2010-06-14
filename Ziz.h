@@ -27,6 +27,7 @@ typedef enum {
     Conditional
 } block_type;
 
+
 class CPPBlock {
     public:
         // TODO: forbid creation of CPPBlocks (make abstract class)
@@ -48,6 +49,15 @@ class CPPBlock {
         // TODO parent
 };
 
+class BlockContainer {
+    public:
+        // TODO: (maybe) return a reference?
+        std::vector<CPPBlock*>  InnerBlocks()  const    { return _innerBlocks; }
+        void                    AddBlock(CPPBlock* p_b) { _innerBlocks.push_back(p_b); }
+
+    private:
+        std::vector<CPPBlock*>  _innerBlocks;
+};
 
 class CodeBlock : public CPPBlock {
     public:
@@ -64,10 +74,10 @@ class CodeBlock : public CPPBlock {
         std::stringstream       _content;
 };
 
-class ConditionalBlock : public CPPBlock {
+class ConditionalBlock : public CPPBlock, public BlockContainer {
     public:
         ConditionalBlock(int i, position_type s, token_type t)
-            : CPPBlock(i, s), _type(t), _innerBlocks() {}
+            : CPPBlock(i, s), _type(t) {}
 
         virtual block_type BlockType()  const { return Conditional; }
 
@@ -75,9 +85,6 @@ class ConditionalBlock : public CPPBlock {
         std::string             Header()      const { return _header.str(); }
         std::string             Footer()      const { return _footer.str(); }
         std::string             Expression()  const { return _expression.str(); }
-
-        // TODO: (maybe) return a reference
-        std::vector<CPPBlock*>  InnerBlocks() const    { return _innerBlocks; }
 
         void AppendHeader       (const std::string &s) { _header     << s; }
         void AppendHeader       (const string_type &s) { _header     << s; }
@@ -91,21 +98,16 @@ class ConditionalBlock : public CPPBlock {
         std::stringstream       _header;
         std::stringstream       _footer;
         std::stringstream       _expression;    // TODO: shall be formula later
-        std::vector<CPPBlock*>  _innerBlocks;
 
         // TODO previous_else, ...?
 };
 
-class CPPFile {
+class CPPFile : public BlockContainer {
     public:
         CPPFile() : _blocks(0) {}
 
         CodeBlock*        CreateCodeBlock(position_type s);
         ConditionalBlock* CreateConditionalBlock(position_type s, lexer_type& lexer);
-
-        void AddBlock(CPPBlock* p_b) { _blocklist.push_back(p_b); }
-
-        std::vector<CPPBlock*> _blocklist;
 
     private:
         int _blocks;
@@ -120,7 +122,10 @@ class ZizException : public std::runtime_error {
 
 class Ziz {
     public:
-        Ziz() : _p_curCodeBlock(NULL), _p_curConditionalBlock(NULL) {}
+        Ziz() : _p_curCodeBlock(NULL),
+                _p_curConditionalBlock(NULL),
+                _p_curBlockContainer(&_cppfile) // add outermost blocks to file
+            {}
 
         CPPFile Parse(std::string file);
 
@@ -145,6 +150,8 @@ class Ziz {
         // Current CodeBlock and ConditionalBlock as it is built
         CodeBlock*                      _p_curCodeBlock;
         ConditionalBlock*               _p_curConditionalBlock;
+        // Current BlockContainer: where new inner blocks get added to
+        BlockContainer*                 _p_curBlockContainer;
 };
 
 
