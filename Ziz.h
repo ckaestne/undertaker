@@ -155,7 +155,9 @@ class Ziz {
 };
 
 
-std::ostream & operator<<(std::ostream &stream, CPPFile const &t);
-std::ostream & operator<<(std::ostream &stream, CPPBlock const &b);
+std::ostream & operator<<(std::ostream &stream, CPPFile          const &);
+std::ostream & operator<<(std::ostream &stream, CPPBlock         const &);
+std::ostream & operator<<(std::ostream &stream, CodeBlock        const &);
+std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &);
 
 #endif /* ZIZ_H_ */

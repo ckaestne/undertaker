@@ -1,5 +1,6 @@
 #include "Ziz.h"
 
+#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -289,9 +290,9 @@ CPPFile::CreateConditionalBlock(position_type startPos, lexer_type& lexer)
 
 // output operators
 
-std::ostream & operator<<(std::ostream &stream, CPPFile const &t)
+std::ostream & operator<<(std::ostream &stream, CPPFile const &f)
 {
-    std::vector<CPPBlock*> blocklist = t.InnerBlocks();
+    std::vector<CPPBlock*> blocklist = f.InnerBlocks();
     std::vector<CPPBlock*>::const_iterator it;
     for (it = blocklist.begin(); it != blocklist.end(); ++it)
         stream << **it;
@@ -301,8 +302,27 @@ std::ostream & operator<<(std::ostream &stream, CPPFile const &t)
 std::ostream & operator<<(std::ostream &stream, CPPBlock const &b)
 {
     stream << "BEGIN BLOCK " << b.Id() << "\n";
-    stream << "start: " << b.Start() << "\n";
-    stream << "end: " << b.End() << "\n";
+    stream << "\tstart: " << b.Start() << "\n";
+    stream << "\tend: " << b.End() << "\n";
+    if (b.BlockType() == Code) {
+        stream << dynamic_cast<CodeBlock const &>(b);
+    } else if (b.BlockType() == Conditional) {
+        stream << dynamic_cast<ConditionalBlock const &>(b);
+    } else {
+        assert(false);      // this may not happen
+    }
     stream << "END BLOCK " << b.Id() << std::endl;
+    return stream;
+}
+
+std::ostream & operator<<(std::ostream &stream, CodeBlock const &b)
+{
+    stream << "\tFIXME CodeBlock " << b.Id() << "\n";
+    return stream;
+}
+
+std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
+{
+    stream << "\tFIXME ConditionalBlock " << b.Id() << "\n";
     return stream;
 }
