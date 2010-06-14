@@ -16,16 +16,23 @@
 #include <boost/wave/cpplexer/cpp_lex_iterator.hpp> // lexer class
 #include <boost/wave/util/flex_string.hpp>
 
-typedef boost::wave::cpplexer::lex_token<> token_type;
+typedef boost::wave::cpplexer::lex_token<>              token_type;
 typedef boost::wave::cpplexer::lex_iterator<token_type> lexer_type;
-typedef token_type::position_type position_type;
-typedef token_type::string_type string_type;
+typedef token_type::string_type                         string_type;
+typedef token_type::position_type                       position_type;
+typedef boost::wave::util::file_position_type           file_position_type;
 
+typedef enum {
+    Code,
+    Conditional
+} block_type;
 
 class CPPBlock {
     public:
         // TODO: forbid creation of CPPBlocks (make abstract class)
         CPPBlock(int i, position_type s) : _id(i), _start(s) {}
+
+        virtual block_type BlockType()  const = 0;
 
         int             Id()      const { return _id; }
         position_type   Start()   const { return _start; }
@@ -46,6 +53,8 @@ class CodeBlock : public CPPBlock {
     public:
         CodeBlock(int i, position_type s) : CPPBlock(i, s) {}
 
+        virtual block_type BlockType()  const { return Code; }
+
         std::string     Content() const { return _content.str(); }
 
         void AppendContent(const std::string &c) { _content << c; }
@@ -60,20 +69,29 @@ class ConditionalBlock : public CPPBlock {
         ConditionalBlock(int i, position_type s, token_type t)
             : CPPBlock(i, s), _type(t), _innerBlocks() {}
 
-        token_type              Type()        const { return _type; }
-        std::string             Header()      const { return _header; }
-        std::string             Footer()      const { return _footer; }
-        std::string             Expression()  const { return _expression; }
+        virtual block_type BlockType()  const { return Conditional; }
+
+        token_type              TokenType()   const { return _type; }
+        std::string             Header()      const { return _header.str(); }
+        std::string             Footer()      const { return _footer.str(); }
+        std::string             Expression()  const { return _expression.str(); }
 
         // TODO: (maybe) return a reference
-        std::vector<CPPBlock>   InnerBlocks() const { return _innerBlocks; }
+        std::vector<CPPBlock*>  InnerBlocks() const    { return _innerBlocks; }
+
+        void AppendHeader       (const std::string &s) { _header     << s; }
+        void AppendHeader       (const string_type &s) { _header     << s; }
+        void AppendFooter       (const std::string &s) { _footer     << s; }
+        void AppendFooter       (const string_type &s) { _footer     << s; }
+        void AppendExpression   (const std::string &s) { _expression << s; }
+        void AppendExpression   (const string_type &s) { _expression << s; }
 
     private:
         token_type              _type;
-        std::string             _header;
-        std::string             _footer;
-        std::string             _expression;    // TODO: shall be formula later
-        std::vector<CPPBlock>   _innerBlocks; 
+        std::stringstream       _header;
+        std::stringstream       _footer;
+        std::stringstream       _expression;    // TODO: shall be formula later
+        std::vector<CPPBlock*>  _innerBlocks;
 
         // TODO previous_else, ...?
 };
@@ -82,12 +100,12 @@ class CPPFile {
     public:
         CPPFile() : _blocks(0) {}
 
-        CodeBlock*        CreateCodeBlock(position_type s)
-            { return new CodeBlock(_blocks++, s); }
-        ConditionalBlock* CreateConditionalBlock(position_type s, token_type t)
-            { return new ConditionalBlock(_blocks++, s, t); }
+        CodeBlock*        CreateCodeBlock(position_type s);
+        ConditionalBlock* CreateConditionalBlock(position_type s, lexer_type& lexer);
 
-        std::vector<CPPBlock> _blocklist;
+        void AddBlock(CPPBlock* p_b) { _blocklist.push_back(p_b); }
+
+        std::vector<CPPBlock*> _blocklist;
 
     private:
         int _blocks;
@@ -111,22 +129,22 @@ class Ziz {
         void HandleIFDEF(lexer_type&);
         void HandleENDIF(lexer_type&);
 
+        void FinishSaveCurrentCodeBlock();
+        void FinishSaveCurrentConditionalBlock(lexer_type&);
+
         // The block structure of the file that Parse() builds.
         CPPFile _cppfile;
 
         // current file position is saved for exception handling
-        boost::wave::util::file_position_type _curPos, _prevPos;
+        file_position_type              _curPos, _prevPos;
 
-        // Stack of open blocks. Pushed to when entering #ifdef blocks, popped.
-        // from when leaving them.
-        std::stack<CPPBlock> _blockStack; 
-
-        // Literal content of the currently parsed block.
-        std::stringstream _curBlockContent;
+        // Stack of open conditional blocks. Pushed to when entering #ifdef
+        // (and similar) blocks, popped from when leaving them.
+        std::stack<ConditionalBlock*>   _condBlockStack;
 
         // Current CodeBlock and ConditionalBlock as it is built
-        CodeBlock*          _p_curCodeBlock;
-        ConditionalBlock*   _p_curConditionalBlock;
+        CodeBlock*                      _p_curCodeBlock;
+        ConditionalBlock*               _p_curConditionalBlock;
 };
 
 

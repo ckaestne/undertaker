@@ -20,11 +20,11 @@ CPPFile Ziz::Parse(std::string file)
 
         // Tokenize the input data into C++ tokens using the C++ lexer
         position_type pos(file.c_str());
-        lexer_type it = lexer_type(instr.begin(), instr.end(), pos, 
+        lexer_type it = lexer_type(instr.begin(), instr.end(), pos,
                 boost::wave::language_support(
                     boost::wave::support_cpp|boost::wave::support_option_long_long));
         lexer_type end = lexer_type();
- 
+
         // Let's go parsing!
         // FIXME: blocks at top/bottom of file are ignored, stack not really used, blahrghl
         while (it != end) {
@@ -53,7 +53,7 @@ CPPFile Ziz::Parse(std::string file)
                     if (_p_curBlock != NULL) {
                         _p_curBlock->SetEnd(_prevPos);
                         _p_curBlock->SetContent(_curBlockContent.str());
-                        _tree._blocklist.push_back(*_p_curBlock); 
+                        _tree._blocklist.push_back(*_p_curBlock);
                         delete _p_curBlock;
                     }
                 }
@@ -89,7 +89,7 @@ CPPFile Ziz::Parse(std::string file)
                 }
                 _p_curBlock->SetEnd(_curPos);
                 _p_curBlock->SetContent(_curBlockContent.str());
-                _tree._blocklist.push_back(*_p_curBlock); 
+                _tree._blocklist.push_back(*_p_curBlock);
                 delete _p_curBlock;
 
             } else {
@@ -102,14 +102,14 @@ CPPFile Ziz::Parse(std::string file)
                 _curBlockContent << it->get_value();
             }
 #endif
-            
+
 #if 0 // 1st version - blah
             if (boost::wave::token_id(*it) == boost::wave::T_PP_IFDEF) {
                 if (!_blockStack.empty()) {
                     // close current block if one exists, save it in blocklist
                     if (_p_curBlock != NULL) {
                         _p_curBlock->SetEnd(_prevPos);
-                        _tree._blocklist.push_back(*_p_curBlock); 
+                        _tree._blocklist.push_back(*_p_curBlock);
                         delete _p_curBlock;
                     }
                 }
@@ -125,7 +125,7 @@ CPPFile Ziz::Parse(std::string file)
                     line << it->get_value();
                     ++it;
                 }
-                _p_curBlock->SetContent(line.str()); 
+                _p_curBlock->SetContent(line.str());
 
                 // push to condition stack
                 _blockStack.push(*_p_curBlock);
@@ -139,7 +139,7 @@ CPPFile Ziz::Parse(std::string file)
                 // finish the current block
                 _p_curBlock->SetEnd(_prevPos);
 
-                
+
 
                 _blockStack.pop();
 
@@ -155,7 +155,7 @@ CPPFile Ziz::Parse(std::string file)
                     output << it->get_value();
                     ++it;
                 }
-                cond_endif.line = output.str(); 
+                cond_endif.line = output.str();
 
             }
 
@@ -165,14 +165,15 @@ CPPFile Ziz::Parse(std::string file)
             }
 #endif
 
+            // The lexer iterator might have gone further in the Handle*()
+            // functions, so we'll check for EOF.
             if (it != end)
                 ++it;
         } // end of parsing
 
-
-        // finish the very last block (there will be none if the file ends with
-        // an #endif)
-        //FinishBlock();
+        // finish the very last block
+        FinishSaveCurrentCodeBlock();
+        FinishSaveCurrentConditionalBlock(it);
 
     } // try
 
@@ -191,22 +192,92 @@ CPPFile Ziz::Parse(std::string file)
 
 void Ziz::HandleToken(lexer_type& lexer)
 {
-    std::cerr << "OMG HandleToken()! " << lexer->get_value() << std::endl;
+    boost::wave::token_id id = boost::wave::token_id(*lexer);
+    std::cerr << "HandleToken() "
+        << boost::wave::get_token_name(id) << " | "
+        << lexer->get_value() << std::endl;
+
     if (_p_curCodeBlock == NULL)
-        _p_curCodeBlock = _cppfile.CreateCodeBlock(_curPos); 
+        _p_curCodeBlock = _cppfile.CreateCodeBlock(_curPos);
     _p_curCodeBlock->AppendContent(lexer->get_value());
 }
 
 // TODO
 void Ziz::HandleIFDEF(lexer_type& lexer)
 {
-    std::cerr << "OMG HandleIFDEF()! " << lexer->get_value() << std::endl;
+    std::cerr << "HandleIFDEF() " << lexer->get_value() << std::endl;
+
+    FinishSaveCurrentCodeBlock();
+
+    if (_p_curConditionalBlock != NULL)
+        _condBlockStack.push(_p_curConditionalBlock);
+    _p_curConditionalBlock = _cppfile.CreateConditionalBlock(_curPos, lexer);
 }
 
 // TODO
 void Ziz::HandleENDIF(lexer_type& lexer)
 {
-    std::cerr << "OMG HandleENDIF()! " << lexer->get_value() << std::endl;
+    std::cerr << "HandleENDIF() " << lexer->get_value() << std::endl;
+
+    FinishSaveCurrentCodeBlock();
+    FinishSaveCurrentConditionalBlock(lexer);
+}
+
+void Ziz::FinishSaveCurrentCodeBlock()
+{
+    if (_p_curCodeBlock == NULL)
+        return;
+
+    _p_curCodeBlock->SetEnd(_prevPos);
+    _cppfile.AddBlock(_p_curCodeBlock);
+    _p_curCodeBlock = NULL;
+}
+
+void Ziz::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
+{
+    if (_p_curConditionalBlock == NULL)
+        return;
+
+    // read in whole condition until end of line
+    lexer_type end = lexer_type();
+    if (lexer != end)
+        _p_curConditionalBlock->AppendFooter(lexer->get_value()); // #endif itself
+    while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
+        _p_curConditionalBlock->AppendFooter(lexer->get_value());
+        ++lexer;
+    }
+
+    if (! _condBlockStack.empty()) {
+        _p_curConditionalBlock = _condBlockStack.top();
+        _condBlockStack.pop();
+    }
+
+    // TODO: add this block to some blocklist (file or curConditionalBlock)
+}
+
+
+// CPPFile
+
+CodeBlock*
+CPPFile::CreateCodeBlock(position_type s)
+{
+    return new CodeBlock(_blocks++, s);
+}
+
+ConditionalBlock*
+CPPFile::CreateConditionalBlock(position_type startPos, lexer_type& lexer)
+{
+    ConditionalBlock* p_CB = new ConditionalBlock(_blocks++, startPos, *lexer);
+
+    // read in whole condition until end of line
+    p_CB->AppendHeader(lexer->get_value());     // store #ifdef token itself
+    lexer_type end = lexer_type();
+    while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
+        p_CB->AppendHeader(lexer->get_value());
+        ++lexer;
+    }
+
+    return p_CB;
 }
 
 
@@ -214,16 +285,17 @@ void Ziz::HandleENDIF(lexer_type& lexer)
 
 std::ostream & operator<<(std::ostream &stream, CPPFile const &t)
 {
-    std::vector<CPPBlock>::const_iterator it; 
+    std::vector<CPPBlock*>::const_iterator it;
     for (it = t._blocklist.begin(); it != t._blocklist.end(); ++it)
-        stream << *it;
+        stream << **it;
     return stream;
 }
 
 std::ostream & operator<<(std::ostream &stream, CPPBlock const &b)
 {
     stream << "BEGIN BLOCK " << b.Id() << "\n";
-    stream << "FIXME FIXME" << "\n";
+    stream << "start: " << b.Start() << "\n";
+    stream << "end: " << b.End() << "\n";
     stream << "END BLOCK " << b.Id() << std::endl;
     return stream;
 }
