@@ -195,32 +195,34 @@ CPPFile Ziz::Parse(std::string file)
 
 void Ziz::HandleToken(lexer_type& lexer)
 {
+    /*
     boost::wave::token_id id = boost::wave::token_id(*lexer);
     std::cerr << "HandleToken() "
         << boost::wave::get_token_name(id) << " | "
         << lexer->get_value() << std::endl;
+    */
 
     if (_p_curCodeBlock == NULL)
-        _p_curCodeBlock = _cppfile.CreateCodeBlock(_curPos);
+        _p_curCodeBlock = _cppfile.CreateCodeBlock(_condBlockStack.size(), _curPos);
     _p_curCodeBlock->AppendContent(lexer->get_value());
 }
 
 void Ziz::HandleIFDEF(lexer_type& lexer)
 {
-    std::cerr << "HandleIFDEF() " << lexer->get_value() << std::endl;
+    //std::cerr << "HandleIFDEF() " << lexer->get_value() << std::endl;
 
     FinishSaveCurrentCodeBlock();
 
     if (_p_curConditionalBlock != NULL)
         _condBlockStack.push(_p_curConditionalBlock);
 
-    _p_curBlockContainer = _p_curConditionalBlock
-                         = _cppfile.CreateConditionalBlock(_curPos, lexer);
+    _p_curBlockContainer = _p_curConditionalBlock =
+        _cppfile.CreateConditionalBlock(_condBlockStack.size(), _curPos, lexer);
 }
 
 void Ziz::HandleENDIF(lexer_type& lexer)
 {
-    std::cerr << "HandleENDIF() " << lexer->get_value() << std::endl;
+    //std::cerr << "HandleENDIF() " << lexer->get_value() << std::endl;
 
     FinishSaveCurrentCodeBlock();
     FinishSaveCurrentConditionalBlock(lexer);
@@ -232,7 +234,8 @@ void Ziz::FinishSaveCurrentCodeBlock()
         return;
 
     _p_curCodeBlock->SetEnd(_prevPos);
-    _cppfile.AddBlock(_p_curCodeBlock);
+    std::cerr << "!!!!!      saving code block" << std::endl;
+    _p_curBlockContainer->AddBlock(_p_curCodeBlock);
     _p_curCodeBlock = NULL;
 }
 
@@ -250,8 +253,7 @@ void Ziz::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
         ++lexer;
     }
 
-    // add this block to current blocklist (either cppfile or inner block)
-    _p_curBlockContainer->AddBlock(_p_curConditionalBlock);
+    ConditionalBlock* pTmp = _p_curConditionalBlock;
 
     if (! _condBlockStack.empty()) {        // we just left an inner block
         _p_curBlockContainer = _p_curConditionalBlock = _condBlockStack.top();
@@ -260,21 +262,24 @@ void Ziz::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
         _p_curBlockContainer = &_cppfile;   // we just left a top-level block
         _p_curConditionalBlock = NULL;
     }
+
+    // add this block to current blocklist (either cppfile or inner block)
+    _p_curBlockContainer->AddBlock(pTmp);
 }
 
 
 // CPPFile
 
 CodeBlock*
-CPPFile::CreateCodeBlock(position_type s)
+CPPFile::CreateCodeBlock(int depth, position_type startPos)
 {
-    return new CodeBlock(_blocks++, s);
+    return new CodeBlock(_blocks++, depth, startPos);
 }
 
 ConditionalBlock*
-CPPFile::CreateConditionalBlock(position_type startPos, lexer_type& lexer)
+CPPFile::CreateConditionalBlock(int depth, position_type startPos, lexer_type& lexer)
 {
-    ConditionalBlock* p_CB = new ConditionalBlock(_blocks++, startPos, *lexer);
+    ConditionalBlock* p_CB = new ConditionalBlock(_blocks++, depth, startPos, *lexer);
 
     // read in whole condition until end of line
     p_CB->AppendHeader(lexer->get_value());     // store #ifdef token itself
@@ -288,11 +293,31 @@ CPPFile::CreateConditionalBlock(position_type startPos, lexer_type& lexer)
 }
 
 
+// ConditionalBlock
+
+std::string ConditionalBlock::TokenStr() const
+{
+    boost::wave::token_id id = boost::wave::token_id(_type);
+    return std::string(boost::wave::get_token_name(id).c_str());
+}
+
+
+// helper functions
+
+std::string Indent(int depth) {
+    std::stringstream ss;
+    for (int i=0; i < depth; i++)
+        ss << "    ";
+    return ss.str();
+}
+
+
 // output operators
 
 std::ostream & operator<<(std::ostream &stream, CPPFile const &f)
 {
     std::vector<CPPBlock*> blocklist = f.InnerBlocks();
+    std::cout << "File has " << blocklist.size() << " outer blocks\n\n";
     std::vector<CPPBlock*>::const_iterator it;
     for (it = blocklist.begin(); it != blocklist.end(); ++it)
         stream << **it;
@@ -301,9 +326,13 @@ std::ostream & operator<<(std::ostream &stream, CPPFile const &f)
 
 std::ostream & operator<<(std::ostream &stream, CPPBlock const &b)
 {
-    stream << "BEGIN BLOCK " << b.Id() << "\n";
-    stream << "\tstart: " << b.Start() << "\n";
-    stream << "\tend: " << b.End() << "\n";
+    std::string indent = Indent(b.Depth());
+    stream << indent
+           << "- - - - - - - - -  BEGIN BLOCK [" << b.Id() << "]  "
+           << "- - - - - - - - -\n";
+    stream << indent << "start:      " << b.Start()   << "\n";
+    stream << indent << "end:        " << b.End()     << "\n";
+    stream << indent << "depth:      " << b.Depth()   << "\n";
     if (b.BlockType() == Code) {
         stream << dynamic_cast<CodeBlock const &>(b);
     } else if (b.BlockType() == Conditional) {
@@ -311,18 +340,34 @@ std::ostream & operator<<(std::ostream &stream, CPPBlock const &b)
     } else {
         assert(false);      // this may not happen
     }
-    stream << "END BLOCK " << b.Id() << std::endl;
+    stream << indent
+           << "- - - - - - - - -  END BLOCK   [" << b.Id() << "]  "
+           << "- - - - - - - - -\n" << std::endl;
     return stream;
 }
 
 std::ostream & operator<<(std::ostream &stream, CodeBlock const &b)
 {
-    stream << "\tFIXME CodeBlock " << b.Id() << "\n";
+    std::string indent = Indent(b.Depth());
+    stream << indent << "type:       CodeBlock\n";
+    stream << indent << "content:\n" << b.Content();
     return stream;
 }
 
 std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
 {
-    stream << "\tFIXME ConditionalBlock " << b.Id() << "\n";
+    std::string indent = Indent(b.Depth());
+    stream << indent << "type:       ConditionalBlock\n";
+    stream << indent << "token:      " << b.TokenStr()      << "\n";
+    stream << indent << "header:     " << b.Header()        << "\n";
+    stream << indent << "expression: " << b.Expression()    << "\n";
+    stream << indent << "footer:     " << b.Footer()        << "\n";
+
+    std::vector<CPPBlock*> blocklist = b.InnerBlocks();
+    stream << indent <<"inner blocks: " << blocklist.size() << "\n";
+    std::vector<CPPBlock*>::const_iterator it;
+    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+        stream << **it;
+
     return stream;
 }

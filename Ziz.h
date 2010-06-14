@@ -31,11 +31,13 @@ typedef enum {
 class CPPBlock {
     public:
         // TODO: forbid creation of CPPBlocks (make abstract class)
-        CPPBlock(int i, position_type s) : _id(i), _start(s) {}
+        CPPBlock(int i, int d, position_type s) :
+            _id(i), _depth(d), _start(s) {}
 
         virtual block_type BlockType()  const = 0;
 
         int             Id()      const { return _id; }
+        int             Depth()   const { return _depth; }
         position_type   Start()   const { return _start; }
         position_type   End()     const { return _end; }
 
@@ -43,6 +45,7 @@ class CPPBlock {
 
     private:
         int             _id;
+        int             _depth;
         position_type   _start;
         position_type   _end;
 
@@ -61,7 +64,7 @@ class BlockContainer {
 
 class CodeBlock : public CPPBlock {
     public:
-        CodeBlock(int i, position_type s) : CPPBlock(i, s) {}
+        CodeBlock(int i, int d, position_type s) : CPPBlock(i, d, s) {}
 
         virtual block_type BlockType()  const { return Code; }
 
@@ -76,12 +79,13 @@ class CodeBlock : public CPPBlock {
 
 class ConditionalBlock : public CPPBlock, public BlockContainer {
     public:
-        ConditionalBlock(int i, position_type s, token_type t)
-            : CPPBlock(i, s), _type(t) {}
+        ConditionalBlock(int i, int d, position_type s, token_type t)
+            : CPPBlock(i, d, s), _type(t) {}
 
         virtual block_type BlockType()  const { return Conditional; }
 
         token_type              TokenType()   const { return _type; }
+        std::string             TokenStr()    const;
         std::string             Header()      const { return _header.str(); }
         std::string             Footer()      const { return _footer.str(); }
         std::string             Expression()  const { return _expression.str(); }
@@ -106,8 +110,8 @@ class CPPFile : public BlockContainer {
     public:
         CPPFile() : _blocks(0) {}
 
-        CodeBlock*        CreateCodeBlock(position_type s);
-        ConditionalBlock* CreateConditionalBlock(position_type s, lexer_type& lexer);
+        CodeBlock*        CreateCodeBlock       (int, position_type);
+        ConditionalBlock* CreateConditionalBlock(int, position_type, lexer_type&);
 
     private:
         int _blocks;
@@ -124,7 +128,7 @@ class Ziz {
     public:
         Ziz() : _p_curCodeBlock(NULL),
                 _p_curConditionalBlock(NULL),
-                _p_curBlockContainer(&_cppfile) // add outermost blocks to file
+                _p_curBlockContainer(&_cppfile)  // add outermost blocks to file
             {}
 
         CPPFile Parse(std::string file);
