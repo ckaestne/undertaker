@@ -127,7 +127,6 @@ class ZizException : public std::runtime_error {
 class Ziz {
     public:
         Ziz() : _p_curCodeBlock(NULL),
-                _p_curConditionalBlock(NULL),
                 _p_curBlockContainer(&_cppfile)  // add outermost blocks to file
             {}
 
@@ -151,9 +150,8 @@ class Ziz {
         // (and similar) blocks, popped from when leaving them.
         std::stack<ConditionalBlock*>   _condBlockStack;
 
-        // Current CodeBlock and ConditionalBlock as it is built
+        // Current CodeBlock as it is built
         CodeBlock*                      _p_curCodeBlock;
-        ConditionalBlock*               _p_curConditionalBlock;
         // Current BlockContainer: where new inner blocks get added to
         BlockContainer*                 _p_curBlockContainer;
 };
