@@ -29,7 +29,6 @@ CPPFile Ziz::Parse(std::string file)
         lexer_type end = lexer_type();
 
         // Let's go parsing!
-        // FIXME: blocks at top/bottom of file are ignored, stack not really used, blahrghl
         while (it != end) {
             _prevPos = _curPos;
             _curPos = (*it).get_position();
@@ -48,125 +47,6 @@ CPPFile Ziz::Parse(std::string file)
                     HandleToken(it);
                     break;
             }
-
-#if 0 // 2nd version - bullshit
-            if (boost::wave::token_id(*it) == boost::wave::T_PP_IFDEF) {
-                if (!_blockStack.empty()) {
-                    // close current block if one exists, save it in blocklist
-                    if (_p_curBlock != NULL) {
-                        _p_curBlock->SetEnd(_prevPos);
-                        _p_curBlock->SetContent(_curBlockContent.str());
-                        _tree._blocklist.push_back(*_p_curBlock);
-                        delete _p_curBlock;
-                    }
-                }
-
-                _p_curBlock = new CPPBlock(_blockCounter++, *it, _curPos);
-                _curBlockContent.str(""); // empty the stringstream
-                _curBlockContent.clear();
-
-                // read in whole condition until end of line
-                _curBlockContent << it->get_value();     // store #ifdef token itself
-                while (it != end && !IS_CATEGORY(*it, boost::wave::EOLTokenType)) {
-                    _curBlockContent << it->get_value();
-                    ++it;
-                }
-
-                // TODO: set father
-
-                // push to condition stack
-                _blockStack.push(*_p_curBlock);
-
-            } else if (boost::wave::token_id(*it) == boost::wave::T_PP_ENDIF) {
-                if (_p_curBlock == NULL) {
-                    throw ZizException("#endif without open #if");
-                }
-
-                // read in until end of line
-                _curBlockContent << it->get_value();     // store #endif token itself
-                while (it != end) {
-                    _curBlockContent << it->get_value();
-                    if (IS_CATEGORY(*it, boost::wave::EOLTokenType))
-                        break;
-                    ++it;
-                }
-                _p_curBlock->SetEnd(_curPos);
-                _p_curBlock->SetContent(_curBlockContent.str());
-                _tree._blocklist.push_back(*_p_curBlock);
-                delete _p_curBlock;
-
-            } else {
-                // "normal" token (no conditional CPP directive)
-                if (_p_curBlock == NULL) {
-                    _p_curBlock = new CPPBlock(_blockCounter++, *it, _curPos);
-                    _curBlockContent.str(""); // empty the stringstream
-                    _curBlockContent.clear();
-                }
-                _curBlockContent << it->get_value();
-            }
-#endif
-
-#if 0 // 1st version - blah
-            if (boost::wave::token_id(*it) == boost::wave::T_PP_IFDEF) {
-                if (!_blockStack.empty()) {
-                    // close current block if one exists, save it in blocklist
-                    if (_p_curBlock != NULL) {
-                        _p_curBlock->SetEnd(_prevPos);
-                        _tree._blocklist.push_back(*_p_curBlock);
-                        delete _p_curBlock;
-                    }
-                }
-
-                _p_curBlock = new CPPBlock(_blockCounter++, *it, _curPos);
-
-                // TODO: set father
-
-                // read in whole condition until end of line
-                std::stringstream line;
-                line << it->get_value();            // store #ifdef token itself
-                while (it != end && !IS_CATEGORY(*it, boost::wave::EOLTokenType)) {
-                    line << it->get_value();
-                    ++it;
-                }
-                _p_curBlock->SetContent(line.str());
-
-                // push to condition stack
-                _blockStack.push(*_p_curBlock);
-            }
-
-            else if (boost::wave::token_id(*it) == boost::wave::T_PP_ENDIF) {
-                if (_p_curBlock == NULL) {
-                    throw ZizException("#endif without open #if");
-                }
-
-                // finish the current block
-                _p_curBlock->SetEnd(_prevPos);
-
-
-
-                _blockStack.pop();
-
-
-                CPPCondition cond_endif;
-                cond_endif.directive = *it;
-
-                // read in whole condition until end of line
-                output.str("");             // empty the stringstream
-                output.clear();
-                output << it->get_value();  // store #ifdef token itself
-                while (it != end && !IS_CATEGORY(*it, boost::wave::EOLTokenType)) {
-                    output << it->get_value();
-                    ++it;
-                }
-                cond_endif.line = output.str();
-
-            }
-
-            else {
-                // "normal" token (no conditional CPP directive)
-                output << it->get_value();
-            }
-#endif
 
             // The lexer iterator might have gone further in the Handle*()
             // functions, so we'll check for EOF.
@@ -326,13 +206,6 @@ std::ostream & operator<<(std::ostream &stream, CPPFile const &f)
 
 std::ostream & operator<<(std::ostream &stream, CPPBlock const &b)
 {
-    std::string indent = Indent(b.Depth());
-    stream << indent
-           << "- - - - - - - - -  BEGIN BLOCK [" << b.Id() << "]  "
-           << "- - - - - - - - -\n";
-    stream << indent << "start:      " << b.Start()   << "\n";
-    stream << indent << "end:        " << b.End()     << "\n";
-    stream << indent << "depth:      " << b.Depth()   << "\n";
     if (b.BlockType() == Code) {
         stream << dynamic_cast<CodeBlock const &>(b);
     } else if (b.BlockType() == Conditional) {
@@ -340,28 +213,38 @@ std::ostream & operator<<(std::ostream &stream, CPPBlock const &b)
     } else {
         assert(false);      // this may not happen
     }
-    stream << indent
-           << "- - - - - - - - -  END BLOCK   [" << b.Id() << "]  "
-           << "- - - - - - - - -\n" << std::endl;
     return stream;
 }
 
 std::ostream & operator<<(std::ostream &stream, CodeBlock const &b)
 {
     std::string indent = Indent(b.Depth());
-    stream << indent << "type:       CodeBlock\n";
+    stream << indent
+           << "- - - - - - - - -  START CODE BLOCK  [" << b.Id() << "]  "
+           << "- - - - - - - - -\n";
+    stream << indent << "start:       " << b.Start()   << "\n";
+    stream << indent << "end:         " << b.End()     << "\n";
+    stream << indent << "depth:       " << b.Depth()   << "\n";
     stream << indent << "content:\n" << b.Content();
+    stream << indent
+           << "- - - - - - - - -    END CODE BLOCK  [" << b.Id() << "]  "
+           << "- - - - - - - - -\n" << std::endl;
     return stream;
 }
 
 std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
 {
     std::string indent = Indent(b.Depth());
-    stream << indent << "type:       ConditionalBlock\n";
-    stream << indent << "token:      " << b.TokenStr()      << "\n";
-    stream << indent << "header:     " << b.Header()        << "\n";
-    stream << indent << "expression: " << b.Expression()    << "\n";
-    stream << indent << "footer:     " << b.Footer()        << "\n";
+    stream << indent
+           << "=================  START COND BLOCK  [" << b.Id() << "]  "
+           << "=================\n";
+    stream << indent << "start:       " << b.Start()   << "\n";
+    stream << indent << "end:         " << b.End()     << "\n";
+    stream << indent << "depth:       " << b.Depth()   << "\n";
+    stream << indent << "token:       " << b.TokenStr()      << "\n";
+    stream << indent << "header:      " << b.Header()        << "\n";
+    stream << indent << "expression:  " << b.Expression()    << "\n";
+    stream << indent << "footer:      " << b.Footer()        << "\n";
 
     std::vector<CPPBlock*> blocklist = b.InnerBlocks();
     stream << indent <<"inner blocks: " << blocklist.size() << "\n";
@@ -369,5 +252,8 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
     for (it = blocklist.begin(); it != blocklist.end(); ++it)
         stream << **it;
 
+    stream << indent
+           << "=================    END COND BLOCK  [" << b.Id() << "]  "
+           << "=================\n" << std::endl;
     return stream;
 }
