@@ -58,17 +58,9 @@ class CPPBlock {
         // TODO parent
 };
 
-class BlockContainer {
+class BlockContainer : public std::vector<CPPBlock*> {
     protected:
         BlockContainer() {}   // only allow in derived classes
-
-    public:
-        // TODO: (maybe) return a reference?
-        std::vector<CPPBlock*>  InnerBlocks()  const    { return _innerBlocks; }
-        void                    AddBlock(CPPBlock* p_b) { _innerBlocks.push_back(p_b); }
-
-    private:
-        std::vector<CPPBlock*>  _innerBlocks;
 };
 
 class CodeBlock : public CPPBlock {

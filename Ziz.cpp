@@ -116,7 +116,7 @@ void Parser::FinishSaveCurrentCodeBlock()
         return;
 
     _p_curCodeBlock->SetEnd(_prevPos);
-    _p_curBlockContainer->AddBlock(_p_curCodeBlock);
+    _p_curBlockContainer->push_back(_p_curCodeBlock);
     _p_curCodeBlock = NULL;
 }
 
@@ -149,7 +149,7 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
     }
 
     // add this block to current blocklist (either cppfile or inner block)
-    _p_curBlockContainer->AddBlock(pCurBlock);
+    _p_curBlockContainer->push_back(pCurBlock);
 }
 
 
@@ -291,7 +291,7 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
 
 std::ostream & operator>>(std::ostream &stream, CPPFile const &f)
 {
-    std::vector<CPPBlock*> blocklist = f.InnerBlocks();
+    std::vector<CPPBlock*> blocklist = f;
     std::cout << "File has " << blocklist.size() << " outer blocks\n\n";
     std::vector<CPPBlock*>::const_iterator it;
     for (it = blocklist.begin(); it != blocklist.end(); ++it)
@@ -348,7 +348,7 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
     stream << indent << " expression:  " << b.Expression()  << "\n";
     stream << indent << " footer:      " << b.Footer()      << "\n";
 
-    std::vector<CPPBlock*> blocklist = b.InnerBlocks();
+    std::vector<CPPBlock*> blocklist = b;
     stream << indent <<" inner blocks: " << blocklist.size() << "\n";
     std::vector<CPPBlock*>::const_iterator it;
     for (it = blocklist.begin(); it != blocklist.end(); ++it)
