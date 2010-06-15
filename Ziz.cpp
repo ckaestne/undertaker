@@ -203,9 +203,8 @@ std::string Indent(int depth) {
 // + short output (--short mode in zizler)
 std::ostream & operator+(std::ostream &stream, CPPFile const &f)
 {
-    std::vector<CPPBlock*> blocklist = f.InnerBlocks();
     std::vector<CPPBlock*>::const_iterator it;
-    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+    for (it = f.begin(); it != f.end(); ++it)
         stream + **it;
     return stream;
 }
@@ -227,9 +226,8 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
     stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
            << "[H=" << b.Header() << "] [F=" << b.Footer() << "]\n";
 
-    std::vector<CPPBlock*> blocklist = b.InnerBlocks();
     std::vector<CPPBlock*>::const_iterator it;
-    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+    for (it = b.begin(); it != b.end(); ++it)
         stream + **it;
 
     stream << "END BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
@@ -242,9 +240,8 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
 
 std::ostream & operator<<(std::ostream &stream, CPPFile const &f)
 {
-    std::vector<CPPBlock*> blocklist = f.InnerBlocks();
     std::vector<CPPBlock*>::const_iterator it;
-    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+    for (it = f.begin(); it != f.end(); ++it)
         stream << **it;
     return stream;
 }
@@ -277,9 +274,8 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
     stream << "expression=" << b.Expression()  << "\n";
     stream << "footer="     << b.Footer()      << "\n";
 
-    std::vector<CPPBlock*> blocklist = b.InnerBlocks();
     std::vector<CPPBlock*>::const_iterator it;
-    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+    for (it = b.begin(); it != b.end(); ++it)
         stream << **it;
 
     stream << "END CONDITIONAL BLOCK " << b.Id() << "\n";
@@ -291,10 +287,9 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
 
 std::ostream & operator>>(std::ostream &stream, CPPFile const &f)
 {
-    std::vector<CPPBlock*> blocklist = f;
-    std::cout << "File has " << blocklist.size() << " outer blocks\n\n";
+    std::cout << "File has " << f.size() << " outer blocks\n\n";
     std::vector<CPPBlock*>::const_iterator it;
-    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+    for (it = f.begin(); it != f.end(); ++it)
         stream >> **it;
     return stream;
 }
@@ -348,10 +343,9 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
     stream << indent << " expression:  " << b.Expression()  << "\n";
     stream << indent << " footer:      " << b.Footer()      << "\n";
 
-    std::vector<CPPBlock*> blocklist = b;
-    stream << indent <<" inner blocks: " << blocklist.size() << "\n";
+    stream << indent <<" inner blocks: " << b.size() << "\n";
     std::vector<CPPBlock*>::const_iterator it;
-    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+    for (it = b.begin(); it != b.end(); ++it)
         stream >> **it;
 
     stream << indent
