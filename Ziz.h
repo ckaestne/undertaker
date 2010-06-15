@@ -29,11 +29,14 @@ typedef enum {
 
 
 class CPPBlock {
-    public:
-        // TODO: forbid creation of CPPBlocks (make abstract class)
-        CPPBlock(int i, int d, position_type s) :
-            _id(i), _depth(d), _start(s) {}
+    protected:
+        CPPBlock(int i, int d, position_type s) :   // only allow in
+            _id(i), _depth(d), _start(s) {}         // derived classes
+        virtual ~CPPBlock() {}
+    private:
+        CPPBlock(CPPBlock&);                        // disable copy c'tor
 
+    public:
         virtual block_type BlockType()  const = 0;
 
         int             Id()      const { return _id; }
@@ -53,6 +56,9 @@ class CPPBlock {
 };
 
 class BlockContainer {
+    protected:
+        BlockContainer() {}   // only allow in derived classes
+
     public:
         // TODO: (maybe) return a reference?
         std::vector<CPPBlock*>  InnerBlocks()  const    { return _innerBlocks; }
@@ -65,7 +71,11 @@ class BlockContainer {
 class CodeBlock : public CPPBlock {
     public:
         CodeBlock(int i, int d, position_type s) : CPPBlock(i, d, s) {}
+        virtual ~CodeBlock() {}
+    private:
+        CodeBlock(CodeBlock&);   // disable copy c'tor
 
+    public:
         virtual block_type BlockType()  const { return Code; }
 
         std::string     Content() const { return _content.str(); }
@@ -81,7 +91,11 @@ class ConditionalBlock : public CPPBlock, public BlockContainer {
     public:
         ConditionalBlock(int i, int d, position_type s, token_type t)
             : CPPBlock(i, d, s), _type(t) {}
+        virtual ~ConditionalBlock() {}
+    private:
+        ConditionalBlock(ConditionalBlock&);   // disable copy c'tor
 
+    public:
         virtual block_type BlockType()  const { return Conditional; }
 
         token_type              TokenType()   const { return _type; }
@@ -110,6 +124,7 @@ class CPPFile : public BlockContainer {
     public:
         CPPFile() : _blocks(0) {}
 
+    public:
         CodeBlock*        CreateCodeBlock       (int, position_type);
         ConditionalBlock* CreateConditionalBlock(int, position_type, lexer_type&);
 
@@ -133,6 +148,8 @@ class Ziz {
         CPPFile Parse(std::string file);
 
     private:
+        Ziz(Ziz&);   // disable copy c'tor
+
         void HandleToken(lexer_type&);
         void HandleIFDEF(lexer_type&);
         void HandleENDIF(lexer_type&);
