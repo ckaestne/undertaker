@@ -200,10 +200,49 @@ std::string Indent(int depth) {
 
 // output operators
 
+// + short output (--short mode in zizler)
+std::ostream & operator+(std::ostream &stream, CPPFile const &f)
+{
+    std::vector<CPPBlock*> blocklist = f.InnerBlocks();
+    std::vector<CPPBlock*>::const_iterator it;
+    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+        stream + **it;
+    return stream;
+}
+
+std::ostream & operator+(std::ostream &stream, CPPBlock const &b)
+{
+    if (b.BlockType() == Code) {
+        stream << "<code" << b.Id() << ">\n";
+    } else if (b.BlockType() == Conditional) {
+        stream + dynamic_cast<ConditionalBlock const &>(b);
+    } else {
+        assert(false);      // this may not happen
+    }
+    return stream;
+}
+
+std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
+{
+    stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
+           << "[H=" << b.Header() << "] [F=" << b.Footer() << "]\n";
+
+    std::vector<CPPBlock*> blocklist = b.InnerBlocks();
+    std::vector<CPPBlock*>::const_iterator it;
+    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+        stream + **it;
+
+    stream << "END BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
+           << "[H=" << b.Header() << "] [F=" << b.Footer() << "]\n";
+    return stream;
+}
+
+
+// << normal output (default mode in zizler)
+
 std::ostream & operator<<(std::ostream &stream, CPPFile const &f)
 {
     std::vector<CPPBlock*> blocklist = f.InnerBlocks();
-    std::cout << "File has " << blocklist.size() << " outer blocks\n\n";
     std::vector<CPPBlock*>::const_iterator it;
     for (it = blocklist.begin(); it != blocklist.end(); ++it)
         stream << **it;
@@ -223,6 +262,56 @@ std::ostream & operator<<(std::ostream &stream, CPPBlock const &b)
 }
 
 std::ostream & operator<<(std::ostream &stream, CodeBlock const &b)
+{
+    stream << "START CODE BLOCK " << b.Id() << "\n";
+    stream << b.Content();
+    stream << "END CODE BLOCK " << b.Id() << "\n";
+    return stream;
+}
+
+std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
+{
+    stream << "START CONDITIONAL BLOCK " << b.Id() << "\n";
+    stream << "token="      << b.TokenStr()    << "\n";
+    stream << "header="     << b.Header()      << "\n";
+    stream << "expression=" << b.Expression()  << "\n";
+    stream << "footer="     << b.Footer()      << "\n";
+
+    std::vector<CPPBlock*> blocklist = b.InnerBlocks();
+    std::vector<CPPBlock*>::const_iterator it;
+    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+        stream << **it;
+
+    stream << "END CONDITIONAL BLOCK " << b.Id() << "\n";
+    return stream;
+}
+
+
+// >> verbose output (--long mode in zizler)
+
+std::ostream & operator>>(std::ostream &stream, CPPFile const &f)
+{
+    std::vector<CPPBlock*> blocklist = f.InnerBlocks();
+    std::cout << "File has " << blocklist.size() << " outer blocks\n\n";
+    std::vector<CPPBlock*>::const_iterator it;
+    for (it = blocklist.begin(); it != blocklist.end(); ++it)
+        stream >> **it;
+    return stream;
+}
+
+std::ostream & operator>>(std::ostream &stream, CPPBlock const &b)
+{
+    if (b.BlockType() == Code) {
+        stream >> dynamic_cast<CodeBlock const &>(b);
+    } else if (b.BlockType() == Conditional) {
+        stream >> dynamic_cast<ConditionalBlock const &>(b);
+    } else {
+        assert(false);      // this may not happen
+    }
+    return stream;
+}
+
+std::ostream & operator>>(std::ostream &stream, CodeBlock const &b)
 {
     std::string indent = Indent(b.Depth());
     stream << indent
@@ -245,7 +334,7 @@ std::ostream & operator<<(std::ostream &stream, CodeBlock const &b)
     return stream;
 }
 
-std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
+std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
 {
     std::string indent = Indent(b.Depth());
     stream << indent
@@ -263,7 +352,7 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
     stream << indent <<" inner blocks: " << blocklist.size() << "\n";
     std::vector<CPPBlock*>::const_iterator it;
     for (it = blocklist.begin(); it != blocklist.end(); ++it)
-        stream << **it;
+        stream >> **it;
 
     stream << indent
            << "=[" << b.Id() << "]============   END  CONDITIONAL BLOCK  "

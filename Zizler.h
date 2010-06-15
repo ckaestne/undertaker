@@ -3,6 +3,12 @@
 
 #include <string>
 
-bool ziztest(std::string file);
+typedef enum {
+    Short,
+    Medium,
+    Long
+} Mode;
+
+bool ziztest(std::string file, Mode mode);
 
 #endif /* ZIZLER_H_ */

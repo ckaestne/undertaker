@@ -178,9 +178,18 @@ class Parser {
 
 } // namespace Ziz
 
+std::ostream & operator+ (std::ostream &stream, Ziz::CPPFile          const &);
+std::ostream & operator+ (std::ostream &stream, Ziz::CPPBlock         const &);
+std::ostream & operator+ (std::ostream &stream, Ziz::ConditionalBlock const &);
+
 std::ostream & operator<<(std::ostream &stream, Ziz::CPPFile          const &);
 std::ostream & operator<<(std::ostream &stream, Ziz::CPPBlock         const &);
 std::ostream & operator<<(std::ostream &stream, Ziz::CodeBlock        const &);
 std::ostream & operator<<(std::ostream &stream, Ziz::ConditionalBlock const &);
+
+std::ostream & operator>>(std::ostream &stream, Ziz::CPPFile          const &);
+std::ostream & operator>>(std::ostream &stream, Ziz::CPPBlock         const &);
+std::ostream & operator>>(std::ostream &stream, Ziz::CodeBlock        const &);
+std::ostream & operator>>(std::ostream &stream, Ziz::ConditionalBlock const &);
 
 #endif /* ZIZ_H_ */
