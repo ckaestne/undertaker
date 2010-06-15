@@ -6,8 +6,8 @@
 bool ziztest(std::string file)
 {
     std::cerr << "Testing " << file << std::endl;
-    Ziz ziz;
-    CPPFile cppfile = ziz.Parse(file);
+    Ziz::Parser ziz;
+    Ziz::CPPFile cppfile = ziz.Parse(file);
     std::cout << cppfile;
     return true;
 }

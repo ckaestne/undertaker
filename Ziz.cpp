@@ -6,9 +6,11 @@
 #include <iomanip>
 
 
+using namespace Ziz;
+
 // Ziz
 
-CPPFile Ziz::Parse(std::string file)
+CPPFile Parser::Parse(std::string file)
 {
     try {
         // Open and read in the specified input file.
@@ -73,7 +75,7 @@ CPPFile Ziz::Parse(std::string file)
     return _cppfile;
 }
 
-void Ziz::HandleToken(lexer_type& lexer)
+void Parser::HandleToken(lexer_type& lexer)
 {
     /*
     boost::wave::token_id id = boost::wave::token_id(*lexer);
@@ -87,7 +89,7 @@ void Ziz::HandleToken(lexer_type& lexer)
     _p_curCodeBlock->AppendContent(lexer->get_value());
 }
 
-void Ziz::HandleIFDEF(lexer_type& lexer)
+void Parser::HandleIFDEF(lexer_type& lexer)
 {
     //std::cerr << "HandleIFDEF() " << lexer->get_value() << std::endl;
 
@@ -100,7 +102,7 @@ void Ziz::HandleIFDEF(lexer_type& lexer)
     _condBlockStack.push(pBlock);
 }
 
-void Ziz::HandleENDIF(lexer_type& lexer)
+void Parser::HandleENDIF(lexer_type& lexer)
 {
     //std::cerr << "HandleENDIF() " << lexer->get_value() << std::endl;
 
@@ -108,7 +110,7 @@ void Ziz::HandleENDIF(lexer_type& lexer)
     FinishSaveCurrentConditionalBlock(lexer);
 }
 
-void Ziz::FinishSaveCurrentCodeBlock()
+void Parser::FinishSaveCurrentCodeBlock()
 {
     if (_p_curCodeBlock == NULL)
         return;
@@ -118,7 +120,7 @@ void Ziz::FinishSaveCurrentCodeBlock()
     _p_curCodeBlock = NULL;
 }
 
-void Ziz::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
+void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
 {
     if (_condBlockStack.empty()) {
         std::cerr << "FinishSaveCurrentConditionalBlock with empty block stack"

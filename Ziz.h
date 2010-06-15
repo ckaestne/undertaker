@@ -22,6 +22,9 @@ typedef token_type::string_type                         string_type;
 typedef token_type::position_type                       position_type;
 typedef boost::wave::util::file_position_type           file_position_type;
 
+
+namespace Ziz {
+
 typedef enum {
     Code,
     Conditional
@@ -139,16 +142,16 @@ class ZizException : public std::runtime_error {
         ZizException(const char* c) : std::runtime_error(c) {}
 };
 
-class Ziz {
+class Parser {
     public:
-        Ziz() : _p_curCodeBlock(NULL),
-                _p_curBlockContainer(&_cppfile)  // add outermost blocks to file
+        Parser() : _p_curCodeBlock(NULL),
+                   _p_curBlockContainer(&_cppfile)  // add outermost blocks to file
             {}
 
         CPPFile Parse(std::string file);
 
     private:
-        Ziz(Ziz&);   // disable copy c'tor
+        Parser(Parser&);   // disable copy c'tor
 
         void HandleToken(lexer_type&);
         void HandleIFDEF(lexer_type&);
@@ -173,10 +176,11 @@ class Ziz {
         BlockContainer*                 _p_curBlockContainer;
 };
 
+} // namespace Ziz
 
-std::ostream & operator<<(std::ostream &stream, CPPFile          const &);
-std::ostream & operator<<(std::ostream &stream, CPPBlock         const &);
-std::ostream & operator<<(std::ostream &stream, CodeBlock        const &);
-std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &);
+std::ostream & operator<<(std::ostream &stream, Ziz::CPPFile          const &);
+std::ostream & operator<<(std::ostream &stream, Ziz::CPPBlock         const &);
+std::ostream & operator<<(std::ostream &stream, Ziz::CodeBlock        const &);
+std::ostream & operator<<(std::ostream &stream, Ziz::ConditionalBlock const &);
 
 #endif /* ZIZ_H_ */
