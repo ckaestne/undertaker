@@ -1,4 +1,4 @@
-#include "ZizTest.h"
+#include "Zizler.h"
 #include "Ziz.h"
 
 #include <iostream>

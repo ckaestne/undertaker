@@ -10,9 +10,9 @@ HEADERS = $(wildcard *.h)
 
 all: zizler
 
-ZizTest.o: ZizTest.cpp $(HEADERS)
+Zizler.o: Zizler.cpp $(HEADERS)
 
-zizler: ZizTest.o libziz.a
+zizler: Zizler.o libziz.a
 	$(LDXX) -o $@ $(LDXXFLAGS) $^
 
 $(ZIZOBJ): $(HEADERS)
