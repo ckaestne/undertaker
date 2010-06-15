@@ -135,8 +135,6 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
     // Finish the ConditionalBlock
     // read in whole condition until end of line
     lexer_type end = lexer_type();
-    if (lexer != end)
-        pCurBlock->AppendFooter(lexer->get_value()); // #endif itself
     while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
         pCurBlock->AppendFooter(lexer->get_value());
         ++lexer;
@@ -167,7 +165,6 @@ CPPFile::CreateConditionalBlock(int depth, position_type startPos, lexer_type& l
     ConditionalBlock* p_CB = new ConditionalBlock(_blocks++, depth, startPos, *lexer);
 
     // read in whole condition until end of line
-    p_CB->AppendHeader(lexer->get_value());     // store #ifdef token itself
     lexer_type end = lexer_type();
     while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
         p_CB->AppendHeader(lexer->get_value());
