@@ -1,0 +1,13 @@
+<code>
+START BLOCK 1 [T=PP_IFDEF] [H=#ifdef X] [F=#endif] [P=<none>]
+<code>
+START BLOCK 3 [T=PP_IFDEF] [H=#ifdef Y] [F=#endif] [P=1]
+<code>
+START BLOCK 5 [T=PP_IFDEF] [H=#ifdef Z] [F=#endif] [P=3]
+<code>
+END BLOCK 5
+<code>
+END BLOCK 3
+<code>
+END BLOCK 1
+<code>
