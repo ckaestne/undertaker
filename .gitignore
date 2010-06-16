@@ -1,4 +1,4 @@
 *.o
 libziz.a
 zizler
-validation/out/*
+test/out/*
