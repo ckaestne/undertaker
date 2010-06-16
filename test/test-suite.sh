@@ -88,8 +88,7 @@ do_test()
 
 	# can this test be handled by test-suite?
 	# (there must exist *.testspec *.output *.error files for it)
-	if [ ! -r "$file.testspec" ] || [ ! -r "$file.output" ] \
-		                     || [ ! -r "$file.error" ]; then
+	if [ ! -r "$file.testspec" ]; then
 		echo "warning: test '$basename' unhandled (spec file missing)"
 		unhandled_tests=`expr $unhandled_tests + 1`
 		return 2
@@ -101,6 +100,11 @@ do_test()
 		return 2
 	fi
 	test_name=$last_result
+
+	# which tests to actually perform
+	diff=""
+	if [ -r "$file.output" ]; then diff="output"       ; fi
+	if [ -r "$file.error"  ]; then diff="$diff error"  ; fi
 
 	echo "     TEST    $test_name ($basename)"
 
@@ -126,7 +130,7 @@ do_test()
 	$cmd 1> "out/$basename.output" 2> "out/$basename.error"
 	actual_exit_value=$?
 
-	for stream in output error; do
+	for stream in $diff; do
 		diff -u "in/$basename.$stream" "out/$basename.$stream" \
 		    > "out/$basename.$stream.diff"
 		if [ "$?" -ne "0" ]; then
