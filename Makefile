@@ -19,15 +19,13 @@ $(ZIZOBJ): $(HEADERS)
 libziz.a: $(ZIZOBJ) $(HEADERS)
 	ar r $@ $(ZIZOBJ)
 
-check: all
-	@cd validation && ./test-suite.sh
-
 clean:
 	rm -rf *.o *.a
 
+test: all
+	@cd test && ./test-suite.sh
+
 test-clean:
-	rm -rf validation/*.got
-	rm -rf validation/*.diff
-	rm -rf validation/*.expected
+	rm -rf test/out/*
 
 .PHONY: check

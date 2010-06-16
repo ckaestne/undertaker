@@ -3,8 +3,8 @@
 #set -x
 
 default_path=".."
-default_cmd="zizler \$file"
-tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
+default_cmd="zizler --short \$file"
+tests_list=`find in/ -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
 prog_name=`basename $0`
 
 # counts:
@@ -84,22 +84,29 @@ do_test()
 {
 	test_failed=0
 	file="$1"
+	basename=`basename $file`
 
-	# can this test be handled by test-suite ?
-	# (it has to have a check-name key in it)
-	get_value "check-name" $file
+	# can this test be handled by test-suite?
+	# (there must exist *.testspec *.output *.error files for it)
+	if [ ! -r "$file.testspec" ] || [ ! -r "$file.output" ] \
+		                     || [ ! -r "$file.error" ]; then
+		echo "warning: test '$basename' unhandled (spec file missing)"
+		unhandled_tests=`expr $unhandled_tests + 1`
+		return 2
+	fi
+	get_value "check-name" $file.testspec
 	if [ "$?" -eq 1 ]; then
-		echo "warning: test '$file' unhandled"
+		echo "warning: test '$basename' unhandled"
 		unhandled_tests=`expr $unhandled_tests + 1`
 		return 2
 	fi
 	test_name=$last_result
 
-	echo "     TEST    $test_name ($file)"
+	echo "     TEST    $test_name ($basename)"
 
 	# does the test provide a specific command ?
 	cmd=`eval echo $default_path/$default_cmd`
-	get_value "check-command" $file
+	get_value "check-command" $file.testspec
 	if [ "$?" -eq "0" ]; then
 		last_result=`echo $last_result | sed -e 's/^ *//'`
 		cmd=`eval echo $default_path/$last_result`
@@ -107,7 +114,7 @@ do_test()
 	verbose "Using command       : $cmd"
 
 	# grab the expected exit value
-	get_value "check-exit-value" $file
+	get_value "check-exit-value" $file.testspec
 	if [ "$?" -eq "0" ]; then
 		expected_exit_value=`echo $last_result | tr -d ' '`
 	else
@@ -115,21 +122,16 @@ do_test()
 	fi
 	verbose "Expecting exit value: $expected_exit_value"
 
-	# grab the expected output
-	sed -n '/check-output-start/,/check-output-end/p' $file \
-		| grep -v check-output > "$file".output.expected
-	sed -n '/check-error-start/,/check-error-end/p' $file \
-		| grep -v check-error > "$file".error.expected
-
 	# grab the actual output & exit value
-	$cmd 1> $file.output.got 2> $file.error.got
+	$cmd 1> "out/$basename.output" 2> "out/$basename.error"
 	actual_exit_value=$?
 
 	for stream in output error; do
-		diff -u "$file".$stream.expected "$file".$stream.got > "$file".$stream.diff
+		diff -u "in/$basename.$stream" "out/$basename.$stream" \
+		    > "out/$basename.$stream.diff"
 		if [ "$?" -ne "0" ]; then
 			error "actual $stream text does not match expected $stream text."
-			error  "see $file.$stream.* for further investigation."
+			error  "see out/$basename.$stream[.diff] for further investigation."
 			test_failed=1
 		fi
 	done
@@ -144,7 +146,7 @@ do_test()
 		ko_tests=`expr $ko_tests + 1`
 		get_tag "check-known-to-fail" $file
 		if [ "$?" -eq "0" ]; then
-			echo "info: test '$file' is known to fail"
+			echo "info: test '$basename' is known to fail"
 			known_ko_tests=`expr $known_ko_tests + 1`
 		fi
 		return 1

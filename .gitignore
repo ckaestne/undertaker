@@ -1,6 +1,4 @@
 *.o
 libziz.a
 zizler
-validation/*.got
-validation/*.diff
-validation/*.expected
+validation/out/*
