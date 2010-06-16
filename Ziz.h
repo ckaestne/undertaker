@@ -30,11 +30,13 @@ typedef enum {
     Conditional
 } block_type;
 
+class BlockContainer;
 
 class Block {
     protected:
-        Block(int i, int d, position_type s) :   // only allow in
-            _id(i), _depth(d), _start(s) {}      // derived classes
+        // only allow in derived classes
+        Block(int i, int d, position_type s, BlockContainer* pbc)
+            : _id(i), _depth(d), _start(s), _pParent(pbc) {}
         virtual ~Block() {}
     private:
         Block(Block&);                        // disable copy c'tor
@@ -46,6 +48,7 @@ class Block {
         int             Depth()   const { return _depth; }
         position_type   Start()   const { return _start; }
         position_type   End()     const { return _end; }
+        BlockContainer* Parent()  const { return _pParent; }
 
         void SetEnd    (const position_type p) { _end   = p; }
 
@@ -54,8 +57,7 @@ class Block {
         int             _depth;
         position_type   _start;
         position_type   _end;
-
-        // TODO parent
+        BlockContainer* _pParent;
 };
 
 class BlockContainer : public std::vector<Block*> {
@@ -65,7 +67,8 @@ class BlockContainer : public std::vector<Block*> {
 
 class CodeBlock : public Block {
     public:
-        CodeBlock(int i, int d, position_type s) : Block(i, d, s) {}
+        CodeBlock(int i, int d, position_type s, BlockContainer* pbc)
+            : Block(i, d, s, pbc) {}
         virtual ~CodeBlock() {}
     private:
         CodeBlock(CodeBlock&);   // disable copy c'tor
@@ -84,8 +87,9 @@ class CodeBlock : public Block {
 
 class ConditionalBlock : public Block, public BlockContainer {
     public:
-        ConditionalBlock(int i, int d, position_type s, token_type t)
-            : Block(i, d, s), _type(t) {}
+        ConditionalBlock(int i, int d, position_type s, token_type t,
+                         BlockContainer* pbc)
+            : Block(i, d, s, pbc), _type(t) {}
         virtual ~ConditionalBlock() {}
     private:
         ConditionalBlock(ConditionalBlock&);   // disable copy c'tor
@@ -120,8 +124,10 @@ class File : public BlockContainer {
         File() : _blocks(0) {}
 
     public:
-        CodeBlock*        CreateCodeBlock       (int, position_type);
-        ConditionalBlock* CreateConditionalBlock(int, position_type, lexer_type&);
+        CodeBlock*        CreateCodeBlock       (int, position_type,
+                                                 BlockContainer*);
+        ConditionalBlock* CreateConditionalBlock(int, position_type,
+                                                 BlockContainer*, lexer_type&);
 
     private:
         int _blocks;

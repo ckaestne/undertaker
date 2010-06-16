@@ -85,7 +85,8 @@ void Parser::HandleToken(lexer_type& lexer)
     */
 
     if (_p_curCodeBlock == NULL)
-        _p_curCodeBlock = _file.CreateCodeBlock(_condBlockStack.size(), _curPos);
+        _p_curCodeBlock = _file.CreateCodeBlock(_condBlockStack.size(),
+                                                _curPos, _p_curBlockContainer);
     _p_curCodeBlock->AppendContent(lexer->get_value());
 }
 
@@ -96,7 +97,8 @@ void Parser::HandleIFDEF(lexer_type& lexer)
     FinishSaveCurrentCodeBlock();
 
     ConditionalBlock* pBlock =
-        _file.CreateConditionalBlock(_condBlockStack.size(), _curPos, lexer);
+        _file.CreateConditionalBlock(_condBlockStack.size(), _curPos,
+                                     _p_curBlockContainer, lexer);
 
     _p_curBlockContainer = pBlock;
     _condBlockStack.push(pBlock);
@@ -154,15 +156,19 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
 // File
 
 CodeBlock*
-File::CreateCodeBlock(int depth, position_type startPos)
+File::CreateCodeBlock(int depth, position_type startPos, BlockContainer* pbc)
 {
-    return new CodeBlock(_blocks++, depth, startPos);
+    assert(pbc != NULL);
+    return new CodeBlock(_blocks++, depth, startPos, pbc);
 }
 
 ConditionalBlock*
-File::CreateConditionalBlock(int depth, position_type startPos, lexer_type& lexer)
+File::CreateConditionalBlock(int depth, position_type startPos,
+			     BlockContainer* pbc, lexer_type& lexer)
 {
-    ConditionalBlock* p_CB = new ConditionalBlock(_blocks++, depth, startPos, *lexer);
+    assert(pbc != NULL);
+    ConditionalBlock* p_CB =
+	new ConditionalBlock(_blocks++, depth, startPos, *lexer, pbc);
 
     // read in whole condition until end of line
     lexer_type end = lexer_type();
