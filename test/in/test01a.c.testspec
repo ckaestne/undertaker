@@ -1,1 +1,1 @@
-check-name: in/test01a.c
+check-name: single #ifdef-#endif
