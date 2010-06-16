@@ -30,6 +30,11 @@ typedef enum {
     Conditional
 } block_type;
 
+typedef enum {
+    OuterBlock,
+    InnerBlock
+} container_type;
+
 class BlockContainer;
 
 class Block {
@@ -63,6 +68,8 @@ class Block {
 class BlockContainer : public std::vector<Block*> {
     protected:
         BlockContainer() {}   // only allow in derived classes
+    public:
+        virtual container_type ContainerType()  const = 0;
 };
 
 class CodeBlock : public Block {
@@ -95,7 +102,8 @@ class ConditionalBlock : public Block, public BlockContainer {
         ConditionalBlock(ConditionalBlock&);   // disable copy c'tor
 
     public:
-        virtual block_type BlockType()  const { return Conditional; }
+        virtual block_type     BlockType()     const { return Conditional; }
+        virtual container_type ContainerType() const { return InnerBlock; }
 
         token_type             TokenType()   const { return _type; }
         std::string            TokenStr()    const;
@@ -124,6 +132,8 @@ class File : public BlockContainer {
         File() : _blocks(0) {}
 
     public:
+        virtual container_type ContainerType() const { return OuterBlock; }
+
         CodeBlock*        CreateCodeBlock       (int, position_type,
                                                  BlockContainer*);
         ConditionalBlock* CreateConditionalBlock(int, position_type,

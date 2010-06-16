@@ -215,7 +215,7 @@ std::ostream & operator+(std::ostream &stream, File const &f)
 std::ostream & operator+(std::ostream &stream, Block const &b)
 {
     if (b.BlockType() == Code) {
-        stream << "<code" << b.Id() << ">\n";
+        stream << "<code>\n";
     } else if (b.BlockType() == Conditional) {
         stream + dynamic_cast<ConditionalBlock const &>(b);
     } else {
@@ -227,14 +227,25 @@ std::ostream & operator+(std::ostream &stream, Block const &b)
 std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
 {
     stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
-           << "[H=" << b.Header() << "] [F=" << b.Footer() << "]\n";
+           << "[H=" << b.Header() << "] [F=" << b.Footer() << "] [P=";
+
+    BlockContainer* p_parent = b.Parent();
+    assert(p_parent != NULL);
+    if (p_parent->ContainerType() == OuterBlock) {
+        stream << "<none>";
+    } else if (p_parent->ContainerType() == InnerBlock) {
+        stream << dynamic_cast<ConditionalBlock*>(p_parent)->Id();
+    } else {
+        assert(false);      // this may not happen
+    }
+
+    stream << "]\n";
 
     std::vector<Block*>::const_iterator it;
     for (it = b.begin(); it != b.end(); ++it)
         stream + **it;
 
-    stream << "END BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
-           << "[H=" << b.Header() << "] [F=" << b.Footer() << "]\n";
+    stream << "END BLOCK " << b.Id() << "\n";
     return stream;
 }
 
