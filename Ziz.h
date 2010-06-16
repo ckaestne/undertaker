@@ -34,7 +34,7 @@ typedef enum {
 class Block {
     protected:
         Block(int i, int d, position_type s) :   // only allow in
-            _id(i), _depth(d), _start(s) {}         // derived classes
+            _id(i), _depth(d), _start(s) {}      // derived classes
         virtual ~Block() {}
     private:
         Block(Block&);                        // disable copy c'tor
@@ -93,18 +93,18 @@ class ConditionalBlock : public Block, public BlockContainer {
     public:
         virtual block_type BlockType()  const { return Conditional; }
 
-        token_type              TokenType()   const { return _type; }
-        std::string             TokenStr()    const;
-        std::string             Header()      const { return _header.str(); }
-        std::string             Footer()      const { return _footer.str(); }
-        std::string             Expression()  const { return _expression.str(); }
+        token_type             TokenType()   const { return _type; }
+        std::string            TokenStr()    const;
+        std::string            Header()      const { return _header.str(); }
+        std::string            Footer()      const { return _footer.str(); }
+        std::string            Expression()  const { return _expression.str(); }
 
-        void AppendHeader       (const std::string &s) { _header     << s; }
-        void AppendHeader       (const string_type &s) { _header     << s; }
-        void AppendFooter       (const std::string &s) { _footer     << s; }
-        void AppendFooter       (const string_type &s) { _footer     << s; }
-        void AppendExpression   (const std::string &s) { _expression << s; }
-        void AppendExpression   (const string_type &s) { _expression << s; }
+        void AppendHeader      (const std::string &s) { _header     << s; }
+        void AppendHeader      (const string_type &s) { _header     << s; }
+        void AppendFooter      (const std::string &s) { _footer     << s; }
+        void AppendFooter      (const string_type &s) { _footer     << s; }
+        void AppendExpression  (const std::string &s) { _expression << s; }
+        void AppendExpression  (const string_type &s) { _expression << s; }
 
     private:
         token_type              _type;
