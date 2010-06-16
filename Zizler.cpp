@@ -7,10 +7,10 @@
 bool ziztest(std::string file, Mode mode)
 {
     std::cerr << "Testing " << file << std::endl;
-    Ziz::Parser ziz;
-    Ziz::CPPFile cppfile;
+    Ziz::Parser parser;
+    Ziz::File zfile;
     try {
-	cppfile = ziz.Parse(file);
+	zfile = parser.Parse(file);
     } catch(Ziz::ZizException& e) {
 	std::cerr << "caught ZizException: " << e.what() << std::endl;
 	return false;
@@ -19,11 +19,11 @@ bool ziztest(std::string file, Mode mode)
 	return false;
     }
     if (mode == Short) {
-	std::cout + cppfile;
+	std::cout + zfile;
     } else if (mode == Medium) {
-	std::cout << cppfile;
+	std::cout << zfile;
     } else if (mode == Long) {
-	std::cout >> cppfile;
+	std::cout >> zfile;
     } else {
 	assert(false); // shall never happen
 	return false;

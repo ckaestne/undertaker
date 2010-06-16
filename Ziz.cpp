@@ -10,7 +10,7 @@ using namespace Ziz;
 
 // Ziz
 
-CPPFile Parser::Parse(std::string file)
+File Parser::Parse(std::string file)
 {
     try {
         // Open and read in the specified input file.
@@ -72,7 +72,7 @@ CPPFile Parser::Parse(std::string file)
         throw ZizException("WTF");
     }
 
-    return _cppfile;
+    return _file;
 }
 
 void Parser::HandleToken(lexer_type& lexer)
@@ -85,7 +85,7 @@ void Parser::HandleToken(lexer_type& lexer)
     */
 
     if (_p_curCodeBlock == NULL)
-        _p_curCodeBlock = _cppfile.CreateCodeBlock(_condBlockStack.size(), _curPos);
+        _p_curCodeBlock = _file.CreateCodeBlock(_condBlockStack.size(), _curPos);
     _p_curCodeBlock->AppendContent(lexer->get_value());
 }
 
@@ -96,7 +96,7 @@ void Parser::HandleIFDEF(lexer_type& lexer)
     FinishSaveCurrentCodeBlock();
 
     ConditionalBlock* pBlock =
-        _cppfile.CreateConditionalBlock(_condBlockStack.size(), _curPos, lexer);
+        _file.CreateConditionalBlock(_condBlockStack.size(), _curPos, lexer);
 
     _p_curBlockContainer = pBlock;
     _condBlockStack.push(pBlock);
@@ -141,26 +141,26 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
     }
 
     if (_condBlockStack.empty()) {
-        _p_curBlockContainer = &_cppfile;   // we just left a top-level block
+        _p_curBlockContainer = &_file;   // we just left a top-level block
     } else {
         _p_curBlockContainer = _condBlockStack.top();
     }
 
-    // add this block to current blocklist (either cppfile or inner block)
+    // add this block to current blocklist (either file or inner block)
     _p_curBlockContainer->push_back(pCurBlock);
 }
 
 
-// CPPFile
+// File
 
 CodeBlock*
-CPPFile::CreateCodeBlock(int depth, position_type startPos)
+File::CreateCodeBlock(int depth, position_type startPos)
 {
     return new CodeBlock(_blocks++, depth, startPos);
 }
 
 ConditionalBlock*
-CPPFile::CreateConditionalBlock(int depth, position_type startPos, lexer_type& lexer)
+File::CreateConditionalBlock(int depth, position_type startPos, lexer_type& lexer)
 {
     ConditionalBlock* p_CB = new ConditionalBlock(_blocks++, depth, startPos, *lexer);
 
@@ -198,15 +198,15 @@ std::string Indent(int depth) {
 // output operators
 
 // + short output (--short mode in zizler)
-std::ostream & operator+(std::ostream &stream, CPPFile const &f)
+std::ostream & operator+(std::ostream &stream, File const &f)
 {
-    std::vector<CPPBlock*>::const_iterator it;
+    std::vector<Block*>::const_iterator it;
     for (it = f.begin(); it != f.end(); ++it)
         stream + **it;
     return stream;
 }
 
-std::ostream & operator+(std::ostream &stream, CPPBlock const &b)
+std::ostream & operator+(std::ostream &stream, Block const &b)
 {
     if (b.BlockType() == Code) {
         stream << "<code" << b.Id() << ">\n";
@@ -223,7 +223,7 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
     stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
            << "[H=" << b.Header() << "] [F=" << b.Footer() << "]\n";
 
-    std::vector<CPPBlock*>::const_iterator it;
+    std::vector<Block*>::const_iterator it;
     for (it = b.begin(); it != b.end(); ++it)
         stream + **it;
 
@@ -235,15 +235,15 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
 
 // << normal output (default mode in zizler)
 
-std::ostream & operator<<(std::ostream &stream, CPPFile const &f)
+std::ostream & operator<<(std::ostream &stream, File const &f)
 {
-    std::vector<CPPBlock*>::const_iterator it;
+    std::vector<Block*>::const_iterator it;
     for (it = f.begin(); it != f.end(); ++it)
         stream << **it;
     return stream;
 }
 
-std::ostream & operator<<(std::ostream &stream, CPPBlock const &b)
+std::ostream & operator<<(std::ostream &stream, Block const &b)
 {
     if (b.BlockType() == Code) {
         stream << dynamic_cast<CodeBlock const &>(b);
@@ -271,7 +271,7 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
     stream << "expression=" << b.Expression()  << "\n";
     stream << "footer="     << b.Footer()      << "\n";
 
-    std::vector<CPPBlock*>::const_iterator it;
+    std::vector<Block*>::const_iterator it;
     for (it = b.begin(); it != b.end(); ++it)
         stream << **it;
 
@@ -282,16 +282,16 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
 
 // >> verbose output (--long mode in zizler)
 
-std::ostream & operator>>(std::ostream &stream, CPPFile const &f)
+std::ostream & operator>>(std::ostream &stream, File const &f)
 {
     std::cout << "File has " << f.size() << " outer blocks\n\n";
-    std::vector<CPPBlock*>::const_iterator it;
+    std::vector<Block*>::const_iterator it;
     for (it = f.begin(); it != f.end(); ++it)
         stream >> **it;
     return stream;
 }
 
-std::ostream & operator>>(std::ostream &stream, CPPBlock const &b)
+std::ostream & operator>>(std::ostream &stream, Block const &b)
 {
     if (b.BlockType() == Code) {
         stream >> dynamic_cast<CodeBlock const &>(b);
@@ -341,7 +341,7 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
     stream << indent << " footer:      " << b.Footer()      << "\n";
 
     stream << indent <<" inner blocks: " << b.size() << "\n";
-    std::vector<CPPBlock*>::const_iterator it;
+    std::vector<Block*>::const_iterator it;
     for (it = b.begin(); it != b.end(); ++it)
         stream >> **it;
 

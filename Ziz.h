@@ -31,13 +31,13 @@ typedef enum {
 } block_type;
 
 
-class CPPBlock {
+class Block {
     protected:
-        CPPBlock(int i, int d, position_type s) :   // only allow in
+        Block(int i, int d, position_type s) :   // only allow in
             _id(i), _depth(d), _start(s) {}         // derived classes
-        virtual ~CPPBlock() {}
+        virtual ~Block() {}
     private:
-        CPPBlock(CPPBlock&);                        // disable copy c'tor
+        Block(Block&);                        // disable copy c'tor
 
     public:
         virtual block_type BlockType()  const = 0;
@@ -58,14 +58,14 @@ class CPPBlock {
         // TODO parent
 };
 
-class BlockContainer : public std::vector<CPPBlock*> {
+class BlockContainer : public std::vector<Block*> {
     protected:
         BlockContainer() {}   // only allow in derived classes
 };
 
-class CodeBlock : public CPPBlock {
+class CodeBlock : public Block {
     public:
-        CodeBlock(int i, int d, position_type s) : CPPBlock(i, d, s) {}
+        CodeBlock(int i, int d, position_type s) : Block(i, d, s) {}
         virtual ~CodeBlock() {}
     private:
         CodeBlock(CodeBlock&);   // disable copy c'tor
@@ -82,10 +82,10 @@ class CodeBlock : public CPPBlock {
         std::stringstream       _content;
 };
 
-class ConditionalBlock : public CPPBlock, public BlockContainer {
+class ConditionalBlock : public Block, public BlockContainer {
     public:
         ConditionalBlock(int i, int d, position_type s, token_type t)
-            : CPPBlock(i, d, s), _type(t) {}
+            : Block(i, d, s), _type(t) {}
         virtual ~ConditionalBlock() {}
     private:
         ConditionalBlock(ConditionalBlock&);   // disable copy c'tor
@@ -115,9 +115,9 @@ class ConditionalBlock : public CPPBlock, public BlockContainer {
         // TODO previous_else, ...?
 };
 
-class CPPFile : public BlockContainer {
+class File : public BlockContainer {
     public:
-        CPPFile() : _blocks(0) {}
+        File() : _blocks(0) {}
 
     public:
         CodeBlock*        CreateCodeBlock       (int, position_type);
@@ -137,10 +137,10 @@ class ZizException : public std::runtime_error {
 class Parser {
     public:
         Parser() : _p_curCodeBlock(NULL),
-                   _p_curBlockContainer(&_cppfile)  // add outermost blocks to file
+                   _p_curBlockContainer(&_file)  // add outermost blocks to file
             {}
 
-        CPPFile Parse(std::string file);
+        File Parse(std::string file);
 
     private:
         Parser(Parser&);   // disable copy c'tor
@@ -153,7 +153,7 @@ class Parser {
         void FinishSaveCurrentConditionalBlock(lexer_type&);
 
         // The block structure of the file that Parse() builds.
-        CPPFile _cppfile;
+        File _file;
 
         // current file position is saved for exception handling
         file_position_type              _curPos, _prevPos;
@@ -170,17 +170,17 @@ class Parser {
 
 } // namespace Ziz
 
-std::ostream & operator+ (std::ostream &stream, Ziz::CPPFile          const &);
-std::ostream & operator+ (std::ostream &stream, Ziz::CPPBlock         const &);
+std::ostream & operator+ (std::ostream &stream, Ziz::File             const &);
+std::ostream & operator+ (std::ostream &stream, Ziz::Block            const &);
 std::ostream & operator+ (std::ostream &stream, Ziz::ConditionalBlock const &);
 
-std::ostream & operator<<(std::ostream &stream, Ziz::CPPFile          const &);
-std::ostream & operator<<(std::ostream &stream, Ziz::CPPBlock         const &);
+std::ostream & operator<<(std::ostream &stream, Ziz::File             const &);
+std::ostream & operator<<(std::ostream &stream, Ziz::Block            const &);
 std::ostream & operator<<(std::ostream &stream, Ziz::CodeBlock        const &);
 std::ostream & operator<<(std::ostream &stream, Ziz::ConditionalBlock const &);
 
-std::ostream & operator>>(std::ostream &stream, Ziz::CPPFile          const &);
-std::ostream & operator>>(std::ostream &stream, Ziz::CPPBlock         const &);
+std::ostream & operator>>(std::ostream &stream, Ziz::File             const &);
+std::ostream & operator>>(std::ostream &stream, Ziz::Block            const &);
 std::ostream & operator>>(std::ostream &stream, Ziz::CodeBlock        const &);
 std::ostream & operator>>(std::ostream &stream, Ziz::ConditionalBlock const &);
 
