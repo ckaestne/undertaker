@@ -1,5 +1,5 @@
-<code0>
-START BLOCK 1 [T=PP_IFDEF] [H=#ifdef X] [F=#endif]
-<code2>
-END BLOCK 1 [T=PP_IFDEF] [H=#ifdef X] [F=#endif]
-<code3>
+<code>
+START BLOCK 1 [T=PP_IFDEF] [H=#ifdef X] [F=#endif] [P=<none>]
+<code>
+END BLOCK 1
+<code>
