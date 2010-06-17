@@ -162,6 +162,7 @@ class Parser {
         Parser(Parser&);   // disable copy c'tor
 
         void HandleOpeningCondBlock             (lexer_type&);
+        void HandleElseBlock                    (lexer_type&);
 
         void HandleIF                           (lexer_type&);
         void HandleIFDEF                        (lexer_type&);
