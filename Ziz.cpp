@@ -108,10 +108,9 @@ void Parser::HandleIFDEF(lexer_type& lexer)
     HandleOpeningCondBlock(lexer);
 }
 
-// TODO
 void Parser::HandleIFNDEF(lexer_type& lexer)
 {
-    assert(false);  // Not yet.
+    HandleOpeningCondBlock(lexer);
 }
 
 // TODO
