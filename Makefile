@@ -56,6 +56,8 @@ PHONY += scripts_basic
 scripts_basic:
 	$(Q)$(MAKE) $(build)=scripts/basic
 
+undertaker: FORCE
+	$(Q)$(MAKE) -C undertaker $@ MAKEFLAGS=
 
 config: scripts_basic FORCE
 	$(Q)mkdir -p include/linux include/config
