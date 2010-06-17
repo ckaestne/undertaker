@@ -124,7 +124,7 @@ void Parser::HandleElseBlock(lexer_type& lexer)
     ConditionalBlock* pElseBlock =
         _file.CreateConditionalBlock(_condBlockStack.size(), _curPos,
                                      _p_curBlockContainer, lexer);
-    //pElseBlock->SetPrevSibling(pPrevIfBlock); 
+    pElseBlock->SetPrevSibling(pPrevIfBlock); 
     _p_curBlockContainer = pElseBlock;
     _condBlockStack.push(pElseBlock); 
 }
@@ -306,6 +306,14 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
         stream << dynamic_cast<ConditionalBlock*>(p_parent)->Id();
     } else {
         assert(false);      // this may not happen
+    }
+
+    stream << "] [PS=";
+    ConditionalBlock* p_prevSibling = b.PrevSibling();
+    if (p_prevSibling == NULL) {
+        stream << "<none>";
+    } else {
+        stream << p_prevSibling->Id();
     }
 
     stream << "]\n";

@@ -110,6 +110,7 @@ class ConditionalBlock : public Block, public BlockContainer {
         std::string            Header()      const { return _header.str(); }
         std::string            Footer()      const { return _footer.str(); }
         std::string            Expression()  const { return _expression.str(); }
+        ConditionalBlock*      PrevSibling() const { return _p_prevSib; }
 
         void AppendHeader      (const std::string &s) { _header     << s; }
         void AppendHeader      (const string_type &s) { _header     << s; }
@@ -117,14 +118,14 @@ class ConditionalBlock : public Block, public BlockContainer {
         void AppendFooter      (const string_type &s) { _footer     << s; }
         void AppendExpression  (const std::string &s) { _expression << s; }
         void AppendExpression  (const string_type &s) { _expression << s; }
+        void SetPrevSibling    (ConditionalBlock* ps) { _p_prevSib = ps; }
 
     private:
         token_type              _type;
         std::stringstream       _header;
         std::stringstream       _footer;
         std::stringstream       _expression;    // TODO: shall be formula later
-
-        // TODO previous_else, ...?
+        ConditionalBlock*       _p_prevSib;
 };
 
 class File : public BlockContainer {
