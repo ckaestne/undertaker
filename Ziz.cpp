@@ -116,7 +116,33 @@ void Parser::HandleIFNDEF(lexer_type& lexer)
 // TODO
 void Parser::HandleELSE(lexer_type& lexer)
 {
-    assert(false);  // Not yet.
+    FinishSaveCurrentCodeBlock();
+
+    // The #if/#elif block belonging to this #else is on top of the block stack.
+    if (_condBlockStack.empty()){
+        // TODO: add _curPos info to msg
+        throw ZizException(std::string("no open #if block for #else").c_str());
+    }
+    ConditionalBlock* pPrevIfBlock = _condBlockStack.top();
+    _condBlockStack.pop();
+
+    // Add the previous #if/#elif block to current blocklist (either file or
+    // inner block).
+    if (_condBlockStack.empty()) {
+        _p_curBlockContainer = &_file;   // we just left a top-level block
+    } else {
+        _p_curBlockContainer = _condBlockStack.top();
+    }
+    _p_curBlockContainer->push_back(pPrevIfBlock);
+
+    // Create the actual #else block, set previous silbling, set #else block as
+    // current block container and push to block stack.
+    ConditionalBlock* pElseBlock =
+        _file.CreateConditionalBlock(_condBlockStack.size(), _curPos,
+                                     _p_curBlockContainer, lexer);
+    //pElseBlock->SetPrevSibling(pPrevIfBlock); 
+    _p_curBlockContainer = pElseBlock;
+    _condBlockStack.push(pElseBlock); 
 }
 
 // TODO
