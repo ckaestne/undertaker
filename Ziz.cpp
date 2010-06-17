@@ -85,16 +85,8 @@ File Parser::Parse(std::string file)
 }
 
 
-// TODO
-void Parser::HandleIF(lexer_type& lexer)
+void Parser::HandleOpeningCondBlock(lexer_type& lexer)
 {
-    assert(false);  // Not yet.
-}
-
-void Parser::HandleIFDEF(lexer_type& lexer)
-{
-    //std::cerr << "HandleIFDEF() " << lexer->get_value() << std::endl;
-
     FinishSaveCurrentCodeBlock();
 
     ConditionalBlock* pBlock =
@@ -103,6 +95,17 @@ void Parser::HandleIFDEF(lexer_type& lexer)
 
     _p_curBlockContainer = pBlock;
     _condBlockStack.push(pBlock);
+}
+
+
+void Parser::HandleIF(lexer_type& lexer)
+{
+    HandleOpeningCondBlock(lexer);
+}
+
+void Parser::HandleIFDEF(lexer_type& lexer)
+{
+    HandleOpeningCondBlock(lexer);
 }
 
 // TODO
@@ -130,6 +133,7 @@ void Parser::HandleENDIF(lexer_type& lexer)
     FinishSaveCurrentCodeBlock();
     FinishSaveCurrentConditionalBlock(lexer);
 }
+
 
 void Parser::HandleToken(lexer_type& lexer)
 {
