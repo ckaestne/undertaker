@@ -1,0 +1,5 @@
+<code>
+START BLOCK 1 [T=PP_IF] [H=#if SOMEVAR==X] [F=#endif] [P=<none>]
+<code>
+END BLOCK 1
+<code>
