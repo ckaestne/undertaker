@@ -1,9 +1,10 @@
-####
+#### -*- mode: makefile -*-
 # kbuild: Generic definitions
 
 # Convenient variables
 comma   := ,
 squote  := '
+# ' workaround emacs syntax hilighting bug
 empty   :=
 space   := $(empty) $(empty)
 
