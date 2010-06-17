@@ -1,0 +1,163 @@
+# -*- mode: makefile -*-
+
+# this file is supposed to be run from inside an linux kernel
+# also the required tools are expected to be in the PATH
+
+ARCHLIST=alpha arm avr32 blackfin cris frv h8300 ia64 m32r m68k m68knommu microblaze mips mn10300 parisc powerpc s390 score sh sparc x86 xtensa um
+ALL_ARCH_RSF=$(foreach arch,$(ARCHLIST),kconfig-$(arch).rsf)
+KCONFIG_WHITELIST=CONFIG_ALPHA CONFIG_PPC64 CONFIG_S390 CONFIG_MIPS CONFIG_IA64
+
+all: allconfigitems.stats
+
+scripts/kconfig/zconf.tab.o:
+	$(MAKE) scripts_basic
+
+scripts/kconfig/dumpconf: scripts/kconfig/dumpconf.c scripts/kconfig/zconf.tab.o
+	$(MAKE) -C scripts/kconfig dumpconf CFLAGS=-g3 LDFLAGS=zconf.tab.o
+
+allconfigitems.rsf: $(ALL_ARCH_RSF)
+	ifnames `find -name '*.h' -o -name '*.c'` \
+		| awk '/^CONFIG_/ {printf "ImplItem\t%s\n", $$1}' > $@
+	for r in $^; do \
+		echo "processing $$r" ; \
+		crocopat extract-kconfig-defines.rml < $$r >> $@ ; \
+	done
+
+allconfigitems.stats: allconfigitems.rsf
+	crocopat compare.rml < $<
+
+allkconfig.symbols: $(ALL_ARCH_RSF)
+	rm -f $@ ; touch $@
+	for a in $(KCONFIG_WHITELIST); do echo $$a >> $@; done
+	for r in $^; do \
+		echo "processing $$r" ; \
+		crocopat list-config-options.rml < $$r > $@.tmp ; \
+		cat $@.tmp $@ | sort | uniq >> $@.tmp2 ; \
+		mv $@.tmp2 $@ ; \
+	done
+
+kconfig-um.rsf: scripts/kconfig/dumpconf
+	env ARCH="x86" scripts/kconfig/dumpconf arch/um/Kconfig.x86 | grep -v '^#' > $@ || touch $@
+
+kconfig-%.rsf: scripts/kconfig/dumpconf
+	env ARCH="$*" scripts/kconfig/dumpconf arch/$*/Kconfig | grep -v '^#' > $@ || touch $@
+
+x86.rsf: scripts/kconfig/dumpconf
+	scripts/kconfig/dumpconf arch/x86/Kconfig | grep -v '^#' > $@ || touch $@
+
+missing-in-kconfig: allkconfig.symbols Makefile.vamos
+	echo "missing symbols in kconfig:" > $@
+	for r in `find -name '*.c.rsf' -print` ; do \
+		 echo "processing $$r" >> $@; \
+		check-defined allkconfig.symbols $${r} | grep -v '_MODULE' >> $@; \
+	 done
+
+cleanrsf:
+	find . -name '*.rsf' -exec rm {} +
+	find . -name '*.undertaker' -exec rm {} +
+	find . -name '*.codesat' -exec rm {} +
+	find . -name '*.rsfout' -exec rm {} +
+	find . -name '*.crocopat' -exec rm {} +
+	rm -f scan-stamp
+
+# possible values:
+# 'checker': integrated as sparse replacement tool
+# 'all':     scans every *.h, *.c., *.S
+RSFMODE=all
+scan:
+	$(MAKE) -f Makefile.vamos -j8 source2rsf-stamp
+	$(MAKE) -f Makefile.vamos -j8 crocopat-stamp
+	$(MAKE) -f Makefile.vamos -j8 sat-stamp
+
+all-arch-rsf: $(ALL_ARCH_RSF)
+refcheck: $(ALL_ARCH_RSF) source2rsf-stamp
+
+ifeq ($(RSFMODE),all)
+ALLSCAN=$(shell find . -name '*.[c|h|S]')
+source2rsf-stamp: $(addsuffix .rsf, $(ALLSCAN))
+	@printf "processed %s files\n" "`find . -name '*.rsf' | wc -l`" | tee $@
+%.rsf: %
+	@env SPARSE_IGNORE_INCLUDES=1 source2rsf $< || touch $@
+else
+source2rsf-stamp:
+	@$(MAKE) C=2 CHECK=source2rsf -j8
+	@printf "processed %s files\n" "`find . -name '*.rsf' | wc -l`" | tee $@
+endif
+
+# these rules create the rsfout files
+RSFS=$(shell find -name '*.[c|h|S].rsf')
+crocopat-stamp: $(RSFS:.rsf=.crocopat)
+	touch $@
+%.crocopat: %.rsf postprocess.rml
+	@echo "postprocessing $<"
+	@rm -f $*.*.rsfout
+	nice crocopat postprocess.rml < $< | tee $@
+
+
+#### SAT RULES
+RSFOUTS=$(shell find . -name '*.rsfout')
+sat-stamp: crocopat-stamp $(RSFOUTS:.rsfout=.codesat)
+	find . -name '*.codesat' > $@
+	@echo "$@ generated"
+
+
+ALL_ARCH_BSAT_STAMPS=$(foreach arch,$(ARCHLIST),bsat-$(arch)-stamp)
+all-bsat-stamps: $(ALL_ARCH_BSAT_STAMPS)
+
+bsat-x86-stamp: kconfig-x86.rsf sat-stamp
+	grep -v 'arch/' sat-stamp > worklist-x86
+	grep 'arch/x86' sat-stamp >> worklist-x86
+	KconfigIntersect $< worklist-x86 2>&1
+	find . -name '*.x86.bsat' > $@
+	@printf "generated %s blocks on $* to be analyzed\n" `wc -l $@`
+
+bsat-%-stamp: kconfig-%.rsf sat-stamp
+	if grep 'arch/$*' sat-stamp > worklist-$*; then \
+		KconfigIntersect $< worklist-$* 2>&1 ; \
+		find arch/$* -name '*.$*.bsat' > $@ ; \
+	fi
+	@printf "generated %s blocks on $* to be analyzed\n" `wc -l $@`
+
+%.codesat: %.rsfout
+	@sat $< > $@
+
+%.dead: %.bsat
+	@limboole -s $^ > $@ || touch $@
+
+BSATS=$(shell find . -name '*.bsat')
+deads-stamp: $(BSATS:.bsat=.dead)
+	find . -name '*.dead' > $@
+	@printf "analyzed a total of %s bsat files\n" `wc -l $@`
+
+recheck: all-bsat-stamps
+	$(MAKE) -f Makefile.vamos -j8 deads-stamp
+	find . -name '*.dead' -exec grep -l UNSATISFIABLE {} \; \
+	    | sed 's/codesat\..*/codesat/' \
+	    | grep -v 'arch/' | sort | uniq > $@
+
+crosscheck: recheck
+# first check non-arch code
+	for arch in $(ARCHLIST); do \
+		if [ -s kconfig-$${arch}.rsf ]; then \
+			KconfigIntersect kconfig-$${arch}.rsf recheck; \
+		fi \
+	done
+	$(MAKE) -f Makefile.vamos -j8 deads-stamp
+	./do-crosscheck > $@
+# now check each arch
+	find arch/ -name '*.dead' -exec grep -l UNSATISFIABLE {} \; >> crosscheck
+
+#### UNDERTAKER RULES
+undertaker.csv: crocopat-stamp
+	rm -f $@.tmp
+	find . -name \*.undertaker -exec cat {} + >> $@.tmp
+	mv $@.tmp $@
+
+%.undertaker: %.crocopat
+	@for i in $(wildcard $*.*.rsfout); do \
+		( ulimit -t 120 ; echo "running undertaker on $$i for $@"; \
+		  undertaker -w $@ $$i ) || true ; \
+	done
+
+.PRECIOUS: %.crocopat %.rsf %.codesat %.rsfout %.kconfigsat
+.PHONY: scan cleanrsf crosscheck
