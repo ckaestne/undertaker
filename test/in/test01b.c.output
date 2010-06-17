@@ -1,5 +1,5 @@
 <code>
-START BLOCK 1 [T=PP_IFDEF] [H=#ifdef X] [F=#endif] [P=<none>]
+START BLOCK 1 [T=PP_IFDEF] [H=#ifdef X] [F=#endif] [P=<none>] [PS=<none>]
 <code>
 END BLOCK 1
 <code>

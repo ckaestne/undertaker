@@ -1,11 +1,11 @@
 <code>
-START BLOCK 1 [T=PP_IF] [H=#if X==23] [F=] [P=<none>]
+START BLOCK 1 [T=PP_IF] [H=#if X==23] [F=] [P=<none>] [PS=<none>]
 <code>
 END BLOCK 1
-START BLOCK 3 [T=PP_ELIF] [H=#elif X==42] [F=] [P=<none>]
+START BLOCK 3 [T=PP_ELIF] [H=#elif X==42] [F=] [P=<none>] [PS=1]
 <code>
 END BLOCK 3
-START BLOCK 5 [T=PP_ELSE] [H=#else] [F=#endif] [P=<none>]
+START BLOCK 5 [T=PP_ELSE] [H=#else] [F=#endif] [P=<none>] [PS=3]
 <code>
 END BLOCK 5
 <code>
