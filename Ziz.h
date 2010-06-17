@@ -161,9 +161,13 @@ class Parser {
     private:
         Parser(Parser&);   // disable copy c'tor
 
-        void HandleToken(lexer_type&);
-        void HandleIFDEF(lexer_type&);
-        void HandleENDIF(lexer_type&);
+        void HandleIF    (lexer_type&);
+        void HandleIFDEF (lexer_type&);
+        void HandleIFNDEF(lexer_type&);
+        void HandleELSE  (lexer_type&);
+        void HandleELIF  (lexer_type&);
+        void HandleENDIF (lexer_type&);
+        void HandleToken (lexer_type&);
 
         void FinishSaveCurrentCodeBlock();
         void FinishSaveCurrentConditionalBlock(lexer_type&);

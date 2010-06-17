@@ -37,19 +37,28 @@ File Parser::Parse(std::string file)
 
             boost::wave::token_id id = boost::wave::token_id(*it);
             switch (id) {
+                case boost::wave::T_PP_IF:
+                    HandleIF(it);
+                    break;
                 case boost::wave::T_PP_IFDEF:
                     HandleIFDEF(it);
                     break;
-
+                case boost::wave::T_PP_IFNDEF:
+                    HandleIFNDEF(it);
+                    break;
+                case boost::wave::T_PP_ELSE:
+                    HandleELSE(it);
+                    break;
+                case boost::wave::T_PP_ELIF:
+                    HandleELIF(it);
+                    break;
                 case boost::wave::T_PP_ENDIF:
                     HandleENDIF(it);
                     break;
-
                 default:
                     HandleToken(it);
                     break;
             }
-
             // The lexer iterator might have gone further in the Handle*()
             // functions, so we'll check for EOF.
             if (it != end)
@@ -75,19 +84,11 @@ File Parser::Parse(std::string file)
     return _file;
 }
 
-void Parser::HandleToken(lexer_type& lexer)
-{
-    /*
-    boost::wave::token_id id = boost::wave::token_id(*lexer);
-    std::cerr << "HandleToken() "
-        << boost::wave::get_token_name(id) << " | "
-        << lexer->get_value() << std::endl;
-    */
 
-    if (_p_curCodeBlock == NULL)
-        _p_curCodeBlock = _file.CreateCodeBlock(_condBlockStack.size(),
-                                                _curPos, _p_curBlockContainer);
-    _p_curCodeBlock->AppendContent(lexer->get_value());
+// TODO
+void Parser::HandleIF(lexer_type& lexer)
+{
+    assert(false);  // Not yet.
 }
 
 void Parser::HandleIFDEF(lexer_type& lexer)
@@ -104,6 +105,24 @@ void Parser::HandleIFDEF(lexer_type& lexer)
     _condBlockStack.push(pBlock);
 }
 
+// TODO
+void Parser::HandleIFNDEF(lexer_type& lexer)
+{
+    assert(false);  // Not yet.
+}
+
+// TODO
+void Parser::HandleELSE(lexer_type& lexer)
+{
+    assert(false);  // Not yet.
+}
+
+// TODO
+void Parser::HandleELIF(lexer_type& lexer)
+{
+    assert(false);  // Not yet.
+}
+
 void Parser::HandleENDIF(lexer_type& lexer)
 {
     //std::cerr << "HandleENDIF() " << lexer->get_value() << std::endl;
@@ -111,6 +130,22 @@ void Parser::HandleENDIF(lexer_type& lexer)
     FinishSaveCurrentCodeBlock();
     FinishSaveCurrentConditionalBlock(lexer);
 }
+
+void Parser::HandleToken(lexer_type& lexer)
+{
+    /*
+    boost::wave::token_id id = boost::wave::token_id(*lexer);
+    std::cerr << "HandleToken() "
+        << boost::wave::get_token_name(id) << " | "
+        << lexer->get_value() << std::endl;
+    */
+
+    if (_p_curCodeBlock == NULL)
+        _p_curCodeBlock = _file.CreateCodeBlock(_condBlockStack.size(),
+                                                _curPos, _p_curBlockContainer);
+    _p_curCodeBlock->AppendContent(lexer->get_value());
+}
+
 
 void Parser::FinishSaveCurrentCodeBlock()
 {
@@ -151,6 +186,7 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
     // add this block to current blocklist (either file or inner block)
     _p_curBlockContainer->push_back(pCurBlock);
 }
+
 
 
 // File
