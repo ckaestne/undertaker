@@ -30,8 +30,23 @@ std::ostream & operator+(std::ostream &stream, Block const &b)
 
 std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
 {
-    stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
-           << "[H=" << b.Header() << "] [F=" << b.Footer() << "] [P=";
+    stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] ";
+
+    std::string header = b.Header();
+    size_t nlpos = header.find("\n");
+    while (nlpos != std::string::npos) {
+        header.replace(nlpos, 1, "");
+        nlpos = header.find("\n", nlpos + 1);
+    }
+    stream << "[H=" << header << "] ";
+
+    std::string footer = b.Footer();
+    nlpos = footer.find("\n");
+    while (nlpos != std::string::npos) {
+        footer.replace(nlpos, 1, "");
+        nlpos = footer.find("\n", nlpos + 1);
+    }
+    stream << "[F=" << footer << "] [P=";
 
     BlockContainer* p_parent = b.Parent();
     assert(p_parent != NULL);

@@ -209,6 +209,10 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
         pCurBlock->AppendFooter(lexer->get_value());
         ++lexer;
     }
+    if (lexer != end) {
+        // we reached an EOL, not EOF, so include that token in the footer
+        pCurBlock->AppendFooter(lexer->get_value());
+    }
 
     if (_condBlockStack.empty()) {
         _p_curBlockContainer = &_file;   // we just left a top-level block
@@ -236,17 +240,21 @@ File::CreateConditionalBlock(int depth, position_type startPos,
                              BlockContainer* pbc, lexer_type& lexer)
 {
     assert(pbc != NULL);
-    ConditionalBlock* p_CB =
+    ConditionalBlock* pCurBlock =
         new ConditionalBlock(_blocks++, depth, startPos, *lexer, pbc);
 
     // read in whole condition until end of line
     lexer_type end = lexer_type();
     while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
-        p_CB->AppendHeader(lexer->get_value());
+        pCurBlock->AppendHeader(lexer->get_value());
         ++lexer;
     }
+    if (lexer != end) {
+        // we reached an EOL, not EOF, so include that token in the header
+        pCurBlock->AppendHeader(lexer->get_value());
+    }
 
-    return p_CB;
+    return pCurBlock;
 }
 
 
