@@ -1,8 +1,192 @@
 #include "Zizler.h"
-#include "Ziz.h"
 
 #include <cassert>
 #include <iostream>
+
+using namespace Ziz;
+
+// output operators
+
+// + short output (--short mode
+std::ostream & operator+(std::ostream &stream, File const &f)
+{
+    std::vector<Block*>::const_iterator it;
+    for (it = f.begin(); it != f.end(); ++it)
+        stream + **it;
+    return stream;
+}
+
+std::ostream & operator+(std::ostream &stream, Block const &b)
+{
+    if (b.BlockType() == Code) {
+        stream << "<code>\n";
+    } else if (b.BlockType() == Conditional) {
+        stream + dynamic_cast<ConditionalBlock const &>(b);
+    } else {
+        assert(false);      // this may not happen
+    }
+    return stream;
+}
+
+std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
+{
+    stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
+           << "[H=" << b.Header() << "] [F=" << b.Footer() << "] [P=";
+
+    BlockContainer* p_parent = b.Parent();
+    assert(p_parent != NULL);
+    if (p_parent->ContainerType() == OuterBlock) {
+        stream << "<none>";
+    } else if (p_parent->ContainerType() == InnerBlock) {
+        stream << dynamic_cast<ConditionalBlock*>(p_parent)->Id();
+    } else {
+        assert(false);      // this may not happen
+    }
+
+    stream << "] [PS=";
+    ConditionalBlock* p_prevSibling = b.PrevSibling();
+    if (p_prevSibling == NULL) {
+        stream << "<none>";
+    } else {
+        stream << p_prevSibling->Id();
+    }
+
+    stream << "]\n";
+
+    std::vector<Block*>::const_iterator it;
+    for (it = b.begin(); it != b.end(); ++it)
+        stream + **it;
+
+    stream << "END BLOCK " << b.Id() << "\n";
+    return stream;
+}
+
+
+// << normal output (default mode)
+std::ostream & operator<<(std::ostream &stream, File const &f)
+{
+    std::vector<Block*>::const_iterator it;
+    for (it = f.begin(); it != f.end(); ++it)
+        stream << **it;
+    return stream;
+}
+
+std::ostream & operator<<(std::ostream &stream, Block const &b)
+{
+    if (b.BlockType() == Code) {
+        stream << dynamic_cast<CodeBlock const &>(b);
+    } else if (b.BlockType() == Conditional) {
+        stream << dynamic_cast<ConditionalBlock const &>(b);
+    } else {
+        assert(false);      // this may not happen
+    }
+    return stream;
+}
+
+std::ostream & operator<<(std::ostream &stream, CodeBlock const &b)
+{
+    stream << "START CODE BLOCK " << b.Id() << "\n";
+    stream << b.Content();
+    stream << "END CODE BLOCK " << b.Id() << "\n";
+    return stream;
+}
+
+std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
+{
+    stream << "START CONDITIONAL BLOCK " << b.Id() << "\n";
+    stream << "token="      << b.TokenStr()    << "\n";
+    stream << "header="     << b.Header()      << "\n";
+    stream << "expression=" << b.Expression()  << "\n";
+    stream << "footer="     << b.Footer()      << "\n";
+
+    std::vector<Block*>::const_iterator it;
+    for (it = b.begin(); it != b.end(); ++it)
+        stream << **it;
+
+    stream << "END CONDITIONAL BLOCK " << b.Id() << "\n";
+    return stream;
+}
+
+
+// >> verbose output (--long mode)
+std::ostream & operator>>(std::ostream &stream, File const &f)
+{
+    std::cout << "File has " << f.size() << " outer blocks\n\n";
+    std::vector<Block*>::const_iterator it;
+    for (it = f.begin(); it != f.end(); ++it)
+        stream >> **it;
+    return stream;
+}
+
+std::ostream & operator>>(std::ostream &stream, Block const &b)
+{
+    if (b.BlockType() == Code) {
+        stream >> dynamic_cast<CodeBlock const &>(b);
+    } else if (b.BlockType() == Conditional) {
+        stream >> dynamic_cast<ConditionalBlock const &>(b);
+    } else {
+        assert(false);      // this may not happen
+    }
+    return stream;
+}
+
+std::ostream & operator>>(std::ostream &stream, CodeBlock const &b)
+{
+    std::string indent = Indent(b.Depth());
+    stream << indent
+           << "-[" << b.Id() << "]---------------  START CODE BLOCK  "
+           << "----------------[" << b.Id() << "]-\n";
+    stream << indent << " start:       " << b.Start()   << "\n";
+    stream << indent << " end:         " << b.End()     << "\n";
+    stream << indent << " depth:       " << b.Depth()   << "\n";
+
+    std::stringstream css(b.Content());
+    std::string line;
+    while (!css.eof()) {
+        std::getline(css, line);
+        stream << indent << " content:     " << line << "\n";
+    }
+
+    stream << indent
+           << "-[" << b.Id() << "]---------------   END  CODE BLOCK  "
+           << "----------------[" << b.Id() << "]-" << std::endl;
+    return stream;
+}
+
+std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
+{
+    std::string indent = Indent(b.Depth());
+    stream << indent
+           << "=[" << b.Id() << "]============  START CONDITIONAL BLOCK  "
+           << "============[" << b.Id() << "]=\n";
+    stream << indent << " start:       " << b.Start()       << "\n";
+    stream << indent << " end:         " << b.End()         << "\n";
+    stream << indent << " depth:       " << b.Depth()       << "\n";
+    stream << indent << " token:       " << b.TokenStr()    << "\n";
+    stream << indent << " header:      " << b.Header()      << "\n";
+    stream << indent << " expression:  " << b.Expression()  << "\n";
+    stream << indent << " footer:      " << b.Footer()      << "\n";
+
+    stream << indent <<" inner blocks: " << b.size() << "\n";
+    std::vector<Block*>::const_iterator it;
+    for (it = b.begin(); it != b.end(); ++it)
+        stream >> **it;
+
+    stream << indent
+           << "=[" << b.Id() << "]============   END  CONDITIONAL BLOCK  "
+           << "============[" << b.Id() << "]=" << std::endl;
+    return stream;
+}
+
+
+std::string Indent(int depth) {
+    std::stringstream ss;
+    ss << "|";
+    for (int i=0; i < depth; i++)
+        ss << "    |";
+    return ss.str();
+}
+
 
 bool ziztest(std::string file, Mode mode)
 {
@@ -10,23 +194,23 @@ bool ziztest(std::string file, Mode mode)
     Ziz::Parser parser;
     Ziz::File zfile;
     try {
-	zfile = parser.Parse(file);
+        zfile = parser.Parse(file);
     } catch(Ziz::ZizException& e) {
-	std::cerr << "caught ZizException: " << e.what() << std::endl;
-	return false;
+        std::cerr << "caught ZizException: " << e.what() << std::endl;
+        return false;
     } catch(...) {
-	std::cerr << "caught exception" << std::endl;
-	return false;
+        std::cerr << "caught exception" << std::endl;
+        return false;
     }
     if (mode == Short) {
-	std::cout + zfile;
+        std::cout + zfile;
     } else if (mode == Medium) {
-	std::cout << zfile;
+        std::cout << zfile;
     } else if (mode == Long) {
-	std::cout >> zfile;
+        std::cout >> zfile;
     } else {
-	assert(false); // shall never happen
-	return false;
+        assert(false); // shall never happen
+        return false;
     }
     return true;
 }
