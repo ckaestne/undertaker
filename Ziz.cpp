@@ -255,7 +255,7 @@ File::CreateConditionalBlock(int depth, position_type startPos,
         pCurBlock->AppendHeader(lexer->get_value());    // textual value
 
         // build the expression
-        if (!IS_CATEGORY(*lexer, boost::wave::WhiteSpaceTokenType))
+        if (IS_CATEGORY(*lexer, boost::wave::IdentifierTokenType))
             pCurBlock->AddToExpression(*lexer);
 
         ++lexer;                                        // next token
