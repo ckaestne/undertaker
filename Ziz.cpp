@@ -246,8 +246,13 @@ File::CreateConditionalBlock(int depth, position_type startPos,
     // read in whole condition until end of line
     lexer_type end = lexer_type();
     while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
-        pCurBlock->AppendHeader(lexer->get_value());
-        ++lexer;
+        pCurBlock->AppendHeader(lexer->get_value());    // textual value
+
+        // build the expression
+        if (!IS_CATEGORY(*lexer, boost::wave::WhiteSpaceTokenType))
+            pCurBlock->AddToExpression(*lexer);
+
+        ++lexer;                                        // next token
     }
     if (lexer != end) {
         // we reached an EOL, not EOF, so include that token in the header

@@ -111,7 +111,7 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
     stream << "START CONDITIONAL BLOCK " << b.Id() << "\n";
     stream << "token="      << b.TokenStr()    << "\n";
     stream << "header="     << b.Header()      << "\n";
-    stream << "expression=" << b.Expression()  << "\n";
+    //stream << "expression=" << b.Expression()  << "\n"; // FIXME
     stream << "footer="     << b.Footer()      << "\n";
 
     std::vector<Block*>::const_iterator it;
@@ -179,7 +179,7 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
     stream << indent << " depth:       " << b.Depth()       << "\n";
     stream << indent << " token:       " << b.TokenStr()    << "\n";
     stream << indent << " header:      " << b.Header()      << "\n";
-    stream << indent << " expression:  " << b.Expression()  << "\n";
+    //stream << indent << " expression:  " << b.Expression()  << "\n"; // FIXME
     stream << indent << " footer:      " << b.Footer()      << "\n";
 
     stream << indent <<" inner blocks: " << b.size() << "\n";
