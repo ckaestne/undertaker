@@ -1,3 +1,4 @@
+// -*- mode: c++ -*-
 /*
  * This header defines the public API of libziz.
  */
@@ -111,6 +112,7 @@ class ConditionalBlock : public Block, public BlockContainer {
         std::string            Footer()      const { return _footer.str(); }
         std::string            Expression()  const { return _expression.str(); }
         ConditionalBlock*      PrevSibling() const { return _p_prevSib; }
+        ConditionalBlock*      ParentCondBlock() const;
 
         void AppendHeader      (const std::string &s) { _header     << s; }
         void AppendHeader      (const string_type &s) { _header     << s; }
