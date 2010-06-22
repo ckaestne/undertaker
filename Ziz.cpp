@@ -205,9 +205,16 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
     // Finish the ConditionalBlock
     // read in whole condition until end of line
     lexer_type end = lexer_type();
-    while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
+    while (lexer != end
+            && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)
+            && boost::wave::token_id(*lexer) != boost::wave::T_CCOMMENT
+            && boost::wave::token_id(*lexer) != boost::wave::T_CPPCOMMENT) {
         pCurBlock->AppendFooter(lexer->get_value());
         ++lexer;
+    }
+    if (lexer != end) {
+        // we reached an EOL, not EOF, so include that token in the footer
+        pCurBlock->AppendFooter(lexer->get_value());
     }
 
     if (_condBlockStack.empty()) {
@@ -236,17 +243,29 @@ File::CreateConditionalBlock(int depth, position_type startPos,
                              BlockContainer* pbc, lexer_type& lexer)
 {
     assert(pbc != NULL);
-    ConditionalBlock* p_CB =
+    ConditionalBlock* pCurBlock =
         new ConditionalBlock(_blocks++, depth, startPos, *lexer, pbc);
 
     // read in whole condition until end of line
     lexer_type end = lexer_type();
-    while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
-        p_CB->AppendHeader(lexer->get_value());
-        ++lexer;
+    while (lexer != end
+            && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)
+            && boost::wave::token_id(*lexer) != boost::wave::T_CCOMMENT
+            && boost::wave::token_id(*lexer) != boost::wave::T_CPPCOMMENT) {
+        pCurBlock->AppendHeader(lexer->get_value());    // textual value
+
+        // build the expression
+        if (IS_CATEGORY(*lexer, boost::wave::IdentifierTokenType))
+            pCurBlock->AddToExpression(*lexer);
+
+        ++lexer;                                        // next token
+    }
+    if (lexer != end) {
+        // we reached an EOL, not EOF, so include that token in the header
+        pCurBlock->AppendHeader(lexer->get_value());
     }
 
-    return p_CB;
+    return pCurBlock;
 }
 
 

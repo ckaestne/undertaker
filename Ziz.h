@@ -36,6 +36,14 @@ typedef enum {
     InnerBlock
 } container_type;
 
+typedef enum {
+    NotYetEvaluated,
+    EvalTrue,
+    EvalFalse,
+    EvalUndefined
+} eval_expression_type;
+
+
 class BlockContainer;
 
 class Block {
@@ -97,36 +105,38 @@ class ConditionalBlock : public Block, public BlockContainer {
     public:
         ConditionalBlock(int i, int d, position_type s, token_type t,
                          BlockContainer* pbc)
-            : Block(i, d, s, pbc), _type(t) {}
+            : Block(i, d, s, pbc), _type(t), _evalExpr(NotYetEvaluated) {}
         virtual ~ConditionalBlock() {}
     private:
         ConditionalBlock(ConditionalBlock&);   // disable copy c'tor
 
     public:
-        virtual block_type     BlockType()     const { return Conditional; }
-        virtual container_type ContainerType() const { return InnerBlock; }
+        virtual block_type      BlockType()      const { return Conditional; }
+        virtual container_type  ContainerType()  const { return InnerBlock; }
 
-        token_type             TokenType()   const { return _type; }
-        std::string            TokenStr()    const;
-        std::string            Header()      const { return _header.str(); }
-        std::string            Footer()      const { return _footer.str(); }
-        std::string            Expression()  const { return _expression.str(); }
-        ConditionalBlock*      PrevSibling() const { return _p_prevSib; }
-        ConditionalBlock*      ParentCondBlock() const;
+        token_type              TokenType()      const { return _type; }
+        std::string             TokenStr()       const;
+        std::string             Header()         const { return _header.str(); }
+        std::string             Footer()         const { return _footer.str(); }
+        std::vector<token_type> Expression()     const { return _expression; }
+        eval_expression_type    EvaluatedExpression() const { return _evalExpr;}
+        ConditionalBlock*       PrevSibling()    const { return _p_prevSib; }
+        ConditionalBlock*       ParentCondBlock() const;
 
-        void AppendHeader      (const std::string &s) { _header     << s; }
-        void AppendHeader      (const string_type &s) { _header     << s; }
-        void AppendFooter      (const std::string &s) { _footer     << s; }
-        void AppendFooter      (const string_type &s) { _footer     << s; }
-        void AppendExpression  (const std::string &s) { _expression << s; }
-        void AppendExpression  (const string_type &s) { _expression << s; }
-        void SetPrevSibling    (ConditionalBlock* ps) { _p_prevSib = ps; }
+        void AppendHeader       (const std::string &s) { _header     << s; }
+        void AppendHeader       (const string_type &s) { _header     << s; }
+        void AppendFooter       (const std::string &s) { _footer     << s; }
+        void AppendFooter       (const string_type &s) { _footer     << s; }
+        void AddToExpression    (token_type t) { _expression.push_back(t); }
+        void EvaluateExpression (eval_expression_type v) { _evalExpr = v; }
+        void SetPrevSibling     (ConditionalBlock* ps) { _p_prevSib = ps; }
 
     private:
         token_type              _type;
         std::stringstream       _header;
         std::stringstream       _footer;
-        std::stringstream       _expression;    // TODO: shall be formula later
+        std::vector<token_type> _expression;    // TODO: shall be formula later
+        eval_expression_type    _evalExpr;
         ConditionalBlock*       _p_prevSib;
 };
 

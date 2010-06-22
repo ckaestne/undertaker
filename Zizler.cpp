@@ -30,8 +30,23 @@ std::ostream & operator+(std::ostream &stream, Block const &b)
 
 std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
 {
-    stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] "
-           << "[H=" << b.Header() << "] [F=" << b.Footer() << "] [P=";
+    stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] ";
+
+    std::string header = b.Header();
+    size_t nlpos = header.find("\n");
+    while (nlpos != std::string::npos) {
+        header.replace(nlpos, 1, "");
+        nlpos = header.find("\n", nlpos + 1);
+    }
+    stream << "[H=" << header << "] ";
+
+    std::string footer = b.Footer();
+    nlpos = footer.find("\n");
+    while (nlpos != std::string::npos) {
+        footer.replace(nlpos, 1, "");
+        nlpos = footer.find("\n", nlpos + 1);
+    }
+    stream << "[F=" << footer << "] [P=";
 
     BlockContainer* p_parent = b.Parent();
     assert(p_parent != NULL);
@@ -96,7 +111,7 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
     stream << "START CONDITIONAL BLOCK " << b.Id() << "\n";
     stream << "token="      << b.TokenStr()    << "\n";
     stream << "header="     << b.Header()      << "\n";
-    stream << "expression=" << b.Expression()  << "\n";
+    //stream << "expression=" << b.Expression()  << "\n"; // FIXME
     stream << "footer="     << b.Footer()      << "\n";
 
     std::vector<Block*>::const_iterator it;
@@ -164,7 +179,7 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
     stream << indent << " depth:       " << b.Depth()       << "\n";
     stream << indent << " token:       " << b.TokenStr()    << "\n";
     stream << indent << " header:      " << b.Header()      << "\n";
-    stream << indent << " expression:  " << b.Expression()  << "\n";
+    //stream << indent << " expression:  " << b.Expression()  << "\n"; // FIXME
     stream << indent << " footer:      " << b.Footer()      << "\n";
 
     stream << indent <<" inner blocks: " << b.size() << "\n";
