@@ -5,6 +5,7 @@
 
 using namespace Ziz;
 
+
 // output operators
 
 // + short output (--short mode)
@@ -33,19 +34,11 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
     stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] ";
 
     std::string header = b.Header();
-    size_t nlpos = header.find("\n");
-    while (nlpos != std::string::npos) {
-        header.replace(nlpos, 1, "");
-        nlpos = header.find("\n", nlpos + 1);
-    }
+    chomp(header);
     stream << "[H=" << header << "] ";
 
     std::string footer = b.Footer();
-    nlpos = footer.find("\n");
-    while (nlpos != std::string::npos) {
-        footer.replace(nlpos, 1, "");
-        nlpos = footer.find("\n", nlpos + 1);
-    }
+    chomp(footer);
     stream << "[F=" << footer << "] [P=";
 
     BlockContainer* p_parent = b.Parent();
@@ -157,9 +150,13 @@ std::ostream & operator>>(std::ostream &stream, CodeBlock const &b)
 
     std::stringstream css(b.Content());
     std::string line;
-    while (!css.eof()) {
+    while (true) {
         std::getline(css, line);
-        stream << indent << " content:     " << line << "\n";
+        if (!css.eof()) {
+            stream << indent << " content:     " << line << "\n";
+        } else {
+            break;
+        }
     }
 
     stream << indent
@@ -174,14 +171,19 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
     stream << indent
            << "=[" << b.Id() << "]============  START CONDITIONAL BLOCK  "
            << "============[" << b.Id() << "]=\n";
-    stream << indent << " start:       " << b.Start()         << "\n";
-    stream << indent << " end:         " << b.End()           << "\n";
-    stream << indent << " depth:       " << b.Depth()         << "\n";
-    stream << indent << " token:       " << b.TokenStr()      << "\n";
-    stream << indent << " expression:  " << b.ExpressionStr() << "\n";
+    stream << indent << " start:       " << b.Start()             << "\n";
+    stream << indent << " end:         " << b.End()               << "\n";
+    stream << indent << " depth:       " << b.Depth()             << "\n";
+    stream << indent << " token:       " << b.TokenStr()          << "\n";
+    stream << indent << " expression:  " << b.ExpressionStr()     << "\n";
     stream << indent << " expr token#: " << b.Expression().size() << "\n";
-    stream << indent << " header:      " << b.Header()        << "\n";
-    stream << indent << " footer:      " << b.Footer()        << "\n";
+
+    std::string header = b.Header();
+    std::string footer = b.Footer();
+    chomp(header);
+    chomp(footer);
+    stream << indent << " header:      " << header                << "\n";
+    stream << indent << " footer:      " << footer                << "\n";
 
     stream << indent <<" inner blocks: " << b.size() << "\n";
     std::vector<Block*>::const_iterator it;
@@ -195,7 +197,19 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
 }
 
 
-std::string Indent(int depth) {
+// helpers
+
+void chomp (std::string &s)
+{
+    size_t nlpos = s.find("\n");
+    while (nlpos != std::string::npos) {
+        s.replace(nlpos, 1, "");
+        nlpos = s.find("\n", nlpos + 1);
+    }
+}
+
+std::string Indent(int depth)
+{
     std::stringstream ss;
     ss << "|";
     for (int i=0; i < depth; i++)

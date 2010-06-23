@@ -25,8 +25,8 @@ std::ostream & operator>>(std::ostream &stream, Ziz::Block            const &);
 std::ostream & operator>>(std::ostream &stream, Ziz::CodeBlock        const &);
 std::ostream & operator>>(std::ostream &stream, Ziz::ConditionalBlock const &);
 
+void chomp(std::string &s);
 std::string Indent(int depth);
-
 
 bool ziztest(std::string file, Mode mode);
 
