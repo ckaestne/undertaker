@@ -105,8 +105,11 @@ class ConditionalBlock : public Block, public BlockContainer {
     public:
         ConditionalBlock(int i, int d, position_type s, token_type t,
                          BlockContainer* pbc)
-            : Block(i, d, s, pbc), _type(t), _evalExpr(NotYetEvaluated) {}
+            : Block(i, d, s, pbc),
+               _type(t), _evalExpr(NotYetEvaluated), _p_prevSib(NULL) {}
+
         virtual ~ConditionalBlock() {}
+
     private:
         ConditionalBlock(ConditionalBlock&);   // disable copy c'tor
 
