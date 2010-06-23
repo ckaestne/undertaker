@@ -242,21 +242,30 @@ ConditionalBlock*
 File::CreateConditionalBlock(int depth, position_type startPos,
                              BlockContainer* pbc, lexer_type& lexer)
 {
-    assert(pbc != NULL);
+    assert(pbc != NULL);  // a parent block container is always needed
+
+    lexer_type end = lexer_type();
+    assert(lexer != end); // lexer has to point to first token (#if, #else, ...)
+
+    // create the ConditionalBlock
     ConditionalBlock* pCurBlock =
         new ConditionalBlock(_blocks++, depth, startPos, *lexer, pbc);
 
+    // store the very first token (#if, #else, ...) in the header, but not in
+    // the expression token vector
+    pCurBlock->AppendHeader(lexer->get_value());
+    lexer++;
+
     // read in whole condition until end of line
-    lexer_type end = lexer_type();
-    while (lexer != end
-            && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)
-            && boost::wave::token_id(*lexer) != boost::wave::T_CCOMMENT
-            && boost::wave::token_id(*lexer) != boost::wave::T_CPPCOMMENT) {
+    while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
+
         pCurBlock->AppendHeader(lexer->get_value());    // textual value
 
-        // build the expression
-        if (IS_CATEGORY(*lexer, boost::wave::IdentifierTokenType))
+        // all meaningful tokens go into the expression token vector
+        // comments and whitespaces are skipped
+        if (!IS_CATEGORY(*lexer, boost::wave::WhiteSpaceTokenType)) {
             pCurBlock->AddToExpression(*lexer);
+        }
 
         ++lexer;                                        // next token
     }
@@ -277,6 +286,23 @@ std::string ConditionalBlock::TokenStr() const
     return std::string(boost::wave::get_token_name(id).c_str());
 }
 
+std::string ConditionalBlock::ExpressionStr() const
+{
+    std::stringstream ss;
+    std::vector<token_type>::const_iterator tit; // for _t_oken _it_erator ;-)
+
+    bool first = true;
+    for (tit = _expression.begin(); tit != _expression.end(); ++tit) {
+        if (first) {
+            first = false;
+        } else {
+            ss << " ";
+        }
+        ss << tit->get_value();
+    }
+
+    return ss.str();
+}
 
 ConditionalBlock *ConditionalBlock::ParentCondBlock() const {
     BlockContainer *p = Parent();

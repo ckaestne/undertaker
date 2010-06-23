@@ -7,7 +7,7 @@ using namespace Ziz;
 
 // output operators
 
-// + short output (--short mode
+// + short output (--short mode)
 std::ostream & operator+(std::ostream &stream, File const &f)
 {
     std::vector<Block*>::const_iterator it;
@@ -174,13 +174,14 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
     stream << indent
            << "=[" << b.Id() << "]============  START CONDITIONAL BLOCK  "
            << "============[" << b.Id() << "]=\n";
-    stream << indent << " start:       " << b.Start()       << "\n";
-    stream << indent << " end:         " << b.End()         << "\n";
-    stream << indent << " depth:       " << b.Depth()       << "\n";
-    stream << indent << " token:       " << b.TokenStr()    << "\n";
-    stream << indent << " header:      " << b.Header()      << "\n";
-    //stream << indent << " expression:  " << b.Expression()  << "\n"; // FIXME
-    stream << indent << " footer:      " << b.Footer()      << "\n";
+    stream << indent << " start:       " << b.Start()         << "\n";
+    stream << indent << " end:         " << b.End()           << "\n";
+    stream << indent << " depth:       " << b.Depth()         << "\n";
+    stream << indent << " token:       " << b.TokenStr()      << "\n";
+    stream << indent << " expression:  " << b.ExpressionStr() << "\n";
+    stream << indent << " expr token#: " << b.Expression().size() << "\n";
+    stream << indent << " header:      " << b.Header()        << "\n";
+    stream << indent << " footer:      " << b.Footer()        << "\n";
 
     stream << indent <<" inner blocks: " << b.size() << "\n";
     std::vector<Block*>::const_iterator it;

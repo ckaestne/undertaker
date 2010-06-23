@@ -122,6 +122,7 @@ class ConditionalBlock : public Block, public BlockContainer {
         std::string             Header()         const { return _header.str(); }
         std::string             Footer()         const { return _footer.str(); }
         std::vector<token_type> Expression()     const { return _expression; }
+        std::string             ExpressionStr()  const;
         eval_expression_type    EvaluatedExpression() const { return _evalExpr;}
         ConditionalBlock*       PrevSibling()    const { return _p_prevSib; }
         ConditionalBlock*       ParentCondBlock() const;
