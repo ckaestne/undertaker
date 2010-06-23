@@ -33,6 +33,8 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
 {
     stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] ";
 
+    stream << "[E=" << b.ExpressionStr() << "] ";
+
     std::string header = b.Header();
     chomp(header);
     stream << "[H=" << header << "] ";
