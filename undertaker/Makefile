@@ -1,9 +1,9 @@
 DEBUG = -g3
-CFLAGS = -Wall -Wextra -O2 $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 -Iziz $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =
 LINK.o = $(LINK.cpp)
-LDLIBS = -lssl -lbdd -lboost_regex libparser.a
+LDLIBS = -lssl -lbdd -lboost_regex libparser.a ziz/libziz.a -lboost_wave-mt
 TESTLDFLAGS = -lboost_unit_test_framework
 PARSEROBJ = BddContainer.o SatContainer.o ExpressionParser.o \
 	    VariableToBddMap.o RsfBlocks.o KconfigBdd.o \
@@ -14,7 +14,7 @@ all: undertaker KconfigIntersect
 undertaker: libparser.a
 undertaker2: libparser.a
 KconfigIntersect: libparser.a
-sat: libparser.a
+cpppc: libparser.a ziz/libziz.a
 
 $(PARSEROBJ): $(HEADERS)
 libparser.a: $(PARSEROBJ) $(HEADERS)

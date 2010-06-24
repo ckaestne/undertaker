@@ -1,5 +1,5 @@
+*~
 *.cmd
 *.o
 .tmp_*
 .config
-/Makefile.vamos~

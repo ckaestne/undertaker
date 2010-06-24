@@ -1,68 +1,109 @@
 #include "SatContainer.h"
-#include <stdexcept>
 #include <sstream>
+#include <iostream>
 
 #include <cassert>
 #include <cstring>
 
-SatContainer::SatContainer(std::ifstream &in, std::ostream &log)
-  : CompilationUnitInfo(in, log) {}
-    
+#include "Ziz.h"
+
+struct StringJoiner : public std::deque<std::string> {
+    std::string join(const char *j) {
+	std::stringstream ss;
+	if (size() == 0)
+	    return "";
+	
+	ss << front();
+	pop_front();
+	
+	while (size() > 0) {
+	    ss << j << front();
+	    pop_front();
+	}
+	return ss.str();
+    }
+
+    void push_back(const value_type &x) {
+	if (x.compare("") == 0)
+	    return;
+	std::deque<value_type>::push_back(x);
+    }
+};
+
+const char *SatBlockInfo::expression() {
+
+    if (_expression)
+        return _expression;
+
+    std::string expression = _cb->ExpressionStr();
+    std::string::size_type pos = std::string::npos;
+
+    // normalize conjunctions and disjunctions for sat
+    while((pos = expression.find("||")) != std::string::npos)
+        expression.replace(pos, 2, 1, '|');
+
+    while((pos = expression.find("&&")) != std::string::npos)
+        expression.replace(pos, 2, 1, '&');
+
+    return _expression = strdup(expression.c_str());
+}
+
+SatBlockInfo::~SatBlockInfo() {
+    if (_expression)
+        free(_expression);
+}
+
+SatContainer::SatContainer(const char *filename) {
+
+    _parser = new Ziz::Parser();
+
+    try {
+        _zfile = _parser->Parse(filename);
+    } catch(Ziz::ZizException& e) {
+        std::cerr << "caught ZizException: " << e.what() << std::endl;
+    } catch(...) {
+        std::cerr << "caught exception" << std::endl;
+    }
+}
+
+SatContainer::~SatContainer() {
+    delete _parser;
+}
+
+
+int SatContainer::scanBlocks(Ziz::BlockContainer *bc) {
+    Ziz::ConditionalBlock::iterator i;
+    int count = 0;
+
+    if (!bc && bc->size() == 0)
+	return 0;
+
+    for (i = bc->begin(); i != bc->end(); i++) {
+	Ziz::ConditionalBlock *cb = dynamic_cast<Ziz::ConditionalBlock*>(*i);
+	if (cb) {
+	    count++;
+	    this->push_back(SatBlockInfo(cb));
+	    count += this->scanBlocks(cb);
+	}
+    }
+
+    return count;
+}
 
 void SatContainer::parseExpressions() {
     static bool parsed = false;
-    size_type pos = std::string::npos;
+    static int parsed_blocks;
 
     if(parsed)
 	return;
 
-    for(RsfBlocks::iterator i = expressions_.begin();
-	i != expressions_.end(); i++) {
-	std::stringstream ss;
-	int blockno;
-	const std::string &blocknostr = (*i).first;
-	std::string &expression = (*i).second.front();
+    parsed_blocks = this->scanBlocks(&_zfile);
 
-	ss << blocknostr;
-	ss >> blockno;
-
-	// normalize conjunctions and disjunctions for sat
-	while((pos = expression.find("||")) != std::string::npos)
-		expression.replace(pos, 2, 1, '|');
-
-	while((pos = expression.find("&&")) != std::string::npos)
-		expression.replace(pos, 2, 1, '&');
-
-	this->push_back(SatBlockInfo(blockno, expression.c_str()));
-    }
+    std::cout << "Parsed Blocks: " << parsed_blocks << std::endl;
 
     parsed=true;
 };
 
-SatContainer::index SatContainer::search(std::string idstring) {
-    std::stringstream ss;
-    index id;
-    ss << idstring;
-    ss >> id;
-    return search(id);
-}
-
-SatContainer::index SatContainer::search(int id) {
-    std::stringstream ss;
-    for (unsigned int i = 0; i < size(); i++)
-	if (id == bId(i))
-	    return i;
-
-    ss << "id not found: " << id;
-
-    throw std::runtime_error(ss.str());
-}
-
-
-SatBlockInfo &SatContainer::item(index n) {
-    assert(n < size());
-    return (*this)[n];
-}
 
 int SatContainer::bId(index n) {
     assert(n < size());
@@ -70,72 +111,70 @@ int SatContainer::bId(index n) {
 }
 
 
-std::string SatContainer::getBlockName(int index) {
-    if (index == -1)
-	return "";
-    std::string s = "B";
-    std::stringstream out;
-    out << bId(index);
-    s += out.str();
-    return s;
-}
+SatContainer::index SatContainer::search(int id) {
 
-
-std::string SatContainer::noPredecessor(index n, RsfBlocks &blocks) {
     std::stringstream ss;
-    std::string result = "";
-    ss << item(n).getId();
-    std::string blockno = ss.str();
-
-    for (RsfBlocks::iterator i = blocks.begin(); i != blocks.end(); i++) {
-        std::string key = (*i).first;
-        std::string value = (*i).second.front();
-        if (blockno == key) {
-            if (result.compare("") != 0)
-		result += " | ";
-            result += getBlockName(search(value));
-	}
-    }
-    return result;
+    for (index i = 0; i < size(); i++)
+	if (id == bId(i))
+	    return i;
+    ss << "id not found: " << id;
+    throw std::runtime_error(ss.str());
 }
 
+
+SatBlockInfo &SatContainer::item(index n) {
+    return (*this)[n];
+}
+
+
+std::string SatContainer::getBlockName(index n) {
+    std::stringstream ss;
+    ss << "B" << bId(n);
+    return ss.str();
+}
+
+std::string SatContainer::parent(index n) {
+    std::stringstream ss;
+
+    const Ziz::ConditionalBlock *b = item(n).Block();
+    if((b = b->ParentCondBlock())) {
+	ss << " ( " << getBlockName(search(b->Id())) << " ) ";
+    }
+    return ss.str();
+}
+
+std::string SatContainer::expression(index n) {
+    return item(n).expression();
+}
+
+std::string SatContainer::noPredecessor(index n) {
+    std::stringstream ss;
+
+    const Ziz::ConditionalBlock *b = item(n).Block();
+    StringJoiner sj;
+
+    while(b->PrevSibling()) {
+	sj.push_back(getBlockName(search(b->PrevSibling()->Id())));
+	b = b->PrevSibling();
+    };
+
+    if (sj.size() > 0)
+	return  "( ! (" + sj.join(" | ") + ") ) ";
+    else
+	return "";
+}
 
 void SatContainer::runSat() {
-    std::string bf;
-    for (unsigned b = 0; b < size(); b++) {
-        std::string blockName = getBlockName(b);
-        std::string *pParent = nested_in_.getValue(item(b).getId());
-        std::string strParent = "";
-        if (b > 0)
-		bf += " &\n";
-
-        bf += "( " +  blockName + " <-> ";
-        bool conjunction = false;
-
-        if (pParent) {
-                strParent += getBlockName(search(*pParent));
-                bf += " (" + strParent + ") ";
-                conjunction = true;
-        }
-
-        const char *strExp = item(b).expression();
-
-        if (strExp && strncmp(strExp+1,"else",4) != 0) {
-                if (conjunction)
-                        bf += " & ";
-                bf += " ( "+ std::string(strExp) + " ) ";
-                conjunction = true;
-        }
-
-        std::string noPred = noPredecessor(b,YoungerSibl_);
-        if (noPred.compare("")) {
-                if (conjunction)
-                        bf += " & ";
-                bf += "( ! (" + noPredecessor(b,YoungerSibl_) + ") ) ";
-        }
-
-        bf += " )";
+    StringJoiner sj;
+    for (index i = 0; i < size(); i++) {
+	std::cout << "Working on Block " << i << std::endl;
+	StringJoiner pc;
+	pc.push_back(parent(i));
+	pc.push_back(expression(i));
+	pc.push_back(noPredecessor(i));
+	
+        sj.push_back("( " + getBlockName(i) + " <-> " + pc.join(" & ") + " )");
     }
-    std::cout << bf << std::endl;
+    std::cout << sj.join("\n& ") << std::endl;
 }
 
