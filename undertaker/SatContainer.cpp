@@ -1,11 +1,8 @@
-#include "SatContainer.h"
 #include <sstream>
-#include <iostream>
 
-#include <cassert>
-#include <cstring>
-
+#include "SatContainer.h"
 #include "Ziz.h"
+
 
 struct StringJoiner : public std::deque<std::string> {
     std::string join(const char *j) {
@@ -90,22 +87,14 @@ int SatContainer::scanBlocks(Ziz::BlockContainer *bc) {
 }
 
 void SatContainer::parseExpressions() {
-    static bool parsed = false;
-    static int parsed_blocks;
-
-    if(parsed)
+    if(size() > 0)
 	return;
 
-    parsed_blocks = this->scanBlocks(_zfile);
-
-    std::cout << "Parsed Blocks: " << parsed_blocks << std::endl;
-
-    parsed=true;
+    this->scanBlocks(_zfile);
 };
 
 
 int SatContainer::bId(index n) {
-    assert(n < size());
     return item(n).getId();
 }
 
@@ -163,10 +152,9 @@ std::string SatContainer::noPredecessor(index n) {
 	return "";
 }
 
-void SatContainer::runSat() {
+std::string SatContainer::runSat() {
     StringJoiner sj;
     for (index i = 0; i < size(); i++) {
-	std::cout << "Working on Block " << i << std::endl;
 	StringJoiner pc;
 	pc.push_back(parent(i));
 	pc.push_back(expression(i));
@@ -174,6 +162,5 @@ void SatContainer::runSat() {
 	
         sj.push_back("( " + getBlockName(i) + " <-> " + pc.join(" & ") + " )");
     }
-    std::cout << sj.join("\n& ") << std::endl;
+    return sj.join("\n& ");
 }
-

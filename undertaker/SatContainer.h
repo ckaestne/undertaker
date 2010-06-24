@@ -24,7 +24,7 @@ public:
     SatContainer(const char *filename);
     ~SatContainer();
     void parseExpressions();
-    void runSat();
+    std::string runSat();
 
 protected:
     std::string getBlockName(index n);

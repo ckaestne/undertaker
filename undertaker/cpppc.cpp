@@ -16,7 +16,7 @@ int main (int argc, char **argv) {
     s.parseExpressions();
 
     if (s.size() > 0) {
-        s.runSat();
+        std::cout << s.runSat() << std::endl;
         return EXIT_SUCCESS;
     }
 
