@@ -38,8 +38,7 @@ protected:
 
 private:
     int scanBlocks(Ziz::BlockContainer *b);
-    Ziz::Parser *_parser;
-    Ziz::File _zfile;
+    Ziz::File *_zfile;
 };
 
 #endif

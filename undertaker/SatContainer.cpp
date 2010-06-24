@@ -54,11 +54,10 @@ SatBlockInfo::~SatBlockInfo() {
 }
 
 SatContainer::SatContainer(const char *filename) {
-
-    _parser = new Ziz::Parser();
+    Ziz::Parser parser;
 
     try {
-        _zfile = _parser->Parse(filename);
+        _zfile = parser.Parse(filename);
     } catch(Ziz::ZizException& e) {
         std::cerr << "caught ZizException: " << e.what() << std::endl;
     } catch(...) {
@@ -67,7 +66,7 @@ SatContainer::SatContainer(const char *filename) {
 }
 
 SatContainer::~SatContainer() {
-    delete _parser;
+    delete _zfile;
 }
 
 
@@ -97,7 +96,7 @@ void SatContainer::parseExpressions() {
     if(parsed)
 	return;
 
-    parsed_blocks = this->scanBlocks(&_zfile);
+    parsed_blocks = this->scanBlocks(_zfile);
 
     std::cout << "Parsed Blocks: " << parsed_blocks << std::endl;
 
