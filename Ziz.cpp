@@ -323,16 +323,6 @@ std::string ConditionalBlock::ExpressionStr() const
 
 ConditionalBlock *ConditionalBlock::ParentCondBlock() const {
     BlockContainer *p = Parent();
-    switch(p->ContainerType()) {
-    case OuterBlock: return NULL;
-    case InnerBlock:
-        try {
-            ConditionalBlock *cb = dynamic_cast<ConditionalBlock*>(p);
-            return cb;
-        } catch (std::bad_cast &e) {
-            assert(false);
-        }
-    }
-    assert(false);
+    return dynamic_cast<ConditionalBlock*>(p);
 }
 
