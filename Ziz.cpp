@@ -256,8 +256,11 @@ File::CreateConditionalBlock(int depth, position_type startPos,
     pCurBlock->AppendHeader(lexer->get_value());
     lexer++;
 
-    // read in whole condition until end of line
-    while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)) {
+    // Read in whole condition until end of line.
+    // CPPComments include the newline ("// comment\n"), so no EOLToken will
+    // follow them.
+    while (lexer != end && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)
+            && boost::wave::token_id(*lexer) != boost::wave::T_CPPCOMMENT) {
 
         pCurBlock->AppendHeader(lexer->get_value());    // textual value
 
