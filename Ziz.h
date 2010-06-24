@@ -169,11 +169,10 @@ class ZizException : public std::runtime_error {
 
 class Parser {
     public:
-        Parser() : _p_curCodeBlock(NULL),
-                   _p_curBlockContainer(&_file)  // add outermost blocks to file
-            {}
+        Parser() :
+            _p_file(NULL), _p_curCodeBlock(NULL), _p_curBlockContainer(NULL) {}
 
-        File Parse(std::string file);
+        File* Parse(const std::string file);
 
     private:
         Parser(Parser&);   // disable copy c'tor
@@ -194,7 +193,7 @@ class Parser {
         void FinishSaveCurrentConditionalBlock  (lexer_type&);
 
         // The block structure of the file that Parse() builds.
-        File _file;
+        File* _p_file;
 
         // current file position is saved for exception handling
         file_position_type              _curPos, _prevPos;

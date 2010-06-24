@@ -9,10 +9,11 @@ using namespace Ziz;
 // output operators
 
 // + short output (--short mode)
-std::ostream & operator+(std::ostream &stream, File const &f)
+std::ostream & operator+(std::ostream &stream, File const * p_f)
 {
+    assert(p_f != NULL);
     std::vector<Block*>::const_iterator it;
-    for (it = f.begin(); it != f.end(); ++it)
+    for (it = p_f->begin(); it != p_f->end(); ++it)
         stream + **it;
     return stream;
 }
@@ -73,10 +74,11 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
 
 
 // << normal output (default mode)
-std::ostream & operator<<(std::ostream &stream, File const &f)
+std::ostream & operator<<(std::ostream &stream, File const * p_f)
 {
+    assert(p_f != NULL);
     std::vector<Block*>::const_iterator it;
-    for (it = f.begin(); it != f.end(); ++it)
+    for (it = p_f->begin(); it != p_f->end(); ++it)
         stream << **it;
     return stream;
 }
@@ -119,11 +121,12 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
 
 
 // >> verbose output (--long mode)
-std::ostream & operator>>(std::ostream &stream, File const &f)
+std::ostream & operator>>(std::ostream &stream, File const * p_f)
 {
-    std::cout << "File has " << f.size() << " outer blocks\n\n";
+    assert(p_f != NULL);
+    std::cout << "File has " << p_f->size() << " outer blocks\n\n";
     std::vector<Block*>::const_iterator it;
-    for (it = f.begin(); it != f.end(); ++it)
+    for (it = p_f->begin(); it != p_f->end(); ++it)
         stream >> **it;
     return stream;
 }
@@ -224,9 +227,9 @@ bool ziztest(std::string file, Mode mode)
 {
     std::cerr << "Testing " << file << std::endl;
     Ziz::Parser parser;
-    Ziz::File zfile;
+    Ziz::File* p_zfile;
     try {
-        zfile = parser.Parse(file);
+        p_zfile = parser.Parse(file);
     } catch(Ziz::ZizException& e) {
         std::cerr << "caught ZizException: " << e.what() << std::endl;
         return false;
@@ -235,11 +238,11 @@ bool ziztest(std::string file, Mode mode)
         return false;
     }
     if (mode == Short) {
-        std::cout + zfile;
+        std::cout + p_zfile;
     } else if (mode == Medium) {
-        std::cout << zfile;
+        std::cout << p_zfile;
     } else if (mode == Long) {
-        std::cout >> zfile;
+        std::cout >> p_zfile;
     } else {
         assert(false); // shall never happen
         return false;

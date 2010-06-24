@@ -10,13 +10,17 @@ using namespace Ziz;
 
 // Ziz
 
-File Parser::Parse(std::string file)
+File* Parser::Parse(const std::string file)
 {
     try {
         // Open and read in the specified input file.
         std::ifstream instream(file.c_str());
         if (!instream.is_open())
             throw ZizException((std::string("could not open file: ") + file).c_str());
+
+        // create a file object, let _p_curBlockContainer point to it
+        _p_file = new File;
+        _p_curBlockContainer = _p_file;
 
         instream.unsetf(std::ios::skipws);
         std::string instr = std::string(
@@ -81,17 +85,19 @@ File Parser::Parse(std::string file)
         throw ZizException("WTF");
     }
 
-    return _file;
+    return _p_file;
 }
 
 
 void Parser::HandleOpeningCondBlock(lexer_type& lexer)
 {
+    assert(_p_curBlockContainer != NULL);
+
     FinishSaveCurrentCodeBlock();
 
     ConditionalBlock* pBlock =
-        _file.CreateConditionalBlock(_condBlockStack.size(), _curPos,
-                                     _p_curBlockContainer, lexer);
+        _p_file->CreateConditionalBlock(_condBlockStack.size(), _curPos,
+                                        _p_curBlockContainer, lexer);
 
     _p_curBlockContainer = pBlock;
     _condBlockStack.push(pBlock);
@@ -99,6 +105,8 @@ void Parser::HandleOpeningCondBlock(lexer_type& lexer)
 
 void Parser::HandleElseBlock(lexer_type& lexer)
 {
+    assert(_p_curBlockContainer != NULL);
+
     FinishSaveCurrentCodeBlock();
 
     // The #if/#elif block belonging to this #else/#elif is on top of the block stack.
@@ -113,7 +121,7 @@ void Parser::HandleElseBlock(lexer_type& lexer)
     // Add the previous #if/#elif block to current blocklist (either file or
     // inner block).
     if (_condBlockStack.empty()) {
-        _p_curBlockContainer = &_file;   // we just left a top-level block
+        _p_curBlockContainer = _p_file;   // we just left a top-level block
     } else {
         _p_curBlockContainer = _condBlockStack.top();
     }
@@ -122,8 +130,8 @@ void Parser::HandleElseBlock(lexer_type& lexer)
     // Create the actual #else/#elif block, set previous silbling, set this
     // #else/#elif block as current block container and push to block stack.
     ConditionalBlock* pElseBlock =
-        _file.CreateConditionalBlock(_condBlockStack.size(), _curPos,
-                                     _p_curBlockContainer, lexer);
+        _p_file->CreateConditionalBlock(_condBlockStack.size(), _curPos,
+                                        _p_curBlockContainer, lexer);
     pElseBlock->SetPrevSibling(pPrevIfBlock); 
     _p_curBlockContainer = pElseBlock;
     _condBlockStack.push(pElseBlock); 
@@ -166,6 +174,8 @@ void Parser::HandleENDIF(lexer_type& lexer)
 
 void Parser::HandleToken(lexer_type& lexer)
 {
+    assert(_p_curBlockContainer != NULL);
+
     /*
     boost::wave::token_id id = boost::wave::token_id(*lexer);
     std::cerr << "HandleToken() "
@@ -174,14 +184,16 @@ void Parser::HandleToken(lexer_type& lexer)
     */
 
     if (_p_curCodeBlock == NULL)
-        _p_curCodeBlock = _file.CreateCodeBlock(_condBlockStack.size(),
-                                                _curPos, _p_curBlockContainer);
+        _p_curCodeBlock = _p_file->CreateCodeBlock(_condBlockStack.size(),
+                                           _curPos, _p_curBlockContainer);
     _p_curCodeBlock->AppendContent(lexer->get_value());
 }
 
 
 void Parser::FinishSaveCurrentCodeBlock()
 {
+    assert(_p_curBlockContainer != NULL);
+
     if (_p_curCodeBlock == NULL)
         return;
 
@@ -192,6 +204,8 @@ void Parser::FinishSaveCurrentCodeBlock()
 
 void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
 {
+    assert(_p_curBlockContainer != NULL);
+
     if (_condBlockStack.empty()) {
         std::cerr << "FinishSaveCurrentConditionalBlock with empty block stack"
                   << std::endl;
@@ -218,7 +232,7 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
     }
 
     if (_condBlockStack.empty()) {
-        _p_curBlockContainer = &_file;   // we just left a top-level block
+        _p_curBlockContainer = _p_file;   // we just left a top-level block
     } else {
         _p_curBlockContainer = _condBlockStack.top();
     }
