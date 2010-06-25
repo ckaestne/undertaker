@@ -1,0 +1,15 @@
+File	0	"tests/ex1.c"
+CondBlockBelongsToFile	0	-1
+CondBlockBelongsToFile	1	-1
+CondBlockBelongsToFile	2	-1
+CondBlockIsAtPos	0	tests/ex1.c:1
+CondBlockIsAtPos	1	tests/ex1.c:2
+CondBlockIsAtPos	2	tests/ex1.c:3
+CondBlockHasExpression	0	"CONFIG_A "
+CondBlockHasExpression	1	"CONFIG_B "
+CondBlockHasExpression	2	"CONFIG_C "
+CondBlockNestedIn	1	0
+CondBlockNestedIn	2	1
+CondBlockIsInMainCpu	0	1
+CondBlockIsInMainCpu	1	1
+CondBlockIsInMainCpu	2	1

@@ -1,0 +1,15 @@
+RelatedBlock	0	0	
+RelatedBlock	0	1	
+RelatedBlock	0	2	
+CondBlockIsAtPos	0	tests/ex1.c:1	
+CondBlockHasExpression	0	"CONFIG_A "	
+NestingDepth	0	1
+CondBlockIsAtPos	0	tests/ex1.c:1	
+CondBlockHasExpression	1	"CONFIG_B "	
+CondBlockNestedIn	1	0	
+NestingDepth	1	2
+CondBlockIsAtPos	1	tests/ex1.c:2	
+CondBlockHasExpression	2	"CONFIG_C "	
+CondBlockNestedIn	2	1	
+NestingDepth	2	3
+CondBlockIsAtPos	2	tests/ex1.c:3	

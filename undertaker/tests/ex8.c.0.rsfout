@@ -1,0 +1,11 @@
+RelatedBlock	0	0	
+RelatedBlock	0	1	
+CondBlockIsAtPos	0	tests/ex8.c:1	
+CondBlockHasExpression	0	"CONFIG_SMP "	
+OlderSilb       0     1
+NestingDepth	0	1
+CondBlockIsAtPos	0	tests/ex8.c:1	
+CondBlockHasExpression	1	"[else of: CONFIG_SMP ]"	
+YoungerSilb	1	0
+NestingDepth	1	1
+CondBlockIsAtPos	1	tests/ex8.c:2	
