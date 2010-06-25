@@ -17,7 +17,7 @@ typedef std::list<RuntimeEntry> RuntimeTable;
 
 class CodeSatStream : public std::stringstream {
 public:
-    CodeSatStream (std::string filename, const char *primary_arch, bool doCrossCheck=true);
+    CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch, bool doCrossCheck=true);
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
     std::string buildTermMissingItems(std::set<std::string> missing) const;
@@ -38,7 +38,7 @@ public:
 
 protected:
     bool writePrettyPrinted(const char *filename, const char *contents) const;
-    std::ifstream _fstream;
+    std::istream &_istream;
     std::set<std::string> _items;
     std::set<std::string> _blocks;
     std::string _filename;

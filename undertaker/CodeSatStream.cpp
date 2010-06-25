@@ -15,19 +15,18 @@ unsigned int CodeSatStream::failed_blocks;
 
 static RuntimeTable runtimes;
 
-CodeSatStream::CodeSatStream(std::string filename, const char *primary_arch, bool doCrossCheck) 
-    : _fstream(), _items(), _blocks(), _filename(filename),
+CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch, bool doCrossCheck) 
+    : _istream(ifs), _items(), _blocks(), _filename(filename),
       _primary_arch(primary_arch), _doCrossCheck(doCrossCheck) {
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
     static const boost::regex comp_regexp("(\\([^\\(]+?[><=!]=.+?\\))", boost::regex::perl);
     std::string line;
 
-    _fstream.open(filename.c_str());
-    if (!_fstream.good())
+    if (!_istream.good())
 	return;
 
-    while (std::getline(_fstream, line)) {
+    while (std::getline(_istream, line)) {
 	std::string item;
 	std::stringstream ss;
 	std::string::size_type pos = std::string::npos;
