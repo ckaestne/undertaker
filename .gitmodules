@@ -1,0 +1,3 @@
+[submodule "ziz"]
+	path = ziz
+	url = ssh://vamos1.informatik.uni-erlangen.de/proj/i4vamos/git/ziz
