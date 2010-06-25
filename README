@@ -1,0 +1,13 @@
+How to checkout
+---------------
+
+This branch uses submodules. After cloning this branch, you need to
+update the submodules manually. This is done with the following steps
+
+ $ git submodule update --init
+
+In order to update the 'ziz' submodule, use
+
+ $ git submodule update
+
+
