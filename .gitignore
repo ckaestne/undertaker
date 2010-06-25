@@ -3,3 +3,7 @@
 *.o
 .tmp_*
 .config
+cscope.files
+cscope.out
+.nfs*
+
