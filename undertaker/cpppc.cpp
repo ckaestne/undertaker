@@ -4,21 +4,20 @@
 #include <fstream>
 
 #include "Ziz.h"
-#include "SatContainer.h"
-
-static std::ofstream devnull("/dev/null");
+#include "CloudContainer.h"
 
 int main (int argc, char **argv) {
     if (argc != 2)
 	exit(1);
 
-    SatContainer s(argv[1]);
-    s.parseExpressions();
+    CloudContainer s(argv[1]);
 
-    if (s.size() > 0) {
-        std::cout << s.runSat() << std::endl;
-        return EXIT_SUCCESS;
+    try {
+	std::cout << s.getConstraints() << std::endl;
+	return EXIT_SUCCESS;
+    } catch (std::runtime_error &e) {
+	std::cerr << "FAILED: " << e.what() << std::endl;
+	return EXIT_FAILURE;
     }
 
-    return EXIT_FAILURE;
 }

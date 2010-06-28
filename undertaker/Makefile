@@ -5,7 +5,7 @@ LDFLAGS =
 LINK.o = $(LINK.cpp)
 LDLIBS = -lssl -lbdd -lboost_regex libparser.a ../ziz/libziz.a -lboost_wave-mt
 TESTLDFLAGS = -lboost_unit_test_framework
-PARSEROBJ = BddContainer.o SatContainer.o ExpressionParser.o \
+PARSEROBJ = BddContainer.o CloudContainer.o ExpressionParser.o \
 	    VariableToBddMap.o RsfBlocks.o KconfigBdd.o \
 	    KconfigRsfDb.o KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o
 HEADERS = $(wildcard *.h)
