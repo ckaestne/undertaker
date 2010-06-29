@@ -10,12 +10,12 @@ class ZizCondBlockPtr {
 public:
     ZizCondBlockPtr(const Ziz::ConditionalBlock *cb) :  _cb(cb), _expression(NULL) {}
     ~ZizCondBlockPtr();
-    int getId() {return _cb->Id(); }
-    const char *expression();
-    const Ziz::ConditionalBlock *Block() { return _cb; }
+    int getId() const {return _cb->Id(); }
+    const char *expression() const;
+    const Ziz::ConditionalBlock *Block() const { return _cb; }
 private:
     const Ziz::ConditionalBlock *_cb;
-    char *_expression; // cache for expression normalization.
+    mutable char *_expression; // cache for expression normalization.
 };
 
 class BlockCloud : public std::deque<ZizCondBlockPtr> {
@@ -23,21 +23,21 @@ public:
     typedef unsigned int index;
     BlockCloud();
     BlockCloud(Ziz::ConditionalBlock *bc);
-    const std::string& getConstraints();
+    const std::string& getConstraints() const;
     ~BlockCloud();
     int scanBlocks(Ziz::BlockContainer *b);
 protected:
-    std::string getBlockName(index n);
-    std::string parent(index n);
-    std::string expression(index n);
-    std::string noPredecessor(index n); //< @return the ORed '|' expression of all preds
-    ZizCondBlockPtr &item(index n);
-    int bId(index i); 		//< @return the block id the given index
-    index search(std::string idstring);
-    index search(int id);
+    std::string getBlockName(index n) const;
+    std::string parent(index n) const;
+    std::string expression(index n) const;
+    std::string noPredecessor(index n) const; //< @return the ORed '|' expression of all preds
+    const ZizCondBlockPtr &item(index n) const;
+    int bId(index i) const; //< @return the block id the given index
+    index search(std::string idstring) const;
+    index search(int id) const;
 
 private:
-    std::string *_constraints;
+    mutable std::string *_constraints;
 };
 
 class CloudContainer : public std::deque<BlockCloud> {

@@ -28,7 +28,7 @@ struct StringJoiner : public std::deque<std::string> {
     }
 };
 
-const char *ZizCondBlockPtr::expression() {
+const char *ZizCondBlockPtr::expression() const {
 
     if (_expression)
         return _expression;
@@ -68,7 +68,7 @@ BlockCloud::~BlockCloud() {
 	delete _constraints;
 }
 
-const std::string& BlockCloud::getConstraints() {
+const std::string& BlockCloud::getConstraints() const {
     StringJoiner sj;
 
     if (_constraints)
@@ -109,12 +109,12 @@ int BlockCloud::scanBlocks(Ziz::BlockContainer *bc) {
     return count;
 }
 
-int BlockCloud::bId(index n) {
+int BlockCloud::bId(index n) const {
     return item(n).getId();
 }
 
 
-BlockCloud::index BlockCloud::search(int id) {
+BlockCloud::index BlockCloud::search(int id) const {
 
     std::stringstream ss;
     for (index i = 0; i < size(); i++)
@@ -125,18 +125,18 @@ BlockCloud::index BlockCloud::search(int id) {
 }
 
 
-ZizCondBlockPtr &BlockCloud::item(index n) {
+const ZizCondBlockPtr &BlockCloud::item(index n) const {
     return (*this)[n];
 }
 
 
-std::string BlockCloud::getBlockName(index n) {
+std::string BlockCloud::getBlockName(index n) const {
     std::stringstream ss;
     ss << "B" << bId(n);
     return ss.str();
 }
 
-std::string BlockCloud::parent(index n) {
+std::string BlockCloud::parent(index n) const {
     std::stringstream ss;
 
     const Ziz::ConditionalBlock *b = item(n).Block();
@@ -146,11 +146,11 @@ std::string BlockCloud::parent(index n) {
     return ss.str();
 }
 
-std::string BlockCloud::expression(index n) {
+std::string BlockCloud::expression(index n) const {
     return item(n).expression();
 }
 
-std::string BlockCloud::noPredecessor(index n) {
+std::string BlockCloud::noPredecessor(index n) const {
     std::stringstream ss;
 
     const Ziz::ConditionalBlock *b = item(n).Block();
