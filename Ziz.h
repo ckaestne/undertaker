@@ -43,6 +43,13 @@ typedef enum {
     EvalUndefined
 } eval_expression_type;
 
+typedef enum {
+    If,
+    Ifdef,
+    Ifndef,
+    Elif,
+    Else
+} condblock_type;
 
 class BlockContainer;
 
@@ -116,6 +123,8 @@ class ConditionalBlock : public Block, public BlockContainer {
     public:
         virtual block_type      BlockType()      const { return Conditional; }
         virtual container_type  ContainerType()  const { return InnerBlock; }
+
+        condblock_type          CondBlockType()  const;
 
         token_type              TokenType()      const { return _type; }
         std::string             TokenStr()       const;

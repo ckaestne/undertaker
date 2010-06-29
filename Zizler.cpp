@@ -182,6 +182,7 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
     stream << indent << " token:       " << b.TokenStr()          << "\n";
     stream << indent << " expression:  " << b.ExpressionStr()     << "\n";
     stream << indent << " expr token#: " << b.Expression().size() << "\n";
+    stream << indent << " condbl type: " << b.CondBlockType()     << "\n";
 
     std::string header = b.Header();
     std::string footer = b.Footer();

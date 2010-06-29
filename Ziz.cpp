@@ -297,6 +297,30 @@ File::CreateConditionalBlock(int depth, position_type startPos,
 
 // ConditionalBlock
 
+condblock_type ConditionalBlock::CondBlockType() const
+{
+    boost::wave::token_id id = boost::wave::token_id(_type);
+    std::string tstr(boost::wave::get_token_name(id).c_str());
+
+    if (tstr.compare("PP_IF") == 0)
+	return Ifdef;
+
+    if (tstr.compare("PP_IFDEF") == 0)
+	return Ifdef;
+
+    if (tstr.compare("PP_IFNDEF") == 0)
+	return Ifndef;
+
+    if (tstr.compare("PP_ELIF") == 0)
+	return Elif;
+
+    if (tstr.compare("PP_ELSE") == 0)
+	return Else;
+
+    std::cerr << "unknown type: " << tstr.c_str() << std::endl;
+    assert(false);
+}
+
 std::string ConditionalBlock::TokenStr() const
 {
     boost::wave::token_id id = boost::wave::token_id(_type);
