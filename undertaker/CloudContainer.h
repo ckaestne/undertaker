@@ -47,9 +47,11 @@ public:
     CloudContainer(const char *filename);
     ~CloudContainer();
     const std::string& getConstraints();
+    bool good() const { return !_fail; }
 
 protected:
     Ziz::File *_zfile;
+    bool _fail;
 
 private:
     std::string *_constraints;
