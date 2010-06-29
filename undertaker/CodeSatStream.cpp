@@ -22,6 +22,8 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
     static const boost::regex comp_regexp("(\\([^\\(]+?[><=!]=.+?\\))", boost::regex::perl);
     std::string line;
+    
+    _doCrossCheck = KconfigRsfDbFactory::getInstance()->size() > 0;
 
     if (!_istream.good())
 	return;

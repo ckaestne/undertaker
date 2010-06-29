@@ -43,7 +43,7 @@ protected:
     std::set<std::string> _blocks;
     std::string _filename;
     const char *_primary_arch;
-    const bool _doCrossCheck;
+    bool _doCrossCheck;
     const bool _batch_mode;
 
     std::stringstream codeConstraints; 
