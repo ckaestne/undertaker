@@ -143,7 +143,7 @@ void CodeSatStream::analyzeBlock(const char *block) {
 	const std::string filename = _filename + "." + block + "." + _primary_arch +".code.dead";
 	writePrettyPrinted(filename.c_str(), code_constraints.c_str());
 	alive = false;
-    } else {
+    } else if (_doCrossCheck){
 	if (!kconfig_constraints()) {
 	    const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.dead";
 	    writePrettyPrinted(filename.c_str(), kconfig_constraints.c_str());
@@ -203,6 +203,11 @@ void CodeSatStream::analyzeBlocks() {
 
 bool CodeSatStream::writePrettyPrinted(const char *filename, const char *contents) const {
     std::ofstream out(filename);
+    
+    if (_batch_mode) {
+        std::cout << SatChecker::pprinter(contents);
+	return true;
+    }
 
     if (!out.good()) {
 	std::cerr << "failed to open " << filename << " for writing " << std::endl;
