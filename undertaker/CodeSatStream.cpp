@@ -15,9 +15,9 @@ unsigned int CodeSatStream::failed_blocks;
 
 static RuntimeTable runtimes;
 
-CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch, bool doCrossCheck) 
+CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch, bool batch_mode) 
     : _istream(ifs), _items(), _blocks(), _filename(filename),
-      _primary_arch(primary_arch), _doCrossCheck(doCrossCheck) {
+      _primary_arch(primary_arch), _doCrossCheck(true), _batch_mode(batch_mode) {
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
     static const boost::regex comp_regexp("(\\([^\\(]+?[><=!]=.+?\\))", boost::regex::perl);

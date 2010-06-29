@@ -24,7 +24,6 @@ int main (int argc, char ** argv) {
     f->loadModels();
 
     CloudContainer s(argv[1]);
-    //s.parseExpressions();
     std::istringstream codesat(s.getConstraints());
     CodeSatStream analyzer(codesat, argv[1], "x86");
     analyzer.analyzeBlocks();
