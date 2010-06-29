@@ -43,6 +43,9 @@ const char *ZizCondBlockPtr::expression() const {
     while((pos = expression.find("&&")) != std::string::npos)
         expression.replace(pos, 2, 1, '&');
 
+    if (_cb->CondBlockType() == Ziz::Ifndef)
+	expression = " ! " + expression;
+
     return _expression = strdup(expression.c_str());
 }
 
