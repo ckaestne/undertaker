@@ -56,8 +56,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
 
 	while (ss >> item) {
 	    if ((pos = item.find(prefix)) != std::string::npos) { // i.e. matched
-		// replace leading prefix
-		item.erase(pos, std::strlen(prefix));
 		_items.insert(item);
 	    } 
 	    if (boost::regex_match(item.begin(), item.end(), block_regexp)) {
@@ -65,11 +63,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
 	    }
 	}
 
-	while ((pos = line.find(prefix)) != std::string::npos) { // i.e. matched
-	    // replace leading prefix
-	    line.erase(pos, std::strlen(prefix));
-	}
-	 
 	(*this) << line << std::endl;
     }
 }
@@ -163,7 +156,7 @@ void CodeSatStream::analyzeBlock(const char *block) {
 	    }
 	}
     }
-
+    std::cout << missing_constraints.str();
     runtimes.push_back(std::make_pair(strdup(_filename.c_str()), code_constraints.runtime()));
     
     if (!alive) {

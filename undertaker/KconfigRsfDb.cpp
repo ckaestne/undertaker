@@ -28,29 +28,31 @@ void KconfigRsfDb::initializeItems() {
 		 type.compare("tristate") ))
 		continue;
 
+	const std::string itemName("CONFIG_" + name);
 	Item i;
-	i.name_ = name;
+	i.name_ = itemName;
 	i.type_ = i.ITEM;
-	allItems.insert(std::pair<std::string,Item>(name, i));
+	allItems.insert(std::pair<std::string,Item>(itemName, i));
 
 	// tristate constraints
 	if (!type.compare("tristate")) {
-		const std::string moduleName(name + "_MODULE");
+		const std::string moduleName("CONFIG_" + name + "_MODULE");
 		Item i;
 		i.name_ = moduleName;
 		i.type_ = i.ITEM;
 		allItems.insert(std::pair<std::string,Item>(moduleName, i));
 
-		allItems[name].dependencies_.push_front(" ! " + moduleName);
-		allItems[moduleName].dependencies_.push_front(" ! " + name);
+		allItems[itemName].dependencies_.push_front(" ! " + moduleName);
+		allItems[moduleName].dependencies_.push_front(" ! " + itemName);
 	}
     }
 
     for(RsfBlocks::iterator i = this->choice_.begin(); i != this->choice_.end(); i++) {
     	const std::string &itemName = (*i).first;
 	const std::string &required = (*i).second.front();
+	const std::string choiceName("CONFIG_" + itemName);
 	Item ci;
-	ci.name_ = itemName;
+	ci.name_ = choiceName;
 	ci.type_ = ci.CHOICE;
 	ci.required_ = required.compare("required") ? true : false;
 	allItems.insert(std::pair<std::string,Item>(ci.name_, ci));
@@ -62,16 +64,16 @@ void KconfigRsfDb::initializeItems() {
 	std::string &exp = (*i).second.front();
 	std::string::size_type pos = std::string::npos;
 
-
 	while ((pos = exp.find("&&")) != std::string::npos)
 	    exp.replace(pos, 2, 1, '&');
 
 	while ((pos = exp.find("||")) != std::string::npos)
 	    exp.replace(pos, 2, 1, '|');
 	
-	Item item = allItems.getItem(itemName);
+	Item item = allItems.getItem("CONFIG_"+itemName);
+
 	if (item.valid()) {
-	    allItems[itemName].dependencies_.push_front(exp);
+	    allItems["CONFIG_"+itemName].dependencies_.push_front(rewriteExpressionPrefix(exp));
 	} 
     }
 
@@ -83,6 +85,38 @@ void KconfigRsfDb::initializeItems() {
 	if (item.valid() && choiceItem.valid())
 	    allItems[choiceName].choiceAlternatives_.push_back(item);
     }
+}
+
+std::list<std::string> itemsOfString(std::string str);
+std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
+    const std::string prefix = "CONFIG_";
+    std::string separators[9] = { " ", "!", "(", ")", "=", "<", ">", "&", "|" };
+    std::list<std::string> itemsExp = itemsOfString(exp);
+    for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); i++) {
+        unsigned int pos = 0;
+	  
+        while ( (pos = exp.find(*i,pos)) != std::string::npos) {
+
+            bool insert = false;
+	    for(int j=0; j<9; j++) {
+	        if (pos == 0) {
+	           insert = true;
+	           break;
+	        }
+	   
+	        if (exp.compare(pos-1,1,separators[j]) == 0) {
+                    insert = true;
+		    break;
+		}
+	    }   
+
+	    if (insert)
+                exp.insert(pos,prefix);
+
+            pos += prefix.size() + (*i).size();
+	}
+    }
+    return exp;
 }
 
 std::string KconfigRsfDb::Item::printChoiceAlternative() {
@@ -188,7 +222,8 @@ void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems
     std::stack<std::string> workingStack;
     std::string tmp;
     for(std::set<std::string>::iterator sit = initialItems.begin(); sit != initialItems.end(); sit++) {
-	workingStack.push(*sit);
+        if ((*sit).compare(0,6,"CONFIG_") == 0) //consider only flags that should come from the kconfig model
+	  workingStack.push(*sit);
     }
 
     while (!workingStack.empty()) {
