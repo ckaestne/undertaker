@@ -172,15 +172,17 @@ std::string BlockCloud::noPredecessor(index n) const {
 
 
 CloudContainer::CloudContainer(const char *filename)
-  : _zfile(NULL), _constraints(NULL) {
+  : _zfile(NULL), _fail(false), _constraints(NULL) {
     Ziz::Parser parser;
 
     try {
         _zfile = parser.Parse(filename);
     } catch(Ziz::ZizException& e) {
         std::cerr << "caught ZizException: " << e.what() << std::endl;
+	_fail = true;
     } catch(...) {
         std::cerr << "caught exception" << std::endl;
+	_fail = true;
     }
 }
 

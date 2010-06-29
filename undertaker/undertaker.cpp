@@ -9,23 +9,63 @@
 #include "CloudContainer.h"
 #include "CodeSatStream.h"
 
-void usage(std::ostream &out, const char *error, char **argv ) {
+void usage(std::ostream &out, const char *error) {
     if (error)
 	out << error << std::endl;
-    out << "Usage: " << argv[0] << "[-v] [-f] [-w]" << " <file>" << std::endl;
+    out << "Usage: undertaker [-b worklist] [-w whitelist] -s" << " <file>\n";
+    out << "  -b: specify a worklist (batch mode)\n";
+    out << "  -w: specify a whitelist\n";
+    out << "  -s: skip loading variability models\n";
+    out << std::endl;
+}
+
+void process_file(const char *filename, bool batch_mode) {
+    CloudContainer s(filename);
+    if (!s.good()) {
+	usage(std::cout, "couldn't open file");
+	return;
+    }
+
+    std::istringstream codesat(s.getConstraints());
+    CodeSatStream analyzer(codesat, filename, "x86", batch_mode);
+    analyzer.analyzeBlocks();
 }
 
 int main (int argc, char ** argv) {
-    if (argc != 2) {
-	usage (std::cout, "not enough parameters", argv);
-	exit(1);
+    int opt;
+    bool loadModels = true;
+    char *worklist = NULL;
+    char *whitelist = NULL;
+
+    while ((opt = getopt(argc, argv, "sb:")) != -1) {
+	switch (opt) {
+	case 's':
+	    loadModels = false;
+	    break;
+	case 'w':
+	    whitelist = strdup(optarg);
+	    break;
+	case 'b':
+	    worklist = strdup(optarg);
+	    break;
+	default:
+	    break;
+	}
     }
+
     KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
-    f->loadModels();
 
-    CloudContainer s(argv[1]);
-    std::istringstream codesat(s.getConstraints());
-    CodeSatStream analyzer(codesat, argv[1], "x86");
-    analyzer.analyzeBlocks();
+    if (loadModels)
+	f->loadModels();
 
+    if (!worklist) {
+	process_file(argv[optind], false);
+    } else {
+	std::ifstream workfile(worklist);
+	std::string line;
+	while(std::getline(workfile, line)) {
+	    process_file(line.c_str(), true);
+	}
+    }
+    return EXIT_SUCCESS;
 }
