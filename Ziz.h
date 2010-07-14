@@ -84,6 +84,7 @@ class Block {
 class BlockContainer : public std::vector<Block*> {
     protected:
         BlockContainer() {}   // only allow in derived classes
+        virtual ~BlockContainer() {}
     public:
         virtual container_type ContainerType()  const = 0;
 };
@@ -156,6 +157,7 @@ class ConditionalBlock : public Block, public BlockContainer {
 class File : public BlockContainer {
     public:
         File() : _blocks(0) {}
+        ~File() {};
 
     public:
         virtual container_type ContainerType() const { return OuterBlock; }
