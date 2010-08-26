@@ -19,7 +19,7 @@ void usage(std::ostream &out, const char *error) {
     out << std::endl;
 }
 
-void process_file(const char *filename, bool batch_mode) {
+void process_file(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
 	usage(std::cout, "couldn't open file");
@@ -27,7 +27,7 @@ void process_file(const char *filename, bool batch_mode) {
     }
 
     std::istringstream codesat(s.getConstraints());
-    CodeSatStream analyzer(codesat, filename, "x86", batch_mode);
+    CodeSatStream analyzer(codesat, filename, "x86", s.getParents(), batch_mode, loadModels);
     analyzer.analyzeBlocks();
 }
 
@@ -59,12 +59,12 @@ int main (int argc, char ** argv) {
 	f->loadModels();
 
     if (!worklist) {
-	process_file(argv[optind], false);
+	process_file(argv[optind], false, loadModels);
     } else {
 	std::ifstream workfile(worklist);
 	std::string line;
 	while(std::getline(workfile, line)) {
-	    process_file(line.c_str(), true);
+	    process_file(line.c_str(), true, loadModels);
 	}
     }
     return EXIT_SUCCESS;

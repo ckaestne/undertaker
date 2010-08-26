@@ -17,7 +17,7 @@ bool SatChecker::operator()() throw (SatCheckerError) {
     if (!limboole.is_open())
 	throw SatCheckerError("failed to initialize limboole");
 
-    //  std::cout << "Checking: " << sat << std::endl;
+      std::cout << "Checking: " << std::endl << _sat << std::endl;
     limboole << _sat << redi::peof;
     while (limboole >> str) {
 	if (str.compare("SATISFIABLE") == 0) {
@@ -33,7 +33,9 @@ bool SatChecker::operator()() throw (SatCheckerError) {
 	    return false;
 	}
     }
-    throw SatCheckerError("syntax error");
+    std::stringstream ss;
+    ss << "syntax error" << std::endl << this->_sat;
+    throw SatCheckerError(ss.str().c_str());
 }
 
 std::string SatChecker::pprinter(const char *sat) {

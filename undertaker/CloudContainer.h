@@ -3,6 +3,7 @@
 #define sat_container_h__
 
 #include <deque>
+#include <map>
 
 #include "Ziz.h"
 
@@ -26,9 +27,9 @@ public:
     const std::string& getConstraints() const;
     ~BlockCloud();
     int scanBlocks(Ziz::BlockContainer *b);
-protected:
     std::string getBlockName(index n) const;
     std::string parent(index n) const;
+protected:
     std::string expression(index n) const;
     std::string noPredecessor(index n) const; //< @return the ORed '|' expression of all preds
     const ZizCondBlockPtr &item(index n) const;
@@ -48,6 +49,7 @@ public:
     ~CloudContainer();
     const std::string& getConstraints();
     bool good() const { return !_fail; }
+    std::map<std::string, std::string> getParents();
 
 protected:
     Ziz::File *_zfile;

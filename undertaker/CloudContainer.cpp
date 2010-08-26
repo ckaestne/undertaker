@@ -102,7 +102,7 @@ int BlockCloud::scanBlocks(Ziz::BlockContainer *bc) {
 	if (cb) {
 	    count++;
 #ifdef DEBUG
-	    std::cout << "Adding nested   block " << cb->Id() << " to " << this << std::endl;
+	    std::cout << "Adding nested   block " << cb->Id() << " to " << this << " at: " << cb->Start() << std::endl;
 #endif
 	    this->push_back(ZizCondBlockPtr(cb));
 	    count += this->scanBlocks(cb);
@@ -193,6 +193,19 @@ CloudContainer::~CloudContainer() {
 	delete _constraints;
 }
 
+std::map<std::string, std::string> CloudContainer::getParents() {
+    std::map<std::string, std::string> ret;
+    for (CloudList::iterator c = this->begin(); c != this->end(); c++) {
+        for (unsigned int i = 0; i < c->size(); i++) {
+            std::string papa(c->parent(i));
+            if (!papa.empty()) {
+	        std::string me(c->getBlockName(i));  
+                ret.insert(std::pair<std::string,std::string>(me, papa));
+            }
+        }
+    }
+    return ret;
+}
 
 const std::string& CloudContainer::getConstraints() {
     StringJoiner sj;

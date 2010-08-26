@@ -17,8 +17,9 @@ typedef std::list<RuntimeEntry> RuntimeTable;
 
 class CodeSatStream : public std::stringstream {
 public:
-    CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch, bool batch_mode=false);
+    CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch, std::map<std::string, std::string> parents, bool batch_mode=false, bool loadModels=false);
     const std::set<std::string> &Items()  const { return _items;  }
+    const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
     std::string buildTermMissingItems(std::set<std::string> missing) const;
     void composeConstraints(std::string block, const KconfigRsfDb *model);
@@ -39,8 +40,10 @@ public:
 protected:
     bool writePrettyPrinted(const char *filename, const char *contents) const;
     std::istream &_istream;
-    std::set<std::string> _items;
+    std::set<std::string> _items; //kconfig items
+    std::set<std::string> _free_items; //non-kconfig items
     std::set<std::string> _blocks;
+    std::map<std::string, std::string> parents;
     std::string _filename;
     const char *_primary_arch;
     bool _doCrossCheck;

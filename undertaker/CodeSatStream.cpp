@@ -15,20 +15,23 @@ unsigned int CodeSatStream::failed_blocks;
 
 static RuntimeTable runtimes;
 
-CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch, bool batch_mode) 
-    : _istream(ifs), _items(), _blocks(), _filename(filename),
-      _primary_arch(primary_arch), _doCrossCheck(true), _batch_mode(batch_mode) {
+CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch, std::map<std::string, std::string> pars, bool batch_mode, bool loadModels) 
+    : _istream(ifs), _items(), _free_items(), _blocks(), _filename(filename),
+      _primary_arch(primary_arch), _doCrossCheck(loadModels), _batch_mode(batch_mode), parents(pars) {
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
     static const boost::regex comp_regexp("(\\([^\\(]+?[><=!]=.+?\\))", boost::regex::perl);
+    static const boost::regex comp_regexp_new("[[:alnum:]]+[[:space:]]*[!]?[><=]+[[:space:]]*[[:alnum:]]+", boost::regex::extended);
+    static const boost::regex free_item_regexp("[a-zA-Z0-9\\-_]+", boost::regex::extended);
     std::string line;
     
-    _doCrossCheck = KconfigRsfDbFactory::getInstance()->size() > 0;
+    //_doCrossCheck = KconfigRsfDbFactory::getInstance()->size() > 0;
 
     if (!_istream.good())
 	return;
 
     while (std::getline(_istream, line)) {
+	//std::cout << "processing line: " << line << std::endl;
 	std::string item;
 	std::stringstream ss;
 	std::string::size_type pos = std::string::npos;
@@ -41,12 +44,22 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
 	while ((pos = line.find("||")) != std::string::npos)
 	    line.replace(pos, 2, 1, '|');
 
-	if (boost::regex_search(line.begin(), line.end(), what, comp_regexp, flags)) {
+//	if (boost::regex_search(line.begin(), line.end(), what, comp_regexp, flags)) {
+//	    char buf[20];
+//	    static int c;
+//	    snprintf(buf, sizeof buf, "COMP_%d", c++);
+//	    line.replace(what[0].first, what[0].second, buf);
+//	}
+
+	if (boost::regex_search(line.begin(), line.end(), what, comp_regexp_new, flags)) {
 	    char buf[20];
 	    static int c;
 	    snprintf(buf, sizeof buf, "COMP_%d", c++);
 	    line.replace(what[0].first, what[0].second, buf);
-	}
+        }
+
+        while ((pos = line.find("defined")) != std::string::npos)
+	    line.erase(pos,7);
 
 	while ((pos = line.find("&&")) != std::string::npos)
 	    line.replace(pos, 2, 1, '&');
@@ -59,9 +72,16 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
 	while (ss >> item) {
 	    if ((pos = item.find(prefix)) != std::string::npos) { // i.e. matched
 		_items.insert(item);
+	         //std::cout << "inserting item: " << item << std::endl;
+		 continue;
 	    } 
 	    if (boost::regex_match(item.begin(), item.end(), block_regexp)) {
 		_blocks.insert(item);
+		continue;
+	    }
+	    if (boost::regex_match(item.begin(), item.end(), free_item_regexp)) {
+	        _free_items.insert(item);
+	         std::cout << "inserting free_item: " << item << std::endl;
 	    }
 	}
 
@@ -135,17 +155,31 @@ std::string CodeSatStream::getMissingItemsConstraints(const char *block,
 void CodeSatStream::analyzeBlock(const char *block) {
     KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
     std::set<std::string> missingSet;
-    KconfigRsfDb *p_model = f->lookupModel(_primary_arch);
-    SatChecker code_constraints(getCodeConstraints(block));
-    SatChecker kconfig_constraints(getKconfigConstraints(block, p_model, missingSet));
-    SatChecker missing_constraints(getMissingItemsConstraints(block, p_model, missingSet));
+
+    std::string formula = getCodeConstraints(block);
+    SatChecker code_constraints(formula);
+
+    std::string parent = parents[std::string(block)]; //this is not good, it inserts an empty string if the block has no parents
+    bool has_parent = !parent.empty();
+
     bool alive = true;
 
     if (!code_constraints()) {
 	const std::string filename = _filename + "." + block + "." + _primary_arch +".code.dead";
 	writePrettyPrinted(filename.c_str(), code_constraints.c_str());
 	alive = false;
+    } else if (has_parent) {
+        std::string undead_block= "( " + parent + " & ! " + std::string(block) + " )";
+        std::string undead_formula = getCodeConstraints(undead_block.c_str());
+        SatChecker undead_code_constraints(undead_formula);
+        if  (!undead_code_constraints()){
+	    const std::string filename = _filename + "." + block + "." + _primary_arch +".code.undead";
+	    writePrettyPrinted(filename.c_str(), undead_code_constraints.c_str());
+	}
     } else if (_doCrossCheck){
+        KconfigRsfDb *p_model = f->lookupModel(_primary_arch);
+        SatChecker kconfig_constraints(getKconfigConstraints(block, p_model, missingSet));
+        SatChecker missing_constraints(getMissingItemsConstraints(block, p_model, missingSet));
 	if (!kconfig_constraints()) {
 	    const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.dead";
 	    writePrettyPrinted(filename.c_str(), kconfig_constraints.c_str());
@@ -158,7 +192,9 @@ void CodeSatStream::analyzeBlock(const char *block) {
 	    }
 	}
     }
-    std::cout << missing_constraints.str();
+    //std::cout << "Analyzing block: " << block << " on file: " << this->_filename << std::endl;
+    //std::cout << formula << std::endl;
+    //std::cout << missing_constraints.str();
     runtimes.push_back(std::make_pair(strdup(_filename.c_str()), code_constraints.runtime()));
     
     if (!alive) {
@@ -207,8 +243,8 @@ bool CodeSatStream::writePrettyPrinted(const char *filename, const char *content
     std::ofstream out(filename);
     
     if (_batch_mode) {
-        std::cout << SatChecker::pprinter(contents);
-	return true;
+        //std::cout << SatChecker::pprinter(contents);
+	//return true;
     }
 
     if (!out.good()) {
