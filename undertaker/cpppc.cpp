@@ -13,7 +13,8 @@ int main (int argc, char **argv) {
 
     CloudContainer s(argv[1]);
     std::istringstream codesat(s.getConstraints());
-    CodeSatStream analyzer(codesat, argv[1], "x86", false);
+    std::map<std::string,std::string> parents;
+    CodeSatStream analyzer(codesat, argv[1], "x86", parents, false, false);
 
     try {
 	std::cout << s.getConstraints() << std::endl << std::endl; 
