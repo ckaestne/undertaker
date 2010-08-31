@@ -9,7 +9,7 @@ PARSEROBJ = BddContainer.o CloudContainer.o ExpressionParser.o \
 	    VariableToBddMap.o RsfBlocks.o KconfigBdd.o \
 	    KconfigRsfDb.o KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o
 HEADERS = $(wildcard *.h)
-PROGS = undertaker undertaker2 cpppc
+PROGS = undertaker cpppc # undertaker2  <- currently broken
 
 all: ../ziz/libziz.a $(PROGS)
 undertaker: libparser.a
