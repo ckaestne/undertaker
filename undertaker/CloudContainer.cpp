@@ -1,5 +1,6 @@
 #include <sstream>
 
+#include "CodeSatStream.h" // for ParentsMap
 #include "CloudContainer.h"
 #include "Ziz.h"
 
@@ -193,8 +194,8 @@ CloudContainer::~CloudContainer() {
 	delete _constraints;
 }
 
-std::map<std::string, std::string> CloudContainer::getParents() {
-    std::map<std::string, std::string> ret;
+ParentsMap CloudContainer::getParents() {
+    ParentsMap ret;
     for (CloudList::iterator c = this->begin(); c != this->end(); c++) {
         for (unsigned int i = 0; i < c->size(); i++) {
             std::string papa(c->parent(i));
