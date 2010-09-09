@@ -230,7 +230,7 @@ const std::string& CloudContainer::getConstraints() {
 
 #ifdef DEBUG		    
 		std::cout << "Adding toplevel block " << cb->Id() << " to cloud " << &(this->back())
-			  << " (#" << size() << ")"
+			  << " (#" << size() << ")" << " at: " << cb->Start()
 			  << std::endl;
 #endif
 
