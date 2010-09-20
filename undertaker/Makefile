@@ -1,4 +1,4 @@
-DEBUG = -g3
+DEBUG = -g3 -DDEBUG
 CFLAGS = -Wall -Wextra -O2 -I../ziz $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =

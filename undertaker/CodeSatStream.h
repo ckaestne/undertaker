@@ -30,6 +30,7 @@ public:
     static unsigned int getProcessedItems()  { return processed_items; }
     static unsigned int getProcessedBlocks() { return processed_blocks; }
     static unsigned int getFailedBocks()     { return failed_blocks; }
+    std::string getFilename() { return _filename; }
 
     std::string getCodeConstraints(const char *block);
     std::string getKconfigConstraints(const char * block, const KconfigRsfDb *model, std::set<std::string> &missing);
