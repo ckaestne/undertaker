@@ -9,13 +9,16 @@
 #include "CloudContainer.h"
 #include "CodeSatStream.h"
 
+typedef std::deque<BlockCloud> CloudList;
+
 void usage(std::ostream &out, const char *error) {
     if (error)
 	out << error << std::endl;
-    out << "Usage: undertaker [-b worklist] [-w whitelist] -s" << " <file>\n";
+    out << "Usage: undertaker [-b worklist] [-w whitelist] [-a arch] -s" << " <file>\n";
     out << "  -b: specify a worklist (batch mode)\n";
     out << "  -w: specify a whitelist\n";
     out << "  -s: skip loading variability models\n";
+    out << "  -a: specify a unique arch \n";
     out << std::endl;
 }
 
@@ -26,9 +29,19 @@ void process_file(const char *filename, bool batch_mode, bool loadModels) {
 	return;
     }
 
-    std::istringstream codesat(s.getConstraints());
-    CodeSatStream analyzer(codesat, filename, "x86", s.getParents(), batch_mode, loadModels);
-    analyzer.analyzeBlocks();
+    std::istringstream cs(s.getConstraints());
+    for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
+      std::map<std::string,std::string> parents;
+      std::istringstream codesat(c->getConstraints());
+      std::string primary_arch = "x86";
+      KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+      if (f->size() == 1)
+        primary_arch = f->begin()->first;
+      CodeSatStream analyzer(codesat, filename, primary_arch.c_str(), s.getParents(), batch_mode, loadModels);
+      //std::cout << "i:" << i << std::endl << codesat.str() << std::endl << std::endl ;
+      analyzer.analyzeBlocks();
+    }
+
 }
 
 int main (int argc, char ** argv) {
@@ -36,8 +49,10 @@ int main (int argc, char ** argv) {
     bool loadModels = true;
     char *worklist = NULL;
     char *whitelist = NULL;
+    char *arch = NULL;
+    bool arch_specific = false;
 
-    while ((opt = getopt(argc, argv, "sb:")) != -1) {
+    while ((opt = getopt(argc, argv, "sb:a:")) != -1) {
 	switch (opt) {
 	case 's':
 	    loadModels = false;
@@ -48,6 +63,11 @@ int main (int argc, char ** argv) {
 	case 'b':
 	    worklist = strdup(optarg);
 	    break;
+	case 'a':
+	    arch_specific = true;
+            arch = strdup(optarg);	    
+	    std::cout << arch;
+	    break;
 	default:
 	    break;
 	}
@@ -55,8 +75,14 @@ int main (int argc, char ** argv) {
 
     KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
 
-    if (loadModels)
-	f->loadModels();
+    if (loadModels) {
+        if (arch_specific) {
+	  f->loadModels(arch);
+	} else {
+	  f->loadModels();
+	}
+    }
+
 
     if (!worklist) {
 	process_file(argv[optind], false, loadModels);

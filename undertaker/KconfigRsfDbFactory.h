@@ -12,6 +12,7 @@ typedef std::map<std::string, KconfigRsfDb*> ModelContainer;
 class KconfigRsfDbFactory : protected ModelContainer {
 public:
     static void loadModels();
+    static void loadModels(std::string); //for arch-specific analysis
     static void loadWhitelist(std::string);
     static KconfigRsfDb *lookupModel(const char *arch);
     static KconfigRsfDbFactory *getInstance();

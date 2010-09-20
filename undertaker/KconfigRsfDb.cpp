@@ -139,8 +139,10 @@ bool KconfigRsfDb::Item::printItemSat(std::ostream &out) {
     if (dependencies_.size() > 0) {
 	out << "( " << name_ << " -> (" << dependencies_.front() << ") )" << std::endl;
 	if (isChoice()) { 
-	    out << "&" << std::endl;
-	    out << printChoiceAlternative();
+	    std::string ca = printChoiceAlternative();
+	    if (!ca.empty()) {
+	      out << "&" << ca << std::endl;
+	    }
 	}
 	return true;
     } else {
@@ -222,7 +224,7 @@ void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems
     std::stack<std::string> workingStack;
     std::string tmp;
     for(std::set<std::string>::iterator sit = initialItems.begin(); sit != initialItems.end(); sit++) {
-        if ((*sit).compare(0,6,"CONFIG_") == 0) //consider only flags that should come from the kconfig model
+        //if ((*sit).compare(0,6,"CONFIG_") == 0) //consider only flags that should come from the kconfig model
 	  workingStack.push(*sit);
     }
 
@@ -247,6 +249,7 @@ void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems
 
 int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const {
     int valid_items = 0;
+    int trials = 0;
     bool conj = false;
 
     findSetOfInterestingItems(myset);
@@ -256,10 +259,11 @@ int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, st
 	KconfigRsfDb::Item item = allItems.getItem(*it); 
 	if (item.valid()) {
 	    bool go = item.printItemSat(ss);
+	    trials++;
 	    if (go) {
 		valid_items++;
 		if (conj) {
-		    out << "& ";
+		    out << "&";
 		}
 		out << ss.str() ;
 		conj = true;

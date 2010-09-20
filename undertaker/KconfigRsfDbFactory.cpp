@@ -40,6 +40,20 @@ void KconfigRsfDbFactory::loadModels() {
     }
 }
 
+void KconfigRsfDbFactory::loadModels(std::string arch) {
+    KconfigRsfDbFactory *f = getInstance();
+    std::string line;
+    std::string find = "find . -name 'kconfig-" + arch + ".rsf'";
+    redi::ipstream kconfig_rsfs(find);
+
+    while (std::getline(kconfig_rsfs, line)) {
+	ModelContainer::iterator a = f->find(arch);
+
+	if (a == f->end())
+	    f->registerRsfFile(line.c_str(), arch);
+    }
+}
+
 KconfigRsfDb *KconfigRsfDbFactory::registerRsfFile(const char *filename, std::string arch) {
     std::ifstream rsf_file(filename);
     static std::ofstream devnull("/dev/null");
