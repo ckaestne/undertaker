@@ -104,6 +104,7 @@ class CodeBlock : public Block {
 
         void AppendContent(const std::string &c) { _content << c; }
         void AppendContent(const string_type &c) { _content << c; }
+        void SetContent   (const std::string &c) { _content.str(c); }
 
     private:
         std::stringstream       _content;
