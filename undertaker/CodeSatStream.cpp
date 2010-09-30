@@ -7,17 +7,18 @@
 #include "KconfigRsfDb.h"
 #include "CodeSatStream.h"
 #include "SatChecker.h"
+#include "Ziz.h"
 
 unsigned int CodeSatStream::processed_units;
 unsigned int CodeSatStream::processed_items;
 unsigned int CodeSatStream::processed_blocks;
 unsigned int CodeSatStream::failed_blocks;
 
-static RuntimeTable runtimes;
+//static RuntimeTable runtimes;
 
-CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch, std::map<std::string, std::string> pars, bool batch_mode, bool loadModels) 
+CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch, std::map<std::string, std::string> pars, BlockCloud &cc, bool batch_mode, bool loadModels) 
     : _istream(ifs), _items(), _free_items(), _blocks(), _filename(filename),
-      _primary_arch(primary_arch), _doCrossCheck(loadModels), _batch_mode(batch_mode), parents(pars) {
+      _primary_arch(primary_arch), _doCrossCheck(loadModels), _cc(cc), _batch_mode(batch_mode), parents(pars) {
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
     static const boost::regex comp_regexp("(\\([^\\(]+?[><=!]=.+?\\))", boost::regex::perl);
@@ -51,11 +52,12 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
 //	    line.replace(what[0].first, what[0].second, buf);
 //	}
 
-	if (boost::regex_search(line.begin(), line.end(), what, comp_regexp_new, flags)) {
+	while (boost::regex_search(line.begin(), line.end(), what, comp_regexp_new, flags)) {
 	    char buf[20];
 	    static int c;
 	    snprintf(buf, sizeof buf, "COMP_%d", c++);
 	    line.replace(what[0].first, what[0].second, buf);
+	    std::cout << line << std::endl;
         }
 
         while ((pos = line.find("defined")) != std::string::npos)
@@ -111,19 +113,23 @@ std::string CodeSatStream::getCodeConstraints(const char *block) {
     return std::string(cc.str());
 }
 
+int SLICE_fixit;
+
 std::string CodeSatStream::getKconfigConstraints(const char *block,
 						 const KconfigRsfDb *model,
 						 std::set<std::string> &missing) {
     std::stringstream ss;
     std::stringstream kc;
     std::string code = this->getCodeConstraints(block);
-    int inter = model->doIntersect(Items(), ss, missing);
+    int slice = -1;
+    int inter = model->doIntersect(Items(), ss, missing, slice);
+    SLICE_fixit = slice;
     if (inter > 0) {
 	kc << code << std::endl << " & " << std::endl << ss.str();
     } else {
 	return code;
     }
-    std::cout << "SLICE:" << Items().size() << ":" << inter << std::endl;
+//    std::cout << "SLICE:" << Items().size() << ":" << inter << std::endl;
     return std::string(kc.str());
 }
 
@@ -154,7 +160,7 @@ std::string CodeSatStream::getMissingItemsConstraints(const char *block,
  * $block.globally.dead       -> dead on every checked arch
  */
 
-void CodeSatStream::analyzeBlock(const char *block) {
+void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
     std::cout << "analyzeBlock(" << block << ")" << std::endl; 
     KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
     std::set<std::string> missingSet;
@@ -171,26 +177,28 @@ void CodeSatStream::analyzeBlock(const char *block) {
 
     std::cout << "code_constraints" << std::endl;
     if (!code_constraints()) {
-	const std::string filename = _filename + "." + block + "." + _primary_arch +".code.dead";
-	writePrettyPrinted(filename.c_str(), code_constraints.c_str());
+	const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.dead";
+	writePrettyPrinted(filename.c_str(),block, code_constraints.c_str());
 	alive = false;
     } else if (_doCrossCheck){
         std::cout << _primary_arch << std::endl;
         KconfigRsfDb *p_model = f->lookupModel(_primary_arch);
 	kconfig_formula = getKconfigConstraints(block, p_model, missingSet);
         SatChecker kconfig_constraints(kconfig_formula);
+	re.slice = SLICE_fixit; //fucking ugly!!!! fix it!
+
 	missing_formula = getMissingItemsConstraints(block, p_model, missingSet);
         SatChecker missing_constraints(missing_formula);
         std::cout << "kconfig_constraints" << std::endl;
 	if (!kconfig_constraints()) {
-	    const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.dead";
-	    writePrettyPrinted(filename.c_str(), kconfig_constraints.c_str());
+	    const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.globally.dead";
+	    writePrettyPrinted(filename.c_str(),block, kconfig_constraints.c_str());
 	    alive = false;
 	} else {
             std::cout << "missing_constraints" << std::endl;
 	    if (!missing_constraints()) {
 		const std::string filename= _filename + "." + block + "." + _primary_arch +".missing.dead";
-		writePrettyPrinted(filename.c_str(), missing_constraints.c_str());
+		writePrettyPrinted(filename.c_str(),block, missing_constraints.c_str());
 		alive = false;
 	    }
 	}
@@ -208,33 +216,36 @@ void CodeSatStream::analyzeBlock(const char *block) {
         SatChecker undead_missing_constraints(undead_missing_formula);
         std::cout << "undead_code_constraints" << std::endl;
         if  (!undead_code_constraints()){
-	    const std::string filename = _filename + "." + block + "." + _primary_arch +".code.undead";
-	    writePrettyPrinted(filename.c_str(), undead_code_constraints.c_str());
+	    const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.undead";
+	    writePrettyPrinted(filename.c_str(),block, undead_code_constraints.c_str());
 	    zombie = true; 
-	}
-	if (_doCrossCheck & !zombie) {
+	} else if (_doCrossCheck && !zombie) {
           std::cout << "undead_kconfig_constraints" << std::endl;
           if  (!undead_kconfig_constraints()){
-  	    const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.undead";
-  	    writePrettyPrinted(filename.c_str(), undead_kconfig_constraints.c_str());
+  	    const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.globally.undead";
+  	    writePrettyPrinted(filename.c_str(),block, undead_kconfig_constraints.c_str());
 	    zombie = true;
-  	  }
-          std::cout << "undead_missing_constraints" << std::endl;
-          if  (!undead_missing_constraints() & !zombie){
-  	    const std::string filename = _filename + "." + block + "." + _primary_arch +".missing.undead";
-  	    writePrettyPrinted(filename.c_str(), undead_missing_constraints.c_str());
-	    zombie = true;
+  	  } else { 
+            std::cout << "undead_missing_constraints" << std::endl;
+            if  (!undead_missing_constraints() & !zombie){
+  	      const std::string filename = _filename + "." + block + "." + _primary_arch +".missing.undead";
+  	      writePrettyPrinted(filename.c_str(),block, undead_missing_constraints.c_str());
+	      zombie = true;
+	    }
   	  }
         }
+      
     }
     //std::cout << "Analyzing block: " << block << " on file: " << this->_filename << std::endl;
     //std::cout << formula << std::endl;
     //std::cout << missing_constraints.str();
-    runtimes.push_back(std::make_pair(strdup(_filename.c_str()), code_constraints.runtime()));
     
     bool deadDone = false;
-    bool zombieDone = !has_parent;
-    if (!alive || zombie) {
+    bool zombieDone = false;
+    bool dead = !alive;
+    std::string dead_missing = "";
+    std::string undead_missing = "";
+    if (dead || zombie) {
 
 	if (!_doCrossCheck)
 	    return;
@@ -243,35 +254,44 @@ void CodeSatStream::analyzeBlock(const char *block) {
 	for(i = f->begin(); i != f->end(); i++) {
 	    std::set<std::string> emptyMissingSet;
 
-	    if ((*i).first.compare(_primary_arch) == 0)
-		continue; // skip primary arch
+	    //if ((*i).first.compare(_primary_arch) == 0)
+	//	continue; // skip primary arch
 
             
             if (!deadDone || !zombieDone) {
               KconfigRsfDb *archDb = f->lookupModel((*i).first.c_str());
-	      std::string dead_missing = getMissingItemsConstraints(block,archDb,emptyMissingSet);
-	      std::string undead_missing = dead_missing;
+	      dead_missing = getMissingItemsConstraints(block,archDb,emptyMissingSet);
+	      undead_missing = dead_missing;
 	      undead_missing.replace(0,dead_missing.find('\n',0), undead_block);
               SatChecker missing(dead_missing);
               SatChecker missing_undead(undead_missing);
-	      if (!deadDone) 
-	        deadDone = !missing();
-	      if (!zombieDone) 
-	        zombieDone = !missing_undead();
-	    }
-
-	    if(deadDone && zombieDone) {
-		return;
+	      if (!deadDone) {
+	        bool sat = missing();
+	        if (sat) {
+		  deadDone = true;
+		}
+              }
+	      if (!zombieDone && has_parent) {
+	        bool sat = missing_undead();
+		if (sat) {
+	          zombieDone = true;
+		}
+	      }
+	    } else {
+              return;
 	    }
 	}
 
-	const std::string globalf = _filename + "." + block + ".globally.dead";
-	const std::string globalu = _filename + "." + block + ".globally.undead";
+	const std::string globalf = _filename + "." + block + ".missing.globally.dead";
+	const std::string globalu = _filename + "." + block + ".missing.globally.undead";
 
 	if (!deadDone)
-	  writePrettyPrinted(globalf.c_str(), (*this).str().c_str());
+	  //writePrettyPrinted(globalf.c_str(),block, (*this).str().c_str());
+	  writePrettyPrinted(globalf.c_str(),block, dead_missing.c_str());
+
 	if (!zombieDone && has_parent)
-	  writePrettyPrinted(globalu.c_str(), (*this).str().c_str());
+	  //writePrettyPrinted(globalu.c_str(),block, (*this).str().c_str());
+	  writePrettyPrinted(globalu.c_str(),block, undead_missing.c_str());
     }
 }
 
@@ -281,8 +301,21 @@ void CodeSatStream::analyzeBlocks() {
     processed_units++;
     try {
 	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
-	    analyzeBlock((*i).c_str());
-	    //std::cout << "analyzeBlock(" << *i << ")" << std::endl; 
+	    clock_t start, end;
+
+	    RuntimeEntry re;
+	    re.filename = _filename; 
+	    re.cloud = *_blocks.begin();
+	    re.block = *i;
+	    re.i_items = this->Items().size();
+
+	    start = clock();
+	    analyzeBlock((*i).c_str(), re);
+	    end = clock();
+
+	    re.rt_full_analysis = end - start;
+            this->runtimes.push_back(re);
+	    std::cout << "analyzeBlock(" << *i << ")" << std::endl; 
 	    processed_blocks++;
 	}
 	processed_items += _items.size();
@@ -293,7 +326,16 @@ void CodeSatStream::analyzeBlocks() {
     }
 }
 
-bool CodeSatStream::writePrettyPrinted(const char *filename, const char *contents) const {
+bool CodeSatStream::dumpRuntimes() {
+        std::list<RuntimeEntry>::iterator it;
+        for ( it=this->runtimes.begin() ; it != this->runtimes.end(); it++ )
+          std::cout << (*it).getString();
+        
+    return true;
+}
+
+
+bool CodeSatStream::writePrettyPrinted(const char *filename, std::string block, const char *contents) const {
     std::ofstream out(filename);
     
     if (_batch_mode) {
@@ -306,13 +348,17 @@ bool CodeSatStream::writePrettyPrinted(const char *filename, const char *content
 	return false;
     } else {
 	std::cout << "creating " << filename << std::endl;
+	out << "#" << block << ":" << getLine(block) << std::endl;
 	out << SatChecker::pprinter(contents);
 	out.close();
     }
     return true;
 }
 
-
-const RuntimeTable &CodeSatStream::getRuntimes() {
-    return runtimes;
+std::string CodeSatStream::getLine(std::string block) const {
+  return this->_cc.getPosition(block);
 }
+
+//const RuntimeTable &CodeSatStream::getRuntimes() {
+//    return runtimes;
+//}

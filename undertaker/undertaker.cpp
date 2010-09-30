@@ -30,6 +30,9 @@ void process_file(const char *filename, bool batch_mode, bool loadModels) {
     }
 
     std::istringstream cs(s.getConstraints());
+    clock_t start, end;
+    double t = -1;
+    start = clock();
     for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
       std::map<std::string,std::string> parents;
       std::istringstream codesat(c->getConstraints());
@@ -37,10 +40,14 @@ void process_file(const char *filename, bool batch_mode, bool loadModels) {
       KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
       if (f->size() == 1)
         primary_arch = f->begin()->first;
-      CodeSatStream analyzer(codesat, filename, primary_arch.c_str(), s.getParents(), batch_mode, loadModels);
-      //std::cout << "i:" << i << std::endl << codesat.str() << std::endl << std::endl ;
+      CodeSatStream analyzer(codesat, filename, primary_arch.c_str(), s.getParents(), *c, batch_mode, loadModels);
       analyzer.analyzeBlocks();
+      analyzer.dumpRuntimes();
     }
+    end = clock();
+    t = (double) (end - start);
+    std::cout.precision(10);
+    std::cout << "RTF:" << filename << ":" << t << std::endl;
 
 }
 

@@ -14,7 +14,6 @@ public:
     int getId() const {return _cb->Id(); }
     const char *expression() const;
     const Ziz::ConditionalBlock *Block() const { return _cb; }
-private:
     const Ziz::ConditionalBlock *_cb;
     mutable char *_expression; // cache for expression normalization.
 };
@@ -29,16 +28,18 @@ public:
     int scanBlocks(Ziz::BlockContainer *b);
     std::string getBlockName(index n) const;
     std::string parent(index n) const;
+    index search(std::string idstring) const;
+    index search(int id) const;
+    std::string getPosition(std::string block) const { return positions[block]; } //fixme error checking
 protected:
     std::string expression(index n) const;
     std::string noPredecessor(index n) const; //< @return the ORed '|' expression of all preds
     const ZizCondBlockPtr &item(index n) const;
     int bId(index i) const; //< @return the block id the given index
-    index search(std::string idstring) const;
-    index search(int id) const;
 
 private:
     mutable std::string *_constraints;
+    mutable std::map<std::string,std::string> positions;
 };
 
 class CloudContainer : public std::deque<BlockCloud> {

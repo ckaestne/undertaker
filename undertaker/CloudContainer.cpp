@@ -80,10 +80,21 @@ const std::string& BlockCloud::getConstraints() const {
     for (index i = 0; i < size(); i++) {
 	StringJoiner pc;
 	pc.push_back(parent(i));
-	pc.push_back(expression(i));
+	std::string exp = expression(i);
+	pc.push_back(exp);
 	pc.push_back(noPredecessor(i));
 	
-        sj.push_back("( " + getBlockName(i) + " <-> " + pc.join(" & ") + " )");
+	std::string bn = getBlockName(i);
+        sj.push_back("( " + bn + " <-> " + pc.join(" & ") + " )");
+
+	std::string type = ( (exp.find("&") != std::string::npos) || exp.find("|") != std::string::npos)  ? ":logic" : ":symbolic";
+	std::stringstream ss;
+	ss << (*this)[i]._cb->Start() << type;
+	this->positions.insert(std::pair<std::string,std::string>(getBlockName(i), ss.str()));
+	std::string position = ss.str();
+	this->positions[bn] = position;
+
+
     }
     _constraints = new std::string(sj.join("\n& "));
 				  

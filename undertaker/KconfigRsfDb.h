@@ -86,7 +86,7 @@ public:
     void dumpMissing(std::ostream &out);
     void initializeItems();
     void findSetOfInterestingItems(std::set<std::string> &working) const;
-    int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const;
+    int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const;
     std::string rewriteExpressionPrefix(std::string exp);
 
     const RsfBlocks &choice() { return choice_; }

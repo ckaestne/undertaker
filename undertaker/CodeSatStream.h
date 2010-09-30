@@ -10,20 +10,39 @@
 #include <list>
 
 #include "KconfigRsfDb.h"
+#include "CloudContainer.h"
 
-typedef std::pair <const char *, clock_t> RuntimeEntry; //< filename, runtime
+//typedef std::pair <const char *, clock_t> RuntimeEntry; //< filename, runtime
+class RuntimeEntry {
+  public:
+  std::string filename;
+  std::string cloud;
+  std::string block;
+  clock_t rt_full_analysis;
+  int i_items;
+  int slice; 
+  RuntimeEntry() {}
+  RuntimeEntry (const char* fl, const char* c, const char* bl, clock_t rt, int i, int s) :
+  filename(fl), cloud(c), block(bl), rt_full_analysis(rt), i_items(i), slice(s) {}
+  std::string getString() {
+    std::stringstream ss;
+    ss << "RT:" << filename << ":" << cloud << ":" << block << ":" << rt_full_analysis << ":" << i_items << ":" << slice << std::endl;
+    return ss.str();
+  }
+};
+//
 typedef std::list<RuntimeEntry> RuntimeTable;
 
 
 class CodeSatStream : public std::stringstream {
 public:
-    CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch, std::map<std::string, std::string> parents, bool batch_mode=false, bool loadModels=false);
+    CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch, std::map<std::string, std::string> parents, BlockCloud &cc,bool batch_mode=false, bool loadModels=false);
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
     std::string buildTermMissingItems(std::set<std::string> missing) const;
     void composeConstraints(std::string block, const KconfigRsfDb *model);
-    virtual void analyzeBlock(const char *block);
+    virtual void analyzeBlock(const char *block, RuntimeEntry &re);
     void analyzeBlocks();
 
     static unsigned int getProcessedUnits()  { return processed_units; }
@@ -36,10 +55,13 @@ public:
     std::string getKconfigConstraints(const char * block, const KconfigRsfDb *model, std::set<std::string> &missing);
     std::string getMissingItemsConstraints(const char * block, const KconfigRsfDb *model,  std::set<std::string> &missing);
 
-    static const RuntimeTable &getRuntimes();
+    bool dumpRuntimes();
+//    static const RuntimeTable &getRuntimes();
+    BlockCloud &_cc;
+    RuntimeTable runtimes;
 
 protected:
-    bool writePrettyPrinted(const char *filename, const char *contents) const;
+    bool writePrettyPrinted(const char *filename, std::string block, const char *contents) const;
     std::istream &_istream;
     std::set<std::string> _items; //kconfig items
     std::set<std::string> _free_items; //non-kconfig items
@@ -58,6 +80,7 @@ protected:
     static unsigned int processed_blocks;
     static unsigned int failed_blocks;
     static unsigned int processed_items;
+    std::string getLine(std::string block) const;
 };
 
 
