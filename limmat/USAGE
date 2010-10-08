@@ -1,0 +1,28 @@
+The library API is documented in 'limmat.h'.  The options for the standalone
+program 'limmat' are printed with 'limmat -h' after compilation.  Usually
+you would run Limmat on a given Dimacs file 'formula.cnf' with the command
+'limmat formula.cnf'.  The result will be a satisfying assignment, that is a
+sequence of integers, or just 'UNSATISFIABLE' printed on stdout.   If you
+include the verbose option '-v' more information on the progress of Limmat
+and additional statistics are printed on stderr.  In case you have specified
+to use the SAT 2002 competition format during configuration, the output
+adheres to this standard, verbose mode is switched on by default and
+everything is printed on stdout.
+
+For benchmarking purposes you can also specify multiple files on the command
+line.  Then each file is read in turn and only the result is printed,
+satisfiable / unsatisfiable or any abort message.  The time and memory
+consumption is printed as well.
+
+In addition to the command line options there are four environment
+variables used by Limmat: STATISTICS, RESCORE, RESCOREFACTOR, and RESTART.
+The first can be used to switch off extended statistics gathering and
+printing with 'STATISTICS=0'.  The latter three allow to specify the length of
+the rescore phase, the rescoring factor during rescore and the length of the
+restart phase.  You can disable rescoring or restarting by setting these
+variables to 0.  Their defaults are defined in the macro section of
+'limmat.c'.  The actual values used can be printed with 'strategy_Limmat'
+from the library API or using the '-v' option from the stand alone
+application 'limmat'.
+
+Armin Biere, Zurich, November 25, 2002.

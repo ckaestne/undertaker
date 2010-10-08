@@ -1,0 +1,15 @@
+Limmat has been tested under Sparc Solaris 2.[78], Linux Intel i686, Mac OS
+X and Linux Alpha with various compilers, though GNU gcc was mainly used.
+As a first step run the 'configure' script which will generate the
+'Makefile'.  Per default optimizations are enabled.  For debugging purposes
+you may want to enable other options.  Refer to the usage of the configure
+script by running './configure -h' for more information.
+
+Then issuing 'make' will produce the library 'liblimmat.a', which has the
+API documented in 'limmat.h' and a stand alone application 'limmat'.  In
+addition have a look at the define section at the top of 'limmat.c', where
+additional runtime checks can be enabled.  To compile the test cases issue
+'make white' which will produce the test driver 'white'.  Run it to see
+whether everything is OK.  There is no installation target.
+
+Armin Biere, Zurich, July 4, 2002.
