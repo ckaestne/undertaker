@@ -3,18 +3,24 @@
 #include "SatChecker.h"
 #include "LimBoole.h"
 
-SatChecker::SatChecker(const char *sat) : _sat(std::string(sat)), _parsed_sat(LimBoole::parse(sat)) {}
-SatChecker::SatChecker(const std::string sat) : _sat(sat), _parsed_sat(LimBoole::parse(sat.c_str())) {}
+SatChecker::SatChecker(const char *sat) : _sat(std::string(sat)) {
+    _parsed_sat = LimBoole::parse(sat);
+}
+
+SatChecker::SatChecker(const std::string sat) : _sat(sat) {
+    _parsed_sat = LimBoole::parse(sat.c_str());
+}
+
 SatChecker::~SatChecker() {
     LimBoole::release(const_cast<LimBoole::Sat*>(_parsed_sat));
 }
 
 bool SatChecker::operator()() throw (SatCheckerError) {
-    bool result = LimBoole::check(const_cast<LimBoole::Sat*>(_parsed_sat), true);
     if (_parsed_sat->token == LimBoole::ERROR)  {
         std::cout << "Syntax error" << std::endl;
         throw SatCheckerError(_sat.c_str());
     }
+    bool result = LimBoole::check(const_cast<LimBoole::Sat*>(_parsed_sat), true);
     return result;
 }
 

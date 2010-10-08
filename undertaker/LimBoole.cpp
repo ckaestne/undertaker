@@ -1,5 +1,6 @@
 #include <cstring>
 #include <cstdio>
+#include <iostream>
 #include <malloc.h>
 #include "LimBoole.h"
 
@@ -522,11 +523,14 @@ LimBoole::parse(const char *expression) {
     if (res->token == ERROR)
         return res;
 
-    if (!(res->root = parse_expr (res)))
+    if (!(res->root = parse_expr (res))) {
+        res->token = ERROR;
         return res;
+    }
 
-    if (res->token == DONE)
+    if (res->token == DONE) {
         return res;
+    }
 
     if (res->token != ERROR) {
         parse_error(res, "limboole: expected operator or EOF");
