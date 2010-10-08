@@ -3,6 +3,7 @@
 #include <pstreams/pstream.h>
 #include <utility>
 #include <fstream>
+#include <ctime>
 
 #include "KconfigRsfDbFactory.h"
 
@@ -42,9 +43,12 @@ void KconfigRsfDbFactory::loadModels() {
 		ModelContainer::iterator a = f->find(found_arch);
 
 		if (a == f->end()) {
+                    std::clock_t start = std::clock();
 		    f->registerRsfFile(filename.c_str(), found_arch);
                     found_models++;
-                    std::cout << "loaded rsf model for " << found_arch << std::endl;
+                    std::cout << "loaded rsf model for " << found_arch << " (" 
+                              << ((std::clock() - start) / (double) CLOCKS_PER_SEC)
+                              << "s)" << std::endl;
                 }
 	}
     }
