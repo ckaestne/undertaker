@@ -1,4 +1,5 @@
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 #include <pstreams/pstream.h>
 #include <utility>
 #include <fstream>
@@ -6,6 +7,7 @@
 #include "KconfigRsfDbFactory.h"
 
 void KconfigRsfDbFactory::loadWhitelist(std::string file) {
+    /* FIXME: implement whitelist feature */
     std::string cmd = "cat ";
     std::string line;
     cmd += file;
@@ -24,26 +26,31 @@ void KconfigRsfDbFactory::loadWhitelist(std::string file) {
 void KconfigRsfDbFactory::loadModels() {
     KconfigRsfDbFactory *f = getInstance();
     int found_models = 0;
-    std::string line;
-    redi::ipstream kconfig_rsfs("find . -name 'kconfig-*.rsf'");
 
-    while (std::getline(kconfig_rsfs, line)) {
-	const boost::regex r("kconfig-([[:alnum:]]+)\\.rsf$", boost::regex::perl);
+    const boost::regex r("^kconfig-([[:alnum:]]+)\\.rsf$", boost::regex::perl);
+    
+    for (boost::filesystem::directory_iterator dir("."); 
+         dir != boost::filesystem::directory_iterator();
+         ++dir) {
+
 	boost::match_results<const char*> what;
 
-	if (boost::regex_search(line.c_str(), what, r)) {
+        std::string filename = dir->path().filename();
+
+	if (boost::regex_search(filename.c_str(), what, r)) {
 		std::string found_arch = what[1];
 		ModelContainer::iterator a = f->find(found_arch);
 
 		if (a == f->end()) {
-		    f->registerRsfFile(line.c_str(), found_arch);
+		    f->registerRsfFile(filename.c_str(), found_arch);
                     found_models++;
+                    std::cout << "loaded rsf model for " << found_arch << std::endl;
                 }
 	}
     }
     
     if (found_models > 0) {
-        std::cout << "found " << found_models << "rsf models" << std::endl;
+        std::cout << "found " << found_models << " rsf models" << std::endl;
     } else {
         std::cerr << "ERROR: could not find any rsf models" << std::endl;
         exit(-1);
@@ -52,15 +59,15 @@ void KconfigRsfDbFactory::loadModels() {
 
 void KconfigRsfDbFactory::loadModels(std::string arch) {
     KconfigRsfDbFactory *f = getInstance();
-    std::string line;
-    std::string find = "find . -name 'kconfig-" + arch + ".rsf'";
-    redi::ipstream kconfig_rsfs(find);
+    std::string filename = "kconfig-" + arch + ".rsf";
 
-    if (std::getline(kconfig_rsfs, line)) {
+    /* Check if the RSF file exists */
+    if (boost::filesystem::exists(filename)) {
 	ModelContainer::iterator a = f->find(arch);
 
 	if (a == f->end())
-	    f->registerRsfFile(line.c_str(), arch);
+	    f->registerRsfFile(filename.c_str(), arch);
+        std::cout << "called" << std::endl;
     } else {
         std::cerr << "ERROR: could not find rsf file for arch " 
                   << arch << std::endl;
@@ -92,18 +99,22 @@ KconfigRsfDb *KconfigRsfDbFactory::lookupModel(const char *arch)  {
 	return a->second;
     } else {
 	// not found, is there an matching rsf around?
-	std::string line;
-	redi::ipstream kconfig_rsfs("find . -name 'kconfig-*.rsf'");
+        const boost::regex r("^kconfig-([[:alnum:]]+)\\.rsf$", boost::regex::perl);
+    
+        /* Walk the directory */
+        for (boost::filesystem::directory_iterator dir("."); 
+             dir != boost::filesystem::directory_iterator();
+             ++dir) {
+            boost::match_results<const char*> what;
 
-	while (std::getline(kconfig_rsfs, line)) {
-	    const boost::regex r("kconfig-([[:alnum:]]+)\\.rsf$", boost::regex::perl);
-	    boost::match_results<const char*> what;
+            /* Current iterator filename */
+            std::string filename = dir->path().filename();
 
-	    if (boost::regex_search(line.c_str(), what, r)) {
+            if (boost::regex_search(filename.c_str(), what, r)) {
 		std::string found_arch = what[1];
-
+                
 		if (found_arch.compare(arch) == 0) {
-		    KconfigRsfDb *db = f->registerRsfFile(line.c_str(), found_arch);
+		    KconfigRsfDb *db = f->registerRsfFile(filename.c_str(), found_arch);
 		    return db;
 		}
 	    }
