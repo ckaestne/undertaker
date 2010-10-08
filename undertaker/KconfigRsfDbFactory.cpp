@@ -23,6 +23,7 @@ void KconfigRsfDbFactory::loadWhitelist(std::string file) {
 
 void KconfigRsfDbFactory::loadModels() {
     KconfigRsfDbFactory *f = getInstance();
+    int found_models = 0;
     std::string line;
     redi::ipstream kconfig_rsfs("find . -name 'kconfig-*.rsf'");
 
@@ -34,9 +35,18 @@ void KconfigRsfDbFactory::loadModels() {
 		std::string found_arch = what[1];
 		ModelContainer::iterator a = f->find(found_arch);
 
-		if (a == f->end())
+		if (a == f->end()) {
 		    f->registerRsfFile(line.c_str(), found_arch);
+                    found_models++;
+                }
 	}
+    }
+    
+    if (found_models > 0) {
+        std::cout << "found " << found_models << "rsf models" << std::endl;
+    } else {
+        std::cerr << "ERROR: could not find any rsf models" << std::endl;
+        exit(-1);
     }
 }
 
@@ -46,11 +56,15 @@ void KconfigRsfDbFactory::loadModels(std::string arch) {
     std::string find = "find . -name 'kconfig-" + arch + ".rsf'";
     redi::ipstream kconfig_rsfs(find);
 
-    while (std::getline(kconfig_rsfs, line)) {
+    if (std::getline(kconfig_rsfs, line)) {
 	ModelContainer::iterator a = f->find(arch);
 
 	if (a == f->end())
 	    f->registerRsfFile(line.c_str(), arch);
+    } else {
+        std::cerr << "ERROR: could not find rsf file for arch " 
+                  << arch << std::endl;
+        exit(-1);
     }
 }
 
