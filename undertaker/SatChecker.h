@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include <sstream>
+#include "LimBoole.h"
 
 struct SatCheckerError : public std::runtime_error {
     SatCheckerError(const char *s)
@@ -14,6 +15,7 @@ class SatChecker {
 public:
     SatChecker(const char *sat);
     SatChecker(const std::string sat);
+    ~SatChecker();
 
     /**
      * Checks the given string with an sat solver
@@ -32,13 +34,20 @@ public:
     const std::string str() { return _sat; }
 
     /** pretty prints the given string */
-    static std::string pprinter(const char *sat);
+    static std::string pprinter(const char *sat) {
+        SatChecker c(const_cast<const char*>(sat));
+        return c.pprint();
+    }
+
+    /** pretty prints the saved expression */
+    std::string pprint();
 
     /** returns the runtime of the last run */
     clock_t runtime() { return _runtime; }
 
 private:
     const std::string _sat;
+    const LimBoole::Sat * _parsed_sat;
     clock_t _runtime;
 };
 #endif

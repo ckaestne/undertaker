@@ -1,24 +1,29 @@
 DEBUG = -g3 -DDEBUG -g -ggdb
-CFLAGS = -Wall -Wextra -O2 -I../ziz $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 -I../ziz -I../limmat $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =
 LINK.o = $(LINK.cpp)
-LDLIBS = -lbdd -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a -lboost_wave-mt
+LDLIBS = -lbdd -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../limmat/liblimmat.a -lboost_wave-mt
 TESTLDFLAGS = -lboost_unit_test_framework
 PARSEROBJ = CloudContainer.o ExpressionParser.o \
 	    VariableToBddMap.o RsfBlocks.o KconfigBdd.o \
-	    KconfigRsfDb.o KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o
+	    KconfigRsfDb.o KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o \
+	    LimBoole.o
 HEADERS = $(wildcard *.h)
 PROGS = undertaker
 
-all: ../ziz/libziz.a $(PROGS)
-undertaker: libparser.a
+all: ../limmat/liblimmat.a ../ziz/libziz.a $(PROGS)
+undertaker: ../limmat/liblimmat.a ../ziz/libziz.a libparser.a
 undertaker2: libparser.a
 KconfigIntersect: libparser.a
 cpppc: libparser.a ../ziz/libziz.a
 
 ../ziz/libziz.a: FORCE
 	$(MAKE) -C ../ziz libziz.a
+
+../limmat/liblimmat.a: FORCE
+	cd ../limmat/; test -e Makefile || ./configure
+	$(MAKE) -C ../limmat liblimmat.a
 
 $(PARSEROBJ): $(HEADERS)
 libparser.a: $(PARSEROBJ) $(HEADERS)
