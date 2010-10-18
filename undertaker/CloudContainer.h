@@ -16,6 +16,21 @@ public:
     const Ziz::ConditionalBlock *Block() const { return _cb; }
     const Ziz::ConditionalBlock *_cb;
     mutable char *_expression; // cache for expression normalization.
+    int getLine() {
+      std::stringstream ss;
+      ss << _cb->Start();
+      std::string raw = ss.str();
+      size_t p = std::string::npos;
+      while ( (p = raw.find(":")) != std::string::npos) {
+        raw.replace(p,1,1,' ');
+      }
+      std::string filename, line;
+      std::stringstream sss(raw);
+      sss >> filename;
+      sss >> line;
+      return atoi(line.c_str());
+    }
+
 };
 
 class BlockCloud : public std::deque<ZizCondBlockPtr> {
