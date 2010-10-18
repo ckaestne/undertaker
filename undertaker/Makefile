@@ -1,5 +1,5 @@
 DEBUG = -g3 -DDEBUG -g -ggdb
-CFLAGS = -Wall -Wextra -O2 -I../ziz -I../limmat $(DEBUG)
+CFLAGS = -Wall -Wextra -O0 -I../ziz -I../limmat $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =
 LINK.o = $(LINK.cpp)
@@ -31,5 +31,10 @@ libparser.a: $(PARSEROBJ) $(HEADERS)
 
 clean:
 	rm -rfv *.o *.a 
+
+test: test-SatChecker
+
+test-%: %.cpp
+	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< $(LDFLAGS) $(LDLIBS) 
 
 .PHONY: all clean FORCE

@@ -17,7 +17,7 @@ SatChecker::~SatChecker() {
 
 bool SatChecker::operator()() throw (SatCheckerError) {
     if (_parsed_sat->token == LimBoole::ERROR)  {
-        std::cout << "Syntax error" << std::endl;
+        //        std::cout << "Syntax error" << std::endl;
         throw SatCheckerError(_sat.c_str());
     }
     bool result = LimBoole::check(const_cast<LimBoole::Sat*>(_parsed_sat), true);
@@ -28,25 +28,43 @@ std::string SatChecker::pprint() {
     return LimBoole::pretty_print(const_cast<LimBoole::Sat*>(_parsed_sat));
 }
 
-#ifdef _TEST
-void test(std::string s) {
+#ifdef TEST_SatChecker
+#include <assert.h>
+#include <typeinfo>
+#include "LimBoole.cpp"
+
+
+bool test(std::string s, bool result, std::runtime_error *error = 0) {
     SatChecker checker(s);
-    const char *t = "satisfiable";
-    const char *f = "unsatisfiable";
-    const char *a = checker() ? t:f;
-    std::cout << checker.pprint() << " is " << a
-	      << std::endl;
+    if (error == 0)  {
+        if (checker() != result) {
+            std::cerr << "FAILED: " << s << " should be " << result << std::endl;
+        }
+    }
+    else {
+        try {
+            if (checker() != result) {
+                std::cerr << "FAILED: " << s << " should be " << result << std::endl; 
+            }
+        } catch (std::runtime_error &e) {
+            if (typeid(*error) != typeid(e)) {
+                std::cerr << "FAILED: " << s << " didn't throw the right exception (Should " << typeid(*error).name() 
+                          << ", is " << typeid(e).name() << ")" << std::endl;
+            }
+        }
+    }
+    std::cout << "PASSED: " << s << std::endl;
 }
+
 int main() {
 
-    test("A & B");
-    test("A & !A");
-    test("B6 & (B5 <-> !S390) & (B6 <-> !B5) & !S390");
-    try {
-        test("a >,,asd/.sa,;.ljkxf;vnbmkzjghrarjkf.dvd,m.vjkb54y98g4tjoij");
-    } catch (SatCheckerError &e) {
-        std::cout << e.what() << std::endl;
-    }
+    test("A & B", true);
+    test("A & !A", false);
+    test("(A -> B) -> A -> A", true);
+    test("(A <-> B) & (B <-> C) & (C <-> A)", true);
+    test("B6 & (B5 <-> !S390) & (B6 <-> !B5) & !S390", false);
+    test("a >,,asd/.sa,;.ljkxf;vnbmkzjghrarjkf.dvd,m.vjkb54y98g4tjoij", false, &SatCheckerError(""));
+    
     return 0;
 };
 #endif
