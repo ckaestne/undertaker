@@ -6,4 +6,6 @@
 cscope.files
 cscope.out
 .nfs*
+undertaker/tests
+undertaker/tags
 
