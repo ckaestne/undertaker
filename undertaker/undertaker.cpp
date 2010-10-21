@@ -80,6 +80,11 @@ int main (int argc, char ** argv) {
 	}
     }
 
+    if (worklist || optind >= argc) {
+	usage(std::cout, "please specify a file to scan or a worklist");
+	return EXIT_FAILURE;
+    }
+
     KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
 
     if (loadModels) {

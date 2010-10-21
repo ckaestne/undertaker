@@ -192,7 +192,7 @@ CloudContainer::CloudContainer(const char *filename)
         std::cerr << "caught ZizException: " << e.what() << std::endl;
 	_fail = true;
     } catch(...) {
-        std::cerr << "caught exception" << std::endl;
+	std::cerr << "Failed to parse '" << filename << "'" <<std::endl;
 	_fail = true;
     }
 }
