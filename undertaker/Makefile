@@ -27,4 +27,7 @@ libparser.a: $(PARSEROBJ) $(HEADERS)
 clean:
 	rm -rfv *.o *.a 
 
+test-cpppc: cpppc
+	for f in tests/*.c; do ./$< $$f; done
+
 .PHONY: all clean FORCE
