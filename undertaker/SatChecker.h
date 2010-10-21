@@ -36,8 +36,8 @@ public:
     typedef tree_match<iterator_t>                   parse_tree_match_t;
     typedef parse_tree_match_t::const_tree_iterator  iter_t;
 
-    SatChecker(const char *sat);
-    SatChecker(const std::string sat);
+    SatChecker(const char *sat, int debug = 0);
+    SatChecker(const std::string sat, int debug = 0);
     ~SatChecker();
 
     /**
@@ -68,10 +68,17 @@ public:
     /** returns the runtime of the last run */
     clock_t runtime() { return _runtime; }
 
+    enum Debug { DEBUG_NONE = 0,
+                 DEBUG_PARSER = 1,
+                 DEBUG_CNF = 2 };
+
 private:
     int counter;
     std::map<std::string, int> symbolTable;
-    std::string debug;
+    int debug_flags;
+    std::string debug_parser;
+    std::string debug_cnf;
+
     
     const std::string _sat;
     Limmat::Limmat *limmat;
@@ -82,6 +89,12 @@ private:
     int transform_bool_rec(iter_t const& input);
     void fillSatChecker(std::string expression) throw (SatCheckerError);
     void fillSatChecker(tree_parse_info<>& info);
+
+    // Debugging stuff
+    void _debug_parser(std::string d) {
+        if (debug_flags & DEBUG_PARSER)
+            debug_parser += d;
+    }
 
 };
 #endif
