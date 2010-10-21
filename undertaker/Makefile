@@ -1,4 +1,6 @@
-DEBUG = -g3 -DDEBUG
+# DEBUG = -g3 -DDEBUG
+# to compile with debug, compile like this:
+# make DEBUG="-g3 -DDEBUG"
 CFLAGS = -Wall -Wextra -O2 -I../ziz $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =
