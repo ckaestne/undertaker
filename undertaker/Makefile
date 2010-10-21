@@ -1,11 +1,11 @@
 # DEBUG = -g3 -DDEBUG
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
-CFLAGS = -Wall -Wextra -O2 -I../ziz $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 -I../ziz -I../limmat $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =
 LINK.o = $(LINK.cpp)
-LDLIBS = -lbdd -lboost_regex libparser.a ../ziz/libziz.a -lboost_wave-mt
+LDLIBS = -lbdd -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../limmat/liblimmat.a -lboost_wave-mt
 TESTLDFLAGS = -lboost_unit_test_framework
 PARSEROBJ = CloudContainer.o ExpressionParser.o \
 	    VariableToBddMap.o RsfBlocks.o KconfigBdd.o \
@@ -14,13 +14,17 @@ HEADERS = $(wildcard *.h)
 PROGS = undertaker cpppc
 
 all: ../ziz/libziz.a $(PROGS)
-undertaker: libparser.a
+undertaker: ../limmat/liblimmat.a libparser.a
 undertaker2: libparser.a
 KconfigIntersect: libparser.a
 cpppc: libparser.a ../ziz/libziz.a
 
 ../ziz/libziz.a: FORCE
 	$(MAKE) -C ../ziz libziz.a
+
+../limmat/liblimmat.a: FORCE
+	cd ../limmat/; test -e Makefile || ./configure
+	$(MAKE) -C ../limmat liblimmat.a
 
 $(PARSEROBJ): $(HEADERS)
 libparser.a: $(PARSEROBJ) $(HEADERS)

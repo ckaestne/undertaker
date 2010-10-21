@@ -1,0 +1,16 @@
+News for Version 1.3
+  
+  * added 'RESCOREFACTOR' environment variable for setting the rescoring
+    factor during runtime
+
+News for Version 1.2
+
+  * added 'set_log_Limmat' option to enable logging after initialization
+
+News for Version 1.1
+  
+  * configure script
+  * 64 bit port to Alpha under Linux
+  * added compile time options to enable/disable various optimizations
+  * skip arguments to '-t' and '-n' for multiple CNF files in main.c
+  * fixed broken max decision bound in limmat.c
