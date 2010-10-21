@@ -2,8 +2,6 @@
 #include <boost/spirit/include/classic_core.hpp>
 #include <boost/spirit/include/classic_parse_tree.hpp>
 #include <boost/spirit/include/classic_tree_to_xml.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/regex.hpp>
 #include <iostream>
 #include <string>
 #include <map>
@@ -42,7 +40,7 @@ struct bool_grammar : public grammar<bool_grammar>
                Operators (from weak to strong): <->, ->, |, &, !(), 
              */
             (void) self;
-            symbol       = lexeme_d[ leaf_node_d[ alpha_p >> *(alnum_p | ch_p('_')) ]];
+            symbol       = lexeme_d[ leaf_node_d[ *(alnum_p | ch_p('_')) ]];
             group        = no_node_d[ ch_p('(') ] >> start_rule >> no_node_d[ ch_p(')') ];
             not_symbol   = no_node_d[ch_p('!')] >> term;
 
@@ -111,7 +109,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         int i = 0, end_clause[input->children.size() + 2];
             
         int this_clause = counter++;
-        debug += "(and(" + boost::lexical_cast<std::string>(this_clause) + ") ";
+        debug += "(and ";
         // A & B & ..:
         // !3 A 0
         // !3 B 0
@@ -145,7 +143,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         // 3 !A 0
         // 3 !B 0
         // !3 A B 0
-        debug += "(or(" + boost::lexical_cast<std::string>(this_clause) + ") ";
+        debug += "(or ";
 
         for (; iter != input->children.end(); ++iter) {
             int child_clause = transform_bool_rec(iter);
@@ -290,8 +288,6 @@ std::string SatChecker::pprint() {
 bool test(std::string s, bool result, std::runtime_error *error = 0) {
     SatChecker checker(s);
 
-    std::cout << checker.pprint() << endl;
-
     if (error == 0)  {
         if (checker() != result) {
             std::cerr << "FAILED: " << s << " should be " << result << std::endl;
@@ -325,7 +321,7 @@ int main() {
     test("B6 & \n(B5 <-> !S390) & (B6 <-> !B5) & !S390", false);
     test("a >,,asd/.sa,;.ljkxf;vnbmkzjghrarjkf.dvd,m.vjkb54y98g4tjoij", false, &SatCheckerError(""));
     test("B90 & \n( B90 <->  ! MODULE )\n& ( B92 <->  ( B90 ) \n & CONFIG_STMMAC_TIMER )\n", true);
-    
+    test("B9\n&\n(B1 <-> !_DRIVERS_MISC_SGIXP_XP_H)\n&\n(B3 <-> B1 & CONFIG_X86_UV | CONFIG_IA64_SGI_UV)\n&\n(B6 <-> B1 & !is_uv)\n&\n(B9 <-> B1 & CONFIG_IA64)\n&\n(B12 <-> B1 & !is_shub1)\n&\n(B15 <-> B1 & !is_shub2)\n&\n(B18 <-> B1 & !is_shub)\n&\n(B21 <-> B1 & USE_DBUG_ON)\n&\n(B23 <-> B1 & !B21)\n&\n(B26 <-> B1 & XPC_MAX_COMP_338)\n&\n(CONFIG_ACPI -> !CONFIG_IA64_HP_SIM & (CONFIG_IA64 | CONFIG_X86) & CONFIG_PCI & CONFIG_PM)\n&\n(CONFIG_CHOICE_6 -> !CONFIG_X86_ELAN)\n&\n(CONFIG_CHOICE_8 -> CONFIG_X86_32)\n&\n(CONFIG_HIGHMEM64G -> CONFIG_CHOICE_8 & !CONFIG_M386 & !CONFIG_M486)\n&\n(CONFIG_INTR_REMAP -> CONFIG_X86_64 & CONFIG_X86_IO_APIC & CONFIG_PCI_MSI & CONFIG_ACPI & CONFIG_EXPERIMENTAL)\n&\n(CONFIG_M386 -> CONFIG_CHOICE_6 & CONFIG_X86_32 & !CONFIG_UML)\n&\n(CONFIG_M486 -> CONFIG_CHOICE_6 & CONFIG_X86_32)\n&\n(CONFIG_NUMA -> CONFIG_SMP & (CONFIG_X86_64 | CONFIG_X86_32 & CONFIG_HIGHMEM64G & (CONFIG_X86_NUMAQ | CONFIG_X86_BIGSMP | CONFIG_X86_SUMMIT & CONFIG_ACPI) & CONFIG_EXPERIMENTAL))\n&\n(CONFIG_PCI_MSI -> CONFIG_PCI & CONFIG_ARCH_SUPPORTS_MSI)\n&\n(CONFIG_PM -> !CONFIG_IA64_HP_SIM)\n&\n(CONFIG_X86_32_NON_STANDARD -> CONFIG_X86_32 & CONFIG_SMP & CONFIG_X86_EXTENDED_PLATFORM)\n&\n(CONFIG_X86_BIGSMP -> CONFIG_X86_32 & CONFIG_SMP)\n&\n(CONFIG_X86_ELAN -> CONFIG_X86_32 & CONFIG_X86_EXTENDED_PLATFORM)\n&\n(CONFIG_X86_EXTENDED_PLATFORM -> CONFIG_X86_64)\n&\n(CONFIG_X86_IO_APIC -> CONFIG_X86_64 | CONFIG_SMP | CONFIG_X86_32_NON_STANDARD | CONFIG_X86_UP_APIC)\n&\n(CONFIG_X86_LOCAL_APIC -> CONFIG_X86_64 | CONFIG_SMP | CONFIG_X86_32_NON_STANDARD | CONFIG_X86_UP_APIC)\n&\n(CONFIG_X86_NUMAQ -> CONFIG_X86_32_NON_STANDARD & CONFIG_PCI)\n&\n(CONFIG_X86_SUMMIT -> CONFIG_X86_32_NON_STANDARD)\n&\n(CONFIG_X86_UP_APIC -> CONFIG_X86_32 & !CONFIG_SMP & !CONFIG_X86_32_NON_STANDARD)\n&\n(CONFIG_X86_UV -> CONFIG_X86_64 & CONFIG_X86_EXTENDED_PLATFORM & CONFIG_NUMA & CONFIG_X86_X2APIC)\n&\n(CONFIG_X86_X2APIC -> CONFIG_X86_LOCAL_APIC & CONFIG_X86_64 & CONFIG_INTR_REMAP)\n&\n!(CONFIG_IA64 | CONFIG_IA64_HP_SIM | CONFIG_IA64_SGI_UV | CONFIG_UML)\n", false);
     return 0;
 };
 #endif
