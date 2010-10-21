@@ -37,7 +37,13 @@ test: test-SatChecker
 test-%: %.cpp
 	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< $(LDFLAGS) $(LDLIBS) 
 
-test-cpppc: cpppc
+run-test-cpppc: cpppc
 	for f in tests/*.c; do ./$< $$f; done
 
-.PHONY: all clean FORCE
+run-test-SatChecker: test-SatChecker
+	for t in $^; do ./$$t; done
+
+run-all-tests: run-test-SatChecker run-test-cpppc
+
+.PHONY: all clean FORCE run-%
+
