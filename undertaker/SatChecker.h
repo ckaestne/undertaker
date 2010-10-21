@@ -1,19 +1,44 @@
 // -*- mode: c++ -*-
 #ifndef sat_checker_h__
 #define sat_checker_h__ 
-
+#include <boost/spirit/include/classic.hpp>
+#include <boost/spirit/include/classic_core.hpp>
+#include <boost/spirit/include/classic_parse_tree.hpp>
+#include <boost/spirit/include/classic_tree_to_xml.hpp>
 #include <stdexcept>
+#include <map>
 #include <sstream>
+
+using namespace BOOST_SPIRIT_CLASSIC_NS;
+
+namespace Limmat {
+    #include <ctype.h>
+    #include <assert.h>
+
+    using std::string;
+
+    /* Include the Limmat library header as C */
+    extern "C" {
+#include "limmat.h"
+    }
+};
 
 struct SatCheckerError : public std::runtime_error {
     SatCheckerError(const char *s)
-	: runtime_error(s) {}
+        : runtime_error(s) {}
+    SatCheckerError(std::string s)
+        : runtime_error(s.c_str()) {}
 };
 
 class SatChecker {
 public:
-    SatChecker(const char *sat);
-    SatChecker(const std::string sat);
+    typedef char const*                              iterator_t;
+    typedef tree_match<iterator_t>                   parse_tree_match_t;
+    typedef parse_tree_match_t::const_tree_iterator  iter_t;
+
+    SatChecker(const char *sat, int debug = 0);
+    SatChecker(const std::string sat, int debug = 0);
+    ~SatChecker();
 
     /**
      * Checks the given string with an sat solver
@@ -24,21 +49,52 @@ public:
     bool operator()() throw (SatCheckerError);
 
     static bool check(const std::string &sat) throw (SatCheckerError) {
-	SatChecker c(sat.c_str());
-	return c();
+        SatChecker c(sat.c_str());
+        return c();
     }
 
     const char *c_str() { return _sat.c_str(); }
     const std::string str() { return _sat; }
 
     /** pretty prints the given string */
-    static std::string pprinter(const char *sat);
+    static std::string pprinter(const char *sat) {
+        SatChecker c(const_cast<const char*>(sat));
+        return c.pprint();
+    }
+
+    /** pretty prints the saved expression */
+    std::string pprint();
 
     /** returns the runtime of the last run */
     clock_t runtime() { return _runtime; }
 
+    enum Debug { DEBUG_NONE = 0,
+                 DEBUG_PARSER = 1,
+                 DEBUG_CNF = 2 };
+
 private:
+    int counter;
+    std::map<std::string, int> symbolTable;
+    int debug_flags;
+    std::string debug_parser;
+    std::string debug_cnf;
+
+    
     const std::string _sat;
+    Limmat::Limmat *limmat;
     clock_t _runtime;
+
+    int stringToSymbol(const std::string &key);
+    void addClause(int *clause);
+    int transform_bool_rec(iter_t const& input);
+    void fillSatChecker(std::string expression) throw (SatCheckerError);
+    void fillSatChecker(tree_parse_info<>& info);
+
+    // Debugging stuff
+    void _debug_parser(std::string d) {
+        if (debug_flags & DEBUG_PARSER)
+            debug_parser += d;
+    }
+
 };
 #endif

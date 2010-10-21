@@ -33,6 +33,10 @@ libparser.a: $(PARSEROBJ) $(HEADERS)
 clean:
 	rm -rfv *.o *.a 
 
+test: test-SatChecker
+test-%: %.cpp
+	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< $(LDFLAGS) $(LDLIBS) 
+
 test-cpppc: cpppc
 	for f in tests/*.c; do ./$< $$f; done
 
