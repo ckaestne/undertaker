@@ -7,8 +7,8 @@ LDLIBS = -lbdd -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../
 TESTLDFLAGS = -lboost_unit_test_framework
 PARSEROBJ = CloudContainer.o ExpressionParser.o \
 	    VariableToBddMap.o RsfBlocks.o KconfigBdd.o \
-	    KconfigRsfDb.o KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o \
-	    LimBoole.o
+	    KconfigRsfDb.o KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o 
+
 HEADERS = $(wildcard *.h)
 PROGS = undertaker
 
