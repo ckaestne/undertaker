@@ -40,7 +40,7 @@ void process_file(const char *filename, bool batch_mode, bool loadModels) {
       KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
       if (f->size() == 1)
         primary_arch = f->begin()->first;
-      CodeSatStream analyzer(codesat, filename, primary_arch.c_str(), s.getParents(), *c, batch_mode, loadModels);
+      CodeSatStream analyzer(codesat, filename, primary_arch.c_str(), s.getParents(), &(*c), batch_mode, loadModels);
       analyzer.analyzeBlocks();
       analyzer.dumpRuntimes();
     }
