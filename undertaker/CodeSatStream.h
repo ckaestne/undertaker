@@ -36,7 +36,9 @@ typedef std::list<RuntimeEntry> RuntimeTable;
 
 class CodeSatStream : public std::stringstream {
 public:
-    CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch, std::map<std::string, std::string> parents, BlockCloud *cc=NULL, bool batch_mode=false, bool loadModels=false);
+    CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch,
+		   ParentMap parents, BlockCloud *cc=NULL,
+		   bool batch_mode=false, bool loadModels=false);
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
@@ -70,7 +72,7 @@ protected:
     bool _doCrossCheck;
     BlockCloud *_cc;
     const bool _batch_mode;
-    std::map<std::string, std::string> parents;
+    ParentMap parents;
 
     std::stringstream codeConstraints; 
     std::stringstream kconfigConstraints; 

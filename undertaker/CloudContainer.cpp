@@ -205,14 +205,14 @@ CloudContainer::~CloudContainer() {
 	delete _constraints;
 }
 
-std::map<std::string, std::string> CloudContainer::getParents() {
+ParentMap CloudContainer::getParents() {
     std::map<std::string, std::string> ret;
     for (CloudList::iterator c = this->begin(); c != this->end(); c++) {
         for (unsigned int i = 0; i < c->size(); i++) {
             std::string papa(c->parent(i));
             if (!papa.empty()) {
 	        std::string me(c->getBlockName(i));  
-                ret.insert(std::pair<std::string,std::string>(me, papa));
+                ret.insert(std::pair<std::string, std::string>(me, papa));
             }
         }
     }

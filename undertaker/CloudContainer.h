@@ -57,6 +57,8 @@ private:
     mutable std::map<std::string,std::string> positions;
 };
 
+typedef std::map<std::string, std::string> ParentMap;
+
 class CloudContainer : public std::deque<BlockCloud> {
 public:
     typedef std::deque<BlockCloud> CloudList;
@@ -65,7 +67,7 @@ public:
     ~CloudContainer();
     const std::string& getConstraints();
     bool good() const { return !_fail; }
-    std::map<std::string, std::string> getParents();
+    ParentMap getParents();
 
 protected:
     Ziz::File *_zfile;
