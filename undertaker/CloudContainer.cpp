@@ -113,7 +113,8 @@ int BlockCloud::scanBlocks(Ziz::BlockContainer *bc) {
 	if (cb) {
 	    count++;
 #ifdef DEBUG
-	    std::cout << "Adding nested   block " << cb->Id() << " to " << this << " at: " << cb->Start() << std::endl;
+	    std::cout << cb->Start() << ": Nested in block " << cb->Id() 
+		      << " (" << this << ")" << std::endl;
 #endif
 	    this->push_back(ZizCondBlockPtr(cb));
 	    count += this->scanBlocks(cb);
@@ -239,9 +240,9 @@ const std::string& CloudContainer::getConstraints() {
 		if (size() == 0 || (cb->PrevSibling() == NULL)) // start new cloud if no prev sibling
 		    this->push_back(BlockCloud());
 
-#ifdef DEBUG		    
-		std::cout << "Adding toplevel block " << cb->Id() << " to cloud " << &(this->back())
-			  << " (#" << size() << ")" << " at: " << cb->Start()
+#ifdef DEBUG
+		std::cout << cb->Start() << ": toplevel block " << cb->Id()
+			  << " (" << &(this->back()) << ")" 
 			  << std::endl;
 #endif
 
