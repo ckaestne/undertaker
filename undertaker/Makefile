@@ -45,5 +45,8 @@ run-test-SatChecker: test-SatChecker
 
 run-all-tests: run-test-SatChecker run-test-cpppc run-test-undertaker
 
-.PHONY: all clean FORCE run-%
+docs:
+	doxygen
+
+.PHONY: all clean FORCE run-% docs
 
