@@ -36,13 +36,13 @@ void process_file(const char *filename, bool batch_mode, bool loadModels) {
     double t = -1;
     start = clock();
     for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
-      std::map<std::string,std::string> parents;
       std::istringstream codesat(c->getConstraints());
       std::string primary_arch = "x86";
       KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
       if (f->size() == 1)
         primary_arch = f->begin()->first;
-      CodeSatStream analyzer(codesat, filename, primary_arch.c_str(), s.getParents(), *c, batch_mode, loadModels);
+      CodeSatStream analyzer(codesat, filename, primary_arch.c_str(),
+			     s.getParents(), &(*c), batch_mode, loadModels);
       analyzer.analyzeBlocks();
       analyzer.dumpRuntimes();
     }
@@ -94,6 +94,11 @@ int main (int argc, char ** argv) {
 	default:
 	    break;
 	}
+    }
+
+    if (worklist || optind >= argc) {
+	usage(std::cout, "please specify a file to scan or a worklist");
+	return EXIT_FAILURE;
     }
 
     KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();

@@ -113,7 +113,8 @@ int BlockCloud::scanBlocks(Ziz::BlockContainer *bc) {
 	if (cb) {
 	    count++;
 #ifdef DEBUG
-	    std::cout << "Adding nested   block " << cb->Id() << " to " << this << " at: " << cb->Start() << std::endl;
+	    std::cout << cb->Start() << ": Nested in block " << cb->Id() 
+		      << " (" << this << ")" << std::endl;
 #endif
 	    this->push_back(ZizCondBlockPtr(cb));
 	    count += this->scanBlocks(cb);
@@ -192,7 +193,7 @@ CloudContainer::CloudContainer(const char *filename)
         std::cerr << "caught ZizException: " << e.what() << std::endl;
 	_fail = true;
     } catch(...) {
-        std::cerr << "caught exception" << std::endl;
+	std::cerr << "Failed to parse '" << filename << "'" <<std::endl;
 	_fail = true;
     }
 }
@@ -204,14 +205,14 @@ CloudContainer::~CloudContainer() {
 	delete _constraints;
 }
 
-std::map<std::string, std::string> CloudContainer::getParents() {
+ParentMap CloudContainer::getParents() {
     std::map<std::string, std::string> ret;
     for (CloudList::iterator c = this->begin(); c != this->end(); c++) {
         for (unsigned int i = 0; i < c->size(); i++) {
             std::string papa(c->parent(i));
             if (!papa.empty()) {
 	        std::string me(c->getBlockName(i));  
-                ret.insert(std::pair<std::string,std::string>(me, papa));
+                ret.insert(std::pair<std::string, std::string>(me, papa));
             }
         }
     }
@@ -239,9 +240,9 @@ const std::string& CloudContainer::getConstraints() {
 		if (size() == 0 || (cb->PrevSibling() == NULL)) // start new cloud if no prev sibling
 		    this->push_back(BlockCloud());
 
-#ifdef DEBUG		    
-		std::cout << "Adding toplevel block " << cb->Id() << " to cloud " << &(this->back())
-			  << " (#" << size() << ")" << " at: " << cb->Start()
+#ifdef DEBUG
+		std::cout << cb->Start() << ": toplevel block " << cb->Id()
+			  << " (" << &(this->back()) << ")" 
 			  << std::endl;
 #endif
 

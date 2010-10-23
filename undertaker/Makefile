@@ -1,5 +1,8 @@
-DEBUG = -g3 -DDEBUG -g -ggdb
-CFLAGS = -Wall -Wextra -O0 -I../ziz -I../limmat $(DEBUG)
+# DEBUG = -g3 -DDEBUG
+# to compile with debug, compile like this:
+# make DEBUG="-g3 -DDEBUG"
+CFLAGS = -Wall -Wextra -O2 -I../ziz -I../limmat $(DEBUG)
+
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =
 LINK.o = $(LINK.cpp)
@@ -10,7 +13,7 @@ PARSEROBJ = CloudContainer.o ExpressionParser.o \
 	    KconfigRsfDb.o KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o 
 
 HEADERS = $(wildcard *.h)
-PROGS = undertaker
+PROGS = undertaker cpppc
 
 all: ../limmat/liblimmat.a ../ziz/libziz.a $(PROGS)
 undertaker: ../limmat/liblimmat.a ../ziz/libziz.a libparser.a
@@ -37,4 +40,15 @@ test: test-SatChecker
 test-%: %.cpp
 	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< $(LDFLAGS) $(LDLIBS) 
 
-.PHONY: all clean FORCE
+run-test-%: %
+	for f in tests/*.c; do printf "$$f: examining with $<\n\n"; ./$< $$f; done
+
+run-test-SatChecker: test-SatChecker
+	for t in $^; do ./$$t; done
+
+run-all-tests: run-test-SatChecker run-test-cpppc run-test-undertaker
+
+docs:
+	doxygen
+
+.PHONY: all clean FORCE run-% docs

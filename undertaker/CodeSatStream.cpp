@@ -16,13 +16,18 @@ unsigned int CodeSatStream::failed_blocks;
 
 //static RuntimeTable runtimes;
 
-CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch, std::map<std::string, std::string> pars, BlockCloud &cc, bool batch_mode, bool loadModels) 
+CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch,
+			     ParentMap pars, BlockCloud *cc,
+			     bool batch_mode, bool loadModels) 
     : _istream(ifs), _items(), _free_items(), _blocks(), _filename(filename),
-      _primary_arch(primary_arch), _doCrossCheck(loadModels), _cc(cc), _batch_mode(batch_mode), parents(pars) {
+      _primary_arch(primary_arch), _doCrossCheck(loadModels), _cc(cc),
+      _batch_mode(batch_mode), parents(pars) {
+
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
     static const boost::regex comp_regexp("(\\([^\\(]+?[><=!]=.+?\\))", boost::regex::perl);
-    static const boost::regex comp_regexp_new("[[:alnum:]]+[[:space:]]*[!]?[><=]+[[:space:]]*[[:alnum:]]+", boost::regex::extended);
+    static const boost::regex comp_regexp_new("[[:alnum:]]+[[:space:]]*[!]?[><=]+[[:space:]]*[[:alnum:]]+",
+					      boost::regex::extended);
     static const boost::regex free_item_regexp("[a-zA-Z0-9\\-_]+", boost::regex::extended);
     std::string line;
     
@@ -356,7 +361,10 @@ bool CodeSatStream::writePrettyPrinted(const char *filename, std::string block, 
 }
 
 std::string CodeSatStream::getLine(std::string block) const {
-  return this->_cc.getPosition(block);
+    if (this->_cc)
+	return this->_cc->getPosition(block);
+    else
+	throw std::runtime_error("no cloud container");
 }
 
 //const RuntimeTable &CodeSatStream::getRuntimes() {
