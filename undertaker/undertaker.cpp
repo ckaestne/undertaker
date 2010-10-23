@@ -4,6 +4,8 @@
 #include <sstream>
 #include <malloc.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 #include "KconfigRsfDbFactory.h"
 #include "CloudContainer.h"
@@ -60,7 +62,9 @@ int main (int argc, char ** argv) {
     char *arch = NULL;
     bool arch_specific = false;
 
-    while ((opt = getopt(argc, argv, "sb:a:")) != -1) {
+    int threads = 1;
+
+    while ((opt = getopt(argc, argv, "sb:a:t:")) != -1) {
 	switch (opt) {
 	case 's':
 	    loadModels = false;
@@ -70,6 +74,18 @@ int main (int argc, char ** argv) {
 	    break;
 	case 'b':
 	    worklist = strdup(optarg);
+	    break;
+	case 't':
+	    threads = strtol(optarg, (char **)0, 10);
+            if ((errno == ERANGE && (threads == LONG_MAX || threads == LONG_MIN))
+                || (errno != 0 && threads == 0)) {
+                perror("strtol");
+                exit(EXIT_FAILURE);
+            }
+            if (threads < 1) {
+                std::cerr << "WARNING: Invalid numbers of threads, using 1 instead." << std::endl;
+                threads = 1;
+            }
 	    break;
 	case 'a':
 	    arch_specific = true;
@@ -96,15 +112,48 @@ int main (int argc, char ** argv) {
 	}
     }
 
-
     if (!worklist) {
+        /* If not in batch mode, don't do any parallel things */
 	process_file(argv[optind], false, loadModels);
     } else {
 	std::ifstream workfile(worklist);
 	std::string line;
+        /* Collect all files that should be worked on */
+        std::vector<std::string> workfiles;
+
 	while(std::getline(workfile, line)) {
-	    process_file(line.c_str(), true, loadModels);
+            workfiles.push_back(line);
 	}
+        std::cout << workfiles.size() << " files will be analyzed by " << threads << " processes." << std::endl;
+        
+        std::vector<int> forks;
+        /* Starting the threads */
+        for (int thread_number = 0; thread_number < threads; thread_number++) {
+            pid_t pid = fork();
+            if (pid == 0) { /* child */
+                std::cout << "Fork " << thread_number << " started." << std::endl;
+                int worked_on = 0;
+                for (unsigned int i = thread_number; i < workfiles.size(); i+= threads) {
+                    process_file(workfiles[i].c_str(), true, loadModels);
+                    worked_on++;
+                }
+                std::cerr << "FINISHED: " << worked_on << " files done (" << thread_number << ")" << std::endl;
+                break;
+            } else if (pid < 0) {
+                std::cerr << "ERROR: Forking failed. Exiting." << std::endl;
+                exit(EXIT_FAILURE);
+            } else { /* Father process */
+                forks.push_back(pid);
+            }
+        }
+
+        /* Waiting for the childs to terminate */
+        std::vector<int>::iterator iter;
+        for (iter = forks.begin(); iter != forks.end(); iter++) {
+            int state;
+            waitpid(*iter, &state, 0);
+        }
+        
     }
     return EXIT_SUCCESS;
 }
