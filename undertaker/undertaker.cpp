@@ -18,6 +18,7 @@ void usage(std::ostream &out, const char *error) {
 	out << error << std::endl;
     out << "Usage: undertaker [-b worklist] [-w whitelist] [-a arch] -s" << " <file>\n";
     out << "  -b: specify a worklist (batch mode)\n";
+    out << "  -t: specify count of parallel processes (only in batch mode)\n";
     out << "  -w: specify a whitelist\n";
     out << "  -s: skip loading variability models\n";
     out << "  -a: specify a unique arch \n";
@@ -96,7 +97,7 @@ int main (int argc, char ** argv) {
 	}
     }
 
-    if (worklist || optind >= argc) {
+    if (!worklist && optind >= argc) {
 	usage(std::cout, "please specify a file to scan or a worklist");
 	return EXIT_FAILURE;
     }
