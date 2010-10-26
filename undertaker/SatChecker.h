@@ -73,7 +73,6 @@ public:
                  DEBUG_CNF = 2 };
 
 private:
-    int counter;
     std::map<std::string, int> symbolTable;
     int debug_flags;
     std::string debug_parser;
@@ -81,10 +80,10 @@ private:
 
 
     const std::string _sat;
-    Limmat::Limmat *limmat;
     clock_t _runtime;
 
     int stringToSymbol(const std::string &key);
+    int newSymbol(void);
     void addClause(int *clause);
     int transform_bool_rec(iter_t const& input);
     void fillSatChecker(std::string expression) throw (SatCheckerError);

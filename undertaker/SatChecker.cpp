@@ -70,16 +70,21 @@ SatChecker::stringToSymbol(const std::string &key) {
     if ((it = symbolTable.find(key)) != symbolTable.end()) {
         return it->second;
     }
-    symbolTable[key] = counter;
-    return counter++;
+    int n = newSymbol();
+    symbolTable[key] = n;
+    return n;
+}
+
+int
+SatChecker::newSymbol(void) {
+    return Picosat::picosat_inc_max_var();
 }
 
 void
 SatChecker::addClause(int *clause) {
-    /*    for (int *x = clause; *x; x++)
-        cout << *x << " ";
-        cout << "0" << endl; */
-    Limmat::add_Limmat(limmat, clause);
+    for (int *x = clause; *x; x++)
+        Picosat::picosat_add(*x);
+    Picosat::picosat_add(0);
 }
 
 int
@@ -100,7 +105,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         int inner_clause = transform_bool_rec(inner_node);
         _debug_parser(") ");
 
-        int this_clause  = counter++;
+        int this_clause  = newSymbol();
         int clause1[3] = { this_clause,  inner_clause, 0};
         int clause2[3] = {-this_clause, -inner_clause, 0};
 
@@ -116,7 +121,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
 
         int i = 0, end_clause[root_node->children.size() + 2];
 
-        int this_clause = counter++;
+        int this_clause = newSymbol();
         _debug_parser("(and ");
         // A & B & ..:
         // !3 A 0
@@ -145,7 +150,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         }
         int i = 0, end_clause[root_node->children.size() + 2];
 
-        int this_clause  = counter++;
+        int this_clause  = newSymbol();
         end_clause[i++] = -this_clause;
         // A | B
         // 3 !A 0
@@ -185,7 +190,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         iter ++;
         for (; iter != root_node->children.end(); iter++) {
             int B_clause = transform_bool_rec(iter);
-            int this_clause = counter++;
+            int this_clause = newSymbol();
             int c1[] = { this_clause, A_clause, 0};
             int c2[] = { this_clause, -B_clause, 0};
             int c3[] = { -this_clause, -A_clause, B_clause, 0};
@@ -216,7 +221,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         iter ++;
         for (; iter != root_node->children.end(); iter++) {
             int B_clause = transform_bool_rec(iter);
-            int this_clause = counter++;
+            int this_clause = newSymbol();
             int c1[] = { this_clause,  -A_clause, -B_clause, 0};
             int c2[] = { this_clause,   A_clause,  B_clause, 0};
             int c3[] = { -this_clause, -A_clause,  B_clause, 0};
@@ -258,34 +263,33 @@ SatChecker::fillSatChecker(tree_parse_info<>& info) {
     iter_t expression = info.trees.begin()->children.begin();
     int top_clause = transform_bool_rec(expression);
     /* This adds the last clause */
-    int clause[2] = {top_clause, 0};
-    addClause(clause);
+    //    int clause[2] = {top_clause, 0};
+    //    addClause(clause);
+    Picosat::picosat_assume(top_clause);
 }
 
 SatChecker::SatChecker(const char *sat, int debug)
   : debug_flags(debug), _sat(std::string(sat)) {
-    /* Counter for limboole symbols starts at 1 */
-    counter = 1;
-    limmat = Limmat::new_Limmat (0);
+    Picosat::picosat_init();
+    //    Picosat::picosat_set_global_default_phase(0);
 }
 
 SatChecker::SatChecker(const std::string sat, int debug)
   : debug_flags(debug), _sat(std::string(sat)) {
-    /* Counter for limboole symbols starts at 1 */
-    counter = 1;
-    limmat = Limmat::new_Limmat (0);
+    Picosat::picosat_init();
+    //    Picosat::picosat_set_global_default_phase(0);
 }
 
 SatChecker::~SatChecker() {
-    if (limmat != 0)
-        Limmat::delete_Limmat(limmat);
+    Picosat::picosat_reset();
 }
 
 bool SatChecker::operator()() throw (SatCheckerError) {
     fillSatChecker(_sat);
-    int res = Limmat::sat_Limmat(limmat, -1);
 
-    if (res <= 0)
+    int res = Picosat::picosat_sat(-1);
+
+    if (res == PICOSAT_UNSATISFIABLE)
         return false;
     return true;
 }
