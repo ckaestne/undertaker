@@ -20,7 +20,7 @@ class RuntimeEntry {
   std::string block;
   clock_t rt_full_analysis;
   int i_items;
-  int slice; 
+  int slice;
   RuntimeEntry() {}
   RuntimeEntry (const char* fl, const char* c, const char* bl, clock_t rt, int i, int s) :
   filename(fl), cloud(c), block(bl), rt_full_analysis(rt), i_items(i), slice(s) {}
@@ -30,15 +30,15 @@ class RuntimeEntry {
     return ss.str();
   }
 };
-//
+
 typedef std::list<RuntimeEntry> RuntimeTable;
 
 
 class CodeSatStream : public std::stringstream {
 public:
     CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch,
-		   ParentMap parents, BlockCloud *cc=NULL,
-		   bool batch_mode=false, bool loadModels=false);
+           ParentMap parents, BlockCloud *cc=NULL,
+           bool batch_mode=false, bool loadModels=false);
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
@@ -74,9 +74,9 @@ protected:
     const bool _batch_mode;
     ParentMap parents;
 
-    std::stringstream codeConstraints; 
-    std::stringstream kconfigConstraints; 
-    std::stringstream missingItemsConstraints; 
+    std::stringstream codeConstraints;
+    std::stringstream kconfigConstraints;
+    std::stringstream missingItemsConstraints;
 
     static unsigned int processed_units;
     static unsigned int processed_blocks;

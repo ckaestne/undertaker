@@ -13,8 +13,8 @@
 class BlockBddInfo {
 public:
     BlockBddInfo(int i, bdd block, bdd expressionBdd,
-		 const std::string &expressionString)
-	: id_(i), block_(block), expression_(expressionBdd), 
+         const std::string &expressionString)
+    : id_(i), block_(block), expression_(expressionBdd),
           expr_(expressionString) {}
     int getId() { return id_; }
     bdd &blockBdd() { return block_; }
@@ -34,7 +34,7 @@ public:
     typedef unsigned int index;
 
     BddContainer(std::ifstream &in, char *argv0 = NULL,
-		 std::ostream &out = std::cout, bool force_run = false);
+         std::ostream &out = std::cout, bool force_run = false);
     ~BddContainer();
     bdd do_build();
     bdd run();

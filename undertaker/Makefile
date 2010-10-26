@@ -31,11 +31,11 @@ libparser.a: $(PARSEROBJ) $(HEADERS)
 	ar r $@ $(PARSEROBJ)
 
 clean:
-	rm -rfv *.o *.a 
+	rm -rfv *.o *.a
 
 test: test-SatChecker
 test-%: %.cpp
-	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< $(LDFLAGS) $(LDLIBS) 
+	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< $(LDFLAGS) $(LDLIBS)
 
 run-test-%: %
 	for f in tests/*.c; do printf "$$f: examining with $<\n\n"; ./$< $$f; done
@@ -49,4 +49,3 @@ docs:
 	doxygen
 
 .PHONY: all clean FORCE run-% docs
-

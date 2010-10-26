@@ -14,15 +14,15 @@ class ExpressionParser {
 public:
 
     struct Symbol {
-	Symbol(SymbolType s, std::string t)
-	  : Sym(s), Token(t) {}
-	SymbolType Sym;
-	std::string Token;
+    Symbol(SymbolType s, std::string t)
+      : Sym(s), Token(t) {}
+    SymbolType Sym;
+    std::string Token;
     };
 
     struct SymbolList : public std::deque<Symbol> {
-	void push_back(std::string item, bool kconfig_mode=false);
-	void push_back(Symbol s) { std::deque<Symbol>::push_back(s); }
+    void push_back(std::string item, bool kconfig_mode=false);
+    void push_back(Symbol s) { std::deque<Symbol>::push_back(s); }
     };
 
     ExpressionParser(std::string expression, bool debug=false, bool kconfig_mode=false);
@@ -34,7 +34,7 @@ public:
 
     typedef std::list<std::string> VariableList;
     VariableList found_variables() { return found_variables_; }
-    
+
 private:
 
     bool accept(SymbolType s);
@@ -63,4 +63,3 @@ private:
 bool operator==(const ExpressionParser::Symbol &s, const SymbolType &t);
 
 #endif
-

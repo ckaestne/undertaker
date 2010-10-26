@@ -15,21 +15,21 @@ bdd KconfigBdd::kconfigDependencies(std::string variable) {
 
     std::string *vp = items_.getValue(variable.substr(sizeof("CONFIG_")-1));
     if (!vp) {
-	if (debug_)
-	    std::clog <<  "item not found in kconfig" << std::endl;
-	return bddtrue;
+    if (debug_)
+        std::clog <<  "item not found in kconfig" << std::endl;
+    return bddtrue;
     } else if (debug_)
-	std::clog << "item is of type"  << *vp << std::endl;
+    std::clog << "item is of type"  << *vp << std::endl;
 
     std::string *dependExpr = depends_.getValue(variable.substr(sizeof("CONFIG_")-1));
     if (!dependExpr) {
-	if (debug_)
-	    std::clog << "item has no dependencies" << std::endl;
-	return bddtrue;
+    if (debug_)
+        std::clog << "item has no dependencies" << std::endl;
+    return bddtrue;
     }
 
     std::clog << " found dependency: "
-	      << *vp << " -> " << *dependExpr << std::endl;
+          << *vp << " -> " << *dependExpr << std::endl;
 
     ExpressionParser p(*dependExpr, debug_, true);
     bdd d = p.expression();
@@ -38,8 +38,8 @@ bdd KconfigBdd::kconfigDependencies(std::string variable) {
 
     VariableList list = p.found_variables();
     for (VariableList::iterator i = list.begin();
-	 i != list.end(); i++) {
-	X &= kconfigDependencies(*i);
+     i != list.end(); i++) {
+    X &= kconfigDependencies(*i);
     }
 
     return X;

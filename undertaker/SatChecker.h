@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
 #ifndef sat_checker_h__
-#define sat_checker_h__ 
+#define sat_checker_h__
 #include <boost/spirit/include/classic.hpp>
 #include <boost/spirit/include/classic_core.hpp>
 #include <boost/spirit/include/classic_parse_tree.hpp>
@@ -79,7 +79,7 @@ private:
     std::string debug_parser;
     std::string debug_cnf;
 
-    
+
     const std::string _sat;
     Limmat::Limmat *limmat;
     clock_t _runtime;

@@ -5,14 +5,14 @@
 #include "RsfBlocks.h"
 
 class CompilationUnitInfo {
-public:    
-    CompilationUnitInfo(std::ifstream &in, std::ostream &log)	
-	: _in(in),
-	  expressions_(in, "CondBlockHasExpression", log),
-	  nested_in_(in, "CondBlockNestedIn", log),
-	  YoungerSibl_(in, "YoungerSilb", log),
-	  OlderSibl_(in, "OlderSilb", log)
-	{}
+public:
+    CompilationUnitInfo(std::ifstream &in, std::ostream &log)
+    : _in(in),
+      expressions_(in, "CondBlockHasExpression", log),
+      nested_in_(in, "CondBlockNestedIn", log),
+      YoungerSibl_(in, "YoungerSilb", log),
+      OlderSibl_(in, "OlderSilb", log)
+    {}
 
     const RsfBlocks &expressions() { return expressions_; }
     const RsfBlocks &nested_in() { return nested_in_; }

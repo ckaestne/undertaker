@@ -35,9 +35,9 @@ struct bool_grammar : public grammar<bool_grammar>
         rule<ScannerT, parser_context<>, parser_tag<iffID> > iff_term;
         rule<ScannerT> start_rule, group, term, expression;
 
-        definition(bool_grammar const& self)  { 
-            /* 
-               Operators (from weak to strong): <->, ->, |, &, !(), 
+        definition(bool_grammar const& self)  {
+            /*
+               Operators (from weak to strong): <->, ->, |, &, !(),
              */
             (void) self;
             symbol       = lexeme_d[ leaf_node_d[ *(alnum_p | ch_p('_')) ]];
@@ -54,13 +54,13 @@ struct bool_grammar : public grammar<bool_grammar>
 
             start_rule = iff_term >> no_node_d[ *(space_p | ch_p("\n") | ch_p("\r"))];
         };
-        
+
         rule<ScannerT> const& start() const { return start_rule; }
     };
 };
 
     /* Got the impression from normal lisp implementations */
-int 
+int
 SatChecker::stringToSymbol(const std::string &key) {
     map<std::string, int>::iterator it;
     if ((it = symbolTable.find(key)) != symbolTable.end()) {
@@ -99,7 +99,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         int this_clause  = counter++;
         int clause1[3] = { this_clause,  inner_clause, 0};
         int clause2[3] = {-this_clause, -inner_clause, 0};
-            
+
         addClause(clause1);
         addClause(clause2);
 
@@ -111,7 +111,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         }
 
         int i = 0, end_clause[root_node->children.size() + 2];
-            
+
         int this_clause = counter++;
         _debug_parser("(and ");
         // A & B & ..:
@@ -131,7 +131,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         end_clause[i++] = 0;
 
         addClause(end_clause);
-            
+
         _debug_parser(") ");
         return this_clause;
     } else if (root_node->value.id() == bool_grammar::orID) {
@@ -140,7 +140,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
             return transform_bool_rec(iter);
         }
         int i = 0, end_clause[root_node->children.size() + 2];
-            
+
         int this_clause  = counter++;
         end_clause[i++] = -this_clause;
         // A | B
@@ -161,7 +161,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         addClause(end_clause);
         _debug_parser(") ");
 
-            
+
         return this_clause;
     } else if (root_node->value.id() == bool_grammar::impliesID) {
         /* Skip and rule if there is only one child */
@@ -254,7 +254,7 @@ SatChecker::fillSatChecker(tree_parse_info<>& info) {
     addClause(clause);
 }
 
-SatChecker::SatChecker(const char *sat, int debug) 
+SatChecker::SatChecker(const char *sat, int debug)
   : debug_flags(debug), _sat(std::string(sat)) {
     /* Counter for limboole symbols starts at 1 */
     counter = 1;
@@ -276,8 +276,8 @@ SatChecker::~SatChecker() {
 bool SatChecker::operator()() throw (SatCheckerError) {
     fillSatChecker(_sat);
     int res = Limmat::sat_Limmat(limmat, -1);
-    
-    if (res <= 0) 
+
+    if (res <= 0)
         return false;
     return true;
 }
@@ -303,12 +303,12 @@ bool test(std::string s, bool result, std::runtime_error *error = 0) {
     else {
         try {
             if (checker() != result) {
-                std::cerr << "FAILED: " << s << " should be " << result << std::endl; 
+                std::cerr << "FAILED: " << s << " should be " << result << std::endl;
                 return false;
             }
         } catch (std::runtime_error &e) {
             if (typeid(*error) != typeid(e)) {
-                std::cerr << "FAILED: " << s << " didn't throw the right exception (Should " << typeid(*error).name() 
+                std::cerr << "FAILED: " << s << " didn't throw the right exception (Should " << typeid(*error).name()
                           << ", is " << typeid(e).name() << ")" << std::endl;
                 return false;
             }
