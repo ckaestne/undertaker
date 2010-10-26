@@ -41,7 +41,9 @@ struct bool_grammar : public grammar<bool_grammar>
              */
             (void) self;
             symbol       = lexeme_d[ leaf_node_d[ *(alnum_p | ch_p('_')) ]];
-            group        = no_node_d[ ch_p('(') ] >> start_rule >> no_node_d[ ch_p(')') ];
+            group        = no_node_d[ ch_p('(') ]
+                >> start_rule
+                >> no_node_d[ ch_p(')') ];
             not_symbol   = no_node_d[ch_p('!')] >> term;
 
             term         = group | not_symbol | symbol;
@@ -50,9 +52,11 @@ struct bool_grammar : public grammar<bool_grammar>
             or_term      = and_term     >> *(no_node_d[ch_p("|")] >> and_term);
 
             implies_term = or_term      >> *(no_node_d[str_p("->")] >> or_term);
-            iff_term     = implies_term >> *(no_node_d[ str_p("<->") ] >> implies_term);
+            iff_term     = implies_term
+                >> *(no_node_d[ str_p("<->") ] >> implies_term);
 
-            start_rule = iff_term >> no_node_d[ *(space_p | ch_p("\n") | ch_p("\r"))];
+            start_rule = iff_term
+                >> no_node_d[ *(space_p | ch_p("\n") | ch_p("\r"))];
         };
 
         rule<ScannerT> const& start() const { return start_rule; }
@@ -235,12 +239,16 @@ SatChecker::transform_bool_rec(iter_t const& input) {
 void
 SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
     static bool_grammar e;
-    tree_parse_info<> info = pt_parse(expression.c_str(), e, space_p | ch_p("\n") | ch_p("\r"));
+    tree_parse_info<> info = pt_parse(expression.c_str(), e,
+                                      space_p | ch_p("\n") | ch_p("\r"));
 
     if (info.full) {
         fillSatChecker(info);
     } else {
-        std::cout << std::string(expression.begin(), expression.begin() + info.length) << endl;
+        /* Enable this line to get the position where the parser dies
+        std::cout << std::string(expression.begin(), expression.begin()
+                                 + info.length) << endl;
+        */
         throw SatCheckerError("SatChecker: Couldn't parse: " + expression);
     }
 }
