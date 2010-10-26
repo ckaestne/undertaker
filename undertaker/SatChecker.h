@@ -11,7 +11,7 @@
 
 using namespace BOOST_SPIRIT_CLASSIC_NS;
 
-namespace Limmat {
+namespace Picosat {
     #include <ctype.h>
     #include <assert.h>
 
@@ -19,7 +19,7 @@ namespace Limmat {
 
     /* Include the Limmat library header as C */
     extern "C" {
-#include "limmat.h"
+#include "picosat.h"
     }
 };
 
