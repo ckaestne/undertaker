@@ -14,7 +14,7 @@ HEADERS = $(wildcard *.h)
 PROGS = undertaker cpppc
 
 all: ../ziz/libziz.a $(PROGS)
-undertaker: ../limmat/liblimmat.a ../ziz/libziz.a libparser.a
+undertaker: ../picosat/libpicosat.a ../ziz/libziz.a libparser.a
 undertaker2: libparser.a
 KconfigIntersect: libparser.a
 cpppc: libparser.a ../ziz/libziz.a
@@ -23,7 +23,7 @@ cpppc: libparser.a ../ziz/libziz.a
 	$(MAKE) -C ../ziz libziz.a
 
 ../picosat/libpicosat.a: FORCE
-	cd ../picosat/; test -e makefile || ./configure
+	cd ../picosat/; test -s makefile || ./configure
 	$(MAKE) -C ../picosat libpicosat.a
 
 $(PARSEROBJ): $(HEADERS)
@@ -46,6 +46,7 @@ run-test-SatChecker: test-SatChecker
 run-all-tests: run-test-SatChecker run-test-cpppc run-test-undertaker
 
 check: $(PROGS)
+	$(MAKE) clean-check
 	cd validation && ./test-suite
 
 clean-check:
@@ -61,4 +62,5 @@ clean-check:
 docs:
 	doxygen
 
+FORCE:
 .PHONY: all clean FORCE run-% docs validation
