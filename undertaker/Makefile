@@ -14,7 +14,7 @@ HEADERS = $(wildcard *.h)
 PROGS = undertaker cpppc
 
 all: ../ziz/libziz.a $(PROGS)
-undertaker: ../limmat/liblimmat.a libparser.a
+undertaker: ../limmat/liblimmat.a ../ziz/libziz.a libparser.a
 undertaker2: libparser.a
 KconfigIntersect: libparser.a
 cpppc: libparser.a ../ziz/libziz.a
