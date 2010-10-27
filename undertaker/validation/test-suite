@@ -3,7 +3,7 @@
 #set -x
 
 default_path=".."
-default_cmd="sparse \$file"
+default_cmd="undertaker \$file"
 tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
 prog_name=`basename $0`
 
