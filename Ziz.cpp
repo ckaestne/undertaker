@@ -207,8 +207,10 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
     assert(_p_curBlockContainer != NULL);
 
     if (_condBlockStack.empty()) {
-        std::cerr << "FinishSaveCurrentConditionalBlock with empty block stack"
+#ifdef DEBUG
+        std::cerr << "I: FinishSaveCurrentConditionalBlock with empty block stack"
                   << std::endl;
+#endif
         return;
     }
 
