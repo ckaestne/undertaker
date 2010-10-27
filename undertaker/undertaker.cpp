@@ -22,10 +22,12 @@ void usage(std::ostream &out, const char *error) {
     out << "  -w: specify a whitelist\n";
     out << "  -s: skip loading variability models\n";
     out << "  -a: specify a unique arch \n";
+    out << "  -r: dump runtimes\n";
     out << std::endl;
 }
 
-void process_file(const char *filename, bool batch_mode, bool loadModels) {
+void process_file(const char *filename, bool batch_mode, bool loadModels,
+                  bool dumpRuntimes) {
     CloudContainer s(filename);
     if (!s.good()) {
 	usage(std::cout, "couldn't open file");
@@ -44,19 +46,25 @@ void process_file(const char *filename, bool batch_mode, bool loadModels) {
         primary_arch = f->begin()->first;
       CodeSatStream analyzer(codesat, filename, primary_arch.c_str(),
 			     s.getParents(), &(*c), batch_mode, loadModels);
+
+      // this is the total runtime per *cloud*
       analyzer.analyzeBlocks();
-      analyzer.dumpRuntimes();
+      if(dumpRuntimes)
+          analyzer.dumpRuntimes();
     }
     end = clock();
     t = (double) (end - start);
     std::cout.precision(10);
-    std::cout << "RTF:" << filename << ":" << t << std::endl;
 
+    // this is the total runtime per *file*
+    if(dumpRuntimes)
+        std::cout << "RTF:" << filename << ":" << t << std::endl;
 }
 
 int main (int argc, char ** argv) {
     int opt;
     bool loadModels = true;
+    bool dumpRuntimes = false;
     char *worklist = NULL;
     char *whitelist = NULL;
     char *arch = NULL;
@@ -92,6 +100,8 @@ int main (int argc, char ** argv) {
             arch = strdup(optarg);	    
 	    std::cout << arch;
 	    break;
+        case 'r':
+            dumpRuntimes = true;
 	default:
 	    break;
 	}
@@ -114,7 +124,7 @@ int main (int argc, char ** argv) {
 
     if (!worklist) {
         /* If not in batch mode, don't do any parallel things */
-	process_file(argv[optind], false, loadModels);
+	process_file(argv[optind], false, loadModels, dumpRuntimes);
     } else {
 	std::ifstream workfile(worklist);
 	std::string line;
@@ -134,7 +144,7 @@ int main (int argc, char ** argv) {
                 std::cout << "Fork " << thread_number << " started." << std::endl;
                 int worked_on = 0;
                 for (unsigned int i = thread_number; i < workfiles.size(); i+= threads) {
-                    process_file(workfiles[i].c_str(), true, loadModels);
+                    process_file(workfiles[i].c_str(), true, loadModels, dumpRuntimes);
                     worked_on++;
                 }
                 std::cerr << "I: finished: " << worked_on << " files done (" << thread_number << ")" << std::endl;

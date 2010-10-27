@@ -26,7 +26,13 @@ class RuntimeEntry {
   filename(fl), cloud(c), block(bl), rt_full_analysis(rt), i_items(i), slice(s) {}
   std::string getString() {
     std::stringstream ss;
-    ss << "RT:" << filename << ":" << cloud << ":" << block << ":" << rt_full_analysis << ":" << i_items << ":" << slice << std::endl;
+    ss << "RT:" << filename
+       << ":" << cloud
+       << ":"<< block
+       << ":" << rt_full_analysis
+       << ":" << i_items
+       << ":" << slice
+       << std::endl;
     return ss.str();
   }
 };
