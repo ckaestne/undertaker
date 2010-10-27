@@ -30,8 +30,8 @@ $(PARSEROBJ): $(HEADERS)
 libparser.a: $(PARSEROBJ) $(HEADERS)
 	ar r $@ $(PARSEROBJ)
 
-clean:
-	rm -rfv *.o *.a
+clean: clean-check
+	rm -rf *.o *.a
 
 test: test-SatChecker
 test-%: %.cpp
@@ -45,7 +45,20 @@ run-test-SatChecker: test-SatChecker
 
 run-all-tests: run-test-SatChecker run-test-cpppc run-test-undertaker
 
+check: $(PROGS)
+	cd validation && ./test-suite
+
+clean-check:
+	find validation/ \( -name "*.c.output.expected" \
+	                 -o -name "*.c.output.got" \
+	                 -o -name "*.c.output.diff" \
+	                 -o -name "*.c.error.expected" \
+	                 -o -name "*.c.error.got" \
+	                 -o -name "*.c.error.diff" \
+	                 -o -name "*.dead" \
+	                 -o -name "*.undead" \
+	                 \) -exec rm {} \;
 docs:
 	doxygen
 
-.PHONY: all clean FORCE run-% docs
+.PHONY: all clean FORCE run-% docs validation

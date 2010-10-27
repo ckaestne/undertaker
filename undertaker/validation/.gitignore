@@ -1,0 +1,6 @@
+# test-suite
+*.diff
+*.got
+*.expected
+*.dead
+*.undead
