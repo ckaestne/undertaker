@@ -1,11 +1,11 @@
 # DEBUG = -g3 -DDEBUG
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
-CFLAGS = -Wall -Wextra -O2 -I../ziz -I../limmat $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 -I../ziz -I../picosat $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =
 LINK.o = $(LINK.cpp)
-LDLIBS = -lbdd -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../limmat/liblimmat.a -lboost_wave-mt
+LDLIBS = -lbdd -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../picosat/libpicosat.a -lboost_wave-mt
 TESTLDFLAGS = -lboost_unit_test_framework
 PARSEROBJ = CloudContainer.o ExpressionParser.o \
 	    VariableToBddMap.o RsfBlocks.o KconfigBdd.o \
@@ -22,9 +22,9 @@ cpppc: libparser.a ../ziz/libziz.a
 ../ziz/libziz.a: FORCE
 	$(MAKE) -C ../ziz libziz.a
 
-../limmat/liblimmat.a: FORCE
-	cd ../limmat/; test -e Makefile || ./configure
-	$(MAKE) -C ../limmat liblimmat.a
+../picosat/libpicosat.a: FORCE
+	cd ../picosat/; test -e makefile || ./configure
+	$(MAKE) -C ../picosat libpicosat.a
 
 $(PARSEROBJ): $(HEADERS)
 libparser.a: $(PARSEROBJ) $(HEADERS)
@@ -35,7 +35,7 @@ clean: clean-check
 
 test: test-SatChecker
 test-%: %.cpp
-	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
 
 run-test-%: %
 	for f in tests/*.c; do printf "$$f: examining with $<\n\n"; ./$< $$f; done

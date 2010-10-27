@@ -40,8 +40,10 @@ struct bool_grammar : public grammar<bool_grammar>
                Operators (from weak to strong): <->, ->, |, &, !(),
              */
             (void) self;
-            symbol       = lexeme_d[ leaf_node_d[ *(alnum_p | ch_p('_')) ]];
-            group        = no_node_d[ ch_p('(') ] >> start_rule >> no_node_d[ ch_p(')') ];
+            symbol       = lexeme_d[ leaf_node_d[ +(alnum_p | ch_p('_')) ]];
+            group        = no_node_d[ ch_p('(') ]
+                >> start_rule
+                >> no_node_d[ ch_p(')') ];
             not_symbol   = no_node_d[ch_p('!')] >> term;
 
             term         = group | not_symbol | symbol;
@@ -50,9 +52,11 @@ struct bool_grammar : public grammar<bool_grammar>
             or_term      = and_term     >> *(no_node_d[ch_p("|")] >> and_term);
 
             implies_term = or_term      >> *(no_node_d[str_p("->")] >> or_term);
-            iff_term     = implies_term >> *(no_node_d[ str_p("<->") ] >> implies_term);
+            iff_term     = implies_term
+                >> *(no_node_d[ str_p("<->") ] >> implies_term);
 
-            start_rule = iff_term >> no_node_d[ *(space_p | ch_p("\n") | ch_p("\r"))];
+            start_rule = iff_term
+                >> no_node_d[ *(space_p | ch_p("\n") | ch_p("\r"))];
         };
 
         rule<ScannerT> const& start() const { return start_rule; }
@@ -66,16 +70,21 @@ SatChecker::stringToSymbol(const std::string &key) {
     if ((it = symbolTable.find(key)) != symbolTable.end()) {
         return it->second;
     }
-    symbolTable[key] = counter;
-    return counter++;
+    int n = newSymbol();
+    symbolTable[key] = n;
+    return n;
+}
+
+int
+SatChecker::newSymbol(void) {
+    return Picosat::picosat_inc_max_var();
 }
 
 void
 SatChecker::addClause(int *clause) {
-    /*    for (int *x = clause; *x; x++)
-        cout << *x << " ";
-        cout << "0" << endl; */
-    Limmat::add_Limmat(limmat, clause);
+    for (int *x = clause; *x; x++)
+        Picosat::picosat_add(*x);
+    Picosat::picosat_add(0);
 }
 
 int
@@ -96,7 +105,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         int inner_clause = transform_bool_rec(inner_node);
         _debug_parser(") ");
 
-        int this_clause  = counter++;
+        int this_clause  = newSymbol();
         int clause1[3] = { this_clause,  inner_clause, 0};
         int clause2[3] = {-this_clause, -inner_clause, 0};
 
@@ -112,7 +121,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
 
         int i = 0, end_clause[root_node->children.size() + 2];
 
-        int this_clause = counter++;
+        int this_clause = newSymbol();
         _debug_parser("(and ");
         // A & B & ..:
         // !3 A 0
@@ -141,7 +150,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         }
         int i = 0, end_clause[root_node->children.size() + 2];
 
-        int this_clause  = counter++;
+        int this_clause  = newSymbol();
         end_clause[i++] = -this_clause;
         // A | B
         // 3 !A 0
@@ -181,7 +190,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         iter ++;
         for (; iter != root_node->children.end(); iter++) {
             int B_clause = transform_bool_rec(iter);
-            int this_clause = counter++;
+            int this_clause = newSymbol();
             int c1[] = { this_clause, A_clause, 0};
             int c2[] = { this_clause, -B_clause, 0};
             int c3[] = { -this_clause, -A_clause, B_clause, 0};
@@ -212,7 +221,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         iter ++;
         for (; iter != root_node->children.end(); iter++) {
             int B_clause = transform_bool_rec(iter);
-            int this_clause = counter++;
+            int this_clause = newSymbol();
             int c1[] = { this_clause,  -A_clause, -B_clause, 0};
             int c2[] = { this_clause,   A_clause,  B_clause, 0};
             int c3[] = { -this_clause, -A_clause,  B_clause, 0};
@@ -235,12 +244,16 @@ SatChecker::transform_bool_rec(iter_t const& input) {
 void
 SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
     static bool_grammar e;
-    tree_parse_info<> info = pt_parse(expression.c_str(), e, space_p | ch_p("\n") | ch_p("\r"));
+    tree_parse_info<> info = pt_parse(expression.c_str(), e,
+                                      space_p | ch_p("\n") | ch_p("\r"));
 
     if (info.full) {
         fillSatChecker(info);
     } else {
-        std::cout << std::string(expression.begin(), expression.begin() + info.length) << endl;
+        /* Enable this line to get the position where the parser dies
+        std::cout << std::string(expression.begin(), expression.begin()
+                                 + info.length) << endl;
+        */
         throw SatCheckerError("SatChecker: Couldn't parse: " + expression);
     }
 }
@@ -250,34 +263,33 @@ SatChecker::fillSatChecker(tree_parse_info<>& info) {
     iter_t expression = info.trees.begin()->children.begin();
     int top_clause = transform_bool_rec(expression);
     /* This adds the last clause */
-    int clause[2] = {top_clause, 0};
-    addClause(clause);
+    //    int clause[2] = {top_clause, 0};
+    //    addClause(clause);
+    Picosat::picosat_assume(top_clause);
 }
 
 SatChecker::SatChecker(const char *sat, int debug)
   : debug_flags(debug), _sat(std::string(sat)) {
-    /* Counter for limboole symbols starts at 1 */
-    counter = 1;
-    limmat = Limmat::new_Limmat (0);
+    Picosat::picosat_init();
+    //    Picosat::picosat_set_global_default_phase(0);
 }
 
 SatChecker::SatChecker(const std::string sat, int debug)
   : debug_flags(debug), _sat(std::string(sat)) {
-    /* Counter for limboole symbols starts at 1 */
-    counter = 1;
-    limmat = Limmat::new_Limmat (0);
+    Picosat::picosat_init();
+    //    Picosat::picosat_set_global_default_phase(0);
 }
 
 SatChecker::~SatChecker() {
-    if (limmat != 0)
-        Limmat::delete_Limmat(limmat);
+    Picosat::picosat_reset();
 }
 
 bool SatChecker::operator()() throw (SatCheckerError) {
     fillSatChecker(_sat);
-    int res = Limmat::sat_Limmat(limmat, -1);
 
-    if (res <= 0)
+    int res = Picosat::picosat_sat(-1);
+
+    if (res == PICOSAT_UNSATISFIABLE)
         return false;
     return true;
 }
@@ -289,45 +301,108 @@ std::string SatChecker::pprint() {
 #ifdef TEST_SatChecker
 #include <assert.h>
 #include <typeinfo>
+#include <check.h>
 
 
-bool test(std::string s, bool result, std::runtime_error *error = 0) {
+bool cnf_test(std::string s, bool result, std::runtime_error *error = 0) {
     SatChecker checker(s);
 
     if (error == 0)  {
-        if (checker() != result) {
-            std::cerr << "FAILED: " << s << " should be " << result << std::endl;
+        fail_unless(checker() == result,
+                    "%s should evaluate to %d",
+                    s.c_str(), (int) result);
+        return false;
+    } else {
+        try {
+            fail_unless(checker() == result,
+                        "%s should evaluate to %d",
+                        s.c_str(), (int) result);
+            return false;
+        } catch (std::runtime_error &e) {
+            fail_unless(typeid(*error) == typeid(e),
+                        "%s didn't throw the right exception should be %s, but is %s.",
+                        typeid(*error).name(), typeid(e).name());
             return false;
         }
     }
-    else {
-        try {
-            if (checker() != result) {
-                std::cerr << "FAILED: " << s << " should be " << result << std::endl;
-                return false;
-            }
-        } catch (std::runtime_error &e) {
-            if (typeid(*error) != typeid(e)) {
-                std::cerr << "FAILED: " << s << " didn't throw the right exception (Should " << typeid(*error).name()
-                          << ", is " << typeid(e).name() << ")" << std::endl;
-                return false;
-            }
-        }
-    }
-    std::cout << "PASSED: " << s << std::endl;
     return true;
 }
 
-int main() {
+START_TEST(cnf_translator_test)
+{
+    cnf_test("A & B", true);
+    cnf_test("A & !A", false);
+    cnf_test("(A -> B) -> A -> A", true);
+    cnf_test("(A <-> B) & (B <-> C) & (C <-> A)", true);
+    cnf_test("B6 & \n(B5 <-> !S390) & (B6 <-> !B5) & !S390", false);
+    cnf_test("a >,,asd/.sa,;.ljkxf;vnbmkzjghrarjkf.dvd,m.vjkb54y98g4tjoij", false, &SatCheckerError(""));
+    cnf_test("B90 & \n( B90 <->  ! MODULE )\n& ( B92 <->  ( B90 ) \n & CONFIG_STMMAC_TIMER )\n", true);
+    cnf_test("B9\n&\n(B1 <-> !_DRIVERS_MISC_SGIXP_XP_H)\n&\n(B3 <-> B1 & CONFIG_X86_UV | CONFIG_IA64_SGI_UV)\n&\n(B6 <-> B1 & !is_uv)\n&\n(B9 <-> B1 & CONFIG_IA64)\n&\n(B12 <-> B1 & !is_shub1)\n&\n(B15 <-> B1 & !is_shub2)\n&\n(B18 <-> B1 & !is_shub)\n&\n(B21 <-> B1 & USE_DBUG_ON)\n&\n(B23 <-> B1 & !B21)\n&\n(B26 <-> B1 & XPC_MAX_COMP_338)\n&\n(CONFIG_ACPI -> !CONFIG_IA64_HP_SIM & (CONFIG_IA64 | CONFIG_X86) & CONFIG_PCI & CONFIG_PM)\n&\n(CONFIG_CHOICE_6 -> !CONFIG_X86_ELAN)\n&\n(CONFIG_CHOICE_8 -> CONFIG_X86_32)\n&\n(CONFIG_HIGHMEM64G -> CONFIG_CHOICE_8 & !CONFIG_M386 & !CONFIG_M486)\n&\n(CONFIG_INTR_REMAP -> CONFIG_X86_64 & CONFIG_X86_IO_APIC & CONFIG_PCI_MSI & CONFIG_ACPI & CONFIG_EXPERIMENTAL)\n&\n(CONFIG_M386 -> CONFIG_CHOICE_6 & CONFIG_X86_32 & !CONFIG_UML)\n&\n(CONFIG_M486 -> CONFIG_CHOICE_6 & CONFIG_X86_32)\n&\n(CONFIG_NUMA -> CONFIG_SMP & (CONFIG_X86_64 | CONFIG_X86_32 & CONFIG_HIGHMEM64G & (CONFIG_X86_NUMAQ | CONFIG_X86_BIGSMP | CONFIG_X86_SUMMIT & CONFIG_ACPI) & CONFIG_EXPERIMENTAL))\n&\n(CONFIG_PCI_MSI -> CONFIG_PCI & CONFIG_ARCH_SUPPORTS_MSI)\n&\n(CONFIG_PM -> !CONFIG_IA64_HP_SIM)\n&\n(CONFIG_X86_32_NON_STANDARD -> CONFIG_X86_32 & CONFIG_SMP & CONFIG_X86_EXTENDED_PLATFORM)\n&\n(CONFIG_X86_BIGSMP -> CONFIG_X86_32 & CONFIG_SMP)\n&\n(CONFIG_X86_ELAN -> CONFIG_X86_32 & CONFIG_X86_EXTENDED_PLATFORM)\n&\n(CONFIG_X86_EXTENDED_PLATFORM -> CONFIG_X86_64)\n&\n(CONFIG_X86_IO_APIC -> CONFIG_X86_64 | CONFIG_SMP | CONFIG_X86_32_NON_STANDARD | CONFIG_X86_UP_APIC)\n&\n(CONFIG_X86_LOCAL_APIC -> CONFIG_X86_64 | CONFIG_SMP | CONFIG_X86_32_NON_STANDARD | CONFIG_X86_UP_APIC)\n&\n(CONFIG_X86_NUMAQ -> CONFIG_X86_32_NON_STANDARD & CONFIG_PCI)\n&\n(CONFIG_X86_SUMMIT -> CONFIG_X86_32_NON_STANDARD)\n&\n(CONFIG_X86_UP_APIC -> CONFIG_X86_32 & !CONFIG_SMP & !CONFIG_X86_32_NON_STANDARD)\n&\n(CONFIG_X86_UV -> CONFIG_X86_64 & CONFIG_X86_EXTENDED_PLATFORM & CONFIG_NUMA & CONFIG_X86_X2APIC)\n&\n(CONFIG_X86_X2APIC -> CONFIG_X86_LOCAL_APIC & CONFIG_X86_64 & CONFIG_INTR_REMAP)\n&\n!(CONFIG_IA64 | CONFIG_IA64_HP_SIM | CONFIG_IA64_SGI_UV | CONFIG_UML)\n", false);
 
-    test("A & B", true);
-    test("A & !A", false);
-    test("(A -> B) -> A -> A", true);
-    test("(A <-> B) & (B <-> C) & (C <-> A)", true);
-    test("B6 & \n(B5 <-> !S390) & (B6 <-> !B5) & !S390", false);
-    test("a >,,asd/.sa,;.ljkxf;vnbmkzjghrarjkf.dvd,m.vjkb54y98g4tjoij", false, &SatCheckerError(""));
-    test("B90 & \n( B90 <->  ! MODULE )\n& ( B92 <->  ( B90 ) \n & CONFIG_STMMAC_TIMER )\n", true);
-    test("B9\n&\n(B1 <-> !_DRIVERS_MISC_SGIXP_XP_H)\n&\n(B3 <-> B1 & CONFIG_X86_UV | CONFIG_IA64_SGI_UV)\n&\n(B6 <-> B1 & !is_uv)\n&\n(B9 <-> B1 & CONFIG_IA64)\n&\n(B12 <-> B1 & !is_shub1)\n&\n(B15 <-> B1 & !is_shub2)\n&\n(B18 <-> B1 & !is_shub)\n&\n(B21 <-> B1 & USE_DBUG_ON)\n&\n(B23 <-> B1 & !B21)\n&\n(B26 <-> B1 & XPC_MAX_COMP_338)\n&\n(CONFIG_ACPI -> !CONFIG_IA64_HP_SIM & (CONFIG_IA64 | CONFIG_X86) & CONFIG_PCI & CONFIG_PM)\n&\n(CONFIG_CHOICE_6 -> !CONFIG_X86_ELAN)\n&\n(CONFIG_CHOICE_8 -> CONFIG_X86_32)\n&\n(CONFIG_HIGHMEM64G -> CONFIG_CHOICE_8 & !CONFIG_M386 & !CONFIG_M486)\n&\n(CONFIG_INTR_REMAP -> CONFIG_X86_64 & CONFIG_X86_IO_APIC & CONFIG_PCI_MSI & CONFIG_ACPI & CONFIG_EXPERIMENTAL)\n&\n(CONFIG_M386 -> CONFIG_CHOICE_6 & CONFIG_X86_32 & !CONFIG_UML)\n&\n(CONFIG_M486 -> CONFIG_CHOICE_6 & CONFIG_X86_32)\n&\n(CONFIG_NUMA -> CONFIG_SMP & (CONFIG_X86_64 | CONFIG_X86_32 & CONFIG_HIGHMEM64G & (CONFIG_X86_NUMAQ | CONFIG_X86_BIGSMP | CONFIG_X86_SUMMIT & CONFIG_ACPI) & CONFIG_EXPERIMENTAL))\n&\n(CONFIG_PCI_MSI -> CONFIG_PCI & CONFIG_ARCH_SUPPORTS_MSI)\n&\n(CONFIG_PM -> !CONFIG_IA64_HP_SIM)\n&\n(CONFIG_X86_32_NON_STANDARD -> CONFIG_X86_32 & CONFIG_SMP & CONFIG_X86_EXTENDED_PLATFORM)\n&\n(CONFIG_X86_BIGSMP -> CONFIG_X86_32 & CONFIG_SMP)\n&\n(CONFIG_X86_ELAN -> CONFIG_X86_32 & CONFIG_X86_EXTENDED_PLATFORM)\n&\n(CONFIG_X86_EXTENDED_PLATFORM -> CONFIG_X86_64)\n&\n(CONFIG_X86_IO_APIC -> CONFIG_X86_64 | CONFIG_SMP | CONFIG_X86_32_NON_STANDARD | CONFIG_X86_UP_APIC)\n&\n(CONFIG_X86_LOCAL_APIC -> CONFIG_X86_64 | CONFIG_SMP | CONFIG_X86_32_NON_STANDARD | CONFIG_X86_UP_APIC)\n&\n(CONFIG_X86_NUMAQ -> CONFIG_X86_32_NON_STANDARD & CONFIG_PCI)\n&\n(CONFIG_X86_SUMMIT -> CONFIG_X86_32_NON_STANDARD)\n&\n(CONFIG_X86_UP_APIC -> CONFIG_X86_32 & !CONFIG_SMP & !CONFIG_X86_32_NON_STANDARD)\n&\n(CONFIG_X86_UV -> CONFIG_X86_64 & CONFIG_X86_EXTENDED_PLATFORM & CONFIG_NUMA & CONFIG_X86_X2APIC)\n&\n(CONFIG_X86_X2APIC -> CONFIG_X86_LOCAL_APIC & CONFIG_X86_64 & CONFIG_INTR_REMAP)\n&\n!(CONFIG_IA64 | CONFIG_IA64_HP_SIM | CONFIG_IA64_SGI_UV | CONFIG_UML)\n", false);
-    return 0;
-};
+}
+END_TEST
+
+
+void
+parse_test(string input, bool good) {
+    static bool_grammar e;
+
+    tree_parse_info<> info = pt_parse(input.c_str(), e, space_p);
+
+    fail_unless((info.full ? true : false) == good,
+                "%s: %d", input.c_str(), info.full);
+}
+
+
+START_TEST(bool_parser_test)
+{
+    parse_test("A", true);
+    parse_test("! A", true);
+    parse_test("--0--", false);
+    parse_test("A & B", true);
+    parse_test("A  |   B", true);
+    parse_test("A &", false);
+    parse_test("(A & B) | C", true);
+    parse_test("A & B & C & D", true);
+    parse_test("A | C & B", true);
+    parse_test("C & B | A", true);
+    parse_test("! ( ! (A))", true);
+    parse_test("!!!!!A", true);
+
+    parse_test("A -> B", true);
+    parse_test(" -> B", false);
+    parse_test("(A -> B) -> A -> A", true);
+    parse_test("(A <-> ! B) | ( B <-> ! A)", true);
+    parse_test("A -> B -> C -> (D -> C)", true);
+
+    parse_test("A & !A | B & !B", true);
+    parse_test("A -> B -> C", true);
+    parse_test("A <-> B", true);
+}
+END_TEST
+
+
+Suite *
+satchecker_suite(void) {
+    Suite *s  = suite_create("SatChecker");
+    TCase *tc_cnf = tcase_create("CNF Translator");
+    tcase_add_test(tc_cnf, cnf_translator_test);
+    suite_add_tcase(s, tc_cnf);
+
+    TCase *tc_bool = tcase_create("Boolean Parser");
+    tcase_add_test(tc_bool, bool_parser_test);
+    suite_add_tcase(s, tc_bool);
+
+    return s;
+}
+
+int main() {
+    Suite *s = satchecker_suite();
+    SRunner *sr = srunner_create(s);
+    srunner_run_all(sr, CK_NORMAL);
+    int number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
 #endif
