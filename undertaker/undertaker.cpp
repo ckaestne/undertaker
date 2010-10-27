@@ -137,10 +137,10 @@ int main (int argc, char ** argv) {
                     process_file(workfiles[i].c_str(), true, loadModels);
                     worked_on++;
                 }
-                std::cerr << "FINISHED: " << worked_on << " files done (" << thread_number << ")" << std::endl;
+                std::cerr << "I: finished: " << worked_on << " files done (" << thread_number << ")" << std::endl;
                 break;
             } else if (pid < 0) {
-                std::cerr << "ERROR: Forking failed. Exiting." << std::endl;
+                std::cerr << "E: Forking failed. Exiting." << std::endl;
                 exit(EXIT_FAILURE);
             } else { /* Father process */
                 forks.push_back(pid);

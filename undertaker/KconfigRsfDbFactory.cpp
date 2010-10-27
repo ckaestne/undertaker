@@ -14,7 +14,7 @@ void KconfigRsfDbFactory::loadWhitelist(std::string file) {
     cmd += file;
     redi::ipstream wlf(cmd);
     KconfigRsfDbFactory *f = getInstance();
-    std::map<std::string, KconfigRsfDb*>::iterator it = f->begin();
+    ModelContainer::iterator it = f->begin();
     if (it == f->end()) {
       return;
     }
@@ -34,29 +34,29 @@ void KconfigRsfDbFactory::loadModels() {
          dir != boost::filesystem::directory_iterator();
          ++dir) {
 
-    boost::match_results<const char*> what;
+        boost::match_results<const char*> what;
 
         std::string filename = dir->path().filename();
 
-    if (boost::regex_search(filename.c_str(), what, r)) {
-        std::string found_arch = what[1];
-        ModelContainer::iterator a = f->find(found_arch);
+        if (boost::regex_search(filename.c_str(), what, r)) {
+            std::string found_arch = what[1];
+            ModelContainer::iterator a = f->find(found_arch);
 
-        if (a == f->end()) {
-                    std::clock_t start = std::clock();
-            f->registerRsfFile(filename.c_str(), found_arch);
-                    found_models++;
-                    std::cout << "loaded rsf model for " << found_arch << " ("
-                              << ((std::clock() - start) / (double) CLOCKS_PER_SEC)
-                              << "s)" << std::endl;
-                }
-    }
+            if (a == f->end()) {
+                std::clock_t start = std::clock();
+                f->registerRsfFile(filename.c_str(), found_arch);
+                found_models++;
+                std::cout << "I: loaded rsf model for " << found_arch << " ("
+                          << ((std::clock() - start) / (double) CLOCKS_PER_SEC)
+                          << "s)" << std::endl;
+            }
+        }
     }
 
     if (found_models > 0) {
-        std::cout << "found " << found_models << " rsf models" << std::endl;
+        std::cout << "I: found " << found_models << " rsf models" << std::endl;
     } else {
-        std::cerr << "ERROR: could not find any rsf models" << std::endl;
+        std::cerr << "E: could not find any rsf models" << std::endl;
         exit(-1);
     }
 }
@@ -73,7 +73,7 @@ void KconfigRsfDbFactory::loadModels(std::string arch) {
         f->registerRsfFile(filename.c_str(), arch);
         std::cout << "called" << std::endl;
     } else {
-        std::cerr << "ERROR: could not find rsf file for arch "
+        std::cerr << "E: could not find rsf file for arch "
                   << arch << std::endl;
         exit(-1);
     }

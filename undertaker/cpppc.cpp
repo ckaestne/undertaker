@@ -9,7 +9,7 @@
 
 int main (int argc, char **argv) {
     if (argc != 2)
-    exit(1);
+        exit(EXIT_FAILURE);
 
     CloudContainer s(argv[1]);
     std::istringstream codesat(s.getConstraints());
@@ -17,12 +17,10 @@ int main (int argc, char **argv) {
     CodeSatStream analyzer(codesat, argv[1], "x86", parents);
 
     try {
-    std::cout << s.getConstraints() << std::endl << std::endl;
-    //std::cout << analyzer.getCodeConstraints("B0") << std::endl;
-    return EXIT_SUCCESS;
+        std::cout << s.getConstraints() << std::endl;
+        return EXIT_SUCCESS;
     } catch (std::runtime_error &e) {
-    std::cerr << "FAILED: " << e.what() << std::endl;
-    return EXIT_FAILURE;
+        std::cerr << "FAILED: " << e.what() << std::endl;
+        return EXIT_FAILURE;
     }
-
 }
