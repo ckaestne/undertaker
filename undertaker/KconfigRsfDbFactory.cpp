@@ -69,7 +69,7 @@ void KconfigRsfDbFactory::loadModels(std::string arch) {
 
     if (a == f->end())
         f->registerRsfFile(filename.c_str(), arch);
-        std::cout << "called" << std::endl;
+        std::cout << "I: Loaded Model for architecture " << arch << std::endl;
     } else {
         std::cerr << "E: could not find rsf file for arch "
                   << arch << std::endl;
