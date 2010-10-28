@@ -254,6 +254,7 @@ SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
         std::cout << std::string(expression.begin(), expression.begin()
                                  + info.length) << endl;
         */
+        Picosat::picosat_reset();
         throw SatCheckerError("SatChecker: Couldn't parse: " + expression);
     }
 }
@@ -270,25 +271,23 @@ SatChecker::fillSatChecker(tree_parse_info<>& info) {
 
 SatChecker::SatChecker(const char *sat, int debug)
   : debug_flags(debug), _sat(std::string(sat)) {
-    Picosat::picosat_init();
-    //    Picosat::picosat_set_global_default_phase(0);
 }
 
 SatChecker::SatChecker(const std::string sat, int debug)
   : debug_flags(debug), _sat(std::string(sat)) {
-    Picosat::picosat_init();
-    //    Picosat::picosat_set_global_default_phase(0);
 }
 
 SatChecker::~SatChecker() {
-    Picosat::picosat_reset();
+
 }
 
 bool SatChecker::operator()() throw (SatCheckerError) {
+    Picosat::picosat_init();
+
     fillSatChecker(_sat);
 
     int res = Picosat::picosat_sat(-1);
-
+    Picosat::picosat_reset();
     if (res == PICOSAT_UNSATISFIABLE)
         return false;
     return true;
