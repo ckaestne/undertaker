@@ -192,7 +192,7 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
     bool zombie = false;
     std::string undead_block= "";
 
-    if (has_parent) {
+    if (has_parent && alive) {
         std::string undead_block= "( " + parent + " & ! " + std::string(block) + " ) & ";
         std::string undead_code_formula = formula;
         undead_code_formula.replace(0,formula.find('\n',0), undead_block);
