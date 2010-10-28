@@ -33,21 +33,16 @@ libparser.a: $(PARSEROBJ) $(HEADERS)
 clean: clean-check
 	rm -rf *.o *.a
 
-test: test-SatChecker
-test-%: %.cpp
+test-%: %.cpp libparser.a
 	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
 
-run-test-%: %
-	for f in tests/*.c; do printf "$$f: examining with $<\n\n"; ./$< $$f; done
-
-run-test-SatChecker: test-SatChecker
-	for t in $^; do ./$$t; done
-
-run-all-tests: run-test-SatChecker run-test-cpppc run-test-undertaker
+run-libcheck: test-SatChecker
+	@for t in $^; do ./$$t; done
 
 check: $(PROGS)
-	$(MAKE) clean-check
+	@$(MAKE) -s clean-check
 	cd validation && ./test-suite
+	@$(MAKE) -s run-libcheck
 
 clean-check:
 	find validation/ \( -name "*.c.output.expected" \
