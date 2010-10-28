@@ -13,5 +13,8 @@ clean:
 	$(MAKE) -C undertaker clean
 	$(MAKE) -C ziz clean
 
+check:
+	$(MAKE) -C undertaker $@
+
 FORCE:
-PHONY: FORCE
+PHONY: FORCE check
