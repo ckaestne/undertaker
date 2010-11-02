@@ -26,26 +26,31 @@ void KconfigRsfDbFactory::loadWhitelist(std::string file) {
 void KconfigRsfDbFactory::loadModels() {
     KconfigRsfDbFactory *f = getInstance();
     int found_models = 0;
+    typedef std::list<std::string> FilenameContainer;
+    FilenameContainer filenames;
 
     const boost::regex r("^kconfig-([[:alnum:]]+)\\.rsf$", boost::regex::perl);
 
     for (boost::filesystem::directory_iterator dir(".");
          dir != boost::filesystem::directory_iterator();
          ++dir) {
+        filenames.push_back(dir->path().filename());
+    }
+    filenames.sort();
 
+    for (FilenameContainer::iterator filename = filenames.begin();
+         filename != filenames.end(); filename++) {
         boost::match_results<const char*> what;
 
-        std::string filename = dir->path().filename();
-
-        if (boost::regex_search(filename.c_str(), what, r)) {
+        if (boost::regex_search(filename->c_str(), what, r)) {
             std::string found_arch = what[1];
             ModelContainer::iterator a = f->find(found_arch);
 
             if (a == f->end()) {
-                f->registerRsfFile(filename.c_str(), found_arch);
+                f->registerRsfFile(filename->c_str(), found_arch);
                 found_models++;
-                
-                std::cout << "I: loaded rsf model for " << found_arch 
+
+                std::cout << "I: loaded rsf model for " << found_arch
                           << std::endl;
             }
         }
