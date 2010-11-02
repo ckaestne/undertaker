@@ -98,7 +98,6 @@ int main (int argc, char ** argv) {
 	case 'a':
 	    arch_specific = true;
             arch = strdup(optarg);	    
-	    std::cout << arch;
 	    break;
         case 'r':
             dumpRuntimes = true;
