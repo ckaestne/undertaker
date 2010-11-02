@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh
 
 PATH=$PATH:/proj/i4vamos/tools/bin
 
