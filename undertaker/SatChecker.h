@@ -76,8 +76,8 @@ private:
     std::map<std::string, int> symbolTable;
     int debug_flags;
     std::string debug_parser;
+    int debug_parser_indent;
     std::string debug_cnf;
-
 
     const std::string _sat;
     clock_t _runtime;
@@ -90,9 +90,20 @@ private:
     void fillSatChecker(tree_parse_info<>& info);
 
     // Debugging stuff
-    void _debug_parser(std::string d) {
-        if (debug_flags & DEBUG_PARSER)
-            debug_parser += d;
+    void _debug_parser(std::string d = "", bool newblock = true) {
+        if (debug_flags & DEBUG_PARSER) {
+            if (d.size()) {
+                debug_parser += "\n";
+                for (int i = 0; i < debug_parser_indent; i++)
+                    debug_parser += " ";
+
+                debug_parser += d;
+                if (newblock)
+                    debug_parser_indent += 2;
+            } else {
+                debug_parser_indent -= 2;
+            }
+        }
     }
 
 };

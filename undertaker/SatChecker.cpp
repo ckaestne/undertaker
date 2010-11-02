@@ -97,13 +97,13 @@ SatChecker::transform_bool_rec(iter_t const& input) {
     if (root_node->value.id() == bool_grammar::symbolID) {
         iter_t inner_node = root_node->children.begin();
         string value (inner_node->value.begin(), inner_node->value.end());
-        _debug_parser(value + " ");
+        _debug_parser("- " + value, false);
         return stringToSymbol(value);
     } else if (root_node->value.id() == bool_grammar::not_symbolID) {
         iter_t inner_node = root_node->children.begin()->children.begin();
-        _debug_parser("(! ");
+        _debug_parser("- not");
         int inner_clause = transform_bool_rec(inner_node);
-        _debug_parser(") ");
+        _debug_parser();
 
         int this_clause  = newSymbol();
         int clause1[3] = { this_clause,  inner_clause, 0};
@@ -122,7 +122,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         int i = 0, end_clause[root_node->children.size() + 2];
 
         int this_clause = newSymbol();
-        _debug_parser("(and ");
+        _debug_parser("- and");
         // A & B & ..:
         // !3 A 0
         // !3 B 0
@@ -141,7 +141,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
 
         addClause(end_clause);
 
-        _debug_parser(") ");
+        _debug_parser();
         return this_clause;
     } else if (root_node->value.id() == bool_grammar::orID) {
         /* Skip and rule if there is only one child */
@@ -156,7 +156,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         // 3 !A 0
         // 3 !B 0
         // !3 A B 0
-        _debug_parser("(or ");
+        _debug_parser("- or");
 
         for (; iter != root_node->children.end(); ++iter) {
             int child_clause = transform_bool_rec(iter);
@@ -168,8 +168,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         end_clause[i++] = 0;
 
         addClause(end_clause);
-        _debug_parser(") ");
-
+        _debug_parser();
 
         return this_clause;
     } else if (root_node->value.id() == bool_grammar::impliesID) {
@@ -185,7 +184,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         // (A -> B)  ->  C
         //    A      ->  C
         //          A
-        _debug_parser("(-> ");
+        _debug_parser("- ->");
         int A_clause = transform_bool_rec(iter);
         iter ++;
         for (; iter != root_node->children.end(); iter++) {
@@ -199,7 +198,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
             addClause(c3);
             A_clause = this_clause;
         }
-        _debug_parser(") ");
+        _debug_parser();
         return A_clause;
     } else if (root_node->value.id() == bool_grammar::iffID) {
         iter_t iter = root_node->children.begin();
@@ -216,7 +215,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         // (A <-> B)  <->  C
         //    A      <->  C
         //          A
-        _debug_parser("(<-> ");
+        _debug_parser("- <->");
         int A_clause = transform_bool_rec(iter);
         iter ++;
         for (; iter != root_node->children.end(); iter++) {
@@ -232,7 +231,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
             addClause(c4);
             A_clause = this_clause;
         }
-        _debug_parser(") ");
+        _debug_parser();
         return A_clause;
     } else {
         /* Just a Container node, we simply go inside and try again. */
@@ -264,24 +263,22 @@ SatChecker::fillSatChecker(tree_parse_info<>& info) {
     iter_t expression = info.trees.begin()->children.begin();
     int top_clause = transform_bool_rec(expression);
     /* This adds the last clause */
-    //    int clause[2] = {top_clause, 0};
-    //    addClause(clause);
     Picosat::picosat_assume(top_clause);
 }
 
 SatChecker::SatChecker(const char *sat, int debug)
-  : debug_flags(debug), _sat(std::string(sat)) {
-}
+  : debug_flags(debug), _sat(std::string(sat)) { }
 
 SatChecker::SatChecker(const std::string sat, int debug)
-  : debug_flags(debug), _sat(std::string(sat)) {
-}
+  : debug_flags(debug), _sat(std::string(sat)) { }
 
-SatChecker::~SatChecker() {
-
-}
+SatChecker::~SatChecker() { }
 
 bool SatChecker::operator()() throw (SatCheckerError) {
+    /* Clear the debug parser, if we are called multiple times */
+    debug_parser.clear();
+    debug_parser_indent = 0;
+
     Picosat::picosat_init();
 
     fillSatChecker(_sat);
@@ -294,7 +291,13 @@ bool SatChecker::operator()() throw (SatCheckerError) {
 }
 
 std::string SatChecker::pprint() {
-    return _sat;
+    if (debug_parser.size() == 0) {
+        int old_debug_flags = debug_flags;
+        debug_flags |= DEBUG_PARSER;
+        (*this)();
+        debug_flags = old_debug_flags;
+    }
+    return debug_parser + "\n";
 }
 
 #ifdef TEST_SatChecker
@@ -382,12 +385,41 @@ START_TEST(bool_parser_test)
 }
 END_TEST
 
+START_TEST(pprinter_test)
+{
+    fail_unless(SatChecker("B72 & ( B67 <->  ! CONFIG_MMU ) "
+                           "& ( B69 <->  ( B67 )  "
+                           "&  ! CONFIG_MMU ) "
+                           "& ( B72 <->  ( B67 )  & CONFIG_MMU )").pprint()
+                ==
+                "\n"
+                "- and\n"
+                "  - B72\n"
+                "  - <->\n"
+                "    - B67\n"
+                "    - not\n"
+                "      - CONFIG_MMU\n"
+                "  - <->\n"
+                "    - B69\n"
+                "    - and\n"
+                "      - B67\n"
+                "      - not\n"
+                "        - CONFIG_MMU\n"
+                "  - <->\n"
+                "    - B72\n"
+                "    - and\n"
+                "      - B67\n"
+                "      - CONFIG_MMU\n");
+}
+END_TEST
+
 
 Suite *
 satchecker_suite(void) {
     Suite *s  = suite_create("SatChecker");
     TCase *tc_cnf = tcase_create("CNF Translator");
     tcase_add_test(tc_cnf, cnf_translator_test);
+    tcase_add_test(tc_cnf, pprinter_test);
     suite_add_tcase(s, tc_cnf);
 
     TCase *tc_bool = tcase_create("Boolean Parser");
