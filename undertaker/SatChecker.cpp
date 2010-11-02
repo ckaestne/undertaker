@@ -21,7 +21,7 @@ using namespace BOOST_SPIRIT_CLASSIC_NS;
 
 struct bool_grammar : public grammar<bool_grammar>
 {
-    enum {symbolID = 2, not_symbolID, andID, orID, impliesID, iffID};
+    enum {symbolID = 2, not_symbolID, andID, orID, impliesID, iffID, equals_noID};
 
     template <typename ScannerT>
     struct definition
@@ -29,6 +29,8 @@ struct bool_grammar : public grammar<bool_grammar>
 
         rule<ScannerT, parser_context<>, parser_tag<symbolID> > symbol;
         rule<ScannerT, parser_context<>, parser_tag<not_symbolID> > not_symbol;
+        rule<ScannerT, parser_context<>, parser_tag<equals_noID> > equals_no_term;
+
         rule<ScannerT, parser_context<>, parser_tag<andID> > and_term;
         rule<ScannerT, parser_context<>, parser_tag<orID> > or_term;
         rule<ScannerT, parser_context<>, parser_tag<impliesID> > implies_term;
@@ -46,7 +48,10 @@ struct bool_grammar : public grammar<bool_grammar>
                 >> no_node_d[ ch_p(')') ];
             not_symbol   = no_node_d[ch_p('!')] >> term;
 
-            term         = group | not_symbol | symbol;
+            equals_no_term = (symbol >> no_node_d[ ch_p("=") >> ch_p("n") ])
+                | (no_node_d[ch_p("n") >> ch_p("=")] >> symbol);
+
+            term         = group | not_symbol | equals_no_term | symbol;
 
             and_term     = term         >> *(no_node_d[ch_p("&")] >> term);
             or_term      = and_term     >> *(no_node_d[ch_p("|")] >> and_term);
@@ -103,6 +108,41 @@ SatChecker::addClause(int *clause) {
 }
 
 int
+SatChecker::notClause(int inner_clause) {
+    int this_clause  = newSymbol();
+
+    int clause1[3] = { this_clause,  inner_clause, 0};
+    int clause2[3] = {-this_clause, -inner_clause, 0};
+
+    addClause(clause1);
+    addClause(clause2);
+
+    return this_clause;
+}
+
+int
+SatChecker::andClause(int A_clause, int B_clause) {
+    // This function just does binary ands in contradiction to the
+    // andID transform_rec
+    // A & B & ..:
+    // !3 A 0
+    // !3 B 0
+    // 3 !A !B 0
+
+    int this_clause = newSymbol();
+
+    int A[] = {-this_clause, A_clause, 0};
+    int B[] = {-this_clause, B_clause, 0};
+    int last[] = {this_clause, -A_clause, -B_clause, 0};
+
+    addClause(A);
+    addClause(B);
+    addClause(last);
+
+    return this_clause;
+}
+
+int
 SatChecker::transform_bool_rec(iter_t const& input) {
     iter_t root_node = input;
  beginning_of_function:
@@ -120,14 +160,22 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         int inner_clause = transform_bool_rec(inner_node);
         _debug_parser();
 
-        int this_clause  = newSymbol();
-        int clause1[3] = { this_clause,  inner_clause, 0};
-        int clause2[3] = {-this_clause, -inner_clause, 0};
+        return notClause(inner_clause);
 
-        addClause(clause1);
-        addClause(clause2);
+    } else if (root_node->value.id() == bool_grammar::equals_noID) {
+        iter_t inner_node = root_node->children.begin()->children.begin();
+        string value (inner_node->value.begin(), inner_node->value.end());
 
-        return this_clause;
+        _debug_parser("- and");
+        _debug_parser("- " + value, false);
+        _debug_parser("- not");
+        _debug_parser("- " + value, false);
+        _debug_parser();
+        _debug_parser();
+
+
+        return andClause(notClause(stringToSymbol(value)),
+                         notClause(stringToSymbol(value + "_MODULE")));
     } else if (root_node->value.id() == bool_grammar::andID) {
         /* Skip and rule if there is only one child */
         if (root_node->children.size() == 1) {
@@ -435,18 +483,33 @@ START_TEST(pprinter_test)
 }
 END_TEST
 
+START_TEST(equals_no_test) {
+    /* This test want to check if the parsing of =n and correct
+       translation works
+    */
+    parse_test("n=MODULE_A", true);
+    parse_test("MODULE_A=n", true);
+    parse_test("MODULE_A = n", true);
+    parse_test("n == MODULE_A", true);
+
+    cnf_test("EQUAL_NO & EQUAL_NO=n", false);
+    cnf_test("A & (B23 <-> A=n) & B23", false);
+    cnf_test("A_MODULE & A=n", false);
+    cnf_test("A & (B23 <-> A) & B23=n", false);
+    cnf_test("!A & !A_MODULE & A=n", true);
+
+} END_TEST
+
 
 Suite *
 satchecker_suite(void) {
     Suite *s  = suite_create("SatChecker");
-    TCase *tc_cnf = tcase_create("CNF Translator");
-    tcase_add_test(tc_cnf, cnf_translator_test);
-    tcase_add_test(tc_cnf, pprinter_test);
-    suite_add_tcase(s, tc_cnf);
-
-    TCase *tc_bool = tcase_create("Boolean Parser");
-    tcase_add_test(tc_bool, bool_parser_test);
-    suite_add_tcase(s, tc_bool);
+    TCase *tc = tcase_create("SatChecker");
+    tcase_add_test(tc, cnf_translator_test);
+    tcase_add_test(tc, pprinter_test);
+    tcase_add_test(tc, bool_parser_test);
+    tcase_add_test(tc, equals_no_test);
+    suite_add_tcase(s, tc);
 
     return s;
 }
