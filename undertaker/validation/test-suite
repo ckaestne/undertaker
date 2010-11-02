@@ -228,6 +228,13 @@ case "$1" in
 	'')
 		do_test_suite
 		if test `expr $ko_tests - $known_ko_tests` -gt 0; then
+		    for f in *.error.diff *.output.diff; do
+		        if test -s "$f"; then
+		            echo "Contents of $f:"
+		            cat "$f"
+		            echo "==="
+		        fi
+		    done
 		    exit 1
 		fi
 		;;
