@@ -1,4 +1,4 @@
-PROGS = scripts/kconfig/dumpconf undertaker/cpppc
+PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/cpppc
 
 all: $(PROGS)
 
@@ -7,6 +7,9 @@ scripts/kconfig/dumpconf: FORCE
 
 undertaker/cpppc: FORCE
 	$(MAKE) -C undertaker cpppc 
+
+undertaker/undertaker: FORCE
+	$(MAKE) -C undertaker undertaker
 
 clean:
 	$(MAKE) -f Makefile.kbuild clean
@@ -17,4 +20,4 @@ check:
 	$(MAKE) -C undertaker $@
 
 FORCE:
-PHONY: FORCE check
+.PHONY: FORCE check
