@@ -61,9 +61,9 @@ docs:
 run-lcov:
 	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage"
 	rm -rf coverage-html ; mkdir coverage-html
-	lcov --directory $(PWD) --zerocounters
+	lcov --directory $(CURDIR) --zerocounters
 	-$(MAKE) check
-	lcov --directory $(PWD) --capture --output-file coverage-html/undertaker.info
+	lcov --directory $(CURDIR) --capture --output-file coverage-html/undertaker.info
 	genhtml -o coverage-html coverage-html/undertaker.info
 
 FORCE:
