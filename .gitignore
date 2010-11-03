@@ -1,6 +1,8 @@
 *~
 *.cmd
 *.o
+*.gcda
+*.gcno
 .tmp_*
 .config
 cscope.files

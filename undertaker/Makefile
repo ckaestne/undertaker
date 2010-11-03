@@ -5,7 +5,8 @@ CFLAGS = -Wall -Wextra -O2 -I../ziz -I../picosat $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =
 LINK.o = $(LINK.cpp)
-LDLIBS = -lbdd -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../picosat/libpicosat.a -lboost_wave-mt
+# LDCOV = -coverage
+LDLIBS = -lbdd -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../picosat/libpicosat.a -lboost_wave-mt $(LDCOV)
 TESTLDFLAGS = -lboost_unit_test_framework
 PARSEROBJ = CloudContainer.o ExpressionParser.o \
 	    VariableToBddMap.o RsfBlocks.o KconfigBdd.o \
@@ -57,5 +58,13 @@ clean-check:
 docs:
 	doxygen
 
+run-lcov:
+	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage"
+	rm -rf coverage-html ; mkdir coverage-html
+	lcov --directory $(PWD) --zerocounters
+	-$(MAKE) check
+	lcov --directory $(PWD) --capture --output-file coverage-html/undertaker.info
+	genhtml -o coverage-html coverage-html/undertaker.info
+
 FORCE:
-.PHONY: all clean FORCE run-% docs validation
+.PHONY: all clean FORCE run-% docs validation run-lcov
