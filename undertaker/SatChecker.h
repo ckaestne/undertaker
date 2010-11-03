@@ -81,6 +81,11 @@ private:
     int stringToSymbol(const std::string &key);
     int newSymbol(void);
     void addClause(int *clause);
+
+    int notClause(int inner_clause);
+    int andClause(int A_clause, int B_clause);
+    int orClause(int A_clause, int B_clause);
+
     int transform_bool_rec(iter_t const& input);
     void fillSatChecker(std::string expression) throw (SatCheckerError);
     void fillSatChecker(tree_parse_info<>& info);
