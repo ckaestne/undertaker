@@ -652,6 +652,7 @@ START_TEST(nequals_no_test) {
     parse_test("MODULE_A!=n", true);
     parse_test("MODULE_A != n", true);
 
+    cnf_test("ABC & ABC=n", false);
     cnf_test("ABC & ABC!=n", true);
     cnf_test("!ABC & !ABC_MODULE & ABC != n", false);
     cnf_test("ABC != n & ABC_MODULE & ! ABC", true);
