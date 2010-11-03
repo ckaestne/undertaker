@@ -21,7 +21,8 @@ using namespace BOOST_SPIRIT_CLASSIC_NS;
 
 struct bool_grammar : public grammar<bool_grammar>
 {
-    enum {symbolID = 2, not_symbolID, andID, orID, impliesID, iffID, equals_noID};
+    enum {symbolID = 2, not_symbolID, andID, orID, impliesID, iffID,
+          equals_noID, equals_moduleID, equals_yesID};
 
     template <typename ScannerT>
     struct definition
@@ -30,6 +31,9 @@ struct bool_grammar : public grammar<bool_grammar>
         rule<ScannerT, parser_context<>, parser_tag<symbolID> > symbol;
         rule<ScannerT, parser_context<>, parser_tag<not_symbolID> > not_symbol;
         rule<ScannerT, parser_context<>, parser_tag<equals_noID> > equals_no_term;
+        rule<ScannerT, parser_context<>, parser_tag<equals_moduleID> > equals_module_term;
+        rule<ScannerT, parser_context<>, parser_tag<equals_yesID> > equals_yes_term;
+
 
         rule<ScannerT, parser_context<>, parser_tag<andID> > and_term;
         rule<ScannerT, parser_context<>, parser_tag<orID> > or_term;
@@ -48,11 +52,22 @@ struct bool_grammar : public grammar<bool_grammar>
                 >> no_node_d[ ch_p(')') ];
             not_symbol   = no_node_d[ch_p('!')] >> term;
 
+            // =y, =m, =n
             equals_no_term = (symbol >> no_node_d[ ch_p("=") >> ch_p("n") ])
                 | (no_node_d[ch_p("n") >> ch_p("=")] >> symbol);
 
-            term         = group | not_symbol | equals_no_term | symbol;
+            equals_module_term = (symbol >> no_node_d[ ch_p("=") >> ch_p("m") ])
+                | (no_node_d[ch_p("m") >> ch_p("=")] >> symbol);
 
+            equals_yes_term = (symbol >> no_node_d[ ch_p("=") >> ch_p("y") ])
+                | (no_node_d[ch_p("y") >> ch_p("=")] >> symbol);
+
+
+            term = group | not_symbol
+                | equals_no_term | equals_module_term | equals_yes_term
+                | symbol;
+
+            /* nodes that aren't leaf nodes */
             and_term     = term         >> *(no_node_d[ch_p("&")] >> term);
             or_term      = and_term     >> *(no_node_d[ch_p("|")] >> and_term);
 
@@ -161,20 +176,51 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         _debug_parser();
 
         return notClause(inner_clause);
-
     } else if (root_node->value.id() == bool_grammar::equals_noID) {
+        /* =n -> !SYMBOL & !SYMBOL_MODULE */
+        iter_t inner_node = root_node->children.begin()->children.begin();
+        string value (inner_node->value.begin(), inner_node->value.end());
+
+        _debug_parser("- and");
+        _debug_parser("- not");
+        _debug_parser("- " + value, false);
+        _debug_parser();
+        _debug_parser("- not");
+        _debug_parser("- " + value + "_MODULE", false);
+        _debug_parser();
+        _debug_parser();
+
+        return andClause(notClause(stringToSymbol(value)),
+                         notClause(stringToSymbol(value + "_MODULE")));
+    } else if (root_node->value.id() == bool_grammar::equals_moduleID) {
+        /* =m -> !SYMBOL & SYMBOL_MODULE */
+        iter_t inner_node = root_node->children.begin()->children.begin();
+        string value (inner_node->value.begin(), inner_node->value.end());
+
+        _debug_parser("- and");
+        _debug_parser("- not");
+        _debug_parser("- " + value, false);
+        _debug_parser();
+        _debug_parser("- " + value + "_MODULE", false);
+        _debug_parser();
+
+
+
+        return andClause(notClause(stringToSymbol(value)),
+                         stringToSymbol(value + "_MODULE"));
+    } else if (root_node->value.id() == bool_grammar::equals_yesID) {
+        /* =y -> SYMBOL & !SYMBOL_MODULE */
         iter_t inner_node = root_node->children.begin()->children.begin();
         string value (inner_node->value.begin(), inner_node->value.end());
 
         _debug_parser("- and");
         _debug_parser("- " + value, false);
         _debug_parser("- not");
-        _debug_parser("- " + value, false);
+        _debug_parser("- " + value + "_MODULE", false);
         _debug_parser();
         _debug_parser();
 
-
-        return andClause(notClause(stringToSymbol(value)),
+        return andClause(stringToSymbol(value),
                          notClause(stringToSymbol(value + "_MODULE")));
     } else if (root_node->value.id() == bool_grammar::andID) {
         /* Skip and rule if there is only one child */
@@ -490,13 +536,46 @@ START_TEST(equals_no_test) {
     parse_test("n=MODULE_A", true);
     parse_test("MODULE_A=n", true);
     parse_test("MODULE_A = n", true);
-    parse_test("n == MODULE_A", true);
 
     cnf_test("EQUAL_NO & EQUAL_NO=n", false);
     cnf_test("A & (B23 <-> A=n) & B23", false);
     cnf_test("A_MODULE & A=n", false);
     cnf_test("A & (B23 <-> A) & B23=n", false);
     cnf_test("!A & !A_MODULE & A=n", true);
+
+} END_TEST
+
+START_TEST(equals_module_test) {
+    /* This test want to check if the parsing of =n and correct
+       translation works
+    */
+    parse_test("m=MODULE_A", true);
+    parse_test("MODULE_A=m", true);
+    parse_test("MODULE_A = m", true);
+
+    cnf_test("EQUAL_NO & EQUAL_NO=m", false);
+    cnf_test("A & (B23 <-> A=m) & B23", false);
+    cnf_test("A_MODULE & (B23 <-> A=m) & B23", true);
+    cnf_test("A_MODULE & A=m", true);
+    cnf_test("A & (B23 <-> A) & B23=m", false);
+    cnf_test("!A & A_MODULE & A=m", true);
+
+} END_TEST
+
+START_TEST(equals_yes_test) {
+    /* This test want to check if the parsing of =n and correct
+       translation works
+    */
+    parse_test("y=MODULE_A", true);
+    parse_test("MODULE_A=y", true);
+    parse_test("MODULE_A = y", true);
+
+    cnf_test("EQUAL_NO & EQUAL_NO=y", true);
+    cnf_test("A_MODULE & (B23 <-> A=y) & B23", false);
+    cnf_test("A & (B23 <-> A=y) & B23", true);
+    cnf_test("A_MODULE & A=y", false);
+    cnf_test("A & (B23_MODULE <-> A) & B23=y", false);
+    cnf_test("A & !A_MODULE & A=y", true);
 
 } END_TEST
 
@@ -509,6 +588,8 @@ satchecker_suite(void) {
     tcase_add_test(tc, pprinter_test);
     tcase_add_test(tc, bool_parser_test);
     tcase_add_test(tc, equals_no_test);
+    tcase_add_test(tc, equals_module_test);
+    tcase_add_test(tc, equals_yes_test);
     suite_add_tcase(s, tc);
 
     return s;
