@@ -19,5 +19,8 @@ clean:
 check:
 	$(MAKE) -C undertaker $@
 
+undertaker-lcov:
+	$(MAKE) -C undertaker run-lcov
+
 FORCE:
-.PHONY: FORCE check
+.PHONY: FORCE check undertaker-lcov
