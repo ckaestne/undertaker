@@ -84,6 +84,7 @@ private:
 
     int notClause(int inner_clause);
     int andClause(int A_clause, int B_clause);
+    int orClause(int A_clause, int B_clause);
 
     int transform_bool_rec(iter_t const& input);
     void fillSatChecker(std::string expression) throw (SatCheckerError);

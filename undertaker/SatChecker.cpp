@@ -22,7 +22,9 @@ using namespace BOOST_SPIRIT_CLASSIC_NS;
 struct bool_grammar : public grammar<bool_grammar>
 {
     enum {symbolID = 2, not_symbolID, andID, orID, impliesID, iffID,
-          equals_noID, equals_moduleID, equals_yesID};
+          equals_noID, equals_moduleID, equals_yesID,
+          nequals_noID, nequals_moduleID, nequals_yesID,
+    };
 
     template <typename ScannerT>
     struct definition
@@ -30,9 +32,15 @@ struct bool_grammar : public grammar<bool_grammar>
 
         rule<ScannerT, parser_context<>, parser_tag<symbolID> > symbol;
         rule<ScannerT, parser_context<>, parser_tag<not_symbolID> > not_symbol;
+
         rule<ScannerT, parser_context<>, parser_tag<equals_noID> > equals_no_term;
         rule<ScannerT, parser_context<>, parser_tag<equals_moduleID> > equals_module_term;
         rule<ScannerT, parser_context<>, parser_tag<equals_yesID> > equals_yes_term;
+
+        rule<ScannerT, parser_context<>, parser_tag<nequals_noID> > nequals_no_term;
+        rule<ScannerT, parser_context<>, parser_tag<nequals_moduleID> > nequals_module_term;
+        rule<ScannerT, parser_context<>, parser_tag<nequals_yesID> > nequals_yes_term;
+
 
 
         rule<ScannerT, parser_context<>, parser_tag<andID> > and_term;
@@ -62,9 +70,20 @@ struct bool_grammar : public grammar<bool_grammar>
             equals_yes_term = (symbol >> no_node_d[ ch_p("=") >> ch_p("y") ])
                 | (no_node_d[ch_p("y") >> ch_p("=")] >> symbol);
 
+            // !=y, !=m, !=n
+            nequals_no_term = (symbol >> no_node_d[ str_p("!=") >> ch_p("n") ])
+                | (no_node_d[ch_p("n") >> str_p("!=")] >> symbol);
+
+            nequals_module_term = (symbol >> no_node_d[ str_p("!=") >> ch_p("m") ])
+                | (no_node_d[ch_p("m") >> str_p("!=")] >> symbol);
+
+            nequals_yes_term = (symbol >> no_node_d[ str_p("!=") >> ch_p("y") ])
+                | (no_node_d[ch_p("y") >> str_p("!=")] >> symbol);
+
 
             term = group | not_symbol
                 | equals_no_term | equals_module_term | equals_yes_term
+                | nequals_no_term | nequals_module_term | nequals_yes_term
                 | symbol;
 
             /* nodes that aren't leaf nodes */
@@ -158,6 +177,29 @@ SatChecker::andClause(int A_clause, int B_clause) {
 }
 
 int
+SatChecker::orClause(int A_clause, int B_clause) {
+    // This function just does binary ands in contradiction to the
+    // andID transform_rec
+    // A & B & ..:
+    // 3 !A 0
+    // 3 !B 0
+    // !3 A B 0
+
+    int this_clause = newSymbol();
+
+    int A[] = {this_clause, -A_clause, 0};
+    int B[] = {this_clause, -B_clause, 0};
+    int last[] = {-this_clause, A_clause, B_clause, 0};
+
+    addClause(A);
+    addClause(B);
+    addClause(last);
+
+    return this_clause;
+}
+
+
+int
 SatChecker::transform_bool_rec(iter_t const& input) {
     iter_t root_node = input;
  beginning_of_function:
@@ -204,8 +246,6 @@ SatChecker::transform_bool_rec(iter_t const& input) {
         _debug_parser("- " + value + "_MODULE", false);
         _debug_parser();
 
-
-
         return andClause(notClause(stringToSymbol(value)),
                          stringToSymbol(value + "_MODULE"));
     } else if (root_node->value.id() == bool_grammar::equals_yesID) {
@@ -222,6 +262,40 @@ SatChecker::transform_bool_rec(iter_t const& input) {
 
         return andClause(stringToSymbol(value),
                          notClause(stringToSymbol(value + "_MODULE")));
+    } else if (root_node->value.id() == bool_grammar::nequals_noID) {
+        /* !=n -> SYMBOL | SYMBOL_MODULE */
+        iter_t inner_node = root_node->children.begin()->children.begin();
+        string value (inner_node->value.begin(), inner_node->value.end());
+
+
+        _debug_parser("- or");
+        _debug_parser("- " + value, false);
+        _debug_parser("- " + value + "_MODULE", false);
+        _debug_parser();
+
+        return orClause(stringToSymbol(value),
+                        stringToSymbol(value + "_MODULE"));
+
+    } else if (root_node->value.id() == bool_grammar::nequals_moduleID) {
+        /* !=m -> !SYMBOL_MODULE */
+        iter_t inner_node = root_node->children.begin()->children.begin();
+        string value (inner_node->value.begin(), inner_node->value.end());
+
+        _debug_parser("- not");
+        _debug_parser("- " + value + "_MODULE", false);
+        _debug_parser();
+
+        return notClause(stringToSymbol(value + "_MODULE"));
+    } else if (root_node->value.id() == bool_grammar::nequals_yesID) {
+        /* !=y -> !SYMBOL */
+        iter_t inner_node = root_node->children.begin()->children.begin();
+        string value (inner_node->value.begin(), inner_node->value.end());
+
+        _debug_parser("- not");
+        _debug_parser("- " + value, false);
+        _debug_parser();
+
+        return notClause(stringToSymbol(value));
     } else if (root_node->value.id() == bool_grammar::andID) {
         /* Skip and rule if there is only one child */
         if (root_node->children.size() == 1) {
@@ -546,9 +620,6 @@ START_TEST(equals_no_test) {
 } END_TEST
 
 START_TEST(equals_module_test) {
-    /* This test want to check if the parsing of =n and correct
-       translation works
-    */
     parse_test("m=MODULE_A", true);
     parse_test("MODULE_A=m", true);
     parse_test("MODULE_A = m", true);
@@ -563,9 +634,6 @@ START_TEST(equals_module_test) {
 } END_TEST
 
 START_TEST(equals_yes_test) {
-    /* This test want to check if the parsing of =n and correct
-       translation works
-    */
     parse_test("y=MODULE_A", true);
     parse_test("MODULE_A=y", true);
     parse_test("MODULE_A = y", true);
@@ -579,6 +647,40 @@ START_TEST(equals_yes_test) {
 
 } END_TEST
 
+START_TEST(nequals_no_test) {
+    parse_test("n!=MODULE_A", true);
+    parse_test("MODULE_A!=n", true);
+    parse_test("MODULE_A != n", true);
+
+    cnf_test("ABC & ABC!=n", true);
+    cnf_test("!ABC & !ABC_MODULE & ABC != n", false);
+    cnf_test("ABC != n & ABC_MODULE & ! ABC", true);
+} END_TEST
+
+START_TEST(nequals_module_test) {
+    parse_test("m!=MODULE_A", true);
+    parse_test("MODULE_A!=m", true);
+    parse_test("MODULE_A != m", true);
+
+    cnf_test("ABC & ABC!=m", true);
+    cnf_test("ABC_MODULE & ABC != m", false);
+    cnf_test("ABC != m & !ABC_MODULE & ABC", true);
+} END_TEST
+
+START_TEST(nequals_yes_test) {
+    /* This test want to check if the parsing of =n and correct
+       translation works
+    */
+    parse_test("y!=MODULE_A", true);
+    parse_test("MODULE_A!=y", true);
+    parse_test("MODULE_A != y", true);
+
+    cnf_test("ABC & ABC!=y", false);
+    cnf_test("!ABC & !ABC_MODULE & ABC != y", true);
+    cnf_test("!ABC & ABC_MODULE & ABC != y", true);
+    cnf_test("ABC & ABC_MODULE & ABC != y", false);
+} END_TEST
+
 
 Suite *
 satchecker_suite(void) {
@@ -590,6 +692,11 @@ satchecker_suite(void) {
     tcase_add_test(tc, equals_no_test);
     tcase_add_test(tc, equals_module_test);
     tcase_add_test(tc, equals_yes_test);
+
+    tcase_add_test(tc, nequals_no_test);
+    tcase_add_test(tc, nequals_module_test);
+    tcase_add_test(tc, nequals_yes_test);
+
     suite_add_tcase(s, tc);
 
     return s;
