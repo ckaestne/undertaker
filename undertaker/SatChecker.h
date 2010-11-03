@@ -48,11 +48,7 @@ public:
      */
     bool operator()() throw (SatCheckerError);
 
-    static bool check(const std::string &sat) throw (SatCheckerError) {
-        SatChecker c(sat.c_str());
-        return c();
-    }
-
+    static bool check(const std::string &sat) throw (SatCheckerError);
     const char *c_str() { return _sat.c_str(); }
     const std::string str() { return _sat; }
 

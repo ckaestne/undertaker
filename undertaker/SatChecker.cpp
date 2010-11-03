@@ -63,6 +63,21 @@ struct bool_grammar : public grammar<bool_grammar>
     };
 };
 
+bool
+SatChecker::check(const std::string &sat) throw (SatCheckerError) {
+    SatChecker c(sat.c_str());
+    try {
+        return c();
+    } catch (SatCheckerError &e) {
+        std::cout << "Syntax Error:" << std::endl;
+        std::cout << sat << std::endl;
+        std::cout << "End of Syntax Error" << std::endl;
+        throw e;
+    }
+    return false;
+}
+
+
     /* Got the impression from normal lisp implementations */
 int
 SatChecker::stringToSymbol(const std::string &key) {
@@ -355,6 +370,13 @@ parse_test(string input, bool good) {
 
     fail_unless((info.full ? true : false) == good,
                 "%s: %d", input.c_str(), info.full);
+
+    if (!info.full) {
+        try {
+            fail_if(SatChecker::check(input));
+            fail();
+        } catch (SatCheckerError &e) {/*IGNORE*/}
+    }
 }
 
 
