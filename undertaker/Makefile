@@ -32,7 +32,8 @@ libparser.a: $(PARSEROBJ) $(HEADERS)
 	ar r $@ $(PARSEROBJ)
 
 clean: clean-check
-	rm -rf *.o *.a
+	rm -rf *.o *.a *.gcda *.gcno
+
 
 test-%: %.cpp libparser.a
 	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
