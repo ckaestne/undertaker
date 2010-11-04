@@ -5,22 +5,30 @@
 #include <fstream>
 
 #include "KconfigRsfDbFactory.h"
+#include "KconfigWhitelist.h"
 
-void KconfigRsfDbFactory::loadWhitelist(std::string file) {
-    /* FIXME: implement whitelist feature */
-    std::string cmd = "cat ";
-    std::string line;
-    cmd += file;
-    redi::ipstream wlf(cmd);
+void KconfigRsfDbFactory::loadWhitelist(const char *file) {
     KconfigRsfDbFactory *f = getInstance();
-    ModelContainer::iterator it = f->begin();
-    if (it == f->end()) {
-      return;
+    if (f->empty())
+        return;
+
+    std::ifstream whitelist(file);
+    std::string line;
+    const boost::regex r("^#.*", boost::regex::perl);
+    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
+
+    int n = 0;
+
+    while (std::getline(whitelist, line)) {
+        boost::match_results<const char*> what;
+
+        if (boost::regex_search(line.c_str(), what, r))
+            continue;
+
+        n++;
+        wl->addToWhitelist(line.c_str());
     }
-    while (std::getline(wlf, line)) {
-      std::cout << line << std::endl;
-      (*it).second->allItems.addToWhitelist(line);
-    }
+    std::cout << "I: loaded " << n << " items to whitelist" << std::endl;
 }
 
 void KconfigRsfDbFactory::loadModels() {
@@ -64,6 +72,10 @@ void KconfigRsfDbFactory::loadModels() {
     }
 }
 
+bool KconfigRsfDbFactory::empty() {
+    return ModelContainer::empty();
+}
+    
 void KconfigRsfDbFactory::loadModels(std::string arch) {
     KconfigRsfDbFactory *f = getInstance();
     std::string filename = "kconfig-" + arch + ".rsf";

@@ -13,9 +13,10 @@ class KconfigRsfDbFactory : protected ModelContainer {
 public:
     static void loadModels();
     static void loadModels(std::string); //for arch-specific analysis
-    static void loadWhitelist(std::string);
+    static void loadWhitelist(const char *file);
     static KconfigRsfDb *lookupModel(const char *arch);
     static KconfigRsfDbFactory *getInstance();
+    bool empty();
 
     iterator begin() { return ModelContainer::begin(); }
     const_iterator begin() const { return ModelContainer::begin(); }

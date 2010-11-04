@@ -72,7 +72,7 @@ int main (int argc, char ** argv) {
 
     int threads = 1;
 
-    while ((opt = getopt(argc, argv, "sb:a:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "sb:a:t:w:")) != -1) {
 	switch (opt) {
 	case 's':
 	    loadModels = false;
@@ -119,6 +119,10 @@ int main (int argc, char ** argv) {
 	} else {
 	  f->loadModels();
 	}
+    }
+    if (whitelist) {
+        f->loadWhitelist(whitelist);
+        free(whitelist);
     }
 
     if (!worklist) {
