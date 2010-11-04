@@ -145,7 +145,7 @@ KconfigRsfDb *KconfigRsfDbFactory::lookupModel(const char *arch)  {
 KconfigRsfDbFactory *KconfigRsfDbFactory::getInstance() {
     static KconfigRsfDbFactory *instance;
     if (!instance) {
-    instance = new KconfigRsfDbFactory();
+        instance = new KconfigRsfDbFactory();
     }
     return instance;
 }
