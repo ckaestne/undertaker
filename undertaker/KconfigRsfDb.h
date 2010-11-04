@@ -44,9 +44,11 @@ public:
     }
     };
 
+    typedef std::map<std::string, Item> WhitelistMap;
+
 
     struct ItemDb : public std::map<std::string, Item> {
-        static std::map<std::string, Item> whitelist;
+        static WhitelistMap whitelist;
         std::map<std::string, Item> missing;
     Item getItem(std::string key) const {
         Item ret;
@@ -56,7 +58,7 @@ public:
             ret.name_ = key;
         return ret;
           } else {
-            std::map<std::string, Item>::const_iterator it = this->whitelist.find(key);
+            WhitelistMap::const_iterator it = this->whitelist.find(key);
             if (it != this->whitelist.end()) {
           return (*it).second;
         }
