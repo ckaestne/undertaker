@@ -8,9 +8,9 @@ LINK.o = $(LINK.cpp)
 # LDCOV = -coverage
 LDLIBS = -lbdd -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../picosat/libpicosat.a -lboost_wave-mt $(LDCOV)
 TESTLDFLAGS = -lboost_unit_test_framework
-PARSEROBJ = CloudContainer.o ExpressionParser.o \
-	    VariableToBddMap.o RsfBlocks.o KconfigBdd.o \
-	    KconfigRsfDb.o KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o
+PARSEROBJ = CloudContainer.o ExpressionParser.o VariableToBddMap.o	\
+	    RsfBlocks.o KconfigBdd.o KconfigWhitelist.o KconfigRsfDb.o	\
+	    KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o
 HEADERS = $(wildcard *.h)
 PROGS = undertaker cpppc
 
