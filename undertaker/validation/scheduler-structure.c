@@ -444,6 +444,7 @@
 
 /*
  * check-name: structure of kernel/sched.c from linux 2.6.35 (edited)
+ * check-command: undertaker -w /dev/null $file
  * check-output-start
 I: loaded rsf model for alpha
 I: loaded rsf model for arm
@@ -469,6 +470,7 @@ I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
+I: loaded 0 items to whitelist
 I: creating scheduler-structure.c.B21.x86.code.globally.undead
 I: creating scheduler-structure.c.B124.x86.missing.dead
 I: creating scheduler-structure.c.B236.x86.kconfig.globally.undead

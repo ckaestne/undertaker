@@ -1843,6 +1843,7 @@ cleanup:
 
 /*
  * check-name: binfmt_elf_fdpic.c
+ * check-command: undertaker -w whitelist $file
  * check-output-start
 I: loaded rsf model for alpha
 I: loaded rsf model for arm
@@ -1868,8 +1869,9 @@ I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
-I: creating binfmt_elf_fdpic.c.B69.x86.code.globally.undead
-I: creating binfmt_elf_fdpic.c.B72.x86.code.globally.dead
-I: creating binfmt_elf_fdpic.c.B72.missing.globally.dead
+I: loaded 1 items to whitelist
+I: not creating binfmt_elf_fdpic.c.B69.x86.code.globally.undead (contains whitelisted item: CONFIG_MMU)
+I: not creating binfmt_elf_fdpic.c.B72.x86.code.globally.dead (contains whitelisted item: CONFIG_MMU)
+I: not creating binfmt_elf_fdpic.c.B72.missing.globally.dead (contains whitelisted item: CONFIG_MMU)
  * check-output-end
  */
