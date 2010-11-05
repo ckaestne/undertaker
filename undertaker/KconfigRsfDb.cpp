@@ -164,11 +164,11 @@ std::string KconfigRsfDb::Item::printItemSat() {
 void KconfigRsfDb::dumpAllItems(std::ostream &out) {
     WhitelistMap::iterator it;
     for(it = allItems.begin(); it != allItems.end(); it++) {
-    Item item = (*it).second;
-    if(item.printItemSat(out))
-        out << std::endl;
-    else
-        out << "No dependency for item: " << (*it).first << "\n";
+        Item item = (*it).second;
+        if(item.printItemSat(out))
+            out << std::endl;
+        else
+            out << "No dependency for item: " << (*it).first << "\n";
     }
 }
 
@@ -176,7 +176,7 @@ void KconfigRsfDb::dumpMissing(std::ostream &out) {
     WhitelistMap::iterator it;
     out << "missing items size: " << this->allItems.missing.size() << std::endl;
     for(it = this->allItems.missing.begin(); it != this->allItems.missing.end(); it++) {
-      out << "Missing item: " << (*it).first << "\n";
+        out << "Missing item: " << (*it).first << "\n";
     }
 }
 
@@ -258,22 +258,22 @@ int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, st
     //std::cout << "SLICE: " << in << ":" << myset.size() << std::endl;
 
     for(std::set<std::string>::iterator it = myset.begin(); it != myset.end(); it++) {
-    std::stringstream ss;
-    KconfigRsfDb::Item item = allItems.getItem(*it);
-    if (item.valid()) {
-        bool go = item.printItemSat(ss);
-        trials++;
-        if (go) {
-        valid_items++;
-        if (conj) {
-            out << "&";
-        }
-        out << ss.str() ;
-        conj = true;
-        }
-    } else {
-      if (item.name_.size() > 1)
-        missing.insert(item.name_);
+        std::stringstream ss;
+        KconfigRsfDb::Item item = allItems.getItem(*it);
+        if (item.valid()) {
+            bool go = item.printItemSat(ss);
+            trials++;
+            if (go) {
+                valid_items++;
+                if (conj) {
+                    out << "&";
+                }
+                out << ss.str() ;
+                conj = true;
+            }
+        } else {
+            if (item.name_.size() > 1)
+                missing.insert(item.name_);
         }
     }
     return valid_items;
