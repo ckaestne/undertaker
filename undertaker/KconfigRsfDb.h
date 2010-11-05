@@ -11,6 +11,14 @@
 
 class KconfigRsfDb {
 public:
+    KconfigRsfDb(std::ifstream &in, std::ostream &log);
+
+    void dumpAllItems(std::ostream &out);
+    void dumpMissing(std::ostream &out);
+    void initializeItems();
+    void findSetOfInterestingItems(std::set<std::string> &working) const;
+    int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const;
+    std::string rewriteExpressionPrefix(std::string exp);
 
     struct Item {
         enum ITEMTYPE { BOOLEAN=1, TRISTATE=2, ITEM=4, CHOICE=8, INVALID=16, WHITELIST=32 };
@@ -46,7 +54,7 @@ public:
 
     typedef std::map<std::string, Item> WhitelistMap;
 
-
+protected:
     struct ItemDb : public std::map<std::string, Item> {
         static WhitelistMap whitelist;
         std::map<std::string, Item> missing;
@@ -81,15 +89,6 @@ public:
     };
 
     ItemDb allItems;
-
-    KconfigRsfDb(std::ifstream &in, std::ostream &log);
-
-    void dumpAllItems(std::ostream &out);
-    void dumpMissing(std::ostream &out);
-    void initializeItems();
-    void findSetOfInterestingItems(std::set<std::string> &working) const;
-    int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const;
-    std::string rewriteExpressionPrefix(std::string exp);
 
     const RsfBlocks &choice() { return choice_; }
     const RsfBlocks &choice_item() { return choice_item_; }
