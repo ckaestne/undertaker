@@ -13,8 +13,8 @@ class KconfigRsfDb {
 public:
     KconfigRsfDb(std::ifstream &in, std::ostream &log);
 
-    void dumpAllItems(std::ostream &out);
-    void dumpMissing(std::ostream &out);
+    void dumpAllItems(std::ostream &out) const;
+    void dumpMissing(std::ostream &out) const;
     void initializeItems();
     void findSetOfInterestingItems(std::set<std::string> &working) const;
     int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const;
@@ -28,22 +28,22 @@ public:
         std::deque<std::string> dependencies_;
         std::deque<Item> choiceAlternatives_;
 
-        bool printItemSat(std::ostream &out);
-        std::string printItemSat();
-        std::string printChoiceAlternative();
+        bool printItemSat(std::ostream &out) const;
+        std::string printItemSat() const;
+        std::string printChoiceAlternative() const;
 
-        std::string getDependencies() {
+        std::string getDependencies() const {
             if (dependencies_.size() > 0)
                 return dependencies_.front();
             else
                 return "";
         }
 
-        bool isChoice() {
+        bool isChoice() const {
             return ( (type_ & CHOICE) == CHOICE);
         }
 
-        bool valid() {
+        bool valid() const {
             return ( (type_ & INVALID) != INVALID);
         }
 
@@ -90,10 +90,10 @@ protected:
 
     ItemDb allItems;
 
-    const RsfBlocks &choice() { return choice_; }
-    const RsfBlocks &choice_item() { return choice_item_; }
-    const RsfBlocks &depends() { return depends_; }
-    const RsfBlocks &item() { return item_; }
+    const RsfBlocks &choice() const { return choice_; }
+    const RsfBlocks &choice_item() const { return choice_item_; }
+    const RsfBlocks &depends() const { return depends_; }
+    const RsfBlocks &item() const { return item_; }
 
     std::ifstream &_in;
     RsfBlocks choice_;

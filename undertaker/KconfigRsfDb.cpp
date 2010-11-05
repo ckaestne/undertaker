@@ -120,13 +120,13 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
     return exp;
 }
 
-std::string KconfigRsfDb::Item::printChoiceAlternative() {
+std::string KconfigRsfDb::Item::printChoiceAlternative() const {
     std::stringstream ret("");
     if (!isChoice() || choiceAlternatives_.size() == 0)
     return ret.str();
 
     ret << "( " << name_ << " -> (";
-    for(std::deque<Item>::iterator i=choiceAlternatives_.begin();  i != choiceAlternatives_.end(); i++) {
+    for(std::deque<Item>::const_iterator i=choiceAlternatives_.begin();  i != choiceAlternatives_.end(); i++) {
     if (i != choiceAlternatives_.begin())
         ret << " | ";
 
@@ -136,7 +136,7 @@ std::string KconfigRsfDb::Item::printChoiceAlternative() {
     return ret.str();
 }
 
-bool KconfigRsfDb::Item::printItemSat(std::ostream &out) {
+bool KconfigRsfDb::Item::printItemSat(std::ostream &out) const {
     if (dependencies_.size() > 0) {
     out << "( " << name_ << " -> (" << dependencies_.front() << ") )" << std::endl;
     if (isChoice()) {
@@ -156,14 +156,14 @@ bool KconfigRsfDb::Item::printItemSat(std::ostream &out) {
 }
 
 
-std::string KconfigRsfDb::Item::printItemSat() {
+std::string KconfigRsfDb::Item::printItemSat() const {
     std::stringstream ss("");
     printItemSat(ss);
     return ss.str();
 }
 
-void KconfigRsfDb::dumpAllItems(std::ostream &out) {
-    WhitelistMap::iterator it;
+void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
+    WhitelistMap::const_iterator it;
     for(it = allItems.begin(); it != allItems.end(); it++) {
         Item item = (*it).second;
         if(item.printItemSat(out))
@@ -173,8 +173,8 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) {
     }
 }
 
-void KconfigRsfDb::dumpMissing(std::ostream &out) {
-    WhitelistMap::iterator it;
+void KconfigRsfDb::dumpMissing(std::ostream &out) const {
+    WhitelistMap::const_iterator it;
     out << "missing items size: " << this->allItems.missing.size() << std::endl;
     for(it = this->allItems.missing.begin(); it != this->allItems.missing.end(); it++) {
         out << "Missing item: " << (*it).first << "\n";
