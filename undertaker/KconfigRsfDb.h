@@ -11,90 +11,56 @@
 
 class KconfigRsfDb {
 public:
-
-    struct Item {
-        enum ITEMTYPE { BOOLEAN=1, TRISTATE=2, ITEM=4, CHOICE=8, INVALID=16, WHITELIST=32 };
-        std::string name_;
-        unsigned int type_;
-        bool required_;
-        std::deque<std::string> dependencies_;
-        std::deque<Item> choiceAlternatives_;
-
-        bool printItemSat(std::ostream &out);
-        std::string printItemSat();
-        std::string printChoiceAlternative();
-
-        std::string getDependencies() {
-            if (dependencies_.size() > 0)
-                return dependencies_.front();
-            else
-                return "";
-        }
-
-        bool isChoice() {
-            return ( (type_ & CHOICE) == CHOICE);
-        }
-
-        bool valid() {
-            return ( (type_ & INVALID) != INVALID);
-        }
-
-        void invalidate() {
-            type_ |= INVALID;
-        }
-    };
-
-    typedef std::map<std::string, Item> WhitelistMap;
-
-
-    struct ItemDb : public std::map<std::string, Item> {
-        static WhitelistMap whitelist;
-        std::map<std::string, Item> missing;
-        Item getItem(std::string key) const {
-            Item ret;
-            std::map<std::string, Item>::const_iterator it = this->find(key);
-            if (it == this->end()) {
-                if (key.compare(0,5,"COMP_") == 0) {
-                    ret.name_ = key;
-                    return ret;
-                } else {
-                    WhitelistMap::const_iterator it = this->whitelist.find(key);
-                    if (it != this->whitelist.end()) {
-                        return (*it).second;
-                    }
-                    ret.invalidate();
-                    ret.name_ = key;
-                    return ret;
-                }
-            } else {
-                ret = (*it).second;
-                return ret;
-            }
-        }
-
-        void addToWhitelist(std::string name) {
-            Item item;
-            item.name_ = name;
-            item.type_ =  Item::WHITELIST;
-            this->whitelist.insert(std::make_pair(item.name_,item));
-        }
-    };
-
-    ItemDb allItems;
+    enum ITEMTYPE { BOOLEAN=1, TRISTATE=2, ITEM=4, CHOICE=8, INVALID=16, WHITELIST=32 };
 
     KconfigRsfDb(std::ifstream &in, std::ostream &log);
 
-    void dumpAllItems(std::ostream &out);
-    void dumpMissing(std::ostream &out);
+    void dumpAllItems(std::ostream &out) const;
+    void dumpMissing(std::ostream &out) const;
     void initializeItems();
     void findSetOfInterestingItems(std::set<std::string> &working) const;
     int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const;
     std::string rewriteExpressionPrefix(std::string exp);
 
-    const RsfBlocks &choice() { return choice_; }
-    const RsfBlocks &choice_item() { return choice_item_; }
-    const RsfBlocks &depends() { return depends_; }
-    const RsfBlocks &item() { return item_; }
+    struct Item {
+        Item(std::string name, unsigned type=ITEM, bool required=false);
+
+        bool printItemSat(std::ostream &out) const;
+        std::string printItemSat() const;
+        std::string printChoiceAlternative() const;
+        std::string getDependencies() const;
+        bool isChoice() const { return ( (type_ & CHOICE) == CHOICE); }
+        bool isWhitelisted() const { return ( (type_ & WHITELIST) == WHITELIST); }
+        bool isValid() const;
+        void invalidate() { type_ |= INVALID; }
+
+        std::string const& name() const { return name_; }
+        std::deque<std::string> &dependencies() { return dependencies_; }
+        std::deque<Item> &choiceAlternatives()  { return choiceAlternatives_; }
+
+    private:
+        std::string name_;
+        unsigned  type_;
+        bool required_;
+
+        std::deque<std::string> dependencies_;
+        std::deque<Item> choiceAlternatives_;
+    };
+
+    typedef std::map<std::string, Item> ItemMap;
+
+protected:
+    struct ItemDb : public ItemMap {
+        ItemMap missing;
+        Item getItem(std::string key) const;        
+    };
+
+    ItemDb allItems;
+
+    const RsfBlocks &choice() const { return choice_; }
+    const RsfBlocks &choice_item() const { return choice_item_; }
+    const RsfBlocks &depends() const { return depends_; }
+    const RsfBlocks &item() const { return item_; }
 
     std::ifstream &_in;
     RsfBlocks choice_;
