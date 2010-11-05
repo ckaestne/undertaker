@@ -1,11 +1,46 @@
 #include "KconfigRsfDb.h"
+#include "KconfigWhitelist.h"
 #include "StringJoiner.h"
 
+#include <cassert>
 #include <cstdlib>
 #include <sstream>
 #include <fstream>
 #include <list>
 #include <stack>
+
+KconfigRsfDb::Item::Item(std::string name, unsigned type, bool required)
+    : name_(name), type_(type), required_(required) {
+    
+    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
+    if (wl->isWhitelisted(name_.c_str()))
+        type_ |= WHITELIST;
+}
+
+std::string KconfigRsfDb::Item::getDependencies() const {
+    if (dependencies_.size() > 0)
+        return dependencies_.front();
+    else
+        return "";
+}
+
+bool KconfigRsfDb::Item::isValid() const {
+    return !((type_ & INVALID) == INVALID);
+}
+
+KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(std::string key) const {
+    ItemMap::const_iterator it = this->find(key);
+
+    if (it == this->end()) {
+        if (key.compare(0,5,"COMP_") == 0) {
+            return Item(key);
+        } else {
+            return Item(key, INVALID);
+        }
+    } else {
+        return (*it).second;
+    }
+}
 
 KconfigRsfDb::KconfigRsfDb(std::ifstream &in, std::ostream &log)
     : _in(in),
@@ -28,33 +63,27 @@ void KconfigRsfDb::initializeItems() {
             continue;
 
         const std::string itemName("CONFIG_" + name);
-        Item i;
-        i.name_ = itemName;
-        i.type_ = i.ITEM;
-        allItems.insert(std::pair<std::string,Item>(itemName, i));
+        Item i(itemName, ITEM);
 
         // tristate constraints
         if (!type.compare("tristate")) {
             const std::string moduleName("CONFIG_" + name + "_MODULE");
-            Item i;
-            i.name_ = moduleName;
-            i.type_ = i.ITEM;
-            allItems.insert(std::pair<std::string,Item>(moduleName, i));
-
-            allItems[itemName].dependencies_.push_front(" ! " + moduleName);
-            allItems[moduleName].dependencies_.push_front(" ! " + itemName);
+            Item m(moduleName, ITEM);
+            i.dependencies().push_front(" ! " + moduleName);
+            m.dependencies().push_front(" ! " + itemName);
+            allItems.insert(std::pair<std::string,Item>(moduleName, m));
         }
+
+        allItems.insert(std::pair<std::string,Item>(itemName, i));
     }
 
     for(RsfBlocks::iterator i = this->choice_.begin(); i != this->choice_.end(); i++) {
         const std::string &itemName = (*i).first;
         const std::string &required = (*i).second.front();
         const std::string choiceName("CONFIG_" + itemName);
-        Item ci;
-        ci.name_ = choiceName;
-        ci.type_ = ci.CHOICE;
-        ci.required_ = required.compare("required") ? true : false;
-        allItems.insert(std::pair<std::string,Item>(ci.name_, ci));
+        Item ci(choiceName, CHOICE, required.compare("required") == 0);
+
+        allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
     }
 
     for(RsfBlocks::iterator i = this->depends_.begin(); i != this->depends_.end(); i++) {
@@ -72,7 +101,9 @@ void KconfigRsfDb::initializeItems() {
         Item item = allItems.getItem("CONFIG_"+itemName);
 
         if (item.isValid()) {
-            allItems["CONFIG_"+itemName].dependencies_.push_front(rewriteExpressionPrefix(exp));
+            ItemDb::iterator i = allItems.find("CONFIG_"+itemName);
+            assert(i != allItems.end());
+            (*i).second.dependencies().push_front(rewriteExpressionPrefix(exp));
         }
     }
 
@@ -81,8 +112,12 @@ void KconfigRsfDb::initializeItems() {
         const std::string &choiceName = (*i).second.front();
         Item choiceItem = allItems.getItem(choiceName);
         Item item = allItems.getItem(itemName);
-        if (item.isValid() && choiceItem.isValid())
-            allItems[choiceName].choiceAlternatives_.push_back(item);
+
+        if (item.isValid() && choiceItem.isValid()) {
+            ItemDb::iterator i = allItems.find(choiceName);
+            assert(i != allItems.end());
+            (*i).second.choiceAlternatives().push_back(item);
+        }
     }
 }
 
@@ -162,6 +197,7 @@ std::string KconfigRsfDb::Item::printItemSat() const {
 
 void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
     ItemMap::const_iterator it;
+
     for(it = allItems.begin(); it != allItems.end(); it++) {
         Item item = (*it).second;
         if(item.printItemSat(out))
@@ -173,6 +209,7 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
 
 void KconfigRsfDb::dumpMissing(std::ostream &out) const {
     ItemMap::const_iterator it;
+
     out << "missing items size: " << this->allItems.missing.size() << std::endl;
     for(it = this->allItems.missing.begin(); it != this->allItems.missing.end(); it++) {
         out << "Missing item: " << (*it).first << "\n";
@@ -264,8 +301,8 @@ int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, st
                 sj.push_back(ss.str());
             }
         } else {
-            if (item.name_.size() > 1)
-                missing.insert(item.name_);
+            if (item.name().size() > 1)
+                missing.insert(item.name());
         }
     }
     out << sj.join("&");

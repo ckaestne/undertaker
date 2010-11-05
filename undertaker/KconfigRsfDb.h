@@ -11,6 +11,8 @@
 
 class KconfigRsfDb {
 public:
+    enum ITEMTYPE { BOOLEAN=1, TRISTATE=2, ITEM=4, CHOICE=8, INVALID=16, WHITELIST=32 };
+
     KconfigRsfDb(std::ifstream &in, std::ostream &log);
 
     void dumpAllItems(std::ostream &out) const;
@@ -21,61 +23,36 @@ public:
     std::string rewriteExpressionPrefix(std::string exp);
 
     struct Item {
-        enum ITEMTYPE { BOOLEAN=1, TRISTATE=2, ITEM=4, CHOICE=8, INVALID=16, WHITELIST=32 };
-        std::string name_;
-        unsigned int type_;
-        bool required_;
-        std::deque<std::string> dependencies_;
-        std::deque<Item> choiceAlternatives_;
+        Item(std::string name, unsigned type=ITEM, bool required=false);
 
         bool printItemSat(std::ostream &out) const;
         std::string printItemSat() const;
         std::string printChoiceAlternative() const;
+        std::string getDependencies() const;
+        bool isChoice() const { return ( (type_ & CHOICE) == CHOICE); }
+        bool isWhitelisted() const { return ( (type_ & WHITELIST) == WHITELIST); }
+        bool isValid() const;
+        void invalidate() { type_ |= INVALID; }
 
-        std::string getDependencies() const {
-            if (dependencies_.size() > 0)
-                return dependencies_.front();
-            else
-                return "";
-        }
+        std::string const& name() const { return name_; }
+        std::deque<std::string> &dependencies() { return dependencies_; }
+        std::deque<Item> &choiceAlternatives()  { return choiceAlternatives_; }
 
-        bool isChoice() const {
-            return ( (type_ & CHOICE) == CHOICE);
-        }
+    private:
+        std::string name_;
+        unsigned  type_;
+        bool required_;
 
-        bool isValid() const {
-            return ( (type_ & INVALID) != INVALID);
-        }
-
-        void invalidate() {
-            type_ |= INVALID;
-        }
+        std::deque<std::string> dependencies_;
+        std::deque<Item> choiceAlternatives_;
     };
 
     typedef std::map<std::string, Item> ItemMap;
 
 protected:
-
     struct ItemDb : public ItemMap {
         ItemMap missing;
-
-        Item getItem(std::string key) const {
-            Item ret;
-            ItemMap::const_iterator it = this->find(key);
-            if (it == this->end()) {
-                if (key.compare(0,5,"COMP_") == 0) {
-                    ret.name_ = key;
-                    return ret;
-                } else {
-                    ret.invalidate();
-                    ret.name_ = key;
-                    return ret;
-                }
-            } else {
-                ret = (*it).second;
-                return ret;
-            }
-        }
+        Item getItem(std::string key) const;        
     };
 
     ItemDb allItems;
