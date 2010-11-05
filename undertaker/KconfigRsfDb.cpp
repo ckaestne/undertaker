@@ -7,8 +7,6 @@
 #include <list>
 #include <stack>
 
-KconfigRsfDb::ItemMap KconfigRsfDb::ItemDb::whitelist;
-
 KconfigRsfDb::KconfigRsfDb(std::ifstream &in, std::ostream &log)
     : _in(in),
       choice_(in, "Choice", log),

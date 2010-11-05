@@ -57,7 +57,6 @@ public:
 protected:
 
     struct ItemDb : public ItemMap {
-        static ItemMap whitelist;
         ItemMap missing;
 
         Item getItem(std::string key) const {
@@ -68,10 +67,6 @@ protected:
                     ret.name_ = key;
                     return ret;
                 } else {
-                    ItemMap::const_iterator it = this->whitelist.find(key);
-                    if (it != this->whitelist.end()) {
-                        return (*it).second;
-                    }
                     ret.invalidate();
                     ret.name_ = key;
                     return ret;
@@ -80,13 +75,6 @@ protected:
                 ret = (*it).second;
                 return ret;
             }
-        }
-
-        void addToWhitelist(std::string name) {
-            Item item;
-            item.name_ = name;
-            item.type_ =  Item::WHITELIST;
-            this->whitelist.insert(std::make_pair(item.name_,item));
         }
     };
 
