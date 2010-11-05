@@ -5,6 +5,7 @@
 
 #include "KconfigRsfDbFactory.h"
 #include "KconfigRsfDb.h"
+#include "KconfigWhitelist.h"
 #include "CodeSatStream.h"
 #include "SatChecker.h"
 #include "Ziz.h"
@@ -309,7 +310,17 @@ bool CodeSatStream::dumpRuntimes() {
 
 
 bool CodeSatStream::writePrettyPrinted(const char *filename, std::string block, const char *contents) const {
+    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
+    const char *wli = wl->containsWhitelistedItem(contents);
+
     std::ofstream out(filename);
+
+    if (wli) {
+        std::cout << "I: not creating " << filename 
+                  << " (contains whitelisted item: " << wli << ")"
+                  << std::endl;
+        return false;
+    }
 
     if (!out.good()) {
         std::cerr << "failed to open " << filename << " for writing " << std::endl;
