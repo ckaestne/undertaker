@@ -1,4 +1,5 @@
 #include "KconfigRsfDb.h"
+#include "StringJoiner.h"
 
 #include <cstdlib>
 #include <sstream>
@@ -249,8 +250,7 @@ void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems
 
 int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const {
     int valid_items = 0;
-    int trials = 0;
-    bool conj = false;
+    StringJoiner sj;
 
     //int in = myset.size();
     findSetOfInterestingItems(myset);
@@ -261,20 +261,16 @@ int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, st
         std::stringstream ss;
         KconfigRsfDb::Item item = allItems.getItem(*it);
         if (item.valid()) {
-            bool go = item.printItemSat(ss);
-            trials++;
-            if (go) {
+            if (item.printItemSat(ss)) {
                 valid_items++;
-                if (conj) {
-                    out << "&";
-                }
-                out << ss.str() ;
-                conj = true;
+                sj.push_back(ss.str());
             }
         } else {
             if (item.name_.size() > 1)
                 missing.insert(item.name_);
         }
     }
+    out << sj.join("&");
+        
     return valid_items;
 }
