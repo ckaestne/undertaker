@@ -7,7 +7,7 @@
 #include <list>
 #include <stack>
 
-KconfigRsfDb::WhitelistMap KconfigRsfDb::ItemDb::whitelist;
+KconfigRsfDb::ItemMap KconfigRsfDb::ItemDb::whitelist;
 
 KconfigRsfDb::KconfigRsfDb(std::ifstream &in, std::ostream &log)
     : _in(in),
@@ -163,7 +163,7 @@ std::string KconfigRsfDb::Item::printItemSat() const {
 }
 
 void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
-    WhitelistMap::const_iterator it;
+    ItemMap::const_iterator it;
     for(it = allItems.begin(); it != allItems.end(); it++) {
         Item item = (*it).second;
         if(item.printItemSat(out))
@@ -174,7 +174,7 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
 }
 
 void KconfigRsfDb::dumpMissing(std::ostream &out) const {
-    WhitelistMap::const_iterator it;
+    ItemMap::const_iterator it;
     out << "missing items size: " << this->allItems.missing.size() << std::endl;
     for(it = this->allItems.missing.begin(); it != this->allItems.missing.end(); it++) {
         out << "Missing item: " << (*it).first << "\n";

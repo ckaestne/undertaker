@@ -52,21 +52,23 @@ public:
         }
     };
 
-    typedef std::map<std::string, Item> WhitelistMap;
+    typedef std::map<std::string, Item> ItemMap;
 
 protected:
-    struct ItemDb : public std::map<std::string, Item> {
-        static WhitelistMap whitelist;
-        std::map<std::string, Item> missing;
+
+    struct ItemDb : public ItemMap {
+        static ItemMap whitelist;
+        ItemMap missing;
+
         Item getItem(std::string key) const {
             Item ret;
-            std::map<std::string, Item>::const_iterator it = this->find(key);
+            ItemMap::const_iterator it = this->find(key);
             if (it == this->end()) {
                 if (key.compare(0,5,"COMP_") == 0) {
                     ret.name_ = key;
                     return ret;
                 } else {
-                    WhitelistMap::const_iterator it = this->whitelist.find(key);
+                    ItemMap::const_iterator it = this->whitelist.find(key);
                     if (it != this->whitelist.end()) {
                         return (*it).second;
                     }
