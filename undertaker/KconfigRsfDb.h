@@ -43,7 +43,7 @@ public:
             return ( (type_ & CHOICE) == CHOICE);
         }
 
-        bool valid() const {
+        bool isValid() const {
             return ( (type_ & INVALID) != INVALID);
         }
 

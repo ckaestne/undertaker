@@ -73,7 +73,7 @@ void KconfigRsfDb::initializeItems() {
 
         Item item = allItems.getItem("CONFIG_"+itemName);
 
-        if (item.valid()) {
+        if (item.isValid()) {
             allItems["CONFIG_"+itemName].dependencies_.push_front(rewriteExpressionPrefix(exp));
         }
     }
@@ -83,7 +83,7 @@ void KconfigRsfDb::initializeItems() {
         const std::string &choiceName = (*i).second.front();
         Item choiceItem = allItems.getItem(choiceName);
         Item item = allItems.getItem(itemName);
-        if (item.valid() && choiceItem.valid())
+        if (item.isValid() && choiceItem.isValid())
             allItems[choiceName].choiceAlternatives_.push_back(item);
     }
 }
@@ -232,7 +232,7 @@ void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems
     while (!workingStack.empty()) {
         Item item = allItems.getItem(workingStack.top());
         workingStack.pop();
-        if (item.valid()) {
+        if (item.isValid()) {
             std::string exp = item.printItemSat();//allItems.items_[*it].getDependencies();
             if (!exp.empty()) {
                 listtmp = itemsOfString(exp);
@@ -260,7 +260,7 @@ int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, st
     for(std::set<std::string>::iterator it = myset.begin(); it != myset.end(); it++) {
         std::stringstream ss;
         KconfigRsfDb::Item item = allItems.getItem(*it);
-        if (item.valid()) {
+        if (item.isValid()) {
             if (item.printItemSat(ss)) {
                 valid_items++;
                 sj.push_back(ss.str());
