@@ -44,7 +44,7 @@ public:
      * Checks the given string with an sat solver
      * @param sat the formula to be checked
      * @returns true, if satisfiable, false otherwise
-     * @throws if syntax error of if the checker tool could not be found
+     * @throws if syntax error
      */
     bool operator()() throw (SatCheckerError);
 
@@ -68,8 +68,15 @@ public:
                  DEBUG_PARSER = 1,
                  DEBUG_CNF = 2 };
 
+    /* After doing the check, you can get the assignments for the
+       formular */
+    std::map<std::string, int> getAssignment() {
+        return assignmentTable;
+    }
+
 private:
     std::map<std::string, int> symbolTable;
+    std::map<std::string, int> assignmentTable;
     int debug_flags;
     std::string debug_parser;
     int debug_parser_indent;
