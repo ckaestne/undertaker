@@ -463,6 +463,8 @@ bool SatChecker::operator()() throw (SatCheckerError) {
     debug_parser_indent = 0;
 
     Picosat::picosat_init();
+    // try to enable as many features as possible
+    Picosat::picosat_set_global_default_phase(1);
 
     fillSatChecker(_sat);
 
