@@ -302,6 +302,44 @@ void CodeSatStream::analyzeBlocks() {
     }
 }
 
+void CodeSatStream::blockCoverage() {
+    std::set<std::string>::iterator i;
+    std::set<std::string> blocks_set;
+    int sat_calls = 0;
+    KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+
+    try {
+	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
+	    KconfigRsfDb *p_model = f->lookupModel(_primary_arch);
+            std::string formula = (*i) + " & " ;
+	    //formula += getCodeConstraints((*i).c_str());
+	    std::set<std::string> missingSet;
+	    formula += getKconfigConstraints((*i).c_str(), p_model, missingSet);
+	    if (blocks_set.find(*i) == blocks_set.end()) {
+                SatChecker sc(formula);
+
+                // unsolvable, i.e. we have found some defect!
+                if (!sc())
+                    continue;
+
+                sat_calls++;
+                SatChecker::AssignmentMap assignments = sc.getAssignment();
+                SatChecker::AssignmentMap::const_iterator it;
+                for (it = assignments.begin(); it != assignments.end(); it++) {
+                    if ((*it).second)
+                        blocks_set.insert((*it).first);
+                }
+                //std::cout << "checking coverage for: " << *i << std::endl << formula << std::endl; 
+	    }
+	}
+	std::cout << "blocks: " << _blocks.size() << ", sat_calls: " << sat_calls << ", "
+                  << "blocks_set: " << blocks_set.size() << std::endl;
+    } catch (SatCheckerError &e) {
+	std::cerr << "Couldn't process " << _filename << ": "
+		  << e.what() << std::endl;
+    }
+}
+
 bool CodeSatStream::dumpRuntimes() {
     std::list<RuntimeEntry>::iterator it;
     for ( it=this->runtimes.begin() ; it != this->runtimes.end(); it++ )

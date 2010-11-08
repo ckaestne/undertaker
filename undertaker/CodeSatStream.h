@@ -62,6 +62,7 @@ public:
     std::string getCodeConstraints(const char *block);
     std::string getKconfigConstraints(const char * block, const KconfigRsfDb *model, std::set<std::string> &missing);
     std::string getMissingItemsConstraints(const char * block, const KconfigRsfDb *model,  std::set<std::string> &missing);
+    void blockCoverage();
 
     bool dumpRuntimes();
 //    static const RuntimeTable &getRuntimes();
