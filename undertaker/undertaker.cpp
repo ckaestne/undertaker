@@ -16,27 +16,43 @@ typedef std::deque<BlockCloud> CloudList;
 void usage(std::ostream &out, const char *error) {
     if (error)
 	out << error << std::endl;
-    out << "Usage: undertaker [-b worklist] [-w whitelist] [-a arch] -s" << " <file>\n";
+    out << "Usage: undertaker [-b worklist] [-w whitelist] [-a arch] [-c] [-r] -s" << " <file>\n";
     out << "  -b: specify a worklist (batch mode)\n";
     out << "  -t: specify count of parallel processes (only in batch mode)\n";
     out << "  -w: specify a whitelist\n";
+    out << "  -a: specify a unique arch\n";
+    out << "  -c: coverage analysis mode\n";
     out << "  -s: skip loading variability models\n";
-    out << "  -a: specify a unique arch \n";
     out << "  -r: dump runtimes\n";
     out << std::endl;
 }
 
 void process_file(const char *filename, bool batch_mode, bool loadModels,
-                  bool dumpRuntimes) {
+                  bool dumpRuntimes, bool coverage) {
+
     CloudContainer s(filename);
     if (!s.good()) {
 	usage(std::cout, "couldn't open file");
 	return;
     }
 
+    if (coverage) {
+        std::map<std::string,std::string> parents;
+        std::istringstream codesat(s.getConstraints());
+        std::string primary_arch = "x86";
+        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+        if (f->size() == 1)
+            primary_arch = f->begin()->first;
+        CodeSatStream analyzer(codesat, filename, primary_arch.c_str(),
+                               s.getParents(), NULL, batch_mode, loadModels);
+        analyzer.blockCoverage();
+        return;
+    }
+
     std::istringstream cs(s.getConstraints());
     clock_t start, end;
     double t = -1;
+
     start = clock();
     for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
       std::istringstream codesat(c->getConstraints());
@@ -69,10 +85,11 @@ int main (int argc, char ** argv) {
     char *whitelist = NULL;
     char *arch = NULL;
     bool arch_specific = false;
+    bool coverage = false;
 
     int threads = 1;
 
-    while ((opt = getopt(argc, argv, "sb:a:t:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "sb:a:t:w:c")) != -1) {
 	switch (opt) {
 	case 's':
 	    loadModels = false;
@@ -101,6 +118,10 @@ int main (int argc, char ** argv) {
 	    break;
         case 'r':
             dumpRuntimes = true;
+            break;
+        case 'c':
+            coverage = true;
+            break;
 	default:
 	    break;
 	}
@@ -127,7 +148,7 @@ int main (int argc, char ** argv) {
 
     if (!worklist) {
         /* If not in batch mode, don't do any parallel things */
-	process_file(argv[optind], false, loadModels, dumpRuntimes);
+        process_file(argv[optind], false, loadModels, dumpRuntimes, coverage);
     } else {
 	std::ifstream workfile(worklist);
 	std::string line;
@@ -147,7 +168,7 @@ int main (int argc, char ** argv) {
                 std::cout << "Fork " << thread_number << " started." << std::endl;
                 int worked_on = 0;
                 for (unsigned int i = thread_number; i < workfiles.size(); i+= threads) {
-                    process_file(workfiles[i].c_str(), true, loadModels, dumpRuntimes);
+                    process_file(workfiles[i].c_str(), true, loadModels, dumpRuntimes, coverage);
                     worked_on++;
                 }
                 std::cerr << "I: finished: " << worked_on << " files done (" << thread_number << ")" << std::endl;
