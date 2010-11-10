@@ -165,6 +165,7 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
     bool has_parent = !parent.empty();
 
     bool alive = true;
+    bool hasMissing = false;
 
     if (!code_constraints()) {
         const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.dead";
@@ -187,14 +188,14 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
                 const std::string filename= _filename + "." + block + "." + _primary_arch +".missing.dead";
                 writePrettyPrinted(filename.c_str(),block, missing_constraints.c_str());
                 alive = false;
+                hasMissing = true;
             }
         }
     }
     bool zombie = false;
-    std::string undead_block= "";
+    std::string undead_block= "( " + parent + " & ! " + std::string(block) + " ) & ";
 
     if (has_parent && alive) {
-        std::string undead_block= "( " + parent + " & ! " + std::string(block) + " ) & ";
         std::string undead_code_formula = formula;
         undead_code_formula.replace(0,formula.find('\n',0), undead_block);
         std::string undead_kconfig_formula = kconfig_formula.replace(0,formula.find('\n',0), undead_block); //kaputt
@@ -216,6 +217,7 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
                     const std::string filename = _filename + "." + block + "." + _primary_arch +".missing.undead";
                     writePrettyPrinted(filename.c_str(),block, undead_missing_constraints.c_str());
                     zombie = true;
+                    hasMissing = true;
                 }
             }
         }
@@ -228,7 +230,7 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
     std::string undead_missing = "";
     if (dead || zombie) {
 
-        if (!_doCrossCheck)
+        if (!_doCrossCheck || !hasMissing)
             return;
 
         ModelContainer::iterator i;
