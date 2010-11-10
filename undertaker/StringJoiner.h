@@ -13,11 +13,12 @@ struct StringJoiner : public std::deque<std::string> {
             return "";
 
         ss << front();
-        pop_front();
 
-        while (size() > 0) {
-            ss << j << front();
-            pop_front();
+        std::deque<std::string>::const_iterator i = begin() + 1;
+
+        while (i != end()) {
+            ss << j << *i;
+            i++;
         }
         return ss.str();
     }
