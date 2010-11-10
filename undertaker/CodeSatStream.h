@@ -11,6 +11,7 @@
 
 #include "KconfigRsfDb.h"
 #include "CloudContainer.h"
+#include "SatChecker.h"
 
 //typedef std::pair <const char *, clock_t> RuntimeEntry; //< filename, runtime
 class RuntimeEntry {
@@ -62,7 +63,7 @@ public:
     std::string getCodeConstraints(const char *block);
     std::string getKconfigConstraints(const char * block, const KconfigRsfDb *model, std::set<std::string> &missing);
     std::string getMissingItemsConstraints(const char * block, const KconfigRsfDb *model,  std::set<std::string> &missing);
-    void blockCoverage();
+    std::list<SatChecker::AssignmentMap> blockCoverage();
 
     bool dumpRuntimes();
 //    static const RuntimeTable &getRuntimes();

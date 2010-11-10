@@ -6,6 +6,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <boost/regex.hpp>
 
 #include "KconfigRsfDbFactory.h"
 #include "CloudContainer.h"
@@ -37,6 +38,7 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
     }
 
     if (coverage) {
+        std::list<SatChecker::AssignmentMap> solution;
         std::map<std::string,std::string> parents;
         std::istringstream codesat(s.getConstraints());
         std::string primary_arch = "x86";
@@ -45,7 +47,24 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
             primary_arch = f->begin()->first;
         CodeSatStream analyzer(codesat, filename, primary_arch.c_str(),
                                s.getParents(), NULL, batch_mode, loadModels);
-        analyzer.blockCoverage();
+        int i = 1;
+
+        solution = analyzer.blockCoverage();
+        std::cout << filename << " contains " << analyzer.Blocks().size()
+                  << " blocks" << std::endl;
+        std::cout << "Size of solution: " << solution.size() << std::endl;
+        std::list<SatChecker::AssignmentMap>::iterator it;
+        for (it = solution.begin(); it != solution.end(); it++) {
+            static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
+            SatChecker::AssignmentMap::iterator j;
+            std::cout << "Solution " << i++ << ": ";
+            for (j = (*it).begin(); j != (*it).end(); j++) {
+                if (boost::regex_match((*j).first, block_regexp))
+                    continue;
+                std::cout << "(" << (*j).first << "=" << (*j).second << ") ";
+            }
+            std::cout << std::endl;
+        }
         return;
     }
 

@@ -302,9 +302,10 @@ void CodeSatStream::analyzeBlocks() {
     }
 }
 
-void CodeSatStream::blockCoverage() {
+std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
     std::set<std::string>::iterator i;
     std::set<std::string> blocks_set;
+    std::list<SatChecker::AssignmentMap> ret;
     int sat_calls = 0;
     KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
 
@@ -316,6 +317,8 @@ void CodeSatStream::blockCoverage() {
 	    std::set<std::string> missingSet;
 	    formula += getKconfigConstraints((*i).c_str(), p_model, missingSet);
 	    if (blocks_set.find(*i) == blocks_set.end()) {
+                /* does the new contributes to the set of configurations? */
+                bool new_solution = false;
                 SatChecker sc(formula);
 
                 // unsolvable, i.e. we have found some defect!
@@ -326,18 +329,21 @@ void CodeSatStream::blockCoverage() {
                 SatChecker::AssignmentMap assignments = sc.getAssignment();
                 SatChecker::AssignmentMap::const_iterator it;
                 for (it = assignments.begin(); it != assignments.end(); it++) {
-                    if ((*it).second)
+                    if ((*it).second) {
                         blocks_set.insert((*it).first);
+                        new_solution = true;
+                    }
                 }
+                if (new_solution)
+                    ret.push_back(assignments);
                 //std::cout << "checking coverage for: " << *i << std::endl << formula << std::endl; 
 	    }
 	}
-	std::cout << "blocks: " << _blocks.size() << ", sat_calls: " << sat_calls << ", "
-                  << "blocks_set: " << blocks_set.size() << std::endl;
     } catch (SatCheckerError &e) {
 	std::cerr << "Couldn't process " << _filename << ": "
 		  << e.what() << std::endl;
     }
+    return ret;
 }
 
 bool CodeSatStream::dumpRuntimes() {
