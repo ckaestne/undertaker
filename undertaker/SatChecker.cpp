@@ -463,11 +463,25 @@ bool SatChecker::operator()() throw (SatCheckerError) {
     debug_parser_indent = 0;
 
     Picosat::picosat_init();
+    // try to enable as many features as possible
+    Picosat::picosat_set_global_default_phase(1);
 
     fillSatChecker(_sat);
 
     int res = Picosat::picosat_sat(-1);
+
+    if (res == PICOSAT_SATISFIABLE) {
+        /* Let's get the assigment out of picosat, because we have to
+           reset the sat solver afterwards */
+        std::map<std::string, int>::const_iterator it;
+        for (it = symbolTable.begin(); it != symbolTable.end(); ++it) {
+            bool selected = Picosat::picosat_deref(it->second) == 1;
+            assignmentTable.insert(std::make_pair(it->first, selected));
+        }
+    }
+
     Picosat::picosat_reset();
+
     if (res == PICOSAT_UNSATISFIABLE)
         return false;
     return true;

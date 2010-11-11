@@ -44,7 +44,7 @@ public:
      * Checks the given string with an sat solver
      * @param sat the formula to be checked
      * @returns true, if satisfiable, false otherwise
-     * @throws if syntax error of if the checker tool could not be found
+     * @throws if syntax error
      */
     bool operator()() throw (SatCheckerError);
 
@@ -68,8 +68,24 @@ public:
                  DEBUG_PARSER = 1,
                  DEBUG_CNF = 2 };
 
+    /**
+     * Map to check what blocks have been set.
+     * key:   something like 'B42'
+     * value: true if set, false if unset or unknown
+     */
+    typedef std::map<std::string, bool> AssignmentMap;
+
+    /**
+     * After doing the check, you can get the assignments for the
+     * formula
+     */
+    AssignmentMap getAssignment() {
+        return assignmentTable;
+    }
+
 private:
     std::map<std::string, int> symbolTable;
+    AssignmentMap assignmentTable;
     int debug_flags;
     std::string debug_parser;
     int debug_parser_indent;
