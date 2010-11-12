@@ -114,6 +114,10 @@ std::string CodeSatStream::getKconfigConstraints(const char *block,
     std::stringstream kc;
     std::string code = this->getCodeConstraints(block);
     int slice = -1;
+
+    if (!_doCrossCheck)
+        return code;
+
     int inter = model->doIntersect(Items(), ss, missing, slice);
     SLICE_fixit = slice;
     if (inter > 0) {
@@ -128,6 +132,9 @@ std::string CodeSatStream::getKconfigConstraints(const char *block,
 std::string CodeSatStream::getMissingItemsConstraints(const char *block,
                                                       const KconfigRsfDb *model,
                                                       std::set<std::string> &missing) {
+    if(!_doCrossCheck)
+        return this->getCodeConstraints(block);
+
     std::string kc = this->getKconfigConstraints(block, model, missing);
     std::string missingTerm = buildTermMissingItems(missing);
     std::stringstream kcm;
