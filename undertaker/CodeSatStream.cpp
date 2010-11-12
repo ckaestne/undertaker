@@ -160,8 +160,8 @@ std::string CodeSatStream::getMissingItemsConstraints(const char *block,
  */
 
 void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
-    KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
     std::set<std::string> missingSet;
+    KconfigRsfDb *p_model = 0;
 
     std::string formula = getCodeConstraints(block);
     std::string kconfig_formula = "";
@@ -174,12 +174,16 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
     bool alive = true;
     bool hasMissing = false;
 
+    if (_doCrossCheck) {
+        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+        p_model = f->lookupModel(_primary_arch);
+    }
+
     if (!code_constraints()) {
         const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.dead";
         writePrettyPrinted(filename.c_str(),block, code_constraints.c_str());
         alive = false;
     } else if (_doCrossCheck){
-        KconfigRsfDb *p_model = f->lookupModel(_primary_arch);
         kconfig_formula = getKconfigConstraints(block, p_model, missingSet);
         SatChecker kconfig_constraints(kconfig_formula);
         re.slice = SLICE_fixit; //fucking ugly!!!! fix it!
@@ -230,15 +234,16 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
         }
     }
 
+    if (!_doCrossCheck || !hasMissing)
+        return;
+
     bool deadDone = false;
     bool zombieDone = false;
     bool dead = !alive;
     std::string dead_missing = "";
     std::string undead_missing = "";
     if (dead || zombie) {
-
-        if (!_doCrossCheck || !hasMissing)
-            return;
+        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
 
         ModelContainer::iterator i;
         for(i = f->begin(); i != f->end(); i++) {
@@ -314,11 +319,15 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
     std::set<std::string> blocks_set;
     std::list<SatChecker::AssignmentMap> ret;
     int sat_calls = 0;
-    KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+    KconfigRsfDb *p_model;
+
+    if(_doCrossCheck) {
+        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+        p_model = f->lookupModel(_primary_arch);
+    }
 
     try {
 	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
-	    KconfigRsfDb *p_model = f->lookupModel(_primary_arch);
             std::string formula = (*i) + " & " ;
 	    //formula += getCodeConstraints((*i).c_str());
 	    std::set<std::string> missingSet;
