@@ -114,6 +114,10 @@ std::string CodeSatStream::getKconfigConstraints(const char *block,
     std::stringstream kc;
     std::string code = this->getCodeConstraints(block);
     int slice = -1;
+
+    if (!_doCrossCheck)
+        return code;
+
     int inter = model->doIntersect(Items(), ss, missing, slice);
     SLICE_fixit = slice;
     if (inter > 0) {
@@ -128,6 +132,9 @@ std::string CodeSatStream::getKconfigConstraints(const char *block,
 std::string CodeSatStream::getMissingItemsConstraints(const char *block,
                                                       const KconfigRsfDb *model,
                                                       std::set<std::string> &missing) {
+    if(!_doCrossCheck)
+        return this->getCodeConstraints(block);
+
     std::string kc = this->getKconfigConstraints(block, model, missing);
     std::string missingTerm = buildTermMissingItems(missing);
     std::stringstream kcm;
@@ -153,8 +160,8 @@ std::string CodeSatStream::getMissingItemsConstraints(const char *block,
  */
 
 void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
-    KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
     std::set<std::string> missingSet;
+    KconfigRsfDb *p_model = 0;
 
     std::string formula = getCodeConstraints(block);
     std::string kconfig_formula = "";
@@ -167,12 +174,16 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
     bool alive = true;
     bool hasMissing = false;
 
+    if (_doCrossCheck) {
+        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+        p_model = f->lookupModel(_primary_arch);
+    }
+
     if (!code_constraints()) {
         const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.dead";
         writePrettyPrinted(filename.c_str(),block, code_constraints.c_str());
         alive = false;
     } else if (_doCrossCheck){
-        KconfigRsfDb *p_model = f->lookupModel(_primary_arch);
         kconfig_formula = getKconfigConstraints(block, p_model, missingSet);
         SatChecker kconfig_constraints(kconfig_formula);
         re.slice = SLICE_fixit; //fucking ugly!!!! fix it!
@@ -223,15 +234,16 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
         }
     }
 
+    if (!_doCrossCheck || !hasMissing)
+        return;
+
     bool deadDone = false;
     bool zombieDone = false;
     bool dead = !alive;
     std::string dead_missing = "";
     std::string undead_missing = "";
     if (dead || zombie) {
-
-        if (!_doCrossCheck || !hasMissing)
-            return;
+        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
 
         ModelContainer::iterator i;
         for(i = f->begin(); i != f->end(); i++) {
@@ -307,16 +319,20 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
     std::set<std::string> blocks_set;
     std::list<SatChecker::AssignmentMap> ret;
     int sat_calls = 0;
-    KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+    KconfigRsfDb *p_model;
+
+    if(_doCrossCheck) {
+        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+        p_model = f->lookupModel(_primary_arch);
+    }
 
     try {
-	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
-	    KconfigRsfDb *p_model = f->lookupModel(_primary_arch);
+        for(i = _blocks.begin(); i != _blocks.end(); ++i) {
             std::string formula = (*i) + " & " ;
-	    //formula += getCodeConstraints((*i).c_str());
-	    std::set<std::string> missingSet;
-	    formula += getKconfigConstraints((*i).c_str(), p_model, missingSet);
-	    if (blocks_set.find(*i) == blocks_set.end()) {
+            //formula += getCodeConstraints((*i).c_str());
+            std::set<std::string> missingSet;
+            formula += getKconfigConstraints((*i).c_str(), p_model, missingSet);
+            if (blocks_set.find(*i) == blocks_set.end()) {
                 /* does the new contributes to the set of configurations? */
                 bool new_solution = false;
                 SatChecker sc(formula);
@@ -336,12 +352,12 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
                 }
                 if (new_solution)
                     ret.push_back(assignments);
-                //std::cout << "checking coverage for: " << *i << std::endl << formula << std::endl; 
-	    }
-	}
+                //std::cout << "checking coverage for: " << *i << std::endl << formula << std::endl;
+            }
+        }
     } catch (SatCheckerError &e) {
-	std::cerr << "Couldn't process " << _filename << ": "
-		  << e.what() << std::endl;
+        std::cerr << "Couldn't process " << _filename << ": "
+                  << e.what() << std::endl;
     }
     return ret;
 }
