@@ -327,12 +327,12 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
     }
 
     try {
-	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
+        for(i = _blocks.begin(); i != _blocks.end(); ++i) {
             std::string formula = (*i) + " & " ;
-	    //formula += getCodeConstraints((*i).c_str());
-	    std::set<std::string> missingSet;
-	    formula += getKconfigConstraints((*i).c_str(), p_model, missingSet);
-	    if (blocks_set.find(*i) == blocks_set.end()) {
+            //formula += getCodeConstraints((*i).c_str());
+            std::set<std::string> missingSet;
+            formula += getKconfigConstraints((*i).c_str(), p_model, missingSet);
+            if (blocks_set.find(*i) == blocks_set.end()) {
                 /* does the new contributes to the set of configurations? */
                 bool new_solution = false;
                 SatChecker sc(formula);
@@ -352,12 +352,12 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
                 }
                 if (new_solution)
                     ret.push_back(assignments);
-                //std::cout << "checking coverage for: " << *i << std::endl << formula << std::endl; 
-	    }
-	}
+                //std::cout << "checking coverage for: " << *i << std::endl << formula << std::endl;
+            }
+        }
     } catch (SatCheckerError &e) {
-	std::cerr << "Couldn't process " << _filename << ": "
-		  << e.what() << std::endl;
+        std::cerr << "Couldn't process " << _filename << ": "
+                  << e.what() << std::endl;
     }
     return ret;
 }
