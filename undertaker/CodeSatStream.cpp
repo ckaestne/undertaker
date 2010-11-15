@@ -326,16 +326,10 @@ void CodeSatStream::analyzeBlocks() {
     }
 }
 
-std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
+std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(KconfigRsfDb *model) {
     std::set<std::string>::iterator i;
     std::set<std::string> blocks_set;
     std::list<SatChecker::AssignmentMap> ret;
-    KconfigRsfDb *p_model = 0;
-
-    if(_doCrossCheck) {
-        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
-        p_model = f->lookupModel(_primary_arch);
-    }
 
     try {
 	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
@@ -344,7 +338,7 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
 
             formula.push_back((*i));
             formula.push_back(getCodeConstraints());
-            formula.push_back(getKconfigConstraints(p_model, missingSet));
+            formula.push_back(getKconfigConstraints(model, missingSet));
 
 	    if (blocks_set.find(*i) == blocks_set.end()) {
                 /* does the new contributes to the set of configurations? */

@@ -69,7 +69,16 @@ public:
     std::string getCodeConstraints();
     std::string getKconfigConstraints(const KconfigRsfDb *model, std::set<std::string> &missing);
     std::string getMissingItemsConstraints(std::set<std::string> &missing);
-    std::list<SatChecker::AssignmentMap> blockCoverage();
+
+    /**
+     * Check for configuration coverage
+     *
+     * This method tries finds a set of configurations so that each and
+     * every block (excluding dead blocks) is selected at least once.
+     *
+     * \param model If not NULL, take the constraints of the goven model into account
+     */
+    std::list<SatChecker::AssignmentMap> blockCoverage(KconfigRsfDb *model);
 
     bool dumpRuntimes();
     RuntimeTable runtimes;

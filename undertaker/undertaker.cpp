@@ -41,15 +41,21 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
         std::list<SatChecker::AssignmentMap> solution;
         std::map<std::string,std::string> parents;
         std::istringstream codesat(s.getConstraints());
-        std::string primary_arch = "x86";
-        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
-        if (f->size() == 1)
-            primary_arch = f->begin()->first;
-        CodeSatStream analyzer(codesat, filename, primary_arch.c_str(),
+        std::string arch = "x86";
+
+        KconfigRsfDb *model = 0;
+        if (loadModels) {
+            KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+            if (f->size() == 1)
+                arch = f->begin()->first;
+            model = f->lookupModel(arch.c_str());
+        }
+
+        CodeSatStream analyzer(codesat, filename, arch.c_str(),
                                s.getParents(), NULL, batch_mode, loadModels);
         int i = 1;
 
-        solution = analyzer.blockCoverage();
+        solution = analyzer.blockCoverage(model);
         std::cout << filename << " contains " << analyzer.Blocks().size()
                   << " blocks" << std::endl;
         std::cout << "Size of solution: " << solution.size() << std::endl;
