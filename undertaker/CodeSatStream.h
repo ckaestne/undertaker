@@ -44,12 +44,20 @@ typedef std::list<RuntimeEntry> RuntimeTable;
 class CodeSatStream : public std::stringstream {
 public:
     CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch,
-           ParentMap parents, BlockCloud *cc=NULL,
+           const ParentMap parents, BlockCloud *cc=NULL,
            bool batch_mode=false, bool loadModels=false);
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
     virtual void analyzeBlock(const char *block);
+
+    /**
+     * Look up the enclosing block, if any
+     *
+     * \return enclosing block, or NULL, if the block is already top-level
+     */
+    const char *getParent(const char *block);
+
     void analyzeBlocks();
 
     static unsigned int getProcessedUnits()  { return processed_units; }
@@ -77,7 +85,7 @@ protected:
     bool _doCrossCheck;
     BlockCloud *_cc;
     const bool _batch_mode;
-    ParentMap parents;
+    const ParentMap parents;
 
     std::stringstream codeConstraints;
     std::stringstream kconfigConstraints;

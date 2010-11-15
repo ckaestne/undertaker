@@ -112,6 +112,14 @@ std::string CodeSatStream::getKconfigConstraints(const KconfigRsfDb *model,
     return std::string(ss.str());
 }
 
+const char *CodeSatStream::getParent(const char *block) {
+    ParentMap::const_iterator i = parents.find(std::string(block));
+    if (i == parents.end())
+        return NULL;
+    else
+        return (*i).second.c_str();
+}
+
 /*
  * possible files created based on findings:
  *
@@ -139,12 +147,11 @@ void CodeSatStream::analyzeBlock(const char *block) {
 
     SatChecker code_constraints(dead_join.join("\n&\n"));
 
-    std::string parent = parents[std::string(block)]; //this is not good, it inserts an empty string if the block has no parents
-    bool has_parent = !parent.empty();
+    const char *parent = getParent(block);
+    bool has_parent = parent != NULL;
 
     bool alive = true;
     bool hasMissing = false;
-
 
     bool crosscheck = _doCrossCheck;
 
@@ -183,9 +190,10 @@ void CodeSatStream::analyzeBlock(const char *block) {
         }
     }
     bool zombie = false;
-    std::string undead_block  = "( " + parent + " & ! " + std::string(block) + " )";
 
     if (has_parent && alive) {
+        std::string undead_block  = "( " + std::string(parent) + " & ! " + std::string(block) + " )";
+
         StringJoiner undead_join;
         undead_join.push_back(undead_block);
 
@@ -247,9 +255,6 @@ void CodeSatStream::analyzeBlock(const char *block) {
             dead_missing = cross_join.join("\n&\n");
             cross_join.pop_front();
 
-            cross_join.push_front(undead_block);
-            undead_missing = cross_join.join("\n&\n");
-
             if (dead) {
                 /* Joiner must be in the original state afterwards */
                 SatChecker missing(dead_missing);
@@ -259,7 +264,13 @@ void CodeSatStream::analyzeBlock(const char *block) {
                     dead = false;
                 }
             }
+
             if (zombie && has_parent) {
+                std::string undead_block  = "( " + std::string(parent) + " & ! " + std::string(block) + " )";
+
+                cross_join.push_front(undead_block);
+                undead_missing = cross_join.join("\n&\n");
+
                 SatChecker missing_undead(undead_missing);
                 bool sat = missing_undead();
                 /* Can be dead on one architecture */
@@ -285,7 +296,6 @@ void CodeSatStream::analyzeBlock(const char *block) {
 
     }
 }
-
 
 void CodeSatStream::analyzeBlocks() {
     std::set<std::string>::iterator i;
