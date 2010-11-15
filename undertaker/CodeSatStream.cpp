@@ -15,7 +15,6 @@ unsigned int CodeSatStream::processed_items;
 unsigned int CodeSatStream::processed_blocks;
 unsigned int CodeSatStream::failed_blocks;
 
-//static RuntimeTable runtimes;
 
 CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch,
                              ParentMap pars, BlockCloud *cc,

@@ -49,7 +49,6 @@ public:
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
-    void composeConstraints(std::string block, const KconfigRsfDb *model);
     virtual void analyzeBlock(const char *block);
     void analyzeBlocks();
 
@@ -65,7 +64,6 @@ public:
     std::list<SatChecker::AssignmentMap> blockCoverage();
 
     bool dumpRuntimes();
-//    static const RuntimeTable &getRuntimes();
     RuntimeTable runtimes;
 
 protected:
