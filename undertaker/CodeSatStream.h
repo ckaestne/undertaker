@@ -49,7 +49,7 @@ public:
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
-    virtual void analyzeBlock(const char *block);
+    virtual void analyzeBlock(const char *block, KconfigRsfDb *p_model);
 
     /**
      * Look up the enclosing block, if any
