@@ -193,22 +193,25 @@ void CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *p_model) {
         undead_join.push_back(code_formula);
         SatChecker undead_code_constraints(undead_join.join("\n&\n"));
 
-        undead_join.push_back(kconfig_formula);
-        SatChecker undead_kconfig_constraints(undead_join.join("\n&\n"));
-
-        undead_join.push_back(missing_formula);
-        SatChecker undead_missing_constraints(undead_join.join("\n&\n"));
-
         if  (!undead_code_constraints()){
             const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.undead";
             writePrettyPrinted(filename.c_str(),block, undead_code_constraints.c_str());
-            zombie = false;
-        } else if (p_model && !zombie) {
+            return;
+        }
+
+        if (p_model) {
+            undead_join.push_back(kconfig_formula);
+            SatChecker undead_kconfig_constraints(undead_join.join("\n&\n"));
+
             if  (!undead_kconfig_constraints()){
                 const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.globally.undead";
                 writePrettyPrinted(filename.c_str(),block, undead_kconfig_constraints.c_str());
                 zombie = true;
             } else {
+
+                undead_join.push_back(missing_formula);
+                SatChecker undead_missing_constraints(undead_join.join("\n&\n"));
+
                 if  (!undead_missing_constraints() & !zombie){
                     const std::string filename = _filename + "." + block + "." + _primary_arch +".missing.undead";
                     writePrettyPrinted(filename.c_str(),block, undead_missing_constraints.c_str());
