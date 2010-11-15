@@ -50,7 +50,7 @@ public:
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
     void composeConstraints(std::string block, const KconfigRsfDb *model);
-    virtual void analyzeBlock(const char *block, RuntimeEntry &re);
+    virtual void analyzeBlock(const char *block);
     void analyzeBlocks();
 
     static unsigned int getProcessedUnits()  { return processed_units; }
@@ -60,7 +60,7 @@ public:
     std::string getFilename() { return _filename; }
 
     std::string getCodeConstraints();
-    std::string getKconfigConstraints(const KconfigRsfDb *model, std::set<std::string> &missing, int &slice);
+    std::string getKconfigConstraints(const KconfigRsfDb *model, std::set<std::string> &missing);
     std::string getMissingItemsConstraints(std::set<std::string> &missing);
     std::list<SatChecker::AssignmentMap> blockCoverage();
 

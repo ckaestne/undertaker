@@ -104,11 +104,10 @@ std::string CodeSatStream::getCodeConstraints() {
 }
 
 std::string CodeSatStream::getKconfigConstraints(const KconfigRsfDb *model,
-                                                 std::set<std::string> &missing,
-                                                 int &slice) {
+                                                 std::set<std::string> &missing) {
     std::stringstream ss;
-    slice = -1;
-    if (!_doCrossCheck || model->doIntersect(Items(), ss, missing, slice) <= 0)
+
+    if (!_doCrossCheck || model->doIntersect(Items(), ss, missing) <= 0)
         return "";
 
     return std::string(ss.str());
@@ -126,7 +125,7 @@ std::string CodeSatStream::getKconfigConstraints(const KconfigRsfDb *model,
  * $block.globally.dead       -> dead on every checked arch
  */
 
-void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
+void CodeSatStream::analyzeBlock(const char *block) {
     std::set<std::string> missingSet;
     KconfigRsfDb *p_model = 0;
 
@@ -162,7 +161,7 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
         alive = false;
     } else if (crosscheck){
         /* Can be ""!! */
-        kconfig_formula = getKconfigConstraints(p_model, missingSet, re.slice);
+        kconfig_formula = getKconfigConstraints(p_model, missingSet);
         dead_join.push_back(kconfig_formula);
         SatChecker kconfig_constraints(dead_join.join("\n&\n"));
 
@@ -238,8 +237,7 @@ void CodeSatStream::analyzeBlock(const char *block, RuntimeEntry &re) {
 
             cross_join.push_back(code_formula);
 
-            int slice;
-            std::string kconfig = getKconfigConstraints(archDb, missingSet, slice);
+            std::string kconfig = getKconfigConstraints(archDb, missingSet);
             cross_join.push_back(kconfig);
 
             std::string missing = getMissingItemsConstraints(missingSet);
@@ -304,7 +302,7 @@ void CodeSatStream::analyzeBlocks() {
             re.i_items = this->Items().size();
 
             start = clock();
-            analyzeBlock((*i).c_str(), re);
+            analyzeBlock((*i).c_str());
             end = clock();
 
             re.rt_full_analysis = end - start;
@@ -334,11 +332,10 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
 	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
 	    std::set<std::string> missingSet;
             StringJoiner formula;
-            int dummy;
 
             formula.push_back((*i));
             formula.push_back(getCodeConstraints());
-            formula.push_back(getKconfigConstraints(p_model, missingSet, dummy));
+            formula.push_back(getKconfigConstraints(p_model, missingSet));
 
 	    if (blocks_set.find(*i) == blocks_set.end()) {
                 /* does the new contributes to the set of configurations? */
