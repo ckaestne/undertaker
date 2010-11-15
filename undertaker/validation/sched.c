@@ -9431,29 +9431,17 @@ I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
 I: loaded 0 items to whitelist
-I: creating sched.c.B49.x86.missing.dead
-I: creating sched.c.B49.missing.globally.dead
-I: creating sched.c.B173.x86.missing.dead
-I: creating sched.c.B173.missing.globally.dead
 I: creating sched.c.B251.x86.missing.dead
 I: creating sched.c.B361.x86.missing.dead
-I: creating sched.c.B361.missing.globally.dead
 I: creating sched.c.B363.x86.missing.dead
-I: creating sched.c.B363.missing.globally.dead
 I: creating sched.c.B363.missing.globally.undead
 I: creating sched.c.B365.x86.missing.dead
 I: creating sched.c.B365.missing.globally.dead
-I: creating sched.c.B365.missing.globally.undead
 I: creating sched.c.B369.x86.missing.dead
-I: creating sched.c.B369.missing.globally.dead
 I: creating sched.c.B397.x86.missing.dead
-I: creating sched.c.B397.missing.globally.dead
 I: creating sched.c.B409.x86.missing.dead
-I: creating sched.c.B409.missing.globally.dead
 I: creating sched.c.B422.x86.missing.dead
-I: creating sched.c.B422.missing.globally.dead
 I: creating sched.c.B438.x86.missing.dead
-I: creating sched.c.B438.missing.globally.dead
 I: creating sched.c.B448.x86.missing.dead
 I: creating sched.c.B448.missing.globally.dead
 I: creating sched.c.B522.x86.kconfig.globally.undead
