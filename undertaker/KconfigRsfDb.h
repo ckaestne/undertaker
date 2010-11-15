@@ -19,7 +19,7 @@ public:
     void dumpMissing(std::ostream &out) const;
     void initializeItems();
     void findSetOfInterestingItems(std::set<std::string> &working) const;
-    int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const;
+    int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const;
     std::string rewriteExpressionPrefix(std::string exp);
 
     struct Item {

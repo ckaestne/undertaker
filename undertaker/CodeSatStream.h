@@ -49,9 +49,8 @@ public:
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
-    std::string buildTermMissingItems(std::set<std::string> missing) const;
     void composeConstraints(std::string block, const KconfigRsfDb *model);
-    virtual void analyzeBlock(const char *block, RuntimeEntry &re);
+    virtual void analyzeBlock(const char *block);
     void analyzeBlocks();
 
     static unsigned int getProcessedUnits()  { return processed_units; }
@@ -60,9 +59,9 @@ public:
     static unsigned int getFailedBocks()     { return failed_blocks; }
     std::string getFilename() { return _filename; }
 
-    std::string getCodeConstraints(const char *block);
-    std::string getKconfigConstraints(const char * block, const KconfigRsfDb *model, std::set<std::string> &missing);
-    std::string getMissingItemsConstraints(const char * block, const KconfigRsfDb *model,  std::set<std::string> &missing);
+    std::string getCodeConstraints();
+    std::string getKconfigConstraints(const KconfigRsfDb *model, std::set<std::string> &missing);
+    std::string getMissingItemsConstraints(std::set<std::string> &missing);
     std::list<SatChecker::AssignmentMap> blockCoverage();
 
     bool dumpRuntimes();
