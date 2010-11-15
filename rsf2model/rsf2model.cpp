@@ -32,9 +32,11 @@ int main (int argc, char ** argv) {
         return EXIT_FAILURE;
     }
 
+    /* Load the rsf model */
     KconfigRsfDb model(rsf_file, devnull);
     model.initializeItems();
 
+    /* Dump all Items to stdout */
     model.dumpAllItems(std::cout);
 
     return EXIT_SUCCESS;

@@ -24,7 +24,7 @@ public:
 
         bool printItemSat(std::ostream &out) const;
         std::string printItemSat() const;
-        std::string printChoiceAlternative() const;
+        std::string dumpChoiceAlternative() const;
         std::string getDependencies() const;
         bool isChoice() const { return ( (type_ & CHOICE) == CHOICE); }
 
