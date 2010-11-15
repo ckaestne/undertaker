@@ -8,19 +8,10 @@
 #include <list>
 #include <stack>
 
+static std::list<std::string> itemsOfString(std::string str);
+
 KconfigRsfDb::Item::Item(std::string name, unsigned type, bool required)
     : name_(name), type_(type), required_(required) { }
-
-std::string KconfigRsfDb::Item::getDependencies() const {
-    if (dependencies_.size() > 0)
-        return dependencies_.front();
-    else
-        return "";
-}
-
-bool KconfigRsfDb::Item::isValid() const {
-    return !((type_ & INVALID) == INVALID);
-}
 
 KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(std::string key) const {
     ItemMap::const_iterator it = this->find(key);
@@ -164,32 +155,6 @@ std::string KconfigRsfDb::Item::printChoiceAlternative() const {
     return ret.str();
 }
 
-bool KconfigRsfDb::Item::printItemSat(std::ostream &out) const {
-    if (dependencies_.size() > 0) {
-    out << "( " << name_ << " -> (" << dependencies_.front() << ") )" << std::endl;
-    if (isChoice()) {
-        std::string ca = printChoiceAlternative();
-        if (!ca.empty()) {
-          out << "&" << ca << std::endl;
-        }
-    }
-    return true;
-    } else {
-    if (isChoice() && choiceAlternatives_.size() > 0) {
-        out << printChoiceAlternative();
-        return true;
-    }
-    return false;
-    }
-}
-
-
-std::string KconfigRsfDb::Item::printItemSat() const {
-    std::stringstream ss("");
-    printItemSat(ss);
-    return ss.str();
-}
-
 void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
     ItemMap::const_iterator it;
 
@@ -215,17 +180,9 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
     }
 }
 
-void KconfigRsfDb::dumpMissing(std::ostream &out) const {
-    ItemMap::const_iterator it;
-
-    out << "missing items size: " << this->allItems.missing.size() << std::endl;
-    for(it = this->allItems.missing.begin(); it != this->allItems.missing.end(); it++) {
-        out << "Missing item: " << (*it).first << "\n";
-    }
-}
-
-
-std::list<std::string> itemsOfString(std::string str) {
+/* Returns all items (config tokens) from a string */
+static std::list<std::string>
+itemsOfString(std::string str) {
     std::list<std::string> mylist;
     std::string::iterator it = str.begin();
     std::string tmp = "";
@@ -245,7 +202,6 @@ std::list<std::string> itemsOfString(std::string str) {
         case ' ':
             if (!tmp.empty()) {
                 mylist.push_back(tmp);
-                //std::cout << "    (itemsOfString) inserting " << tmp << "\n";
                 tmp = "";
             }
         it++;
@@ -261,59 +217,4 @@ std::list<std::string> itemsOfString(std::string str) {
     }
     mylist.unique();
     return mylist;
-}
-
-void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems) const {
-    std::list<std::string> listtmp;
-    std::stack<std::string> workingStack;
-    std::string tmp;
-    for(std::set<std::string>::iterator sit = initialItems.begin(); sit != initialItems.end(); sit++) {
-        //if ((*sit).compare(0,6,"CONFIG_") == 0) //consider only flags that should come from the kconfig model
-        workingStack.push(*sit);
-    }
-
-    while (!workingStack.empty()) {
-        Item item = allItems.getItem(workingStack.top());
-        workingStack.pop();
-        if (item.isValid()) {
-            std::string exp = item.printItemSat();//allItems.items_[*it].getDependencies();
-            if (!exp.empty()) {
-                listtmp = itemsOfString(exp);
-                for(std::list<std::string>::iterator sit = listtmp.begin(); sit != listtmp.end(); sit++) {
-                    if (initialItems.find(*sit) == initialItems.end()) {
-                        workingStack.push(*sit);
-                        initialItems.insert(*sit);
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const {
-    int valid_items = 0;
-    StringJoiner sj;
-
-    //int in = myset.size();
-    findSetOfInterestingItems(myset);
-    slice = myset.size();
-    //std::cout << "SLICE: " << in << ":" << myset.size() << std::endl;
-
-    for(std::set<std::string>::iterator it = myset.begin(); it != myset.end(); it++) {
-        std::stringstream ss;
-        KconfigRsfDb::Item item = allItems.getItem(*it);
-        if (item.isValid()) {
-            if (item.printItemSat(ss)) {
-                valid_items++;
-                sj.push_back(ss.str());
-            }
-        } else {
-            if (item.name().size() > 1)
-                missing.insert(item.name());
-        }
-    }
-    out << sj.join("&");
-        
-    return valid_items;
 }

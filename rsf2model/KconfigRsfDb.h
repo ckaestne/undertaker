@@ -16,10 +16,7 @@ public:
     KconfigRsfDb(std::ifstream &in, std::ostream &log);
 
     void dumpAllItems(std::ostream &out) const;
-    void dumpMissing(std::ostream &out) const;
     void initializeItems();
-    void findSetOfInterestingItems(std::set<std::string> &working) const;
-    int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const;
     std::string rewriteExpressionPrefix(std::string exp);
 
     struct Item {
@@ -30,9 +27,6 @@ public:
         std::string printChoiceAlternative() const;
         std::string getDependencies() const;
         bool isChoice() const { return ( (type_ & CHOICE) == CHOICE); }
-        bool isWhitelisted() const { return ( (type_ & WHITELIST) == WHITELIST); }
-        bool isValid() const;
-        void invalidate() { type_ |= INVALID; }
 
         std::string const& name() const { return name_; }
         std::deque<std::string> &dependencies() { return dependencies_; }
