@@ -9434,7 +9434,6 @@ I: loaded 0 items to whitelist
 I: creating sched.c.B251.x86.missing.dead
 I: creating sched.c.B361.x86.missing.dead
 I: creating sched.c.B363.x86.missing.dead
-I: creating sched.c.B363.missing.globally.undead
 I: creating sched.c.B365.x86.missing.dead
 I: creating sched.c.B365.missing.globally.dead
 I: creating sched.c.B369.x86.missing.dead
