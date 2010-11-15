@@ -319,7 +319,7 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
     std::set<std::string> blocks_set;
     std::list<SatChecker::AssignmentMap> ret;
     int sat_calls = 0;
-    KconfigRsfDb *p_model;
+    KconfigRsfDb *p_model = 0;
 
     if(_doCrossCheck) {
         KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
