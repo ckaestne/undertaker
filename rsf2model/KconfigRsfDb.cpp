@@ -144,6 +144,7 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
     ItemMap::const_iterator it;
 
     out << "I: Items-Count: "  << allItems.size()  << std::endl;
+    out << "I: Format: <variable> [preconditional expression]" << std::endl;
 
     for(it = allItems.begin(); it != allItems.end(); it++) {
         Item item = (*it).second;
