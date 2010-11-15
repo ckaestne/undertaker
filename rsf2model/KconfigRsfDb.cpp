@@ -16,15 +16,11 @@ KconfigRsfDb::Item::Item(std::string name, unsigned type, bool required)
 KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(std::string key) const {
     ItemMap::const_iterator it = this->find(key);
 
-    if (it == this->end()) {
-        if (key.compare(0,5,"COMP_") == 0) {
-            return Item(key);
-        } else {
-            return Item(key, INVALID);
-        }
-    } else {
-        return (*it).second;
-    }
+    /* We only request config items, which are defined in the rsf.
+       Be aware that no slicing is done here */
+    assert(it != this->end());
+
+    return (*it).second;
 }
 
 KconfigRsfDb::KconfigRsfDb(std::ifstream &in, std::ostream &log)
@@ -84,26 +80,17 @@ void KconfigRsfDb::initializeItems() {
         while ((pos = exp.find("||")) != std::string::npos)
             exp.replace(pos, 2, 1, '|');
 
-        Item item = allItems.getItem("CONFIG_"+itemName);
-
-        if (item.isValid()) {
-            ItemDb::iterator i = allItems.find("CONFIG_"+itemName);
-            assert(i != allItems.end());
-            (*i).second.dependencies().push_front(rewriteExpressionPrefix(exp));
-        }
     }
 
     for(RsfBlocks::iterator i = this->choice_item_.begin(); i != this->choice_item_.end(); i++) {
         const std::string &itemName = (*i).first;
         const std::string &choiceName = (*i).second.front();
-        Item choiceItem = allItems.getItem(choiceName);
-        Item item = allItems.getItem(itemName);
+        Item choiceItem = allItems.getItem("CONFIG_" + choiceName);
+        Item item = allItems.getItem("CONFIG_" + itemName);
 
-        if (item.isValid() && choiceItem.isValid()) {
-            ItemDb::iterator i = allItems.find(choiceName);
-            assert(i != allItems.end());
-            (*i).second.choiceAlternatives().push_back(item);
-        }
+        ItemDb::iterator i = allItems.find("CONFIG_" + choiceName);
+        assert(i != allItems.end());
+        (*i).second.choiceAlternatives().push_back(item);
     }
 }
 
