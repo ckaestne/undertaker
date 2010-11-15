@@ -51,8 +51,8 @@ void KconfigRsfDb::initializeItems() {
         if (!type.compare("tristate")) {
             const std::string moduleName("CONFIG_" + name + "_MODULE");
             Item m(moduleName, ITEM);
-            i.dependencies().push_front(" ! " + moduleName);
-            m.dependencies().push_front(" ! " + itemName);
+            i.dependencies().push_front(" !" + moduleName);
+            m.dependencies().push_front(" !" + itemName);
             allItems.insert(std::pair<std::string,Item>(moduleName, m));
         }
 
@@ -72,13 +72,12 @@ void KconfigRsfDb::initializeItems() {
         std::stringstream ss;
         const std::string &itemName = (*i).first;
         std::string &exp = (*i).second.front();
-        std::string::size_type pos = std::string::npos;
 
-        while ((pos = exp.find("&&")) != std::string::npos)
-            exp.replace(pos, 2, 1, '&');
+        Item item = allItems.getItem("CONFIG_" + itemName);
 
-        while ((pos = exp.find("||")) != std::string::npos)
-            exp.replace(pos, 2, 1, '|');
+        ItemDb::iterator i = allItems.find("CONFIG_"+itemName);
+        assert(i != allItems.end());
+        (*i).second.dependencies().push_front(rewriteExpressionPrefix(exp));
 
     }
 
@@ -94,7 +93,6 @@ void KconfigRsfDb::initializeItems() {
     }
 }
 
-std::list<std::string> itemsOfString(std::string str);
 std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
     const std::string prefix = "CONFIG_";
     std::string separators[9] = { " ", "!", "(", ")", "=", "<", ">", "&", "|" };
@@ -105,40 +103,40 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
         while ( (pos = exp.find(*i,pos)) != std::string::npos) {
 
             bool insert = false;
-        for(int j=0; j<9; j++) {
-            if (pos == 0) {
-               insert = true;
-               break;
+            for(int j = 0; j<9; j++) {
+                if (pos == 0) {
+                    insert = true;
+                    break;
+                }
+
+                if (exp.compare(pos-1,1,separators[j]) == 0) {
+                    insert = true;
+                    break;
+                }
             }
 
-            if (exp.compare(pos-1,1,separators[j]) == 0) {
-                    insert = true;
-            break;
-        }
-        }
-
-        if (insert)
+            if (insert)
                 exp.insert(pos,prefix);
 
             pos += prefix.size() + (*i).size();
-    }
+        }
     }
     return exp;
 }
 
-std::string KconfigRsfDb::Item::printChoiceAlternative() const {
+std::string KconfigRsfDb::Item::dumpChoiceAlternative() const {
     std::stringstream ret("");
     if (!isChoice() || choiceAlternatives_.size() == 0)
     return ret.str();
 
-    ret << "( " << name_ << " -> (";
+    ret << "(";
     for(std::deque<Item>::const_iterator i=choiceAlternatives_.begin();  i != choiceAlternatives_.end(); i++) {
     if (i != choiceAlternatives_.begin())
-        ret << " | ";
+        ret << " || ";
 
     ret << (*i).name_;
     }
-    ret << ") )" << std::endl;
+    ret << ")" << std::endl;
     return ret.str();
 }
 
@@ -153,14 +151,14 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
         if (item.dependencies().size() > 0) {
             out << " " << item.dependencies().front();
             if (item.isChoice()) {
-                std::string ca = item.printChoiceAlternative();
+                std::string ca = item.dumpChoiceAlternative();
                 if (!ca.empty()) {
-                    out << "&" << ca;
+                    out << " && " << ca;
                 }
             }
         } else {
             if (item.isChoice() && item.choiceAlternatives().size() > 0) {
-                out << " " << item.printChoiceAlternative();
+                out << " " << item.dumpChoiceAlternative();
             }
         }
         out << std::endl;
@@ -185,6 +183,7 @@ itemsOfString(std::string str) {
         case '|':
         case '-':
         case 'y':
+        case 'm':
         case 'n':
         case ' ':
             if (!tmp.empty()) {
