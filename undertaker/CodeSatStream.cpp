@@ -147,13 +147,14 @@ void CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *p_model) {
     bool alive = true;
     bool hasMissing = false;
 
+    /* PART 1: Dead Analysis */
     if (!code_constraints()) {
         const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.dead";
         writePrettyPrinted(filename.c_str(),block, code_constraints.c_str());
         return; // code dead -> no crosscheck
     }
 
-    if (p_model){
+    if (p_model) {
         std::set<std::string> missingSet;
 
         /* Can be ""!! */
@@ -161,25 +162,26 @@ void CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *p_model) {
         dead_join.push_back(kconfig_formula);
         SatChecker kconfig_constraints(dead_join.join("\n&\n"));
 
+        if (!kconfig_constraints()) {
+            const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.globally.dead";
+            writePrettyPrinted(filename.c_str(),block, kconfig_constraints.c_str());
+            return;
+        }
+
         /* Can be ""! */
         missing_formula = getMissingItemsConstraints(missingSet);
         dead_join.push_back(missing_formula);
         SatChecker missing_constraints(dead_join.join("\n&\n"));
 
-        if (!kconfig_constraints()) {
-            const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.globally.dead";
-            writePrettyPrinted(filename.c_str(),block, kconfig_constraints.c_str());
+        if (!missing_constraints()) {
+            const std::string filename= _filename + "." + block + "." + _primary_arch +".missing.dead";
+            writePrettyPrinted(filename.c_str(),block, missing_constraints.c_str());
             alive = false;
-        } else {
-            if (!missing_constraints()) {
-                const std::string filename= _filename + "." + block + "." + _primary_arch +".missing.dead";
-                writePrettyPrinted(filename.c_str(),block, missing_constraints.c_str());
-                alive = false;
-                hasMissing = true;
-            }
+            hasMissing = true;
         }
     }
 
+    /* PART 2: Undead Analysis */
     bool zombie = false;
     const char *parent = getParent(block);
     bool has_parent = parent != NULL;
@@ -189,7 +191,6 @@ void CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *p_model) {
 
         StringJoiner undead_join;
         undead_join.push_back(undead_block);
-
         undead_join.push_back(code_formula);
         SatChecker undead_code_constraints(undead_join.join("\n&\n"));
 
@@ -206,22 +207,22 @@ void CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *p_model) {
             if  (!undead_kconfig_constraints()){
                 const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.globally.undead";
                 writePrettyPrinted(filename.c_str(),block, undead_kconfig_constraints.c_str());
+                return;
+            }
+
+            undead_join.push_back(missing_formula);
+            SatChecker undead_missing_constraints(undead_join.join("\n&\n"));
+
+            if  (!undead_missing_constraints() & !zombie){
+                const std::string filename = _filename + "." + block + "." + _primary_arch +".missing.undead";
+                writePrettyPrinted(filename.c_str(),block, undead_missing_constraints.c_str());
                 zombie = true;
-            } else {
-
-                undead_join.push_back(missing_formula);
-                SatChecker undead_missing_constraints(undead_join.join("\n&\n"));
-
-                if  (!undead_missing_constraints() & !zombie){
-                    const std::string filename = _filename + "." + block + "." + _primary_arch +".missing.undead";
-                    writePrettyPrinted(filename.c_str(),block, undead_missing_constraints.c_str());
-                    zombie = true;
-                    hasMissing = true;
-                }
+                hasMissing = true;
             }
         }
     }
 
+    /* PART 3: Crosscheck */
     if (!p_model || !hasMissing)
         return;
 
