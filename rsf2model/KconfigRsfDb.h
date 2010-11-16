@@ -29,6 +29,8 @@ public:
         std::string getDependencies() const;
         bool isChoice() const { return ( (type_ & CHOICE) == CHOICE); }
         bool isTristate() const { return ( (type_ & TRISTATE) == TRISTATE); }
+        bool isValid() const { return ( (type_ & INVALID) != INVALID); }
+
 
 
         std::string const& name() const { return name_; }
