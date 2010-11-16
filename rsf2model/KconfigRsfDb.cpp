@@ -74,7 +74,7 @@ void KconfigRsfDb::initializeItems() {
             const std::string choiceName("CONFIG_" + itemName);
             Item ci(choiceName, CHOICE, required.compare("required") == 0);
             allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
-        } else {
+        } else if (!type.compare("tristate")){
             const std::string choiceName("CONFIG_" + itemName);
             const std::string choiceModuleName("CONFIG_" + itemName + "_MODULE");
 
@@ -93,15 +93,16 @@ void KconfigRsfDb::initializeItems() {
     for(RsfBlocks::iterator i = this->choice_item_.begin(); i != this->choice_item_.end(); i++) {
         const std::string &itemName = (*i).first;
         const std::string &choiceName = (*i).second.front();
-        Item choiceItem = allItems.getItem("CONFIG_" + choiceName);
-        Item item("CONFIG_" + itemName, ITEM);
-        allItems.insert(std::pair<std::string,Item>(item.name(), item));
 
         ItemDb::iterator i = allItems.find("CONFIG_" + choiceName);
         assert(i != allItems.end());
+
+
+        Item item("CONFIG_" + itemName, ITEM);
+        allItems.insert(std::pair<std::string,Item>(item.name(), item));
         (*i).second.choiceAlternatives().push_back(item);
 
-        if (choiceItem.isTristate()) {
+        if ((*i).second.isTristate()) {
             ItemDb::iterator i = allItems.find("CONFIG_" + choiceName + "_MODULE");
             assert(i != allItems.end());
             (*i).second.choiceAlternatives().push_front(item);
