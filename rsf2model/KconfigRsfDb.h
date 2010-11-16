@@ -8,6 +8,7 @@
 #include <set>
 
 #include "RsfBlocks.h"
+#include "StringJoiner.h"
 
 class KconfigRsfDb {
 public:
@@ -27,9 +28,11 @@ public:
         std::string dumpChoiceAlternative() const;
         std::string getDependencies() const;
         bool isChoice() const { return ( (type_ & CHOICE) == CHOICE); }
+        bool isTristate() const { return ( (type_ & TRISTATE) == TRISTATE); }
+
 
         std::string const& name() const { return name_; }
-        std::deque<std::string> &dependencies() { return dependencies_; }
+        StringJoiner &dependencies() { return dependencies_; }
         std::deque<Item> &choiceAlternatives()  { return choiceAlternatives_; }
 
     private:
@@ -37,7 +40,7 @@ public:
         unsigned  type_;
         bool required_;
 
-        std::deque<std::string> dependencies_;
+        StringJoiner dependencies_;
         std::deque<Item> choiceAlternatives_;
     };
 
