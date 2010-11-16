@@ -45,18 +45,22 @@ void KconfigRsfDb::initializeItems() {
             continue;
 
         const std::string itemName("CONFIG_" + name);
-        Item i(itemName, ITEM);
 
         // tristate constraints
         if (!type.compare("tristate")) {
             const std::string moduleName("CONFIG_" + name + "_MODULE");
+            Item i(itemName, ITEM | TRISTATE);
             Item m(moduleName, ITEM);
+
             i.dependencies().push_front(" !" + moduleName);
             m.dependencies().push_front(" !" + itemName);
-            allItems.insert(std::pair<std::string,Item>(moduleName, m));
-        }
 
-        allItems.insert(std::pair<std::string,Item>(itemName, i));
+            allItems.insert(std::pair<std::string,Item>(itemName, i));
+            allItems.insert(std::pair<std::string,Item>(moduleName, m));
+        } else {
+            Item i(itemName, ITEM | BOOLEAN);
+            allItems.insert(std::pair<std::string,Item>(itemName, i));
+        }
     }
 
     for(RsfBlocks::iterator i = this->choice_.begin(); i != this->choice_.end(); i++) {
@@ -77,7 +81,17 @@ void KconfigRsfDb::initializeItems() {
 
         ItemDb::iterator i = allItems.find("CONFIG_"+itemName);
         assert(i != allItems.end());
-        (*i).second.dependencies().push_front(rewriteExpressionPrefix(exp));
+        std::string rewritten = "(" + rewriteExpressionPrefix(exp) + ")";
+        (*i).second.dependencies().push_front(rewritten);
+
+        /* Add dependency also if item is tristate to
+           CONFIG_..._MODULE */
+        if (item.isTristate()) {
+            ItemDb::iterator i = allItems.find("CONFIG_" + itemName + "_MODULE");
+            assert(i != allItems.end());
+            (*i).second.dependencies().push_front(rewritten);
+        }
+
 
     }
 
