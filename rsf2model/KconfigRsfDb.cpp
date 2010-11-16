@@ -96,10 +96,16 @@ void KconfigRsfDb::initializeItems() {
         Item item("CONFIG_" + itemName, ITEM);
         allItems.insert(std::pair<std::string,Item>(item.name(), item));
 
-
         ItemDb::iterator i = allItems.find("CONFIG_" + choiceName);
         assert(i != allItems.end());
         (*i).second.choiceAlternatives().push_back(item);
+
+        if (choiceItem.isTristate()) {
+            ItemDb::iterator i = allItems.find("CONFIG_" + choiceName + "_MODULE");
+            assert(i != allItems.end());
+            (*i).second.choiceAlternatives().push_front(item);
+        }
+
     }
 
     for(RsfBlocks::iterator i = this->depends_.begin(); i != this->depends_.end(); i++) {
