@@ -72,6 +72,20 @@ void KconfigRsfDb::initializeItems() {
         allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
     }
 
+
+    for(RsfBlocks::iterator i = this->choice_item_.begin(); i != this->choice_item_.end(); i++) {
+        const std::string &itemName = (*i).first;
+        const std::string &choiceName = (*i).second.front();
+        Item choiceItem = allItems.getItem("CONFIG_" + choiceName);
+        Item item("CONFIG_" + itemName, ITEM);
+        allItems.insert(std::pair<std::string,Item>(item.name(), item));
+
+
+        ItemDb::iterator i = allItems.find("CONFIG_" + choiceName);
+        assert(i != allItems.end());
+        (*i).second.choiceAlternatives().push_back(item);
+    }
+
     for(RsfBlocks::iterator i = this->depends_.begin(); i != this->depends_.end(); i++) {
         std::stringstream ss;
         const std::string &itemName = (*i).first;
@@ -93,17 +107,6 @@ void KconfigRsfDb::initializeItems() {
         }
 
 
-    }
-
-    for(RsfBlocks::iterator i = this->choice_item_.begin(); i != this->choice_item_.end(); i++) {
-        const std::string &itemName = (*i).first;
-        const std::string &choiceName = (*i).second.front();
-        Item choiceItem = allItems.getItem("CONFIG_" + choiceName);
-        Item item = allItems.getItem("CONFIG_" + itemName);
-
-        ItemDb::iterator i = allItems.find("CONFIG_" + choiceName);
-        assert(i != allItems.end());
-        (*i).second.choiceAlternatives().push_back(item);
     }
 }
 
@@ -150,7 +153,7 @@ std::string KconfigRsfDb::Item::dumpChoiceAlternative() const {
 
     ret << (*i).name_;
     }
-    ret << ")" << std::endl;
+    ret << ")";
     return ret.str();
 }
 
