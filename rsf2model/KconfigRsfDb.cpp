@@ -18,7 +18,8 @@ KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(std::string key) const {
 
     /* We only request config items, which are defined in the rsf.
        Be aware that no slicing is done here */
-    assert(it != this->end());
+    if(it == this->end())
+        return Item("", INVALID);
 
     return (*it).second;
 }
@@ -105,7 +106,6 @@ void KconfigRsfDb::initializeItems() {
             assert(i != allItems.end());
             (*i).second.choiceAlternatives().push_front(item);
         }
-
     }
 
     for(RsfBlocks::iterator i = this->depends_.begin(); i != this->depends_.end(); i++) {
@@ -136,7 +136,10 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
     const std::string prefix = "CONFIG_";
     std::string separators[9] = { " ", "!", "(", ")", "=", "<", ">", "&", "|" };
     std::list<std::string> itemsExp = itemsOfString(exp);
+
     for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); i++) {
+        Item item = allItems.getItem(prefix + *i);
+        bool tristate = item.isValid() && item.isTristate();
         size_t pos = 0;
 
         while ( (pos = exp.find(*i,pos)) != std::string::npos) {
@@ -154,10 +157,28 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                 }
             }
 
-            if (insert)
-                exp.insert(pos,prefix);
+            if (insert) {
+                /* Check if character after token isn't a blank or a )
+                   => do not rewrite it here */
+                if (tristate) {
+                    int p = pos + (*i).size();
+                    tristate = false;
+                    if (exp.compare(p, 1, " ") == 0 || exp.compare(p, 1, ")") == 0
+                        || exp.compare(p, 1, "") == 0)
+                        tristate = true;
+                }
+                if (tristate) {
+                    exp.insert(pos, "(" + prefix + (*i) + "_MODULE || " + prefix);
+                    pos += 1 + prefix.size() + (*i).size() + 11 + prefix.size();
+                    exp.insert(pos + (*i).size(), ")");
+                    pos++;
+                } else {
+                    exp.insert(pos,prefix);
+                    pos += prefix.size();
+                }
+            }
 
-            pos += prefix.size() + (*i).size();
+            pos += (*i).size();
         }
     }
     return exp;
