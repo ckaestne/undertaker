@@ -150,7 +150,7 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
         Item item = (*it).second;
         out << item.name();
         if (item.dependencies().size() > 0) {
-            out << " " << item.dependencies().front();
+            out << " " << item.dependencies().join(" && ");
             if (item.isChoice()) {
                 std::string ca = item.dumpChoiceAlternative();
                 if (!ca.empty()) {
