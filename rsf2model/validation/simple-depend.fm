@@ -5,7 +5,7 @@ Item PARAVIRT_GUEST boolean
  * check-name: simple boolean dependency
  * check-output-start
 I: Items-Count: 2
-I: Format: <variable> [preconditional expression]
+I: Format: <variable> [presence condition]
 CONFIG_PARAVIRT_GUEST
 CONFIG_XEN (CONFIG_PARAVIRT_GUEST && (CONFIG_X86_64 || CONFIG_X86_32 && CONFIG_X86_PAE && !CONFIG_X86_VISWS) && CONFIG_X86_CMPXCHG && CONFIG_X86_TSC)
  * check-output-end

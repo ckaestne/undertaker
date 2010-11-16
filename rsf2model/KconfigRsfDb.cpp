@@ -52,8 +52,8 @@ void KconfigRsfDb::initializeItems() {
             Item i(itemName, ITEM | TRISTATE);
             Item m(moduleName, ITEM);
 
-            i.dependencies().push_front(" !" + moduleName);
-            m.dependencies().push_front(" !" + itemName);
+            i.dependencies().push_front("!" + moduleName);
+            m.dependencies().push_front("!" + itemName);
 
             allItems.insert(std::pair<std::string,Item>(itemName, i));
             allItems.insert(std::pair<std::string,Item>(moduleName, m));
@@ -161,7 +161,7 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
     ItemMap::const_iterator it;
 
     out << "I: Items-Count: "  << allItems.size()  << std::endl;
-    out << "I: Format: <variable> [preconditional expression]" << std::endl;
+    out << "I: Format: <variable> [presence condition]" << std::endl;
 
     for(it = allItems.begin(); it != allItems.end(); it++) {
         Item item = (*it).second;

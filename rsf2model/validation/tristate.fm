@@ -4,8 +4,8 @@ Depends	XEN_DEV_EVTCHN	"XEN && XEN_DEV"
  * check-name: simple tristate dependency
  * check-output-start
 I: Items-Count: 2
-I: Format: <variable> [preconditional expression]
-CONFIG_XEN_DEV_EVTCHN (CONFIG_XEN && CONFIG_XEN_DEV) &&  !CONFIG_XEN_DEV_EVTCHN_MODULE
-CONFIG_XEN_DEV_EVTCHN_MODULE (CONFIG_XEN && CONFIG_XEN_DEV) &&  !CONFIG_XEN_DEV_EVTCHN
+I: Format: <variable> [presence condition]
+CONFIG_XEN_DEV_EVTCHN (CONFIG_XEN && CONFIG_XEN_DEV) && !CONFIG_XEN_DEV_EVTCHN_MODULE
+CONFIG_XEN_DEV_EVTCHN_MODULE (CONFIG_XEN && CONFIG_XEN_DEV) && !CONFIG_XEN_DEV_EVTCHN
  * check-output-end
  */
