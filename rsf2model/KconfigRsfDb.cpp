@@ -66,10 +66,26 @@ void KconfigRsfDb::initializeItems() {
     for(RsfBlocks::iterator i = this->choice_.begin(); i != this->choice_.end(); i++) {
         const std::string &itemName = (*i).first;
         const std::string &required = (*i).second.front();
-        const std::string choiceName("CONFIG_" + itemName);
-        Item ci(choiceName, CHOICE, required.compare("required") == 0);
+        (*i).second.pop_front();
+        const std::string &type = (*i).second.front();
 
-        allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
+        if (!type.compare("boolean")) {
+            const std::string choiceName("CONFIG_" + itemName);
+            Item ci(choiceName, CHOICE, required.compare("required") == 0);
+            allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
+        } else {
+            const std::string choiceName("CONFIG_" + itemName);
+            const std::string choiceModuleName("CONFIG_" + itemName + "_MODULE");
+
+            Item ci(choiceName, CHOICE | TRISTATE, required.compare("required") == 0);
+            Item cmi(choiceModuleName, CHOICE, required.compare("required") == 0);
+
+            ci.dependencies().push_front("!" + choiceModuleName);
+            cmi.dependencies().push_front("!" + choiceName);
+
+            allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
+            allItems.insert(std::pair<std::string,Item>(cmi.name(), cmi));
+        }
     }
 
 
