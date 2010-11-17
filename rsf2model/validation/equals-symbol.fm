@@ -2,7 +2,7 @@ Item FOO boolean
 Item BAR tristate
 Depends FOO "FOO=BAR"
 /*
- * check-name: simple boolean dependency
+ * check-name: equals symbol (FOO=BAR)
  * check-output-start
 I: Items-Count: 3
 I: Format: <variable> [presence condition]
