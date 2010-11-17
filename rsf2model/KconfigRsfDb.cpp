@@ -133,53 +133,117 @@ void KconfigRsfDb::initializeItems() {
     }
 }
 
+
+static size_t
+replace_item(std::string &exp, std::string fmt, const std::string item, size_t start_pos, size_t additional_consume = 0) {
+    size_t pos = 0;
+    while ( (pos = fmt.find("%%", pos)) != std::string::npos) {
+        fmt.replace(pos, 2, item);
+        pos += item.size() - 2;
+    }
+
+    exp.replace(start_pos, item.size() + additional_consume, fmt);
+    return fmt.size();
+}
+
 std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
-    const std::string prefix = "CONFIG_";
     std::string separators[9] = { " ", "!", "(", ")", "=", "<", ">", "&", "|" };
     std::list<std::string> itemsExp = itemsOfString(exp);
 
     for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); i++) {
-        Item item = allItems.getItem(prefix + *i);
-        bool tristate = item.isValid() && item.isTristate();
+        Item item = allItems.getItem("CONFIG_" + *i);
+        const bool tristate = item.isValid() && item.isTristate();
         size_t pos = 0;
 
         while ( (pos = exp.find(*i,pos)) != std::string::npos) {
 
-            bool insert = false;
-            for(int j = 0; j<9; j++) {
-                if (pos == 0) {
-                    insert = true;
-                    break;
-                }
+            bool sep_before = false;
+            bool sep_after = false;
 
-                if (exp.compare(pos-1,1,separators[j]) == 0) {
-                    insert = true;
-                    break;
+            if (pos == 0)
+                sep_before = true;
+            if (pos + i->size() == exp.size())
+                sep_after = true;
+
+            /* Nine separators */
+            for(int j = 0; j<9; j++) {
+                if (pos != 0 && exp.compare(pos - 1,1, separators[j]) == 0) {
+                    sep_before = true;
                 }
+                if (exp.compare(pos + i->size(), 1, separators[j]) == 0) {
+                    sep_after = true;
+                }
+                if (sep_before && sep_after)
+                    break;
             }
 
-            if (insert) {
+            if (sep_before && sep_after) {
                 /* Check if character after token isn't a blank or a )
                    => do not rewrite it here */
-                if (tristate) {
-                    int p = pos + (*i).size();
-                    tristate = false;
-                    if (exp.compare(p, 1, " ") == 0 || exp.compare(p, 1, ")") == 0
-                        || exp.compare(p, 1, "") == 0)
-                        tristate = true;
+                size_t additional_consume = 0;
+                enum { NOP,
+                       NEQUALS_N, NEQUALS_Y, NEQUALS_M,
+                       EQUALS_N, EQUALS_Y, EQUALS_M,
+                       EQUALS_SYMBOL,
+                } state = NOP;
+
+                int p = pos + (*i).size();
+                if (exp.compare(p, 3, "!=n") == 0) {
+                    state = NEQUALS_N;
+                    additional_consume = 3;
+                } else if (exp.compare(p, 3, "!=y") == 0) {
+                    state = NEQUALS_Y;
+                    additional_consume = 3;
+                } else if (exp.compare(p, 3, "!=m") == 0) {
+                    state = NEQUALS_M;
+                    additional_consume = 3;
+                    /* EQUALS */
+                } else if (exp.compare(p, 2, "=n") == 0) {
+                    state = EQUALS_N;
+                    additional_consume = 2;
+                } else if (exp.compare(p, 2, "=y") == 0) {
+                    state = EQUALS_Y;
+                    additional_consume = 2;
+                } else if (exp.compare(p, 2, "=m") == 0) {
+                    state = EQUALS_M;
+                    additional_consume = 2;
+                } else if (exp.compare(p, 1, "=") == 0 || (pos != 0 && exp.compare(pos - 1, 1, "=") == 0)) {
+                    /* Something completly fucked up like
+                       CONFIG_A=CONFIG_B */
+                    state = EQUALS_SYMBOL;
+                } else if (tristate) {
+                    /* No Postfix, but a tristate */
+                    state = NEQUALS_N;
                 }
-                if (tristate) {
-                    exp.insert(pos, "(" + prefix + (*i) + "_MODULE || " + prefix);
-                    pos += 1 + prefix.size() + (*i).size() + 11 + prefix.size();
-                    exp.insert(pos + (*i).size(), ")");
-                    pos++;
-                } else {
-                    exp.insert(pos,prefix);
-                    pos += prefix.size();
+
+                switch (state) {
+                case NEQUALS_N:
+                    pos += replace_item(exp, "(CONFIG_%%_MODULE || CONFIG_%%)", *i, pos, additional_consume);
+                    break;
+                case NEQUALS_M:
+                    pos += replace_item(exp, "!CONFIG_%%_MODULE", *i, pos, additional_consume);
+                    break;
+                case NEQUALS_Y:
+                    pos += replace_item(exp, "!CONFIG_%%", *i, pos, additional_consume);
+                    break;
+                case EQUALS_N:
+                    pos += replace_item(exp, "(!CONFIG_%%_MODULE && !CONFIG_%%)", *i, pos, additional_consume);
+                    break;
+                case EQUALS_M:
+                    pos += replace_item(exp, "CONFIG_%%_MODULE", *i, pos, additional_consume);
+                    break;
+                case EQUALS_Y:
+                case EQUALS_SYMBOL:
+                case NOP:
+                    pos += replace_item(exp, "CONFIG_%%", *i, pos, additional_consume);
+                    break;
+                }
+
+                if (state == EQUALS_SYMBOL) {
+                    pos += 4;
                 }
             }
-
-            pos += (*i).size();
+            pos += 1;
         }
     }
     return exp;
