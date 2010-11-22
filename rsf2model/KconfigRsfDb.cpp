@@ -135,14 +135,22 @@ void KconfigRsfDb::initializeItems() {
 
 
 static size_t
-replace_item(std::string &exp, std::string fmt, const std::string item, size_t start_pos, size_t additional_consume = 0) {
+replace_item(std::string &exp, std::string fmt, size_t start_pos,
+             size_t consume, const std::string item1, const std::string item2 = "") {
     size_t pos = 0;
-    while ( (pos = fmt.find("%%", pos)) != std::string::npos) {
-        fmt.replace(pos, 2, item);
-        pos += item.size() - 2;
+    while ( (pos = fmt.find("%1", pos)) != std::string::npos) {
+        fmt.replace(pos, 2, item1);
+        pos += item1.size() - 2;
+    }
+    if (item2.compare("") != 0) {
+        pos = 0;
+        while ( (pos = fmt.find("%2", pos)) != std::string::npos) {
+            fmt.replace(pos, 2, item2);
+            pos += item2.size() - 2;
+        }
     }
 
-    exp.replace(start_pos, item.size() + additional_consume, fmt);
+    exp.replace(start_pos, consume, fmt);
     return fmt.size();
 }
 
@@ -150,7 +158,7 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
     std::string separators[9] = { " ", "!", "(", ")", "=", "<", ">", "&", "|" };
     std::list<std::string> itemsExp = itemsOfString(exp);
 
-    for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); i++) {
+    for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); ++i) {
         Item item = allItems.getItem("CONFIG_" + *i);
         const bool tristate = item.isValid() && item.isTristate();
         size_t pos = 0;
@@ -180,37 +188,49 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
             if (sep_before && sep_after) {
                 /* Check if character after token isn't a blank or a )
                    => do not rewrite it here */
-                size_t additional_consume = 0;
+                size_t consume = i->size();
                 enum { NOP,
                        NEQUALS_N, NEQUALS_Y, NEQUALS_M,
                        EQUALS_N, EQUALS_Y, EQUALS_M,
                        EQUALS_SYMBOL,
                 } state = NOP;
 
+                std::string left, right;
                 int p = pos + (*i).size();
                 if (exp.compare(p, 3, "!=n") == 0) {
                     state = NEQUALS_N;
-                    additional_consume = 3;
+                    consume = 3 + i->size();
                 } else if (exp.compare(p, 3, "!=y") == 0) {
                     state = NEQUALS_Y;
-                    additional_consume = 3;
+                    consume = 3 + i->size();
                 } else if (exp.compare(p, 3, "!=m") == 0) {
                     state = NEQUALS_M;
-                    additional_consume = 3;
+                    consume = 3 + i->size();
                     /* EQUALS */
                 } else if (exp.compare(p, 2, "=n") == 0) {
                     state = EQUALS_N;
-                    additional_consume = 2;
+                    consume = 2 + i->size();
                 } else if (exp.compare(p, 2, "=y") == 0) {
                     state = EQUALS_Y;
-                    additional_consume = 2;
+                    consume = 2 + i->size();
                 } else if (exp.compare(p, 2, "=m") == 0) {
                     state = EQUALS_M;
-                    additional_consume = 2;
+                    consume = 2 + i->size();
                 } else if (exp.compare(p, 1, "=") == 0 || (pos != 0 && exp.compare(pos - 1, 1, "=") == 0)) {
                     /* Something completly fucked up like
                        CONFIG_A=CONFIG_B */
+                    /* We have to save the left and the right side of
+                       the equal sign */
                     state = EQUALS_SYMBOL;
+                    left = *i;
+                    std::list<std::string>::iterator next = i;
+                    ++next;
+                    if (next == itemsExp.end())
+                        state = NOP;
+                    else {
+                        right = *next;
+                        consume = left.size() + 1 + right.size();
+                    }
                 } else if (tristate) {
                     /* No Postfix, but a tristate */
                     state = NEQUALS_N;
@@ -218,29 +238,31 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
 
                 switch (state) {
                 case NEQUALS_N:
-                    pos += replace_item(exp, "(CONFIG_%%_MODULE || CONFIG_%%)", *i, pos, additional_consume);
+                    pos += replace_item(exp, "(CONFIG_%1_MODULE || CONFIG_%1)", pos, consume, *i);
                     break;
                 case NEQUALS_M:
-                    pos += replace_item(exp, "!CONFIG_%%_MODULE", *i, pos, additional_consume);
+                    pos += replace_item(exp, "!CONFIG_%1_MODULE", pos, consume, *i);
                     break;
                 case NEQUALS_Y:
-                    pos += replace_item(exp, "!CONFIG_%%", *i, pos, additional_consume);
+                    pos += replace_item(exp, "!CONFIG_%1", pos, consume, *i);
                     break;
                 case EQUALS_N:
-                    pos += replace_item(exp, "(!CONFIG_%%_MODULE && !CONFIG_%%)", *i, pos, additional_consume);
+                    pos += replace_item(exp, "(!CONFIG_%1_MODULE && !CONFIG_%1)", pos, consume, *i);
                     break;
                 case EQUALS_M:
-                    pos += replace_item(exp, "CONFIG_%%_MODULE", *i, pos, additional_consume);
+                    pos += replace_item(exp, "CONFIG_%1_MODULE", pos, consume, *i);
+                    break;
+                case EQUALS_SYMBOL:
+                    pos += replace_item(exp, "((CONFIG_%1 && CONFIG_%2) || "
+                                        "(CONFIG_%1_MODULE && CONFIG_%2_MODULE) || "
+                                        "(!CONFIG_%1 && !CONFIG_%2 && "
+                                        "!CONFIG_%1_MODULE && !CONFIG_%2_MODULE))",
+                                        pos, consume, left, right);
                     break;
                 case EQUALS_Y:
-                case EQUALS_SYMBOL:
                 case NOP:
-                    pos += replace_item(exp, "CONFIG_%%", *i, pos, additional_consume);
+                    pos += replace_item(exp, "CONFIG_%1", pos, consume, *i);
                     break;
-                }
-
-                if (state == EQUALS_SYMBOL) {
-                    pos += 4;
                 }
             }
             pos += 1;
