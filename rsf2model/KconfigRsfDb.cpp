@@ -54,6 +54,9 @@ void KconfigRsfDb::initializeItems() {
             Item m(moduleName, ITEM);
 
             i.dependencies().push_front("!" + moduleName);
+            /* Every _MODULE depends on the magic flag MODULES within
+               kconfig */
+            m.dependencies().push_front("CONFIG_MODULES");
             m.dependencies().push_front("!" + itemName);
 
             allItems.insert(std::pair<std::string,Item>(itemName, i));
