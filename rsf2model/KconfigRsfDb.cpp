@@ -69,29 +69,18 @@ void KconfigRsfDb::initializeItems() {
 
     for(RsfBlocks::iterator i = this->choice_.begin(); i != this->choice_.end(); i++) {
         const std::string &itemName = (*i).first;
-        const std::string &required = (*i).second.front();
-        (*i).second.pop_front();
-        const std::string &type = (*i).second.front();
+        std::deque<std::string>::iterator iter = i->second.begin();
+        const std::string &required = *iter;
+        iter++;
+        const std::string &type = *iter;
 
-        if (!type.compare("boolean")) {
-            const std::string choiceName("CONFIG_" + itemName);
-            Item ci(choiceName, CHOICE, required.compare("required") == 0);
-            allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
-        } else if (!type.compare("tristate")){
-            const std::string choiceName("CONFIG_" + itemName);
-            const std::string choiceModuleName("CONFIG_" + itemName + "_MODULE");
 
-            Item ci(choiceName, CHOICE | TRISTATE, required.compare("required") == 0);
-            Item cmi(choiceModuleName, CHOICE, required.compare("required") == 0);
-
-            ci.dependencies().push_front("!" + choiceModuleName);
-            cmi.dependencies().push_front("!" + choiceName);
-
-            allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
-            allItems.insert(std::pair<std::string,Item>(cmi.name(), cmi));
-        }
+        const std::string choiceName("CONFIG_" + itemName);
+        bool tristate = type.compare("tristate") == 0;
+        Item ci(choiceName, CHOICE | (tristate ? TRISTATE : 0),
+                required.compare("required") == 0);
+        allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
     }
-
 
     for(RsfBlocks::iterator i = this->choice_item_.begin(); i != this->choice_item_.end(); i++) {
         const std::string &itemName = (*i).first;
@@ -104,12 +93,6 @@ void KconfigRsfDb::initializeItems() {
         Item item("CONFIG_" + itemName, ITEM);
         allItems.insert(std::pair<std::string,Item>(item.name(), item));
         (*i).second.choiceAlternatives().push_back(item);
-
-        if ((*i).second.isTristate()) {
-            ItemDb::iterator i = allItems.find("CONFIG_" + choiceName + "_MODULE");
-            assert(i != allItems.end());
-            (*i).second.choiceAlternatives().push_front(item);
-        }
     }
 
     for(RsfBlocks::iterator i = this->depends_.begin(); i != this->depends_.end(); i++) {
@@ -126,7 +109,7 @@ void KconfigRsfDb::initializeItems() {
 
         /* Add dependency also if item is tristate to
            CONFIG_..._MODULE */
-        if (item.isTristate()) {
+        if (item.isTristate() && !item.isChoice()) {
             ItemDb::iterator i = allItems.find("CONFIG_" + itemName + "_MODULE");
             assert(i != allItems.end());
             (*i).second.dependencies().push_front(rewritten);
@@ -163,7 +146,7 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
 
     for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); ++i) {
         Item item = allItems.getItem("CONFIG_" + *i);
-        const bool tristate = item.isValid() && item.isTristate();
+        const bool tristate = item.isValid() && item.isTristate() && !item.isChoice();
         size_t pos = 0;
 
         while ( (pos = exp.find(*i,pos)) != std::string::npos) {
@@ -276,18 +259,46 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
 
 std::string KconfigRsfDb::Item::dumpChoiceAlternative() const {
     std::stringstream ret("");
-    if (!isChoice() || choiceAlternatives_.size() == 0)
+    /* We can't say something about optional choices */
+    if (!isChoice() || choiceAlternatives_.size() == 0 || !isRequired())
     return ret.str();
 
-    ret << "(";
-    for(std::deque<Item>::const_iterator i=choiceAlternatives_.begin();  i != choiceAlternatives_.end(); i++) {
-    if (i != choiceAlternatives_.begin())
-        ret << " || ";
+    /* For not tristate choices we will simply exclude the single
+       choice items, only one can be true and exactly one is true:
+       (A ^ B  ^ C) = (A & !B & !C) || (!A & B & !C) || (!A & !B & C)
 
-    ret << (*i).name_;
+       If we are tristate also none of the options can be selected. So
+       we add || (CONFIG_MODULES & !A & !B & !C)
+    */
+
+    StringJoiner orClause;
+
+    for (unsigned int isTrue = 0; isTrue < choiceAlternatives_.size(); isTrue++) {
+        /* (A & !B & !C) -> isTrue == 0 */
+        unsigned int count = 0;
+        StringJoiner andClause;
+        for(std::deque<Item>::const_iterator i = choiceAlternatives_.begin();
+            i != choiceAlternatives_.end(); ++i, count++) {
+
+            andClause.push_back(((count == isTrue) ? "" : "!") + i->name());
+        }
+        orClause.push_back("(" + andClause.join(" && ") + ")");
     }
-    ret << ")";
-    return ret.str();
+
+    if (isTristate()) {
+        StringJoiner lastClause;
+        lastClause.push_back("CONFIG_MODULES");
+        for(std::deque<Item>::const_iterator i = choiceAlternatives_.begin();
+            i != choiceAlternatives_.end(); ++i) {
+
+            lastClause.push_back("!" + i->name());
+        }
+        orClause.push_back("(" + lastClause.join(" && ") + ")");
+    }
+
+
+
+    return "(" + orClause.join(" || ") + ")";
 }
 
 void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
