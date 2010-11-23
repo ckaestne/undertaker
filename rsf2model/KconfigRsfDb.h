@@ -30,8 +30,7 @@ public:
         bool isChoice() const { return ( (type_ & CHOICE) == CHOICE); }
         bool isTristate() const { return ( (type_ & TRISTATE) == TRISTATE); }
         bool isValid() const { return ( (type_ & INVALID) != INVALID); }
-
-
+        bool isRequired() const { return required_; }
 
         std::string const& name() const { return name_; }
         StringJoiner &dependencies() { return dependencies_; }
@@ -51,7 +50,7 @@ public:
 protected:
     struct ItemDb : public ItemMap {
         ItemMap missing;
-        Item getItem(std::string key) const;        
+        Item getItem(std::string key) const;
     };
 
     ItemDb allItems;
