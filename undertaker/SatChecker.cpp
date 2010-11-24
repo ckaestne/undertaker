@@ -87,8 +87,8 @@ struct bool_grammar : public grammar<bool_grammar>
                 | symbol;
 
             /* nodes that aren't leaf nodes */
-            and_term     = term         >> *(no_node_d[ch_p("&")] >> term);
-            or_term      = and_term     >> *(no_node_d[ch_p("|")] >> and_term);
+            and_term     = term         >> *(no_node_d[ch_p("&") >> (*ch_p("&"))] >> term);
+            or_term      = and_term     >> *(no_node_d[ch_p("|") >> (*ch_p("|"))] >> and_term);
 
             implies_term = or_term      >> *(no_node_d[str_p("->")] >> or_term);
             iff_term     = implies_term

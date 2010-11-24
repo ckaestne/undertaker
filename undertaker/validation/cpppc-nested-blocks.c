@@ -9,7 +9,7 @@
  * check-command: cpppc $file
  * check-output-start
 ( B0 <-> CONFIG_A )
-& ( B1 <->  ( B0 )  & CONFIG_B )
-& ( B2 <->  ( B1 )  & CONFIG_C )
+&& ( B1 <->  ( B0 )  && CONFIG_B )
+&& ( B2 <->  ( B1 )  && CONFIG_C )
  * check-output-end
  */
