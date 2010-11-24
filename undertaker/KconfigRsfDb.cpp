@@ -92,7 +92,8 @@ int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, st
 
         if (item != NULL) {
             valid_items++;
-            sj.push_back(*item);
+            if (item->compare("") != 0)
+                sj.push_back("(" + *it + " -> (" + *item + "))");
         } else {
             if (it->size() > 1)
                 missing.insert(*it);
