@@ -20,7 +20,7 @@ bool DeadBlockDefect::isDefect(const KconfigRsfDb *model) {
 
     formula.push_back(_block);
     formula.push_back(getCodeConstraints());
-    SatChecker code_constraints(_formula = formula.join("\n&\n"));
+    SatChecker code_constraints(_formula = formula.join("\n&&\n"));
 
     if (!code_constraints()) {
         _defectType = Implementation;
@@ -31,7 +31,7 @@ bool DeadBlockDefect::isDefect(const KconfigRsfDb *model) {
     if (model) {
         std::set<std::string> missingSet;
         formula.push_back(this->getKconfigConstraints(model, missingSet));
-        SatChecker kconfig_constraints(_formula = formula.join("\n&\n"));
+        SatChecker kconfig_constraints(_formula = formula.join("\n&&\n"));
 
         if (!kconfig_constraints()) {
             _defectType = Configuration;
@@ -39,7 +39,7 @@ bool DeadBlockDefect::isDefect(const KconfigRsfDb *model) {
             return true;
         } else {
             formula.push_back(this->getMissingItemsConstraints(missingSet));
-            SatChecker missing_constraints(_formula = formula.join("\n&\n"));
+            SatChecker missing_constraints(_formula = formula.join("\n&&\n"));
 
             if (!missing_constraints()) {
                 _defectType = Referential;
@@ -147,9 +147,9 @@ bool UndeadBlockDefect::isDefect(const KconfigRsfDb *model) {
     if (!_arch)
         _arch = KconfigRsfDbFactory::lookupArch(model);
 
-    formula.push_back("( " + std::string(parent) + " & ! " + std::string(_block) + " )");
+    formula.push_back("( " + std::string(parent) + " && ! " + std::string(_block) + " )");
     formula.push_back(getCodeConstraints());
-    SatChecker code_constraints(_formula = formula.join("\n&\n"));
+    SatChecker code_constraints(_formula = formula.join("\n&&\n"));
 
     if (!code_constraints()) {
         _defectType = Implementation;
@@ -160,7 +160,7 @@ bool UndeadBlockDefect::isDefect(const KconfigRsfDb *model) {
     if (model) {
         std::set<std::string> missingSet;
         formula.push_back(getKconfigConstraints(model, missingSet));
-        SatChecker kconfig_constraints(_formula = formula.join("\n&\n"));
+        SatChecker kconfig_constraints(_formula = formula.join("\n&&\n"));
 
         if (!kconfig_constraints()) {
             _defectType = Configuration;
@@ -168,7 +168,7 @@ bool UndeadBlockDefect::isDefect(const KconfigRsfDb *model) {
             return true;
         } else {
             formula.push_back(this->getMissingItemsConstraints(missingSet));
-            SatChecker missing_constraints(_formula = formula.join("\n&\n"));
+            SatChecker missing_constraints(_formula = formula.join("\n&&\n"));
 
             if (!missing_constraints()) {
                 _defectType = Referential;
