@@ -15,11 +15,8 @@ DeadBlockDefect::DeadBlockDefect(CodeSatStream *cs, const char *block)
 bool DeadBlockDefect::isDefect(const KconfigRsfDb *model) {
     StringJoiner formula;
 
-    // already checked
-    if (_defectType != None)
-        return true;
-
-    _arch = KconfigRsfDbFactory::lookupArch(model);
+    if(!_arch)
+        _arch = KconfigRsfDbFactory::lookupArch(model);
 
     formula.push_back(_block);
     formula.push_back(getCodeConstraints());
@@ -61,7 +58,7 @@ bool DeadBlockDefect::needsCrosscheck() const {
     case Configuration:
         return false;
     default:
-        // skip crosschecking if we already now that it is global
+        // skip crosschecking if we already know that it is global
         return !_isGlobal;
     }
 }
@@ -86,7 +83,7 @@ bool DeadBlockDefect::writeReportToFile() const {
 
     fname_joiner.push_back(_cs->getFilename());
     fname_joiner.push_back(_block);
-    if(_arch && !_isGlobal)
+    if(_arch && (!_isGlobal || _defectType == Configuration))
         fname_joiner.push_back(_arch);
 
     switch(_defectType) {
@@ -136,24 +133,19 @@ bool DeadBlockDefect::writeReportToFile() const {
 }
 
 
-
 UndeadBlockDefect::UndeadBlockDefect(CodeSatStream *cs, const char *block)
     : DeadBlockDefect(cs, block) { this->_suffix = "undead"; }
-
 
 bool UndeadBlockDefect::isDefect(const KconfigRsfDb *model) {
     StringJoiner formula;
     const char *parent = _cs->getParent(_block);
 
-    // already checked
-    if (_defectType != None)
-        return true;
-
     // no parent -> impossible to be undead
     if (!parent)
         return false;
 
-    _arch = KconfigRsfDbFactory::lookupArch(model);
+    if (!_arch)
+        _arch = KconfigRsfDbFactory::lookupArch(model);
 
     formula.push_back("( " + std::string(parent) + " & ! " + std::string(_block) + " )");
     formula.push_back(getCodeConstraints());

@@ -145,7 +145,7 @@ const BlockDefect* CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *
     assert(defect->defectType() != BlockDefect::None);
 
     // (ATM) Implementation and Configuration defects do not require a crosscheck
-    if (!defect->needsCrosscheck())
+    if (!_doCrossCheck || !defect->needsCrosscheck())
         return defect;
 
     KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
@@ -184,8 +184,10 @@ void CodeSatStream::analyzeBlocks() {
 
             start = clock();
             const BlockDefect *defect = analyzeBlock((*i).c_str(), p_model);
-            if (defect)
+            if (defect) {
                 defect->writeReportToFile();
+                delete defect;
+            }
             end = clock();
 
             re.rt_full_analysis = end - start;
