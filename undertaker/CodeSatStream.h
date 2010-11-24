@@ -40,36 +40,52 @@ class RuntimeEntry {
 
 typedef std::list<RuntimeEntry> RuntimeTable;
 
+struct BlockDefect;
 
 class CodeSatStream : public std::stringstream {
 public:
     CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch,
-           ParentMap parents, BlockCloud *cc=NULL,
+           const ParentMap parents, BlockCloud *cc=NULL,
            bool batch_mode=false, bool loadModels=false);
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
-    void composeConstraints(std::string block, const KconfigRsfDb *model);
-    virtual void analyzeBlock(const char *block);
+    virtual const BlockDefect *analyzeBlock(const char *block, KconfigRsfDb *p_model);
+
+    /**
+     * Look up the enclosing block, if any
+     *
+     * \return enclosing block, or NULL, if the block is already top-level
+     */
+    const char *getParent(const char *block);
+
     void analyzeBlocks();
 
     static unsigned int getProcessedUnits()  { return processed_units; }
     static unsigned int getProcessedItems()  { return processed_items; }
     static unsigned int getProcessedBlocks() { return processed_blocks; }
     static unsigned int getFailedBocks()     { return failed_blocks; }
-    std::string getFilename() { return _filename; }
+    const std::string& getFilename() const   { return _filename; }
+    std::string getLine(const char *block) const;
 
     std::string getCodeConstraints();
     std::string getKconfigConstraints(const KconfigRsfDb *model, std::set<std::string> &missing);
     std::string getMissingItemsConstraints(std::set<std::string> &missing);
-    std::list<SatChecker::AssignmentMap> blockCoverage();
+
+    /**
+     * Check for configuration coverage
+     *
+     * This method tries finds a set of configurations so that each and
+     * every block (excluding dead blocks) is selected at least once.
+     *
+     * \param model If not NULL, take the constraints of the goven model into account
+     */
+    std::list<SatChecker::AssignmentMap> blockCoverage(KconfigRsfDb *model);
 
     bool dumpRuntimes();
-//    static const RuntimeTable &getRuntimes();
     RuntimeTable runtimes;
 
 protected:
-    bool writePrettyPrinted(const char *filename, std::string block, const char *contents) const;
     std::istream &_istream;
     std::set<std::string> _items; //kconfig items
     std::set<std::string> _free_items; //non-kconfig items
@@ -79,7 +95,7 @@ protected:
     bool _doCrossCheck;
     BlockCloud *_cc;
     const bool _batch_mode;
-    ParentMap parents;
+    const ParentMap parents;
 
     std::stringstream codeConstraints;
     std::stringstream kconfigConstraints;
@@ -89,7 +105,6 @@ protected:
     static unsigned int processed_blocks;
     static unsigned int failed_blocks;
     static unsigned int processed_items;
-    std::string getLine(std::string block) const;
 };
 
 

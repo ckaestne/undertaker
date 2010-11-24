@@ -128,6 +128,16 @@ KconfigRsfDb *KconfigRsfDbFactory::lookupModel(const char *arch)  {
     }
 }
 
+const char *KconfigRsfDbFactory::lookupArch(const KconfigRsfDb *model) {
+    KconfigRsfDbFactory *f = getInstance();
+    ModelContainer::iterator i;
+    for (i = f->begin(); i != f->end(); i++) {
+        if ((*i).second == model)
+            return (*i).first.c_str();
+    }
+    return NULL;
+}
+
 KconfigRsfDbFactory *KconfigRsfDbFactory::getInstance() {
     static KconfigRsfDbFactory *instance;
     if (!instance) {

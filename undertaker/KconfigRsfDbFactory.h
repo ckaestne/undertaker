@@ -15,6 +15,7 @@ public:
     static void loadModels(std::string, std::string); //for arch-specific analysis
     static void loadWhitelist(const char *file);
     static KconfigRsfDb *lookupModel(const char *arch);
+    static const char *lookupArch(const KconfigRsfDb *model);
     static KconfigRsfDbFactory *getInstance();
     bool empty();
 
