@@ -59,10 +59,12 @@ run-libcheck: test-SatChecker
 
 check: $(PROGS)
 	@$(MAKE) -s clean-check
+	@$(MAKE) -C kconfig-dumps all
 	cd validation && ./test-suite
 	@$(MAKE) -s run-libcheck
 
 clean-check:
+	rm -f kconfig-dumps/models/*
 	find validation/ \( -name "*.c.output.expected" \
 	                 -o -name "*.c.output.got" \
 	                 -o -name "*.c.output.diff" \
