@@ -63,14 +63,14 @@ void KconfigRsfDbFactory::loadModels(std::string modeldir) {
                 f->registerModelFile(modeldir + "/" + filename->c_str(), found_arch);
                 found_models++;
 
-                std::cout << "I: loaded model for " << found_arch
+                std::cout << "I: loaded rsf model for " << found_arch
                           << std::endl;
             }
         }
     }
 
     if (found_models > 0) {
-        std::cout << "I: found " << found_models << " models" << std::endl;
+        std::cout << "I: found " << found_models << " rsf models" << std::endl;
     } else {
         std::cerr << "E: could not find any models" << std::endl;
         exit(-1);
@@ -91,7 +91,7 @@ void KconfigRsfDbFactory::loadModels(std::string modeldir, std::string arch) {
 
     if (a == f->end())
         f->registerModelFile(filename, arch);
-        std::cout << "I: Loaded model for architecture " << arch << std::endl;
+        std::cout << "I: Loaded rsf model for architecture " << arch << std::endl;
     } else {
         std::cerr << "E: could not find rsf file for arch "
                   << arch << std::endl;
