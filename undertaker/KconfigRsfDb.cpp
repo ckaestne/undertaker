@@ -9,213 +9,10 @@
 #include <list>
 #include <stack>
 
-KconfigRsfDb::Item::Item(std::string name, unsigned type, bool required)
-    : name_(name), type_(type), required_(required) {
-    
-    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
-    if (wl->isWhitelisted(name_.c_str()))
-        type_ |= WHITELIST;
-}
-
-std::string KconfigRsfDb::Item::getDependencies() const {
-    if (dependencies_.size() > 0)
-        return dependencies_.front();
-    else
-        return "";
-}
-
-bool KconfigRsfDb::Item::isValid() const {
-    return !((type_ & INVALID) == INVALID);
-}
-
-KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(std::string key) const {
-    ItemMap::const_iterator it = this->find(key);
-
-    if (it == this->end()) {
-        if (key.compare(0,5,"COMP_") == 0) {
-            return Item(key);
-        } else {
-            return Item(key, INVALID);
-        }
-    } else {
-        return (*it).second;
-    }
-}
 
 KconfigRsfDb::KconfigRsfDb(std::ifstream &in, std::ostream &log)
-    : _in(in),
-      choice_(in, "Choice", log),
-      choice_item_(in, "ChoiceItem", log),
-      depends_(in, "Depends", log),
-      item_(in, "Item", log)
-{}
-
-void KconfigRsfDb::initializeItems() {
-
-    for(RsfBlocks::iterator i = this->item_.begin(); i != this->item_.end(); i++) {
-        std::stringstream ss;
-        const std::string &name = (*i).first;
-        const std::string &type = (*i).second.front();
-
-        // skip non boolean/tristate items
-        if ( ! ( type.compare("boolean") ||
-                 type.compare("tristate") ))
-            continue;
-
-        const std::string itemName("CONFIG_" + name);
-        Item i(itemName, ITEM);
-
-        // tristate constraints
-        if (!type.compare("tristate")) {
-            const std::string moduleName("CONFIG_" + name + "_MODULE");
-            Item m(moduleName, ITEM);
-            i.dependencies().push_front(" ! " + moduleName);
-            m.dependencies().push_front(" ! " + itemName);
-            allItems.insert(std::pair<std::string,Item>(moduleName, m));
-        }
-
-        allItems.insert(std::pair<std::string,Item>(itemName, i));
-    }
-
-    for(RsfBlocks::iterator i = this->choice_.begin(); i != this->choice_.end(); i++) {
-        const std::string &itemName = (*i).first;
-        const std::string &required = (*i).second.front();
-        const std::string choiceName("CONFIG_" + itemName);
-        Item ci(choiceName, CHOICE, required.compare("required") == 0);
-
-        allItems.insert(std::pair<std::string,Item>(ci.name(), ci));
-    }
-
-    for(RsfBlocks::iterator i = this->depends_.begin(); i != this->depends_.end(); i++) {
-        std::stringstream ss;
-        const std::string &itemName = (*i).first;
-        std::string &exp = (*i).second.front();
-        std::string::size_type pos = std::string::npos;
-
-        while ((pos = exp.find("&&")) != std::string::npos)
-            exp.replace(pos, 2, 1, '&');
-
-        while ((pos = exp.find("||")) != std::string::npos)
-            exp.replace(pos, 2, 1, '|');
-
-        Item item = allItems.getItem("CONFIG_"+itemName);
-
-        if (item.isValid()) {
-            ItemDb::iterator i = allItems.find("CONFIG_"+itemName);
-            assert(i != allItems.end());
-            (*i).second.dependencies().push_front(rewriteExpressionPrefix(exp));
-        }
-    }
-
-    for(RsfBlocks::iterator i = this->choice_item_.begin(); i != this->choice_item_.end(); i++) {
-        const std::string &itemName = (*i).first;
-        const std::string &choiceName = (*i).second.front();
-        Item choiceItem = allItems.getItem(choiceName);
-        Item item = allItems.getItem(itemName);
-
-        if (item.isValid() && choiceItem.isValid()) {
-            ItemDb::iterator i = allItems.find(choiceName);
-            assert(i != allItems.end());
-            (*i).second.choiceAlternatives().push_back(item);
-        }
-    }
+    : RsfReader(in, log) {
 }
-
-std::list<std::string> itemsOfString(std::string str);
-std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
-    const std::string prefix = "CONFIG_";
-    std::string separators[9] = { " ", "!", "(", ")", "=", "<", ">", "&", "|" };
-    std::list<std::string> itemsExp = itemsOfString(exp);
-    for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); i++) {
-        size_t pos = 0;
-
-        while ( (pos = exp.find(*i,pos)) != std::string::npos) {
-
-            bool insert = false;
-        for(int j=0; j<9; j++) {
-            if (pos == 0) {
-               insert = true;
-               break;
-            }
-
-            if (exp.compare(pos-1,1,separators[j]) == 0) {
-                    insert = true;
-            break;
-        }
-        }
-
-        if (insert)
-                exp.insert(pos,prefix);
-
-            pos += prefix.size() + (*i).size();
-    }
-    }
-    return exp;
-}
-
-std::string KconfigRsfDb::Item::printChoiceAlternative() const {
-    std::stringstream ret("");
-    if (!isChoice() || choiceAlternatives_.size() == 0)
-    return ret.str();
-
-    ret << "( " << name_ << " -> (";
-    for(std::deque<Item>::const_iterator i=choiceAlternatives_.begin();  i != choiceAlternatives_.end(); i++) {
-    if (i != choiceAlternatives_.begin())
-        ret << " | ";
-
-    ret << (*i).name_;
-    }
-    ret << ") )" << std::endl;
-    return ret.str();
-}
-
-bool KconfigRsfDb::Item::printItemSat(std::ostream &out) const {
-    if (dependencies_.size() > 0) {
-    out << "( " << name_ << " -> (" << dependencies_.front() << ") )" << std::endl;
-    if (isChoice()) {
-        std::string ca = printChoiceAlternative();
-        if (!ca.empty()) {
-          out << "&" << ca << std::endl;
-        }
-    }
-    return true;
-    } else {
-    if (isChoice() && choiceAlternatives_.size() > 0) {
-        out << printChoiceAlternative();
-        return true;
-    }
-    return false;
-    }
-}
-
-
-std::string KconfigRsfDb::Item::printItemSat() const {
-    std::stringstream ss("");
-    printItemSat(ss);
-    return ss.str();
-}
-
-void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
-    ItemMap::const_iterator it;
-
-    for(it = allItems.begin(); it != allItems.end(); it++) {
-        Item item = (*it).second;
-        if(item.printItemSat(out))
-            out << std::endl;
-        else
-            out << "No dependency for item: " << (*it).first << "\n";
-    }
-}
-
-void KconfigRsfDb::dumpMissing(std::ostream &out) const {
-    ItemMap::const_iterator it;
-
-    out << "missing items size: " << this->allItems.missing.size() << std::endl;
-    for(it = this->allItems.missing.begin(); it != this->allItems.missing.end(); it++) {
-        out << "Missing item: " << (*it).first << "\n";
-    }
-}
-
 
 std::list<std::string> itemsOfString(std::string str) {
     std::list<std::string> mylist;
@@ -259,19 +56,19 @@ void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems
     std::list<std::string> listtmp;
     std::stack<std::string> workingStack;
     std::string tmp;
+    /* Initialize the working stack with the given elements */
     for(std::set<std::string>::iterator sit = initialItems.begin(); sit != initialItems.end(); sit++) {
-        //if ((*sit).compare(0,6,"CONFIG_") == 0) //consider only flags that should come from the kconfig model
         workingStack.push(*sit);
     }
 
     while (!workingStack.empty()) {
-        Item item = allItems.getItem(workingStack.top());
+        const std::string *item = getValue(workingStack.top());
         workingStack.pop();
-        if (item.isValid()) {
-            std::string exp = item.printItemSat();//allItems.items_[*it].getDependencies();
-            if (!exp.empty()) {
-                listtmp = itemsOfString(exp);
+        if (item != NULL) {
+            if (item->compare("") != 0) {
+                listtmp = itemsOfString(*item);
                 for(std::list<std::string>::iterator sit = listtmp.begin(); sit != listtmp.end(); sit++) {
+                    /* Item already seen? continue */
                     if (initialItems.find(*sit) == initialItems.end()) {
                         workingStack.push(*sit);
                         initialItems.insert(*sit);
@@ -283,26 +80,26 @@ void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems
 }
 
 
-int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const {
-    int valid_items = 0;
-    StringJoiner sj;
+int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const {
+     int valid_items = 0;
+     StringJoiner sj;
 
     findSetOfInterestingItems(myset);
+    slice = myset.size();
 
-    for(std::set<std::string>::iterator it = myset.begin(); it != myset.end(); it++) {
+    for(std::set<std::string>::const_iterator it = myset.begin(); it != myset.end(); it++) {
         std::stringstream ss;
-        KconfigRsfDb::Item item = allItems.getItem(*it);
-        if (item.isValid()) {
-            if (item.printItemSat(ss)) {
-                valid_items++;
-                sj.push_back(ss.str());
-            }
+        const std::string *item = getValue(*it);
+
+        if (item != NULL) {
+            valid_items++;
+            sj.push_back(*item);
         } else {
-            if (item.name().size() > 1)
-                missing.insert(item.name());
+            if (it->size() > 1)
+                missing.insert(*it);
         }
     }
-    out << sj.join("&");
-        
+    out << sj.join(" && ");
+
     return valid_items;
 }

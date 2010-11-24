@@ -109,8 +109,9 @@ KconfigRsfDb *KconfigRsfDbFactory::registerModelFile(std::string filename, std::
     return NULL;
     }
     KconfigRsfDb *db = new KconfigRsfDb(rsf_file, devnull);
-    db->initializeItems();
+
     this->insert(std::make_pair(arch,db));
+
     return db;
 };
 
@@ -120,6 +121,7 @@ KconfigRsfDb *KconfigRsfDbFactory::lookupModel(const char *arch)  {
     ModelContainer::iterator a = f->find(arch);
     if (a != f->end()) {
         // we've found it in our map, so return it
+        std::cout << "found " << arch << std::endl;
         return a->second;
     } else {
         // No model was found
