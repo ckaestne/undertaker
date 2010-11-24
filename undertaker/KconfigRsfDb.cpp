@@ -80,12 +80,11 @@ void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems
 }
 
 
-int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing, int &slice) const {
+int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const {
      int valid_items = 0;
      StringJoiner sj;
 
     findSetOfInterestingItems(myset);
-    slice = myset.size();
 
     for(std::set<std::string>::const_iterator it = myset.begin(); it != myset.end(); it++) {
         std::stringstream ss;
@@ -99,7 +98,7 @@ int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, st
                 missing.insert(*it);
         }
     }
-    out << sj.join(" && ");
+    out << sj.join("\n&&\n");
 
     return valid_items;
 }

@@ -42,12 +42,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
         boost::match_results<std::string::iterator> what;
         boost::match_flag_type flags = boost::match_default;
 
-        while ((pos = line.find("&&")) != std::string::npos)
-            line.replace(pos, 2, 1, '&');
-
-        while ((pos = line.find("||")) != std::string::npos)
-            line.replace(pos, 2, 1, '|');
-
         while (boost::regex_search(line.begin(), line.end(), what, comp_regexp_new, flags)) {
             char buf[20];
             static int c;
@@ -57,12 +51,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
 
         while ((pos = line.find("defined")) != std::string::npos)
             line.erase(pos,7);
-
-        while ((pos = line.find("&&")) != std::string::npos)
-            line.replace(pos, 2, 1, '&');
-
-        while ((pos = line.find("||")) != std::string::npos)
-            line.replace(pos, 2, 1, '|');
 
         ss.str(line);
 
@@ -90,7 +78,7 @@ std::string CodeSatStream::getMissingItemsConstraints(std::set<std::string> &mis
         if (it == missing.begin()) {
             m << "( ! ( " << (*it);
         } else {
-            m << " | " << (*it) ;
+            m << " || " << (*it) ;
         }
     }
     if (!m.str().empty()) {
@@ -138,7 +126,7 @@ void CodeSatStream::analyzeBlock(const char *block) {
     dead_join.push_back(std::string(block));
     dead_join.push_back(code_formula);
 
-    SatChecker code_constraints(dead_join.join("\n&\n"));
+    SatChecker code_constraints(dead_join.join("\n&&\n"));
 
     std::string parent = parents[std::string(block)]; //this is not good, it inserts an empty string if the block has no parents
     bool has_parent = !parent.empty();
@@ -163,12 +151,12 @@ void CodeSatStream::analyzeBlock(const char *block) {
         /* Can be ""!! */
         kconfig_formula = getKconfigConstraints(p_model, missingSet);
         dead_join.push_back(kconfig_formula);
-        SatChecker kconfig_constraints(dead_join.join("\n&\n"));
+        SatChecker kconfig_constraints(dead_join.join("\n&&\n"));
 
         /* Can be ""! */
         missing_formula = getMissingItemsConstraints(missingSet);
         dead_join.push_back(missing_formula);
-        SatChecker missing_constraints(dead_join.join("\n&\n"));
+        SatChecker missing_constraints(dead_join.join("\n&&\n"));
 
         if (!kconfig_constraints()) {
             const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.globally.dead";
@@ -184,20 +172,20 @@ void CodeSatStream::analyzeBlock(const char *block) {
         }
     }
     bool zombie = false;
-    std::string undead_block  = "( " + parent + " & ! " + std::string(block) + " )";
+    std::string undead_block  = "( " + parent + " && ! " + std::string(block) + " )";
 
     if (has_parent && alive) {
         StringJoiner undead_join;
         undead_join.push_back(undead_block);
 
         undead_join.push_back(code_formula);
-        SatChecker undead_code_constraints(undead_join.join("\n&\n"));
+        SatChecker undead_code_constraints(undead_join.join("\n&&\n"));
 
         undead_join.push_back(kconfig_formula);
-        SatChecker undead_kconfig_constraints(undead_join.join("\n&\n"));
+        SatChecker undead_kconfig_constraints(undead_join.join("\n&&\n"));
 
         undead_join.push_back(missing_formula);
-        SatChecker undead_missing_constraints(undead_join.join("\n&\n"));
+        SatChecker undead_missing_constraints(undead_join.join("\n&&\n"));
 
         if  (!undead_code_constraints()){
             const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.undead";
@@ -245,11 +233,11 @@ void CodeSatStream::analyzeBlock(const char *block) {
 
             /* We use the joiner twice! */
             cross_join.push_front(block);
-            dead_missing = cross_join.join("\n&\n");
+            dead_missing = cross_join.join("\n&&\n");
             cross_join.pop_front();
 
             cross_join.push_front(undead_block);
-            undead_missing = cross_join.join("\n&\n");
+            undead_missing = cross_join.join("\n&&\n");
 
             if (dead) {
                 /* Joiner must be in the original state afterwards */
@@ -340,7 +328,7 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage() {
 	    if (blocks_set.find(*i) == blocks_set.end()) {
                 /* does the new contributes to the set of configurations? */
                 bool new_solution = false;
-                SatChecker sc(formula.join("\n&\n"));
+                SatChecker sc(formula.join("\n&&\n"));
 
                 // unsolvable, i.e. we have found some defect!
                 if (!sc())

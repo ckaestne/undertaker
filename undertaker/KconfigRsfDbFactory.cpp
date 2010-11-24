@@ -121,7 +121,6 @@ KconfigRsfDb *KconfigRsfDbFactory::lookupModel(const char *arch)  {
     ModelContainer::iterator a = f->find(arch);
     if (a != f->end()) {
         // we've found it in our map, so return it
-        std::cout << "found " << arch << std::endl;
         return a->second;
     } else {
         // No model was found
