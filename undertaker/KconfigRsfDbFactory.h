@@ -11,10 +11,11 @@ typedef std::map<std::string, KconfigRsfDb*> ModelContainer;
 
 class KconfigRsfDbFactory : protected ModelContainer {
 public:
-    static void loadModels();
-    static void loadModels(std::string); //for arch-specific analysis
+    static void loadModels(std::string);
+    static void loadModels(std::string, std::string); //for arch-specific analysis
     static void loadWhitelist(const char *file);
     static KconfigRsfDb *lookupModel(const char *arch);
+    static const char *lookupArch(const KconfigRsfDb *model);
     static KconfigRsfDbFactory *getInstance();
     bool empty();
 
@@ -25,7 +26,7 @@ public:
     size_type size() const { return ModelContainer::size(); }
 
 private:
-    KconfigRsfDb *registerRsfFile(const char* filename, std::string arch);
+    KconfigRsfDb *registerModelFile(std::string filename, std::string arch);
     ~KconfigRsfDbFactory();
 };
 
