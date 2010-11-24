@@ -17,11 +17,12 @@ typedef std::deque<BlockCloud> CloudList;
 void usage(std::ostream &out, const char *error) {
     if (error)
 	out << error << std::endl;
-    out << "Usage: undertaker [-b worklist] [-w whitelist] [-a arch] [-c] [-r] -s" << " <file>\n";
+    out << "Usage: undertaker [-b worklist] [-w whitelist] [-a arch] [-m modeldir] [-c] [-r] -s" << " <file>\n";
     out << "  -b: specify a worklist (batch mode)\n";
     out << "  -t: specify count of parallel processes (only in batch mode)\n";
     out << "  -w: specify a whitelist\n";
     out << "  -a: specify a unique arch\n";
+    out << "  -m: specify the models directory (default: ./models)\n";
     out << "  -c: coverage analysis mode\n";
     out << "  -s: skip loading variability models\n";
     out << "  -r: dump runtimes\n";
@@ -103,12 +104,13 @@ int main (int argc, char ** argv) {
     char *worklist = NULL;
     char *whitelist = NULL;
     char *arch = NULL;
+    char *modeldir = NULL;
     bool arch_specific = false;
     bool coverage = false;
 
     int threads = 1;
 
-    while ((opt = getopt(argc, argv, "sb:a:t:w:c")) != -1) {
+    while ((opt = getopt(argc, argv, "sb:a:m:t:w:c")) != -1) {
 	switch (opt) {
 	case 's':
 	    loadModels = false;
@@ -141,6 +143,9 @@ int main (int argc, char ** argv) {
         case 'c':
             coverage = true;
             break;
+	case 'm':
+        modeldir = strdup(optarg);
+	    break;
 	default:
 	    break;
 	}
@@ -155,10 +160,10 @@ int main (int argc, char ** argv) {
 
     if (loadModels) {
         if (arch_specific) {
-	  f->loadModels(arch);
-	} else {
-	  f->loadModels();
-	}
+            f->loadModels(modeldir ? modeldir : "models", arch);
+        } else {
+            f->loadModels(modeldir ? modeldir : "models");
+        }
     }
     if (whitelist) {
         f->loadWhitelist(whitelist);
