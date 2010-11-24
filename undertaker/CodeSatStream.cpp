@@ -7,6 +7,7 @@
 #include "KconfigRsfDb.h"
 #include "KconfigWhitelist.h"
 #include "CodeSatStream.h"
+#include "BlockDefect.h"
 #include "SatChecker.h"
 #include "Ziz.h"
 
@@ -120,178 +121,45 @@ const char *CodeSatStream::getParent(const char *block) {
         return (*i).second.c_str();
 }
 
-/*
- * possible files created based on findings:
- *
- * filename                    |  meaning: dead because...
- * ---------------------------------------------------------------------------------
- * $block.$arch.code.dead     -> only considering the CPP structure and expressions
- * $block.$arch.kconfig.dead  -> additionally considering kconfig constraints
- * $block.$arch.missing.dead  -> additionally setting symbols not found in kconfig
- *                               to false (grounding these variables)
- * $block.globally.dead       -> dead on every checked arch
+/**
+ * \param block    block to check
+ * \param p_model  primary model to check against
  */
+const BlockDefect* CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *p_model) {
 
-void CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *p_model) {
-    std::string code_formula = getCodeConstraints();
+    BlockDefect *defect = new DeadBlockDefect(this, block);
 
-    std::string kconfig_formula = "";
-    std::string missing_formula = "";
+    // If this is neither an Implementation, Configuration nor Referential *dead*,
+    // then destroy the analysis and retry with an Undead Analysis
+    if(!defect->isDefect(p_model)) {
+        delete defect;
+        defect = new UndeadBlockDefect(this, block);
 
-    StringJoiner dead_join;
-    dead_join.push_back(std::string(block));
-    dead_join.push_back(code_formula);
-
-    SatChecker code_constraints(dead_join.join("\n&\n"));
-
-    bool alive = true;
-    bool hasMissing = false;
-
-    /* PART 1: Dead Analysis */
-    if (!code_constraints()) {
-        const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.dead";
-        writePrettyPrinted(filename.c_str(),block, code_constraints.c_str());
-        return; // code dead -> no crosscheck
-    }
-
-    if (p_model) {
-        std::set<std::string> missingSet;
-
-        /* Can be ""!! */
-        kconfig_formula = getKconfigConstraints(p_model, missingSet);
-        dead_join.push_back(kconfig_formula);
-        SatChecker kconfig_constraints(dead_join.join("\n&\n"));
-
-        if (!kconfig_constraints()) {
-            const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.globally.dead";
-            writePrettyPrinted(filename.c_str(),block, kconfig_constraints.c_str());
-            return;
-        }
-
-        /* Can be ""! */
-        missing_formula = getMissingItemsConstraints(missingSet);
-        dead_join.push_back(missing_formula);
-        SatChecker missing_constraints(dead_join.join("\n&\n"));
-
-        if (!missing_constraints()) {
-            const std::string filename= _filename + "." + block + "." + _primary_arch +".missing.dead";
-            writePrettyPrinted(filename.c_str(),block, missing_constraints.c_str());
-            alive = false;
-            hasMissing = true;
+        // No defect found, block seems OK
+        if(!defect->isDefect(p_model)) {
+            delete defect;
+            return NULL;
         }
     }
 
-    /* PART 2: Undead Analysis */
-    bool zombie = false;
-    const char *parent = getParent(block);
-    bool has_parent = parent != NULL;
+    assert(defect->defectType() != BlockDefect::None);
 
-    if (has_parent && alive) {
-        std::string undead_block  = "( " + std::string(parent) + " & ! " + std::string(block) + " )";
+    // (ATM) Implementation and Configuration defects do not require a crosscheck
+    if (!defect->needsCrosscheck())
+        return defect;
 
-        StringJoiner undead_join;
-        undead_join.push_back(undead_block);
-        undead_join.push_back(code_formula);
-        SatChecker undead_code_constraints(undead_join.join("\n&\n"));
+    KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+    for (ModelContainer::iterator i = f->begin(); i != f->end(); i++) {
+        const std::string &arch = (*i).first;
+        const KconfigRsfDb *model = (*i).second;
 
-        if  (!undead_code_constraints()){
-            const std::string filename = _filename + "." + block + "." + _primary_arch +".code.globally.undead";
-            writePrettyPrinted(filename.c_str(),block, undead_code_constraints.c_str());
-            return;
-        }
-
-        if (p_model) {
-            undead_join.push_back(kconfig_formula);
-            SatChecker undead_kconfig_constraints(undead_join.join("\n&\n"));
-
-            if  (!undead_kconfig_constraints()){
-                const std::string filename = _filename + "." + block + "." + _primary_arch +".kconfig.globally.undead";
-                writePrettyPrinted(filename.c_str(),block, undead_kconfig_constraints.c_str());
-                return;
-            }
-
-            undead_join.push_back(missing_formula);
-            SatChecker undead_missing_constraints(undead_join.join("\n&\n"));
-
-            if  (!undead_missing_constraints() & !zombie){
-                const std::string filename = _filename + "." + block + "." + _primary_arch +".missing.undead";
-                writePrettyPrinted(filename.c_str(),block, undead_missing_constraints.c_str());
-                zombie = true;
-                hasMissing = true;
-            }
+        if (!defect->isDefect(model)) {
+            defect->markOk(arch);
+            return defect;
         }
     }
-
-    /* PART 3: Crosscheck */
-    if (!p_model || !hasMissing)
-        return;
-
-    bool dead = !alive;
-    if (dead || zombie) {
-        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
-
-        ModelContainer::iterator i = f->begin();
-        std::string dead_missing = "";
-        std::string undead_missing = "";
-
-        while ((zombie || dead) && i != f->end()) {
-            std::set<std::string> missingSet;
-            StringJoiner cross_join;
-            KconfigRsfDb *archDb = f->lookupModel((*i).first.c_str());
-
-            cross_join.push_back(code_formula);
-
-            std::string kconfig = getKconfigConstraints(archDb, missingSet);
-            cross_join.push_back(kconfig);
-
-            std::string missing = getMissingItemsConstraints(missingSet);
-            cross_join.push_back(missing);
-
-            /* We use the joiner twice! */
-            cross_join.push_front(block);
-            dead_missing = cross_join.join("\n&\n");
-            cross_join.pop_front();
-
-            if (dead) {
-                /* Joiner must be in the original state afterwards */
-                SatChecker missing(dead_missing);
-                bool sat = missing();
-                /* Alive on one architecture */
-                if (sat) {
-                    dead = false;
-                }
-            }
-
-            if (zombie && has_parent) {
-                std::string undead_block  = "( " + std::string(parent) + " & ! " + std::string(block) + " )";
-
-                cross_join.push_front(undead_block);
-                undead_missing = cross_join.join("\n&\n");
-
-                SatChecker missing_undead(undead_missing);
-                bool sat = missing_undead();
-                /* Can be dead on one architecture */
-                if (sat) {
-                    zombie = false;
-                }
-            }
-
-            /* Next architecture */
-            i++;
-        }
-
-        const std::string globalf = _filename + "." + block + ".missing.globally.dead";
-        const std::string globalu = _filename + "." + block + ".missing.globally.undead";
-
-        /* Dead after crosscheck ? */
-        if (dead)
-            writePrettyPrinted(globalf.c_str(), block, dead_missing.c_str());
-
-        /* Undead after crosscheck ? */
-        if (zombie && has_parent)
-            writePrettyPrinted(globalu.c_str(), block, undead_missing.c_str());
-
-    }
+    defect->defectIsGlobal();
+    return defect;
 }
 
 void CodeSatStream::analyzeBlocks() {
@@ -315,7 +183,9 @@ void CodeSatStream::analyzeBlocks() {
             re.i_items = this->Items().size();
 
             start = clock();
-            analyzeBlock((*i).c_str(), p_model);
+            const BlockDefect *defect = analyzeBlock((*i).c_str(), p_model);
+            if (defect)
+                defect->writeReportToFile();
             end = clock();
 
             re.rt_full_analysis = end - start;
@@ -381,33 +251,7 @@ bool CodeSatStream::dumpRuntimes() {
     return true;
 }
 
-
-bool CodeSatStream::writePrettyPrinted(const char *filename, std::string block, const char *contents) const {
-    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
-    const char *wli = wl->containsWhitelistedItem(contents);
-
-    std::ofstream out(filename);
-
-    if (wli) {
-        std::cout << "I: not creating " << filename 
-                  << " (contains whitelisted item: " << wli << ")"
-                  << std::endl;
-        return false;
-    }
-
-    if (!out.good()) {
-        std::cerr << "failed to open " << filename << " for writing " << std::endl;
-        return false;
-    } else {
-        std::cout << "I: creating " << filename << std::endl;
-        out << "#" << block << ":" << getLine(block) << std::endl;
-        out << SatChecker::pprinter(contents);
-        out.close();
-    }
-    return true;
-}
-
-std::string CodeSatStream::getLine(std::string block) const {
+std::string CodeSatStream::getLine(const char *block) const {
     if (this->_cc)
         return this->_cc->getPosition(block);
     else

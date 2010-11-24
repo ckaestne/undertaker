@@ -40,6 +40,7 @@ class RuntimeEntry {
 
 typedef std::list<RuntimeEntry> RuntimeTable;
 
+struct BlockDefect;
 
 class CodeSatStream : public std::stringstream {
 public:
@@ -49,7 +50,7 @@ public:
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
-    virtual void analyzeBlock(const char *block, KconfigRsfDb *p_model);
+    virtual const BlockDefect *analyzeBlock(const char *block, KconfigRsfDb *p_model);
 
     /**
      * Look up the enclosing block, if any
@@ -64,7 +65,8 @@ public:
     static unsigned int getProcessedItems()  { return processed_items; }
     static unsigned int getProcessedBlocks() { return processed_blocks; }
     static unsigned int getFailedBocks()     { return failed_blocks; }
-    std::string getFilename() { return _filename; }
+    const std::string& getFilename() const   { return _filename; }
+    std::string getLine(const char *block) const;
 
     std::string getCodeConstraints();
     std::string getKconfigConstraints(const KconfigRsfDb *model, std::set<std::string> &missing);
@@ -84,7 +86,6 @@ public:
     RuntimeTable runtimes;
 
 protected:
-    bool writePrettyPrinted(const char *filename, std::string block, const char *contents) const;
     std::istream &_istream;
     std::set<std::string> _items; //kconfig items
     std::set<std::string> _free_items; //non-kconfig items
@@ -104,7 +105,6 @@ protected:
     static unsigned int processed_blocks;
     static unsigned int failed_blocks;
     static unsigned int processed_items;
-    std::string getLine(std::string block) const;
 };
 
 
