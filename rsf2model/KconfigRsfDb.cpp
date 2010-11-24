@@ -259,9 +259,9 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
 
 std::string KconfigRsfDb::Item::dumpChoiceAlternative() const {
     std::stringstream ret("");
-    /* We can't say something about optional choices */
-    if (!isChoice() || choiceAlternatives_.size() == 0 || !isRequired())
-    return ret.str();
+
+    if (!isChoice() || choiceAlternatives_.size() == 0)
+        return ret.str();
 
     /* For not tristate choices we will simply exclude the single
        choice items, only one can be true and exactly one is true:
@@ -287,7 +287,10 @@ std::string KconfigRsfDb::Item::dumpChoiceAlternative() const {
 
     if (isTristate()) {
         StringJoiner lastClause;
-        lastClause.push_back("CONFIG_MODULES");
+        /* If the choice is optional, also without MODULES all options
+           can be off */
+        if (isRequired())
+            lastClause.push_back("CONFIG_MODULES");
         for(std::deque<Item>::const_iterator i = choiceAlternatives_.begin();
             i != choiceAlternatives_.end(); ++i) {
 
@@ -311,16 +314,17 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
         Item item = (*it).second;
         out << item.name();
         if (item.dependencies().size() > 0) {
-            out << " " << item.dependencies().join(" && ");
+            out << " \"" << item.dependencies().join(" && ");
             if (item.isChoice()) {
                 std::string ca = item.dumpChoiceAlternative();
                 if (!ca.empty()) {
                     out << " && " << ca;
                 }
             }
+            out << "\"";
         } else {
             if (item.isChoice() && item.choiceAlternatives().size() > 0) {
-                out << " " << item.dumpChoiceAlternative();
+                out << " \"" << item.dumpChoiceAlternative() << "\"";
             }
         }
         out << std::endl;
