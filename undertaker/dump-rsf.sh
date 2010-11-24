@@ -10,7 +10,7 @@ for i in alpha arm avr32 blackfin cris frv h8300 ia64 m32r m68k m68knommu microb
 do
   echo "Calculating model for $i"
   env ARCH="$i" dumpconf arch/$i/Kconfig | grep -v '^#' > $TMP
-  rsf2model $TMP > "$MODELS/$i"
+  rsf2model $TMP > "$MODELS/$i.model"
 done
 
 rm -f $TMP
