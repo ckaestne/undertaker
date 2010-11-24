@@ -1,4 +1,4 @@
-PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/cpppc
+PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/cpppc rsf2model/rsf2model
 
 all: $(PROGS)
 
@@ -11,13 +11,21 @@ undertaker/cpppc: FORCE
 undertaker/undertaker: FORCE
 	$(MAKE) -C undertaker undertaker
 
+rsf2model/rsf2model: FORCE
+	$(MAKE) -C rsf2model
+
+
 clean:
 	$(MAKE) -f Makefile.kbuild clean
 	$(MAKE) -C undertaker clean
 	$(MAKE) -C ziz clean
+	$(MAKE) -C rsf2model clean
+
 
 check:
 	$(MAKE) -C undertaker $@
+	$(MAKE) -C rsf2model $@
+
 
 undertaker-lcov:
 	$(MAKE) -C undertaker run-lcov
