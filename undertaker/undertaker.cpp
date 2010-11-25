@@ -44,7 +44,7 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
         std::istringstream codesat(s.getConstraints());
         std::string arch = "x86";
 
-        KconfigRsfDb *model = 0;
+        ConfigurationModel *model = 0;
         if (loadModels) {
             KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
             if (f->size() == 1)

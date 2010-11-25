@@ -99,7 +99,7 @@ void KconfigRsfDbFactory::loadModels(std::string modeldir, std::string arch) {
     }
 }
 
-KconfigRsfDb *KconfigRsfDbFactory::registerModelFile(std::string filename, std::string arch) {
+ConfigurationModel *KconfigRsfDbFactory::registerModelFile(std::string filename, std::string arch) {
     std::ifstream rsf_file(filename.c_str());
     static std::ofstream devnull("/dev/null");
 
@@ -108,14 +108,14 @@ KconfigRsfDb *KconfigRsfDbFactory::registerModelFile(std::string filename, std::
           << filename << std::endl;
     return NULL;
     }
-    KconfigRsfDb *db = new KconfigRsfDb(rsf_file, devnull);
+    ConfigurationModel *db = new ConfigurationModel(rsf_file, devnull);
 
     this->insert(std::make_pair(arch,db));
 
     return db;
 };
 
-KconfigRsfDb *KconfigRsfDbFactory::lookupModel(const char *arch)  {
+ConfigurationModel *KconfigRsfDbFactory::lookupModel(const char *arch)  {
     KconfigRsfDbFactory *f = getInstance();
     // first step: look if we have it in our models list;
     ModelContainer::iterator a = f->find(arch);
@@ -128,7 +128,7 @@ KconfigRsfDb *KconfigRsfDbFactory::lookupModel(const char *arch)  {
     }
 }
 
-const char *KconfigRsfDbFactory::lookupArch(const KconfigRsfDb *model) {
+const char *KconfigRsfDbFactory::lookupArch(const ConfigurationModel *model) {
     KconfigRsfDbFactory *f = getInstance();
     ModelContainer::iterator i;
     for (i = f->begin(); i != f->end(); i++) {

@@ -5,17 +5,17 @@
 #include <string>
 #include <map>
 
-#include "KconfigRsfDb.h"
+#include "ConfigurationModel.h"
 
-typedef std::map<std::string, KconfigRsfDb*> ModelContainer;
+typedef std::map<std::string, ConfigurationModel*> ModelContainer;
 
 class KconfigRsfDbFactory : protected ModelContainer {
 public:
     static void loadModels(std::string);
     static void loadModels(std::string, std::string); //for arch-specific analysis
     static void loadWhitelist(const char *file);
-    static KconfigRsfDb *lookupModel(const char *arch);
-    static const char *lookupArch(const KconfigRsfDb *model);
+    static ConfigurationModel *lookupModel(const char *arch);
+    static const char *lookupArch(const ConfigurationModel *model);
     static KconfigRsfDbFactory *getInstance();
     bool empty();
 
@@ -26,7 +26,7 @@ public:
     size_type size() const { return ModelContainer::size(); }
 
 private:
-    KconfigRsfDb *registerModelFile(std::string filename, std::string arch);
+    ConfigurationModel *registerModelFile(std::string filename, std::string arch);
     ~KconfigRsfDbFactory();
 };
 

@@ -4,7 +4,7 @@
 
 #include "StringJoiner.h"
 #include "KconfigRsfDbFactory.h"
-#include "KconfigRsfDb.h"
+#include "ConfigurationModel.h"
 #include "KconfigWhitelist.h"
 #include "CodeSatStream.h"
 #include "BlockDefect.h"
@@ -91,7 +91,7 @@ std::string CodeSatStream::getCodeConstraints() {
     return std::string((*this).str());
 }
 
-std::string CodeSatStream::getKconfigConstraints(const KconfigRsfDb *model,
+std::string CodeSatStream::getKconfigConstraints(const ConfigurationModel *model,
                                                  std::set<std::string> &missing) {
     std::stringstream ss;
 
@@ -113,7 +113,7 @@ const char *CodeSatStream::getParent(const char *block) {
  * \param block    block to check
  * \param p_model  primary model to check against
  */
-const BlockDefect* CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *p_model) {
+const BlockDefect* CodeSatStream::analyzeBlock(const char *block, ConfigurationModel *p_model) {
 
     BlockDefect *defect = new DeadBlockDefect(this, block);
 
@@ -139,7 +139,7 @@ const BlockDefect* CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *
     KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
     for (ModelContainer::iterator i = f->begin(); i != f->end(); i++) {
         const std::string &arch = (*i).first;
-        const KconfigRsfDb *model = (*i).second;
+        const ConfigurationModel *model = (*i).second;
 
         if (!defect->isDefect(model)) {
             defect->markOk(arch);
@@ -151,7 +151,7 @@ const BlockDefect* CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *
 }
 
 void CodeSatStream::analyzeBlocks() {
-    KconfigRsfDb *p_model = 0;
+    ConfigurationModel *p_model = 0;
 
     if (_doCrossCheck) {
         KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
@@ -190,7 +190,7 @@ void CodeSatStream::analyzeBlocks() {
     }
 }
 
-std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(KconfigRsfDb *model) {
+std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationModel *model) {
     std::set<std::string>::iterator i;
     std::set<std::string> blocks_set;
     std::list<SatChecker::AssignmentMap> ret;

@@ -12,7 +12,7 @@ DeadBlockDefect::DeadBlockDefect(CodeSatStream *cs, const char *block)
     :  BlockDefect(None), _cs(cs), _block(block), _needsCrosscheck(false),
        _arch(NULL), _suffix("dead") {}
 
-bool DeadBlockDefect::isDefect(const KconfigRsfDb *model) {
+bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;
 
     if(!_arch)
@@ -69,7 +69,7 @@ const std::string DeadBlockDefect::getCodeConstraints() const {
     return _cs->getCodeConstraints();
 }
 
-const std::string DeadBlockDefect::getKconfigConstraints(const KconfigRsfDb *model,
+const std::string DeadBlockDefect::getKconfigConstraints(const ConfigurationModel *model,
                                                            std::set<std::string> &missing) const{
     return _cs->getKconfigConstraints(model, missing);
 }
@@ -136,7 +136,7 @@ bool DeadBlockDefect::writeReportToFile() const {
 UndeadBlockDefect::UndeadBlockDefect(CodeSatStream *cs, const char *block)
     : DeadBlockDefect(cs, block) { this->_suffix = "undead"; }
 
-bool UndeadBlockDefect::isDefect(const KconfigRsfDb *model) {
+bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;
     const char *parent = _cs->getParent(_block);
 

@@ -1,4 +1,4 @@
-#include "KconfigRsfDb.h"
+#include "ConfigurationModel.h"
 #include "KconfigWhitelist.h"
 #include "StringJoiner.h"
 
@@ -10,7 +10,7 @@
 #include <stack>
 
 
-KconfigRsfDb::KconfigRsfDb(std::ifstream &in, std::ostream &log)
+ConfigurationModel::ConfigurationModel(std::ifstream &in, std::ostream &log)
     : RsfReader(in, log) {
 }
 
@@ -52,7 +52,7 @@ std::list<std::string> itemsOfString(std::string str) {
     return mylist;
 }
 
-void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems) const {
+void ConfigurationModel::findSetOfInterestingItems(std::set<std::string> &initialItems) const {
     std::list<std::string> listtmp;
     std::stack<std::string> workingStack;
     std::string tmp;
@@ -80,7 +80,7 @@ void KconfigRsfDb::findSetOfInterestingItems(std::set<std::string> &initialItems
 }
 
 
-int KconfigRsfDb::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const {
+int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const {
      int valid_items = 0;
      StringJoiner sj;
 

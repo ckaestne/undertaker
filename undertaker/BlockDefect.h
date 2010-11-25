@@ -7,7 +7,7 @@
 struct BlockDefect {
     enum DEFECTTYPE { None, Implementation, Configuration, Referential };
 
-    virtual bool isDefect(const KconfigRsfDb *model) = 0; /**< checks for an defect */
+    virtual bool isDefect(const ConfigurationModel *model) = 0; /**< checks for an defect */
     virtual bool isGlobal() const = 0; /**< checks if the defect applies to all models */
     virtual bool needsCrosscheck() const = 0; /**< defect will be present on every model */
     virtual void defectIsGlobal();  /**< mark defect als valid on all models */
@@ -26,7 +26,7 @@ protected:
 class DeadBlockDefect : public BlockDefect {
 public:
     DeadBlockDefect(CodeSatStream *cs, const char *block);
-    virtual bool isDefect(const KconfigRsfDb *model); /**< checks for an defect */
+    virtual bool isDefect(const ConfigurationModel *model); /**< checks for an defect */
     virtual bool isGlobal() const; /**< checks if the defect applies to all models */
     virtual bool needsCrosscheck() const; /**< defect will be present on every model */
     /**
@@ -47,7 +47,7 @@ public:
 
 protected:
     const std::string getCodeConstraints() const;
-    const std::string getKconfigConstraints(const KconfigRsfDb *model, std::set<std::string> &missing) const;
+    const std::string getKconfigConstraints(const ConfigurationModel *model, std::set<std::string> &missing) const;
     const std::string getMissingItemsConstraints(std::set<std::string> &missing) const;
 
     CodeSatStream *_cs;
@@ -62,7 +62,7 @@ protected:
 class UndeadBlockDefect : public DeadBlockDefect {
 public:
     UndeadBlockDefect(CodeSatStream *cs, const char *block);
-    virtual bool isDefect(const KconfigRsfDb *model);
+    virtual bool isDefect(const ConfigurationModel *model);
 };
 
 

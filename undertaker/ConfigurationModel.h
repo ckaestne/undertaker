@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
-#ifndef kconfigrsfdb_h__
-#define kconfigrsfdb_h__
+#ifndef configuration_model_h__
+#define configuration_model_h__
 
 #include <string>
 #include <map>
@@ -9,9 +9,9 @@
 
 #include "RsfReader.h"
 
-class KconfigRsfDb : protected RsfReader {
+class ConfigurationModel : protected RsfReader {
 public:
-    KconfigRsfDb(std::ifstream &in, std::ostream &log);
+    ConfigurationModel(std::ifstream &in, std::ostream &log);
 
     int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const;
 
