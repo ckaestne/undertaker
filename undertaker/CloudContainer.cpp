@@ -12,7 +12,6 @@ const char *ZizCondBlockPtr::expression() const {
         return _expression;
 
     std::string expression = _cb->ExpressionStr();
-    std::string::size_type pos = std::string::npos;
 
     if (_cb->CondBlockType() == Ziz::Ifndef)
     expression = " ! " + expression;
