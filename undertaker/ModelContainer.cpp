@@ -88,7 +88,7 @@ void ModelContainer::loadModels(std::string modeldir, std::string arch) {
 
     if (a == f->end())
         f->registerModelFile(filename, arch);
-        std::cout << "I: Loaded rsf model for architecture " << arch << std::endl;
+        std::cout << "I: loaded rsf model for " << arch << std::endl;
     } else {
         std::cerr << "E: could not find rsf file for arch "
                   << arch << std::endl;
