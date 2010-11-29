@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "StringJoiner.h"
-#include "KconfigRsfDbFactory.h"
+#include "ModelContainer.h"
 #include "ConfigurationModel.h"
 #include "KconfigWhitelist.h"
 #include "CodeSatStream.h"
@@ -136,7 +136,7 @@ const BlockDefect* CodeSatStream::analyzeBlock(const char *block, ConfigurationM
     if (!_doCrossCheck || !defect->needsCrosscheck())
         return defect;
 
-    KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+    ModelContainer *f = ModelContainer::getInstance();
     for (ModelContainer::iterator i = f->begin(); i != f->end(); i++) {
         const std::string &arch = (*i).first;
         const ConfigurationModel *model = (*i).second;
@@ -154,7 +154,7 @@ void CodeSatStream::analyzeBlocks() {
     ConfigurationModel *p_model = 0;
 
     if (_doCrossCheck) {
-        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+        ModelContainer *f = ModelContainer::getInstance();
         p_model = f->lookupModel(_primary_arch);
     }
     

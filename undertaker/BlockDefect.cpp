@@ -1,6 +1,6 @@
 #include "StringJoiner.h"
 #include "BlockDefect.h"
-#include "KconfigRsfDbFactory.h"
+#include "ModelContainer.h"
 #include "KconfigWhitelist.h"
 
 
@@ -16,7 +16,7 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;
 
     if(!_arch)
-        _arch = KconfigRsfDbFactory::lookupArch(model);
+        _arch = ModelContainer::lookupArch(model);
 
     formula.push_back(_block);
     formula.push_back(getCodeConstraints());
@@ -145,7 +145,7 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
         return false;
 
     if (!_arch)
-        _arch = KconfigRsfDbFactory::lookupArch(model);
+        _arch = ModelContainer::lookupArch(model);
 
     formula.push_back("( " + std::string(parent) + " && ! " + std::string(_block) + " )");
     formula.push_back(getCodeConstraints());

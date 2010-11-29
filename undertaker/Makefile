@@ -15,7 +15,7 @@ LDFLAGS =
 LDLIBS = -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../picosat/libpicosat.a -lboost_wave-mt $(LDCOV)
 
 PARSEROBJ = CloudContainer.o RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
-	    KconfigRsfDbFactory.o SatChecker.o CodeSatStream.o BlockDefect.o
+	    ModelContainer.o SatChecker.o CodeSatStream.o BlockDefect.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ))
 

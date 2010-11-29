@@ -8,7 +8,7 @@
 #include <sys/wait.h>
 #include <boost/regex.hpp>
 
-#include "KconfigRsfDbFactory.h"
+#include "ModelContainer.h"
 #include "CloudContainer.h"
 #include "CodeSatStream.h"
 
@@ -46,7 +46,7 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
 
         ConfigurationModel *model = 0;
         if (loadModels) {
-            KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+            ModelContainer *f = ModelContainer::getInstance();
             if (f->size() == 1)
                 arch = f->begin()->first;
             model = f->lookupModel(arch.c_str());
@@ -83,7 +83,7 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
     for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
       std::istringstream codesat(c->getConstraints());
       std::string primary_arch = "x86";
-      KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+      ModelContainer *f = ModelContainer::getInstance();
       if (f->size() == 1)
         primary_arch = f->begin()->first;
       CodeSatStream analyzer(codesat, filename, primary_arch.c_str(),
@@ -162,7 +162,7 @@ int main (int argc, char ** argv) {
 	return EXIT_FAILURE;
     }
 
-    KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+    ModelContainer *f = ModelContainer::getInstance();
 
     if (loadModels) {
         if (arch_specific) {
