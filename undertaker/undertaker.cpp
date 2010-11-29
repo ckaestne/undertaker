@@ -141,7 +141,7 @@ int main (int argc, char ** argv) {
 	    break;
 	case 'a':
 	    arch_specific = true;
-            arch = strdup(optarg);	    
+            arch = strdup(optarg);
 	    break;
         case 'r':
             dumpRuntimes = true;
