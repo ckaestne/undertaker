@@ -64,7 +64,6 @@ check: $(PROGS)
 	@$(MAKE) -s run-libcheck
 
 clean-check:
-	rm -f kconfig-dumps/models/*
 	find validation/ \( -name "*.c.output.expected" \
 	                 -o -name "*.c.output.got" \
 	                 -o -name "*.c.output.diff" \
