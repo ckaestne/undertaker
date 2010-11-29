@@ -7,7 +7,9 @@
 #include <string>
 #include <iostream>
 
-
+/**
+ * \brief Reads RSF files
+ */
 class RsfReader : public std::map<std::string, std::deque<std::string> > {
 public:
 
