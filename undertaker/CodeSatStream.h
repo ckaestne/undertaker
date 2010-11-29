@@ -53,7 +53,7 @@ public:
     virtual const BlockDefect *analyzeBlock(const char *block, ConfigurationModel *p_model);
 
     /**
-     * Look up the enclosing block, if any
+     * \brief Look up the enclosing block, if any
      *
      * \return enclosing block, or NULL, if the block is already top-level
      */
@@ -73,7 +73,7 @@ public:
     std::string getMissingItemsConstraints(std::set<std::string> &missing);
 
     /**
-     * Check for configuration coverage
+     * \brief Check for configuration coverage
      *
      * This method tries finds a set of configurations so that each and
      * every block (excluding dead blocks) is selected at least once.
