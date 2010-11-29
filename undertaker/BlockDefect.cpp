@@ -1,7 +1,6 @@
 #include "StringJoiner.h"
 #include "BlockDefect.h"
 #include "ModelContainer.h"
-#include "KconfigWhitelist.h"
 
 
 void BlockDefect::markOk(const std::string &arch) {
@@ -107,17 +106,7 @@ bool DeadBlockDefect::writeReportToFile() const {
     const std::string filename = fname_joiner.join(".");
     const std::string &contents = _formula;
 
-    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
-    const char *wli = wl->containsWhitelistedItem(contents.c_str());
-
     std::ofstream out(filename.c_str());
-
-    if (wli) {
-        std::cout << "I: not creating " << filename
-                  << " (contains whitelisted item: " << wli << ")"
-                  << std::endl;
-        return false;
-    }
 
     if (!out.good()) {
         std::cerr << "failed to open " << filename << " for writing " << std::endl;

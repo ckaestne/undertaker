@@ -1,6 +1,6 @@
 #include "KconfigWhitelist.h"
 
-bool KconfigWhitelist::isWhitelisted(const char *item) const {
+bool KconfigWhitelist::isWhitelisted(const std::string item) const {
     KconfigWhitelist::const_iterator it;
 
     for (it = begin(); it != end(); it++)
@@ -9,19 +9,9 @@ bool KconfigWhitelist::isWhitelisted(const char *item) const {
     return false;
 }
 
-void KconfigWhitelist::addToWhitelist(const char *item) {
+void KconfigWhitelist::addToWhitelist(const std::string item) {
     if(!isWhitelisted(item))
-        push_back(std::string(item));
-}
-
-const char *KconfigWhitelist::containsWhitelistedItem(const char *text) const {
-    KconfigWhitelist::const_iterator it;
-    std::string t(text);
-
-    for (it = begin(); it != end(); it++)
-        if ((t.find((*it)) != std::string::npos))
-            return (*it).c_str();
-    return NULL;
+        push_back(item);
 }
 
 KconfigWhitelist *KconfigWhitelist::getInstance() {

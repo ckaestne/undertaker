@@ -1870,7 +1870,5 @@ I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
 I: loaded 1 items to whitelist
-I: not creating binfmt_elf_fdpic.c.B69.code.globally.undead (contains whitelisted item: CONFIG_MMU)
-I: not creating binfmt_elf_fdpic.c.B72.code.globally.dead (contains whitelisted item: CONFIG_MMU)
  * check-output-end
  */

@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 #include "SatChecker.h"
+#include "KconfigWhitelist.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -120,6 +121,14 @@ SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     /* Got the impression from normal lisp implementations */
 int
 SatChecker::stringToSymbol(const std::string &key) {
+    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
+
+    /* If whitelisted do always return a new symbol, so these items
+       are free variables */
+    if (wl->isWhitelisted(key)) {
+        return newSymbol();
+    }
+
     map<std::string, int>::iterator it;
     if ((it = symbolTable.find(key)) != symbolTable.end()) {
         return it->second;

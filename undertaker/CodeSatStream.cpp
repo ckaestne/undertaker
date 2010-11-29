@@ -5,7 +5,6 @@
 #include "StringJoiner.h"
 #include "ModelContainer.h"
 #include "ConfigurationModel.h"
-#include "KconfigWhitelist.h"
 #include "CodeSatStream.h"
 #include "BlockDefect.h"
 #include "SatChecker.h"
