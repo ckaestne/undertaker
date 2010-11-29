@@ -24,6 +24,7 @@ public:
     static ModelContainer *getInstance();
 
 private:
+    ModelContainer() {}
     ConfigurationModel *registerModelFile(std::string filename, std::string arch);
     ~ModelContainer();
 };
