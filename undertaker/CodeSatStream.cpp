@@ -25,9 +25,8 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
 
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
-    static const boost::regex comp_regexp("(\\([^\\(]+?[><=!]=.+?\\))", boost::regex::perl);
-    static const boost::regex comp_regexp_new("[_[:alnum:]]+[[:space:]]*[!]?[><=]+[[:space:]]*[_[:alnum:]]+",
-                                              boost::regex::extended);
+    static const boost::regex comp_regexp("[_[:alnum:]]+[[:space:]]*[!]?[><=]+[[:space:]]*[_[:alnum:]]+",
+                                          boost::regex::extended);
     static const boost::regex free_item_regexp("[a-zA-Z0-9\\-_]+", boost::regex::extended);
     std::string line;
 
@@ -41,7 +40,7 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
         boost::match_results<std::string::iterator> what;
         boost::match_flag_type flags = boost::match_default;
 
-        while (boost::regex_search(line.begin(), line.end(), what, comp_regexp_new, flags)) {
+        while (boost::regex_search(line.begin(), line.end(), what, comp_regexp, flags)) {
             char buf[20];
             static int c;
             snprintf(buf, sizeof buf, "COMP_%d", c++);
