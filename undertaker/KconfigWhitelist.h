@@ -8,9 +8,8 @@
 struct KconfigWhitelist : protected std::list<std::string> {
     static KconfigWhitelist *getInstance();
     bool empty();
-    bool isWhitelisted(const char *item) const;
-    void addToWhitelist(const char *item);
-    const char *containsWhitelistedItem(const char *text) const;
+    bool isWhitelisted(const std::string) const;
+    void addToWhitelist(const std::string);
 private:
     KconfigWhitelist() : std::list<std::string>() {} // private c'tor
 };

@@ -1,7 +1,6 @@
 #include "StringJoiner.h"
 #include "BlockDefect.h"
-#include "KconfigRsfDbFactory.h"
-#include "KconfigWhitelist.h"
+#include "ModelContainer.h"
 
 
 void BlockDefect::markOk(const std::string &arch) {
@@ -12,15 +11,15 @@ DeadBlockDefect::DeadBlockDefect(CodeSatStream *cs, const char *block)
     :  BlockDefect(None), _cs(cs), _block(block), _needsCrosscheck(false),
        _arch(NULL), _suffix("dead") {}
 
-bool DeadBlockDefect::isDefect(const KconfigRsfDb *model) {
+bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;
 
     if(!_arch)
-        _arch = KconfigRsfDbFactory::lookupArch(model);
+        _arch = ModelContainer::lookupArch(model);
 
     formula.push_back(_block);
     formula.push_back(getCodeConstraints());
-    SatChecker code_constraints(_formula = formula.join("\n&\n"));
+    SatChecker code_constraints(_formula = formula.join("\n&&\n"));
 
     if (!code_constraints()) {
         _defectType = Implementation;
@@ -31,7 +30,7 @@ bool DeadBlockDefect::isDefect(const KconfigRsfDb *model) {
     if (model) {
         std::set<std::string> missingSet;
         formula.push_back(this->getKconfigConstraints(model, missingSet));
-        SatChecker kconfig_constraints(_formula = formula.join("\n&\n"));
+        SatChecker kconfig_constraints(_formula = formula.join("\n&&\n"));
 
         if (!kconfig_constraints()) {
             _defectType = Configuration;
@@ -39,7 +38,7 @@ bool DeadBlockDefect::isDefect(const KconfigRsfDb *model) {
             return true;
         } else {
             formula.push_back(this->getMissingItemsConstraints(missingSet));
-            SatChecker missing_constraints(_formula = formula.join("\n&\n"));
+            SatChecker missing_constraints(_formula = formula.join("\n&&\n"));
 
             if (!missing_constraints()) {
                 _defectType = Referential;
@@ -69,7 +68,7 @@ const std::string DeadBlockDefect::getCodeConstraints() const {
     return _cs->getCodeConstraints();
 }
 
-const std::string DeadBlockDefect::getKconfigConstraints(const KconfigRsfDb *model,
+const std::string DeadBlockDefect::getKconfigConstraints(const ConfigurationModel *model,
                                                            std::set<std::string> &missing) const{
     return _cs->getKconfigConstraints(model, missing);
 }
@@ -107,17 +106,7 @@ bool DeadBlockDefect::writeReportToFile() const {
     const std::string filename = fname_joiner.join(".");
     const std::string &contents = _formula;
 
-    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
-    const char *wli = wl->containsWhitelistedItem(contents.c_str());
-
     std::ofstream out(filename.c_str());
-
-    if (wli) {
-        std::cout << "I: not creating " << filename
-                  << " (contains whitelisted item: " << wli << ")"
-                  << std::endl;
-        return false;
-    }
 
     if (!out.good()) {
         std::cerr << "failed to open " << filename << " for writing " << std::endl;
@@ -136,7 +125,7 @@ bool DeadBlockDefect::writeReportToFile() const {
 UndeadBlockDefect::UndeadBlockDefect(CodeSatStream *cs, const char *block)
     : DeadBlockDefect(cs, block) { this->_suffix = "undead"; }
 
-bool UndeadBlockDefect::isDefect(const KconfigRsfDb *model) {
+bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;
     const char *parent = _cs->getParent(_block);
 
@@ -145,11 +134,11 @@ bool UndeadBlockDefect::isDefect(const KconfigRsfDb *model) {
         return false;
 
     if (!_arch)
-        _arch = KconfigRsfDbFactory::lookupArch(model);
+        _arch = ModelContainer::lookupArch(model);
 
-    formula.push_back("( " + std::string(parent) + " & ! " + std::string(_block) + " )");
+    formula.push_back("( " + std::string(parent) + " && ! " + std::string(_block) + " )");
     formula.push_back(getCodeConstraints());
-    SatChecker code_constraints(_formula = formula.join("\n&\n"));
+    SatChecker code_constraints(_formula = formula.join("\n&&\n"));
 
     if (!code_constraints()) {
         _defectType = Implementation;
@@ -160,7 +149,7 @@ bool UndeadBlockDefect::isDefect(const KconfigRsfDb *model) {
     if (model) {
         std::set<std::string> missingSet;
         formula.push_back(getKconfigConstraints(model, missingSet));
-        SatChecker kconfig_constraints(_formula = formula.join("\n&\n"));
+        SatChecker kconfig_constraints(_formula = formula.join("\n&&\n"));
 
         if (!kconfig_constraints()) {
             _defectType = Configuration;
@@ -168,7 +157,7 @@ bool UndeadBlockDefect::isDefect(const KconfigRsfDb *model) {
             return true;
         } else {
             formula.push_back(this->getMissingItemsConstraints(missingSet));
-            SatChecker missing_constraints(_formula = formula.join("\n&\n"));
+            SatChecker missing_constraints(_formula = formula.join("\n&&\n"));
 
             if (!missing_constraints()) {
                 _defectType = Referential;

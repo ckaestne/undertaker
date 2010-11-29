@@ -25,23 +25,23 @@ strings parse(const std::string& line) {
     std::stringstream ss(line);
 
     while(ss >> item){
-    if (item[0]=='"') {
-        if (item[item.length() - 1]=='"') {
-        // special case: single word was needlessly quoted
-        result.push_back(item.substr(1, item.length()-2));
+        if (item[0]=='"') {
+            if (item[item.length() - 1]=='"') {
+                // special case: single word was needlessly quoted
+                result.push_back(item.substr(1, item.length()-2));
+            } else {
+                // use the free-standing std::getline to read a "line"
+                // into another string
+                // starting after the current word, delimited by double-quote
+                std::string restOfItem;
+                getline(ss, restOfItem, '"');
+                // That trailing quote is removed from the stream
+                // and not copied to restOfItem.
+                result.push_back(item.substr(1) + restOfItem);
+            }
         } else {
-        // use the free-standing std::getline to read a "line"
-        // into another string
-        // starting after the current word, delimited by double-quote
-        std::string restOfItem;
-        getline(ss, restOfItem, '"');
-        // That trailing quote is removed from the stream
-        // and not copied to restOfItem.
-        result.push_back(item.substr(1) + restOfItem);
+            result.push_back(item);
         }
-    } else {
-        result.push_back(item);
-    }
     }
     return result;
 }
@@ -58,22 +58,22 @@ void RsfBlocks::read_blocks(std::ifstream &rsf_file, std::string relation) {
     // std::clog << "I: stream is at pos " << rsf_file.tellg() << std::endl;
 
     while (rsf_file.good()) {
-    std::string s;
-    getline (rsf_file, s);
-    strings v = parse(s);
-    if (v.size() == 0)
-        continue;
-    std::string k = v.front();
-    if (k == relation) {
-        v.pop_front();
-        std::string blockno = v.front();
-        v.pop_front();
-        insert(make_pair(blockno, v));
-    }
+        std::string s;
+        getline (rsf_file, s);
+        strings v = parse(s);
+        if (v.size() == 0)
+            continue;
+        std::string k = v.front();
+        if (k == relation) {
+            v.pop_front();
+            std::string blockno = v.front();
+            v.pop_front();
+            insert(make_pair(blockno, v));
+        }
     }
 
     log << "I: " << relation << ": inserted " << this->size()
-    << " items" << std::endl;
+        << " items" << std::endl;
 
     rsf_file.clear();
     rsf_file.seekg(0);
@@ -83,7 +83,7 @@ void RsfBlocks::read_blocks(std::ifstream &rsf_file, std::string relation) {
 std::string *RsfBlocks::getValue(std::string key) {
     iterator i = find(key);
     if (i == end())
-    return NULL;
+        return NULL;
     return &((*i).second.front());
 }
 

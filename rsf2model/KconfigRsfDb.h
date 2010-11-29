@@ -8,6 +8,7 @@
 #include <set>
 
 #include "RsfBlocks.h"
+#include "StringJoiner.h"
 
 class KconfigRsfDb {
 public:
@@ -16,10 +17,7 @@ public:
     KconfigRsfDb(std::ifstream &in, std::ostream &log);
 
     void dumpAllItems(std::ostream &out) const;
-    void dumpMissing(std::ostream &out) const;
     void initializeItems();
-    void findSetOfInterestingItems(std::set<std::string> &working) const;
-    int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const;
     std::string rewriteExpressionPrefix(std::string exp);
 
     struct Item {
@@ -27,15 +25,15 @@ public:
 
         bool printItemSat(std::ostream &out) const;
         std::string printItemSat() const;
-        std::string printChoiceAlternative() const;
+        std::string dumpChoiceAlternative() const;
         std::string getDependencies() const;
         bool isChoice() const { return ( (type_ & CHOICE) == CHOICE); }
-        bool isWhitelisted() const { return ( (type_ & WHITELIST) == WHITELIST); }
-        bool isValid() const;
-        void invalidate() { type_ |= INVALID; }
+        bool isTristate() const { return ( (type_ & TRISTATE) == TRISTATE); }
+        bool isValid() const { return ( (type_ & INVALID) != INVALID); }
+        bool isRequired() const { return required_; }
 
         std::string const& name() const { return name_; }
-        std::deque<std::string> &dependencies() { return dependencies_; }
+        StringJoiner &dependencies() { return dependencies_; }
         std::deque<Item> &choiceAlternatives()  { return choiceAlternatives_; }
 
     private:
@@ -43,7 +41,7 @@ public:
         unsigned  type_;
         bool required_;
 
-        std::deque<std::string> dependencies_;
+        StringJoiner dependencies_;
         std::deque<Item> choiceAlternatives_;
     };
 
@@ -52,7 +50,7 @@ public:
 protected:
     struct ItemDb : public ItemMap {
         ItemMap missing;
-        Item getItem(std::string key) const;        
+        Item getItem(std::string key) const;
     };
 
     ItemDb allItems;

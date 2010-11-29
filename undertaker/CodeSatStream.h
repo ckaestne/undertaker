@@ -9,7 +9,7 @@
 #include <set>
 #include <list>
 
-#include "KconfigRsfDb.h"
+#include "ConfigurationModel.h"
 #include "CloudContainer.h"
 #include "SatChecker.h"
 
@@ -50,10 +50,10 @@ public:
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
-    virtual const BlockDefect *analyzeBlock(const char *block, KconfigRsfDb *p_model);
+    virtual const BlockDefect *analyzeBlock(const char *block, ConfigurationModel *p_model);
 
     /**
-     * Look up the enclosing block, if any
+     * \brief Look up the enclosing block, if any
      *
      * \return enclosing block, or NULL, if the block is already top-level
      */
@@ -69,18 +69,18 @@ public:
     std::string getLine(const char *block) const;
 
     std::string getCodeConstraints();
-    std::string getKconfigConstraints(const KconfigRsfDb *model, std::set<std::string> &missing);
+    std::string getKconfigConstraints(const ConfigurationModel *model, std::set<std::string> &missing);
     std::string getMissingItemsConstraints(std::set<std::string> &missing);
 
     /**
-     * Check for configuration coverage
+     * \brief Check for configuration coverage
      *
      * This method tries finds a set of configurations so that each and
      * every block (excluding dead blocks) is selected at least once.
      *
      * \param model If not NULL, take the constraints of the goven model into account
      */
-    std::list<SatChecker::AssignmentMap> blockCoverage(KconfigRsfDb *model);
+    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *model);
 
     bool dumpRuntimes();
     RuntimeTable runtimes;

@@ -3,9 +3,8 @@
 #include <utility>
 
 #include "StringJoiner.h"
-#include "KconfigRsfDbFactory.h"
-#include "KconfigRsfDb.h"
-#include "KconfigWhitelist.h"
+#include "ModelContainer.h"
+#include "ConfigurationModel.h"
 #include "CodeSatStream.h"
 #include "BlockDefect.h"
 #include "SatChecker.h"
@@ -42,12 +41,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
         boost::match_results<std::string::iterator> what;
         boost::match_flag_type flags = boost::match_default;
 
-        while ((pos = line.find("&&")) != std::string::npos)
-            line.replace(pos, 2, 1, '&');
-
-        while ((pos = line.find("||")) != std::string::npos)
-            line.replace(pos, 2, 1, '|');
-
         while (boost::regex_search(line.begin(), line.end(), what, comp_regexp_new, flags)) {
             char buf[20];
             static int c;
@@ -57,12 +50,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char
 
         while ((pos = line.find("defined")) != std::string::npos)
             line.erase(pos,7);
-
-        while ((pos = line.find("&&")) != std::string::npos)
-            line.replace(pos, 2, 1, '&');
-
-        while ((pos = line.find("||")) != std::string::npos)
-            line.replace(pos, 2, 1, '|');
 
         ss.str(line);
 
@@ -90,7 +77,7 @@ std::string CodeSatStream::getMissingItemsConstraints(std::set<std::string> &mis
         if (it == missing.begin()) {
             m << "( ! ( " << (*it);
         } else {
-            m << " | " << (*it) ;
+            m << " || " << (*it) ;
         }
     }
     if (!m.str().empty()) {
@@ -103,7 +90,7 @@ std::string CodeSatStream::getCodeConstraints() {
     return std::string((*this).str());
 }
 
-std::string CodeSatStream::getKconfigConstraints(const KconfigRsfDb *model,
+std::string CodeSatStream::getKconfigConstraints(const ConfigurationModel *model,
                                                  std::set<std::string> &missing) {
     std::stringstream ss;
 
@@ -125,7 +112,7 @@ const char *CodeSatStream::getParent(const char *block) {
  * \param block    block to check
  * \param p_model  primary model to check against
  */
-const BlockDefect* CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *p_model) {
+const BlockDefect* CodeSatStream::analyzeBlock(const char *block, ConfigurationModel *p_model) {
 
     BlockDefect *defect = new DeadBlockDefect(this, block);
 
@@ -148,10 +135,10 @@ const BlockDefect* CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *
     if (!_doCrossCheck || !defect->needsCrosscheck())
         return defect;
 
-    KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+    ModelContainer *f = ModelContainer::getInstance();
     for (ModelContainer::iterator i = f->begin(); i != f->end(); i++) {
         const std::string &arch = (*i).first;
-        const KconfigRsfDb *model = (*i).second;
+        const ConfigurationModel *model = (*i).second;
 
         if (!defect->isDefect(model)) {
             defect->markOk(arch);
@@ -163,10 +150,10 @@ const BlockDefect* CodeSatStream::analyzeBlock(const char *block, KconfigRsfDb *
 }
 
 void CodeSatStream::analyzeBlocks() {
-    KconfigRsfDb *p_model = 0;
+    ConfigurationModel *p_model = 0;
 
     if (_doCrossCheck) {
-        KconfigRsfDbFactory *f = KconfigRsfDbFactory::getInstance();
+        ModelContainer *f = ModelContainer::getInstance();
         p_model = f->lookupModel(_primary_arch);
     }
     
@@ -202,7 +189,7 @@ void CodeSatStream::analyzeBlocks() {
     }
 }
 
-std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(KconfigRsfDb *model) {
+std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationModel *model) {
     std::set<std::string>::iterator i;
     std::set<std::string> blocks_set;
     std::list<SatChecker::AssignmentMap> ret;
@@ -219,7 +206,7 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(KconfigRsfDb *
 	    if (blocks_set.find(*i) == blocks_set.end()) {
                 /* does the new contributes to the set of configurations? */
                 bool new_solution = false;
-                SatChecker sc(formula.join("\n&\n"));
+                SatChecker sc(formula.join("\n&&\n"));
 
                 // unsolvable, i.e. we have found some defect!
                 if (!sc())

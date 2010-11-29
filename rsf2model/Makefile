@@ -7,34 +7,21 @@ NODEPS:=clean clean-check
 # DEBUG = -g3 -DDEBUG
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
-CFLAGS = -Wall -Wextra -O2 -I../ziz -I../picosat $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
-# LDCOV = -coverage
-LDLIBS = -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../picosat/libpicosat.a -lboost_wave-mt $(LDCOV)
-
-PARSEROBJ = CloudContainer.o RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
-	    ModelContainer.o SatChecker.o CodeSatStream.o BlockDefect.o
-
+LDLIBS = 
+PARSEROBJ = KconfigRsfDb.o RsfBlocks.o
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ))
 
-PROGS = undertaker cpppc
+PROGS = rsf2model
 
-all: ../ziz/libziz.a $(PROGS)
+all: $(PROGS)
 
-undertaker: ../picosat/libpicosat.a ../ziz/libziz.a libparser.a
-KconfigIntersect: libparser.a
-cpppc: libparser.a ../ziz/libziz.a
+rsf2model: librsfmodel.a
 
-../ziz/libziz.a: FORCE
-	$(MAKE) -C ../ziz libziz.a
-
-../picosat/libpicosat.a: FORCE
-	cd ../picosat/; test -s makefile || ./configure
-	$(MAKE) -C ../picosat libpicosat.a
-
-libparser.a: $(PARSEROBJ)
+librsfmodel.a: $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
 
 #Don't create dependencies when we're cleaning, for instance
@@ -51,17 +38,10 @@ endif
 clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
 
-test-%: %.cpp libparser.a
-	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
-
-run-libcheck: test-SatChecker
-	@for t in $^; do ./$$t; done
-
 check: $(PROGS)
 	@$(MAKE) -s clean-check
-	@$(MAKE) -C kconfig-dumps all
 	cd validation && ./test-suite
-	@$(MAKE) -s run-libcheck
+	@# $(MAKE) -s run-libcheck
 
 clean-check:
 	find validation/ \( -name "*.c.output.expected" \

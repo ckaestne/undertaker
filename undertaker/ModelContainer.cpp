@@ -4,11 +4,11 @@
 #include <utility>
 #include <fstream>
 
-#include "KconfigRsfDbFactory.h"
+#include "ModelContainer.h"
 #include "KconfigWhitelist.h"
 
-void KconfigRsfDbFactory::loadWhitelist(const char *file) {
-    KconfigRsfDbFactory *f = getInstance();
+void ModelContainer::loadWhitelist(const char *file) {
+    ModelContainer *f = getInstance();
     if (f->empty())
         return;
 
@@ -31,15 +31,20 @@ void KconfigRsfDbFactory::loadWhitelist(const char *file) {
     std::cout << "I: loaded " << n << " items to whitelist" << std::endl;
 }
 
-void KconfigRsfDbFactory::loadModels() {
-    KconfigRsfDbFactory *f = getInstance();
+void ModelContainer::loadModels(std::string modeldir) {
+    ModelContainer *f = getInstance();
     int found_models = 0;
     typedef std::list<std::string> FilenameContainer;
     FilenameContainer filenames;
 
-    const boost::regex r("^kconfig-([[:alnum:]]+)\\.rsf$", boost::regex::perl);
+    const boost::regex r("^([[:alnum:]]+)\\.model$", boost::regex::perl);
 
-    for (boost::filesystem::directory_iterator dir(".");
+    if (! (boost::filesystem::exists(modeldir) && boost::filesystem::is_directory(modeldir))) {
+        std::cerr << "E: model directory '" << modeldir << "' doesn't exist" << std::endl;
+        exit(-1);
+    }
+
+    for (boost::filesystem::directory_iterator dir(modeldir);
          dir != boost::filesystem::directory_iterator();
          ++dir) {
         filenames.push_back(dir->path().filename());
@@ -55,7 +60,7 @@ void KconfigRsfDbFactory::loadModels() {
             ModelContainer::iterator a = f->find(found_arch);
 
             if (a == f->end()) {
-                f->registerRsfFile(filename->c_str(), found_arch);
+                f->registerModelFile(modeldir + "/" + filename->c_str(), found_arch);
                 found_models++;
 
                 std::cout << "I: loaded rsf model for " << found_arch
@@ -67,26 +72,23 @@ void KconfigRsfDbFactory::loadModels() {
     if (found_models > 0) {
         std::cout << "I: found " << found_models << " rsf models" << std::endl;
     } else {
-        std::cerr << "E: could not find any rsf models" << std::endl;
+        std::cerr << "E: could not find any models" << std::endl;
         exit(-1);
     }
 }
 
-bool KconfigRsfDbFactory::empty() {
-    return ModelContainer::empty();
-}
-    
-void KconfigRsfDbFactory::loadModels(std::string arch) {
-    KconfigRsfDbFactory *f = getInstance();
-    std::string filename = "kconfig-" + arch + ".rsf";
+
+void ModelContainer::loadModels(std::string modeldir, std::string arch) {
+    ModelContainer *f = getInstance();
+    std::string filename = modeldir + "/" + arch + ".model";
 
     /* Check if the RSF file exists */
     if (boost::filesystem::exists(filename)) {
     ModelContainer::iterator a = f->find(arch);
 
     if (a == f->end())
-        f->registerRsfFile(filename.c_str(), arch);
-        std::cout << "I: Loaded Model for architecture " << arch << std::endl;
+        f->registerModelFile(filename, arch);
+        std::cout << "I: Loaded rsf model for architecture " << arch << std::endl;
     } else {
         std::cerr << "E: could not find rsf file for arch "
                   << arch << std::endl;
@@ -94,8 +96,8 @@ void KconfigRsfDbFactory::loadModels(std::string arch) {
     }
 }
 
-KconfigRsfDb *KconfigRsfDbFactory::registerRsfFile(const char *filename, std::string arch) {
-    std::ifstream rsf_file(filename);
+ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std::string arch) {
+    std::ifstream rsf_file(filename.c_str());
     static std::ofstream devnull("/dev/null");
 
     if (!rsf_file.good()) {
@@ -103,47 +105,28 @@ KconfigRsfDb *KconfigRsfDbFactory::registerRsfFile(const char *filename, std::st
           << filename << std::endl;
     return NULL;
     }
-    KconfigRsfDb *db = new KconfigRsfDb(rsf_file, devnull);
-    db->initializeItems();
+    ConfigurationModel *db = new ConfigurationModel(rsf_file, devnull);
+
     this->insert(std::make_pair(arch,db));
+
     return db;
 };
 
-KconfigRsfDb *KconfigRsfDbFactory::lookupModel(const char *arch)  {
-    KconfigRsfDbFactory *f = getInstance();
+ConfigurationModel *ModelContainer::lookupModel(const char *arch)  {
+    ModelContainer *f = getInstance();
     // first step: look if we have it in our models list;
     ModelContainer::iterator a = f->find(arch);
     if (a != f->end()) {
-    // we've found it in our map, so return it
-    return a->second;
+        // we've found it in our map, so return it
+        return a->second;
     } else {
-    // not found, is there an matching rsf around?
-        const boost::regex r("^kconfig-([[:alnum:]]+)\\.rsf$", boost::regex::perl);
-
-        /* Walk the directory */
-        for (boost::filesystem::directory_iterator dir(".");
-             dir != boost::filesystem::directory_iterator();
-             ++dir) {
-            boost::match_results<const char*> what;
-
-            /* Current iterator filename */
-            std::string filename = dir->path().filename();
-
-            if (boost::regex_search(filename.c_str(), what, r)) {
-        std::string found_arch = what[1];
-
-        if (found_arch.compare(arch) == 0) {
-            KconfigRsfDb *db = f->registerRsfFile(filename.c_str(), found_arch);
-            return db;
-        }
-        }
-    }
-    return NULL;
+        // No model was found
+        return NULL;
     }
 }
 
-const char *KconfigRsfDbFactory::lookupArch(const KconfigRsfDb *model) {
-    KconfigRsfDbFactory *f = getInstance();
+const char *ModelContainer::lookupArch(const ConfigurationModel *model) {
+    ModelContainer *f = getInstance();
     ModelContainer::iterator i;
     for (i = f->begin(); i != f->end(); i++) {
         if ((*i).second == model)
@@ -152,16 +135,16 @@ const char *KconfigRsfDbFactory::lookupArch(const KconfigRsfDb *model) {
     return NULL;
 }
 
-KconfigRsfDbFactory *KconfigRsfDbFactory::getInstance() {
-    static KconfigRsfDbFactory *instance;
+ModelContainer *ModelContainer::getInstance() {
+    static ModelContainer *instance;
     if (!instance) {
-        instance = new KconfigRsfDbFactory();
+        instance = new ModelContainer();
     }
     return instance;
 }
 
-KconfigRsfDbFactory::~KconfigRsfDbFactory() {
+ModelContainer::~ModelContainer() {
     ModelContainer::iterator i;
     for (i = begin(); i != end(); i++)
-    free((*i).second);
+        free((*i).second);
 }

@@ -12,14 +12,6 @@ const char *ZizCondBlockPtr::expression() const {
         return _expression;
 
     std::string expression = _cb->ExpressionStr();
-    std::string::size_type pos = std::string::npos;
-
-    // normalize conjunctions and disjunctions for sat
-    while((pos = expression.find("||")) != std::string::npos)
-        expression.replace(pos, 2, 1, '|');
-
-    while((pos = expression.find("&&")) != std::string::npos)
-        expression.replace(pos, 2, 1, '&');
 
     if (_cb->CondBlockType() == Ziz::Ifndef)
     expression = " ! " + expression;
@@ -63,9 +55,9 @@ const std::string& BlockCloud::getConstraints() const {
     pc.push_back(noPredecessor(i));
 
     std::string bn = getBlockName(i);
-        sj.push_back("( " + bn + " <-> " + pc.join(" & ") + " )");
+        sj.push_back("( " + bn + " <-> " + pc.join(" && ") + " )");
 
-    std::string type = ( (exp.find("&") != std::string::npos) || exp.find("|") != std::string::npos)  ? ":logic" : ":symbolic";
+    std::string type = ( (exp.find("&&") != std::string::npos) || exp.find("||") != std::string::npos)  ? ":logic" : ":symbolic";
     std::stringstream ss;
     ss << (*this)[i]._cb->Start() << type;
     this->positions.insert(std::pair<std::string,std::string>(getBlockName(i), ss.str()));
@@ -74,7 +66,7 @@ const std::string& BlockCloud::getConstraints() const {
 
 
     }
-    _constraints = new std::string(sj.join("\n& "));
+    _constraints = new std::string(sj.join("\n&& "));
 
     return *_constraints;
 }
@@ -155,7 +147,7 @@ std::string BlockCloud::noPredecessor(index n) const {
     };
 
     if (sj.size() > 0)
-    return  "( ! (" + sj.join(" | ") + ") ) ";
+    return  "( ! (" + sj.join(" || ") + ") ) ";
     else
     return "";
 }
