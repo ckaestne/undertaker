@@ -89,7 +89,7 @@ SatChecker::stringToSymbol(const std::string &key) {
 
     /* If whitelisted do always return a new symbol, so these items
        are free variables */
-    if (wl->isWhitelisted(key)) {
+    if (wl->isWhitelisted(key.c_str())) {
         return newSymbol();
     }
 
