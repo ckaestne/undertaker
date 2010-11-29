@@ -10,7 +10,7 @@
 class ModelContainer : public std::map<std::string, ConfigurationModel*> {
 public:
     static void loadModels(std::string);
-    static void loadModels(std::string, std::string); //for arch-specific analysis
+    static void loadModels(std::string, std::string); ///< for arch-specific analysis
     static void loadWhitelist(const char *file);
     static ConfigurationModel *lookupModel(const char *arch);
     static const char *lookupArch(const ConfigurationModel *model);
