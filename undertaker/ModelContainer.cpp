@@ -146,5 +146,5 @@ ModelContainer *ModelContainer::getInstance() {
 ModelContainer::~ModelContainer() {
     ModelContainer::iterator i;
     for (i = begin(); i != end(); i++)
-    free((*i).second);
+        free((*i).second);
 }
