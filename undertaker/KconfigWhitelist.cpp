@@ -1,4 +1,8 @@
 #include "KconfigWhitelist.h"
+#include "ModelContainer.h"
+
+#include <fstream>
+#include <boost/regex.hpp>
 
 bool KconfigWhitelist::isWhitelisted(const char *item) const {
     KconfigWhitelist::const_iterator it;
@@ -21,3 +25,27 @@ KconfigWhitelist *KconfigWhitelist::getInstance() {
     }
     return instance;
 }
+
+int KconfigWhitelist::loadWhitelist(const char *file) {
+    ModelContainer *f = ModelContainer::getInstance();
+    if (f->empty())
+        return 0;
+
+    std::ifstream whitelist(file);
+    std::string line;
+    const boost::regex r("^#.*", boost::regex::perl);
+
+    int n = 0;
+
+    while (std::getline(whitelist, line)) {
+        boost::match_results<const char*> what;
+
+        if (boost::regex_search(line.c_str(), what, r))
+            continue;
+
+        n++;
+        this->addToWhitelist(line.c_str());
+    }
+    return n;
+}
+

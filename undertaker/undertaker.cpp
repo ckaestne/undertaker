@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include <boost/regex.hpp>
 
+#include "KconfigWhitelist.h"
 #include "ModelContainer.h"
 #include "CloudContainer.h"
 #include "CodeSatStream.h"
@@ -171,8 +172,11 @@ int main (int argc, char ** argv) {
             f->loadModels(modeldir ? modeldir : "models");
         }
     }
+
     if (whitelist) {
-        f->loadWhitelist(whitelist);
+        KconfigWhitelist *wl = KconfigWhitelist::getInstance();
+        int n = wl->loadWhitelist(whitelist);
+        std::cout << "I: loaded " << n << " items to whitelist" << std::endl;
         free(whitelist);
     }
 

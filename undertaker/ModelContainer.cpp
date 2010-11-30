@@ -7,30 +7,6 @@
 #include "ModelContainer.h"
 #include "KconfigWhitelist.h"
 
-void ModelContainer::loadWhitelist(const char *file) {
-    ModelContainer *f = getInstance();
-    if (f->empty())
-        return;
-
-    std::ifstream whitelist(file);
-    std::string line;
-    const boost::regex r("^#.*", boost::regex::perl);
-    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
-
-    int n = 0;
-
-    while (std::getline(whitelist, line)) {
-        boost::match_results<const char*> what;
-
-        if (boost::regex_search(line.c_str(), what, r))
-            continue;
-
-        n++;
-        wl->addToWhitelist(line.c_str());
-    }
-    std::cout << "I: loaded " << n << " items to whitelist" << std::endl;
-}
-
 void ModelContainer::loadModels(std::string modeldir) {
     ModelContainer *f = getInstance();
     int found_models = 0;
