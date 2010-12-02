@@ -118,6 +118,7 @@ void Parser::HandleElseBlock(lexer_type& lexer)
     ConditionalBlock* pPrevIfBlock = _condBlockStack.top();
     _condBlockStack.pop();
 
+    pPrevIfBlock->SetEnd(_curPos);
     // Add the previous #if/#elif block to current blocklist (either file or
     // inner block).
     if (_condBlockStack.empty()) {
@@ -220,6 +221,8 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
 
     // Finish the ConditionalBlock
     // read in whole condition until end of line
+    pCurBlock->SetEnd(_curPos);
+
     lexer_type end = lexer_type();
     while (lexer != end
             && !IS_CATEGORY(*lexer, boost::wave::EOLTokenType)
