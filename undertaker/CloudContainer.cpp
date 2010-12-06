@@ -243,6 +243,6 @@ const std::string& CloudContainer::getConstraints() {
     }
     }
 
-    _constraints = new std::string(sj.join("\n& "));
+    _constraints = new std::string(sj.join("\n&& "));
     return *_constraints;
 }
