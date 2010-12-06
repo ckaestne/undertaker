@@ -17,15 +17,14 @@ typedef std::deque<BlockCloud> CloudList;
 
 void usage(std::ostream &out, const char *error) {
     if (error)
-	out << error << std::endl;
-    out << "Usage: undertaker [-b worklist] [-w whitelist] [-a arch] [-m modeldir] [-c] [-r] -s" << " <file>\n";
+        out << error << std::endl;
+    out << "Usage: undertaker [-b worklist] [-w whitelist] [-m modeldir] [-c] [-r] -s" << " <file>\n";
+    out << "  -m: specify the model(s) (directory or file)\n";
+    out << "  -M: specify the main model\n";
     out << "  -b: specify a worklist (batch mode)\n";
     out << "  -t: specify count of parallel processes (only in batch mode)\n";
     out << "  -w: specify a whitelist\n";
-    out << "  -a: specify a unique arch\n";
-    out << "  -m: specify the models directory (default: ./models)\n";
     out << "  -c: coverage analysis mode\n";
-    out << "  -s: skip loading variability models\n";
     out << "  -r: dump runtimes\n";
     out << std::endl;
 }
@@ -35,25 +34,22 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
 
     CloudContainer s(filename);
     if (!s.good()) {
-	usage(std::cout, "couldn't open file");
-	return;
+        usage(std::cout, "couldn't open file");
+        return;
     }
 
     if (coverage) {
         std::list<SatChecker::AssignmentMap> solution;
         std::map<std::string,std::string> parents;
         std::istringstream codesat(s.getConstraints());
-        std::string arch = "x86";
 
         ConfigurationModel *model = 0;
         if (loadModels) {
             ModelContainer *f = ModelContainer::getInstance();
-            if (f->size() == 1)
-                arch = f->begin()->first;
-            model = f->lookupModel(arch.c_str());
+            model = f->lookupMainModel();
         }
 
-        CodeSatStream analyzer(codesat, filename, arch.c_str(),
+        CodeSatStream analyzer(codesat, filename,
                                s.getParents(), NULL, batch_mode, loadModels);
         int i = 1;
 
@@ -82,18 +78,15 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
 
     start = clock();
     for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
-      std::istringstream codesat(c->getConstraints());
-      std::string primary_arch = "x86";
-      ModelContainer *f = ModelContainer::getInstance();
-      if (f->size() == 1)
-        primary_arch = f->begin()->first;
-      CodeSatStream analyzer(codesat, filename, primary_arch.c_str(),
-			     s.getParents(), &(*c), batch_mode, loadModels);
+        std::istringstream codesat(c->getConstraints());
 
-      // this is the total runtime per *cloud*
-      analyzer.analyzeBlocks();
-      if(dumpRuntimes)
-          analyzer.dumpRuntimes();
+        CodeSatStream analyzer(codesat, filename,
+                               s.getParents(), &(*c), batch_mode, loadModels);
+
+        // this is the total runtime per *cloud*
+        analyzer.analyzeBlocks();
+        if(dumpRuntimes)
+            analyzer.dumpRuntimes();
     }
     end = clock();
     t = (double) (end - start);
@@ -106,30 +99,35 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
 
 int main (int argc, char ** argv) {
     int opt;
-    bool loadModels = true;
     bool dumpRuntimes = false;
     char *worklist = NULL;
     char *whitelist = NULL;
-    char *arch = NULL;
-    char *modeldir = NULL;
-    bool arch_specific = false;
+
     bool coverage = false;
 
-    int threads = 1;
 
-    while ((opt = getopt(argc, argv, "sb:a:m:t:w:c")) != -1) {
-	switch (opt) {
-	case 's':
-	    loadModels = false;
-	    break;
-	case 'w':
-	    whitelist = strdup(optarg);
-	    break;
-	case 'b':
-	    worklist = strdup(optarg);
-	    break;
-	case 't':
-	    threads = strtol(optarg, (char **)0, 10);
+    int threads = 1;
+    std::list<std::string> models;
+    std::string main_model = "x86";
+
+    /* Command line structure:
+       - Model Options:
+       * Per Default no models are loaded
+       -- main model     -M: Specify main model
+       -- model          -m: Load a specifc model (if a dir is given,
+       load all model files in directory)
+    */
+
+    while ((opt = getopt(argc, argv, "b:M:m:t:w:c")) != -1) {
+        switch (opt) {
+        case 'w':
+            whitelist = strdup(optarg);
+            break;
+        case 'b':
+            worklist = strdup(optarg);
+            break;
+        case 't':
+            threads = strtol(optarg, (char **)0, 10);
             if ((errno == ERANGE && (threads == LONG_MAX || threads == LONG_MIN))
                 || (errno != 0 && threads == 0)) {
                 perror("strtol");
@@ -139,38 +137,29 @@ int main (int argc, char ** argv) {
                 std::cerr << "WARNING: Invalid numbers of threads, using 1 instead." << std::endl;
                 threads = 1;
             }
-	    break;
-	case 'a':
-	    arch_specific = true;
-            arch = strdup(optarg);
-	    break;
-        case 'r':
-            dumpRuntimes = true;
             break;
-        case 'c':
-            coverage = true;
+        case 'M':
+            /* Specify a new main arch */
+            main_model = std::string(optarg);
             break;
-	case 'm':
-        modeldir = strdup(optarg);
-	    break;
-	default:
-	    break;
-	}
+        case 'm':
+            models.push_back(std::string(optarg));
+            break;
+        default:
+            break;
+        }
     }
 
     if (!worklist && optind >= argc) {
-	usage(std::cout, "please specify a file to scan or a worklist");
-	return EXIT_FAILURE;
+        usage(std::cout, "please specify a file to scan or a worklist");
+        return EXIT_FAILURE;
     }
 
     ModelContainer *f = ModelContainer::getInstance();
 
-    if (loadModels) {
-        if (arch_specific) {
-            f->loadModels(modeldir ? modeldir : "models", arch);
-        } else {
-            f->loadModels(modeldir ? modeldir : "models");
-        }
+    /* Load all specified models */
+    for (std::list<std::string>::const_iterator i = models.begin(); i != models.end(); ++i) {
+        f->loadModels(*i);
     }
 
     if (whitelist) {
@@ -180,20 +169,30 @@ int main (int argc, char ** argv) {
         free(whitelist);
     }
 
+    /* Are there any models loaded? */
+    bool loadModels = f->size() > 0;
+    /* Specify main model, if models where loaded */
+    if (f->size() == 1) {
+        /* If there is only one model file loaded use this */
+        f->setMainModel(f->begin()->first);
+    } else if (f->size() > 1) {
+        f->setMainModel(main_model);
+    }
     if (!worklist) {
         /* If not in batch mode, don't do any parallel things */
+
         process_file(argv[optind], false, loadModels, dumpRuntimes, coverage);
     } else {
-	std::ifstream workfile(worklist);
-	std::string line;
+        std::ifstream workfile(worklist);
+        std::string line;
         /* Collect all files that should be worked on */
         std::vector<std::string> workfiles;
 
-	while(std::getline(workfile, line)) {
+        while(std::getline(workfile, line)) {
             workfiles.push_back(line);
-	}
+        }
         std::cout << workfiles.size() << " files will be analyzed by " << threads << " processes." << std::endl;
-        
+
         std::vector<int> forks;
         /* Starting the threads */
         for (int thread_number = 0; thread_number < threads; thread_number++) {
@@ -221,7 +220,7 @@ int main (int argc, char ** argv) {
             int state;
             waitpid(*iter, &state, 0);
         }
-        
+
     }
     return EXIT_SUCCESS;
 }

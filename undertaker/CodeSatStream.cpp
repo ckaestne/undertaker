@@ -16,12 +16,11 @@ unsigned int CodeSatStream::processed_blocks;
 unsigned int CodeSatStream::failed_blocks;
 
 
-CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename, const char *primary_arch,
+CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename,
                              ParentMap pars, BlockCloud *cc,
                              bool batch_mode, bool loadModels)
     : _istream(ifs), _items(), _free_items(), _blocks(), _filename(filename),
-      _primary_arch(primary_arch), _doCrossCheck(loadModels), _cc(cc),
-      _batch_mode(batch_mode), parents(pars) {
+      _doCrossCheck(loadModels), _cc(cc), _batch_mode(batch_mode), parents(pars) {
 
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
@@ -153,7 +152,7 @@ void CodeSatStream::analyzeBlocks() {
 
     if (_doCrossCheck) {
         ModelContainer *f = ModelContainer::getInstance();
-        p_model = f->lookupModel(_primary_arch);
+        p_model = f->lookupMainModel();
     }
     
     std::set<std::string>::iterator i;

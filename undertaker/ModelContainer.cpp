@@ -7,20 +7,37 @@
 #include "ModelContainer.h"
 #include "KconfigWhitelist.h"
 
-void ModelContainer::loadModels(std::string modeldir) {
+void ModelContainer::loadModels(std::string model) {
     ModelContainer *f = getInstance();
     int found_models = 0;
     typedef std::list<std::string> FilenameContainer;
     FilenameContainer filenames;
 
-    const boost::regex r("^([[:alnum:]]+)\\.model$", boost::regex::perl);
+    const boost::regex model_regex("^([[:alnum:]]+)\\.model$", boost::regex::perl);
 
-    if (! (boost::filesystem::exists(modeldir) && boost::filesystem::is_directory(modeldir))) {
-        std::cerr << "E: model directory '" << modeldir << "' doesn't exist" << std::endl;
+    if (! boost::filesystem::exists(model)){
+        std::cerr << "E: model '" << model << "' doesn't exist (neither directory nor file)" << std::endl;
         exit(-1);
     }
 
-    for (boost::filesystem::directory_iterator dir(modeldir);
+    if (! boost::filesystem::is_directory(model)) {
+        /* A model file was specified, so load exactly this one */
+        boost::match_results<const char*> what;
+        std::string model_name = std::string(basename(model.c_str()));
+
+        /* Strip the .model suffix if possible */
+        if (boost::regex_search(model_name.c_str(), what, model_regex)) {
+            model_name = std::string(what[1]);
+        }
+        f->registerModelFile(model, model_name);
+        std::cout << "I: loaded rsf model for " << model_name
+                  << std::endl;
+
+        return;
+    }
+
+
+    for (boost::filesystem::directory_iterator dir(model);
          dir != boost::filesystem::directory_iterator();
          ++dir) {
         filenames.push_back(dir->path().filename());
@@ -31,12 +48,12 @@ void ModelContainer::loadModels(std::string modeldir) {
          filename != filenames.end(); filename++) {
         boost::match_results<const char*> what;
 
-        if (boost::regex_search(filename->c_str(), what, r)) {
+        if (boost::regex_search(filename->c_str(), what, model_regex)) {
             std::string found_arch = what[1];
             ModelContainer::iterator a = f->find(found_arch);
 
             if (a == f->end()) {
-                f->registerModelFile(modeldir + "/" + filename->c_str(), found_arch);
+                f->registerModelFile(model + "/" + filename->c_str(), found_arch);
                 found_models++;
 
                 std::cout << "I: loaded rsf model for " << found_arch
@@ -53,35 +70,23 @@ void ModelContainer::loadModels(std::string modeldir) {
     }
 }
 
-
-void ModelContainer::loadModels(std::string modeldir, std::string arch) {
-    ModelContainer *f = getInstance();
-    std::string filename = modeldir + "/" + arch + ".model";
-
-    /* Check if the RSF file exists */
-    if (boost::filesystem::exists(filename)) {
-    ModelContainer::iterator a = f->find(arch);
-
-    if (a == f->end())
-        f->registerModelFile(filename, arch);
-        std::cout << "I: loaded rsf model for " << arch << std::endl;
-    } else {
-        std::cerr << "E: could not find rsf file for arch "
-                  << arch << std::endl;
-        exit(-1);
-    }
-}
-
 ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std::string arch) {
+    ConfigurationModel *db;
+    /* Was already loaded */
+    if ((db = lookupModel(arch.c_str()))) {
+        std::cout << "I: A model for " << arch << " was already loaded" << std::endl;
+        return db;
+    }
+
     std::ifstream rsf_file(filename.c_str());
     static std::ofstream devnull("/dev/null");
 
     if (!rsf_file.good()) {
-    std::cerr << "could not open file for reading: "
-          << filename << std::endl;
-    return NULL;
+        std::cerr << "could not open file for reading: "
+                  << filename << std::endl;
+        return NULL;
     }
-    ConfigurationModel *db = new ConfigurationModel(rsf_file, devnull);
+    db = new ConfigurationModel(rsf_file, devnull);
 
     this->insert(std::make_pair(arch,db));
 
@@ -110,6 +115,22 @@ const char *ModelContainer::lookupArch(const ConfigurationModel *model) {
     }
     return NULL;
 }
+
+ConfigurationModel *ModelContainer::lookupMainModel() {
+    ModelContainer *f = getInstance();
+    return ModelContainer::lookupModel(f->main_model.c_str());
+}
+
+void ModelContainer::setMainModel(std::string main_model) {
+    ModelContainer *f = getInstance();
+    if (!ModelContainer::lookupModel(main_model.c_str())) {
+        std::cerr << "E: Could not specify main model " << main_model << ", because no such model is loaded" << std::endl;
+        return;
+    }
+    std::cout << "I: Using " << main_model << " as primary model" << std::endl;
+    f->main_model = main_model;
+}
+
 
 ModelContainer *ModelContainer::getInstance() {
     static ModelContainer *instance;

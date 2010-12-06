@@ -17,13 +17,16 @@
 class ModelContainer : public std::map<std::string, ConfigurationModel*> {
 public:
     static void loadModels(std::string modeldir); ///< load models from the given directory
-    static void loadModels(std::string, std::string); ///< for arch-specific analysis
     static ConfigurationModel *lookupModel(const char *arch);
     static const char *lookupArch(const ConfigurationModel *model);
     static ModelContainer *getInstance();
 
+    static ConfigurationModel *lookupMainModel();
+    static void setMainModel(std::string);
+
 private:
     ModelContainer() {}
+    std::string main_model;
     ConfigurationModel *registerModelFile(std::string filename, std::string arch);
     ~ModelContainer();
 };

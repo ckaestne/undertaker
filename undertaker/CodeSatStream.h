@@ -44,9 +44,9 @@ struct BlockDefect;
 
 class CodeSatStream : public std::stringstream {
 public:
-    CodeSatStream (std::istream &ifs, std::string filename, const char *primary_arch,
-           const ParentMap parents, BlockCloud *cc=NULL,
-           bool batch_mode=false, bool loadModels=false);
+    CodeSatStream (std::istream &ifs, std::string filename,
+                   const ParentMap parents, BlockCloud *cc=NULL,
+                   bool batch_mode=false, bool loadModels=false);
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
@@ -91,7 +91,6 @@ protected:
     std::set<std::string> _free_items; //non-kconfig items
     std::set<std::string> _blocks;
     std::string _filename;
-    const char *_primary_arch;
     bool _doCrossCheck;
     BlockCloud *_cc;
     const bool _batch_mode;
