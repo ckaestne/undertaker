@@ -18,12 +18,13 @@ typedef std::deque<BlockCloud> CloudList;
 enum WorkMode {
     MODE_DEAD, // Detect dead and undead files
     MODE_COVERAGE, // Calculate the coverage
+    MODE_CPPPC, // CPP Preconditions for whole file
 };
 
 void usage(std::ostream &out, const char *error) {
     if (error)
         out << error << std::endl;
-    out << "Usage: undertaker [-b worklist] [-w whitelist] [-m model] [-M main model] [-j dead/coverage] [-r] <file> [more files]\n";
+    out << "Usage: undertaker [-b worklist] [-w whitelist] [-m model] [-M main model] [-j <job>] [-r] <file> [more files]\n";
     out << "  -m: specify the model(s) (directory or file)\n";
     out << "  -M: specify the main model\n";
     out << "  -w: specify a whitelist\n";
@@ -32,8 +33,9 @@ void usage(std::ostream &out, const char *error) {
     out << "  -t: specify count of parallel processes (only in batch mode)\n";
 
     out << "  -j: specify the jobs which should be done\n";
-    out << "      dead: dead/undead file analysis\n";
+    out << "      dead: dead/undead file analysis (default)\n";
     out << "      coverage: coverage file analysis\n";
+    out << "      cpppc: CPP Preconditions for whole file\n";
     out << "  -r: dump runtimes\n";
     out << std::endl;
 }
@@ -77,6 +79,15 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
                 std::cout << "(" << (*j).first << "=" << (*j).second << ") ";
             }
             std::cout << std::endl;
+        }
+        return;
+    } else if (work_mode == MODE_CPPPC) {
+        CloudContainer s(filename);
+        try {
+            std::cout << s.getConstraints() << std::endl;
+        } catch (std::runtime_error &e) {
+            std::cerr << "FAILED: " << e.what() << std::endl;
+            exit(EXIT_FAILURE);
         }
         return;
     }
@@ -162,6 +173,8 @@ int main (int argc, char ** argv) {
                 work_mode = MODE_DEAD;
             else if (strcmp(optarg, "coverage") == 0)
                 work_mode = MODE_COVERAGE;
+            else if (strcmp(optarg, "cpppc") == 0)
+                work_mode = MODE_CPPPC;
             else {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
