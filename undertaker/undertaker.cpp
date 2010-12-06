@@ -15,22 +15,31 @@
 
 typedef std::deque<BlockCloud> CloudList;
 
+enum WorkMode {
+    MODE_DEAD, // Detect dead and undead files
+    MODE_COVERAGE, // Calculate the coverage
+};
+
 void usage(std::ostream &out, const char *error) {
     if (error)
         out << error << std::endl;
-    out << "Usage: undertaker [-b worklist] [-w whitelist] [-m modeldir] [-c] [-r] -s" << " <file>\n";
+    out << "Usage: undertaker [-b worklist] [-w whitelist] [-m model] [-M main model] [-j dead/coverage] [-r] <file> [more files]\n";
     out << "  -m: specify the model(s) (directory or file)\n";
     out << "  -M: specify the main model\n";
+    out << "  -w: specify a whitelist\n";
+    
     out << "  -b: specify a worklist (batch mode)\n";
     out << "  -t: specify count of parallel processes (only in batch mode)\n";
-    out << "  -w: specify a whitelist\n";
-    out << "  -c: coverage analysis mode\n";
+
+    out << "  -j: specify the jobs which should be done\n";
+    out << "      dead: dead/undead file analysis\n";
+    out << "      coverage: coverage file analysis\n";
     out << "  -r: dump runtimes\n";
     out << std::endl;
 }
 
 void process_file(const char *filename, bool batch_mode, bool loadModels,
-                  bool dumpRuntimes, bool coverage) {
+                  bool dumpRuntimes, WorkMode work_mode) {
 
     CloudContainer s(filename);
     if (!s.good()) {
@@ -38,7 +47,7 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
         return;
     }
 
-    if (coverage) {
+    if (work_mode == MODE_COVERAGE) {
         std::list<SatChecker::AssignmentMap> solution;
         std::map<std::string,std::string> parents;
         std::istringstream codesat(s.getConstraints());
@@ -72,6 +81,8 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
         return;
     }
 
+    assert(work_mode == MODE_DEAD);
+
     std::istringstream cs(s.getConstraints());
     clock_t start, end;
     double t = -1;
@@ -103,22 +114,23 @@ int main (int argc, char ** argv) {
     char *worklist = NULL;
     char *whitelist = NULL;
 
-    bool coverage = false;
-
-
     int threads = 1;
     std::list<std::string> models;
     std::string main_model = "x86";
+    /* Default is dead/undead analysis */
+    WorkMode work_mode = MODE_DEAD;
 
     /* Command line structure:
        - Model Options:
        * Per Default no models are loaded
        -- main model     -M: Specify main model
-       -- model          -m: Load a specifc model (if a dir is given,
+       -- model          -m: Load a specifc model (if a dir is given
+       - Work Options:
+       -- job            -j: do a specific job
        load all model files in directory)
     */
 
-    while ((opt = getopt(argc, argv, "b:M:m:t:w:c")) != -1) {
+    while ((opt = getopt(argc, argv, "b:M:m:t:w:j:")) != -1) {
         switch (opt) {
         case 'w':
             whitelist = strdup(optarg);
@@ -145,6 +157,17 @@ int main (int argc, char ** argv) {
         case 'm':
             models.push_back(std::string(optarg));
             break;
+        case 'j':
+            if (strcmp(optarg, "dead") == 0)
+                work_mode = MODE_DEAD;
+            else if (strcmp(optarg, "coverage") == 0)
+                work_mode = MODE_COVERAGE;
+            else {
+                usage(std::cerr, "Invalid job specified");
+                return EXIT_FAILURE;
+            }
+
+
         default:
             break;
         }
@@ -178,19 +201,24 @@ int main (int argc, char ** argv) {
     } else if (f->size() > 1) {
         f->setMainModel(main_model);
     }
-    if (!worklist) {
-        /* If not in batch mode, don't do any parallel things */
 
-        process_file(argv[optind], false, loadModels, dumpRuntimes, coverage);
+    std::vector<std::string> workfiles;
+    if (!worklist) {
+        /* Use files from command line */
+        do {
+            workfiles.push_back(argv[optind++]);
+        } while (optind < argc);
     } else {
+        /* Read files from worklist */
         std::ifstream workfile(worklist);
         std::string line;
         /* Collect all files that should be worked on */
-        std::vector<std::string> workfiles;
-
         while(std::getline(workfile, line)) {
             workfiles.push_back(line);
         }
+    }
+
+    if (threads > 1) {
         std::cout << workfiles.size() << " files will be analyzed by " << threads << " processes." << std::endl;
 
         std::vector<int> forks;
@@ -201,7 +229,7 @@ int main (int argc, char ** argv) {
                 std::cout << "Fork " << thread_number << " started." << std::endl;
                 int worked_on = 0;
                 for (unsigned int i = thread_number; i < workfiles.size(); i+= threads) {
-                    process_file(workfiles[i].c_str(), true, loadModels, dumpRuntimes, coverage);
+                    process_file(workfiles[i].c_str(), true, loadModels, dumpRuntimes, work_mode);
                     worked_on++;
                 }
                 std::cerr << "I: finished: " << worked_on << " files done (" << thread_number << ")" << std::endl;
@@ -220,7 +248,11 @@ int main (int argc, char ** argv) {
             int state;
             waitpid(*iter, &state, 0);
         }
-
+    } else {
+        /* Now forks do anything sequential */
+        for (unsigned int i = 0; i < workfiles.size(); i++) {
+            process_file(workfiles[i].c_str(), false, loadModels, dumpRuntimes, work_mode);
+        }
     }
     return EXIT_SUCCESS;
 }
