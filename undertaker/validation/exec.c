@@ -2096,7 +2096,6 @@ EXPORT_SYMBOL(dump_seek);
 
 /*
  * check-name: Full text of fs/exec.c from Linux v2.6.37-rc1-542-g0143832
- * check-command: undertaker -w /dev/null $file
  * check-output-start
 I: loaded rsf model for alpha
 I: loaded rsf model for arm
@@ -2122,7 +2121,7 @@ I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
-I: loaded 0 items to whitelist
+I: Using x86 as primary model
 I: creating exec.c.B3.x86.missing.dead
 I: creating exec.c.B11.x86.missing.dead
 I: creating exec.c.B13.x86.missing.undead

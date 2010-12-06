@@ -9404,7 +9404,7 @@ EXPORT_SYMBOL_GPL(synchronize_sched_expedited);
 
 /*
  * check-name: Full text of kernel/sched.c from Linux v2.6.37-rc1-542-g0143832
- * check-command: undertaker -w /dev/null $file
+ * check-command: undertaker -m models -w /dev/null $file
  * check-output-start
 I: loaded rsf model for alpha
 I: loaded rsf model for arm
@@ -9431,6 +9431,7 @@ I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
 I: loaded 0 items to whitelist
+I: Using x86 as primary model
 I: creating sched.c.B251.x86.missing.dead
 I: creating sched.c.B361.x86.missing.dead
 I: creating sched.c.B363.x86.missing.dead

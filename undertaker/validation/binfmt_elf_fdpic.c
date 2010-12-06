@@ -1843,9 +1843,10 @@ cleanup:
 
 /*
  * check-name: binfmt_elf_fdpic.c
- * check-command: undertaker -w whitelist -a x86 $file
+ * check-command: undertaker -m models/x86.model -w whitelist $file
  * check-output-start
 I: loaded rsf model for x86
 I: loaded 1 items to whitelist
+I: Using x86 as primary model
  * check-output-end
  */

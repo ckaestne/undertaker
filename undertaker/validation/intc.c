@@ -208,6 +208,7 @@ I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
+I: Using x86 as primary model
 I: creating intc.c.B1.x86.missing.dead
 I: creating intc.c.B6.x86.missing.dead
 I: creating intc.c.B9.x86.missing.dead
