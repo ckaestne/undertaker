@@ -12,6 +12,7 @@
 #include "ModelContainer.h"
 #include "CloudContainer.h"
 #include "CodeSatStream.h"
+#include "BlockDefect.h"
 
 typedef std::deque<BlockCloud> CloudList;
 
@@ -19,6 +20,7 @@ enum WorkMode {
     MODE_DEAD, // Detect dead and undead files
     MODE_COVERAGE, // Calculate the coverage
     MODE_CPPPC, // CPP Preconditions for whole file
+    MODE_BLOCKPC, // Block precondition
 };
 
 void usage(std::ostream &out, const char *error) {
@@ -36,6 +38,7 @@ void usage(std::ostream &out, const char *error) {
     out << "      dead: dead/undead file analysis (default)\n";
     out << "      coverage: coverage file analysis\n";
     out << "      cpppc: CPP Preconditions for whole file\n";
+    out << "      blockpc: Block precondition (format: <file>:<line>:<column>";
     out << "  -r: dump runtimes\n";
     out << std::endl;
 }
@@ -43,13 +46,14 @@ void usage(std::ostream &out, const char *error) {
 void process_file(const char *filename, bool batch_mode, bool loadModels,
                   bool dumpRuntimes, WorkMode work_mode) {
 
-    CloudContainer s(filename);
-    if (!s.good()) {
-        usage(std::cout, "couldn't open file");
-        return;
-    }
 
     if (work_mode == MODE_COVERAGE) {
+        CloudContainer s(filename);
+        if (!s.good()) {
+            usage(std::cout, "couldn't open file");
+            return;
+        }
+
         std::list<SatChecker::AssignmentMap> solution;
         std::map<std::string,std::string> parents;
         std::istringstream codesat(s.getConstraints());
@@ -83,6 +87,11 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
         return;
     } else if (work_mode == MODE_CPPPC) {
         CloudContainer s(filename);
+        if (!s.good()) {
+            usage(std::cout, "couldn't open file");
+            return;
+        }
+        std::cout << "I: CPP Precondition for " << filename << std::endl;
         try {
             std::cout << s.getConstraints() << std::endl;
         } catch (std::runtime_error &e) {
@@ -90,16 +99,73 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
             exit(EXIT_FAILURE);
         }
         return;
-    }
+    } else if (work_mode == MODE_BLOCKPC) {
+        std::string fname = std::string(filename);
+        std::string file, position;
+        size_t colon_pos = fname.find_first_of(':');
+        if (colon_pos == fname.npos) {
+            std::cerr << "FAILED: " << "Invalid format for block precondition" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        file = fname.substr(0, colon_pos);
+        position = fname.substr(colon_pos + 1);
 
-    assert(work_mode == MODE_DEAD);
+        CloudContainer cloud(file.c_str());
+        if (!cloud.good()) {
+            usage(std::cout, "couldn't open file");
+            return;
+        }
 
-    std::istringstream cs(s.getConstraints());
-    clock_t start, end;
-    double t = -1;
+        std::istringstream cs(cloud.getConstraints());
+        std::string matched_block;
+        CodeSatStream *sat_stream = 0;
+        for (CloudList::iterator c = cloud.begin(); c != cloud.end(); c++) {
+            std::istringstream codesat(c->getConstraints());
+            CodeSatStream *analyzer = new CodeSatStream(codesat, file,
+                                                        cloud.getParents(), &(*c), false, loadModels);
 
-    start = clock();
-    for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
+            std::string block = analyzer->positionToBlock(filename);
+            if (block.size() != 0) {
+                matched_block = block;
+                sat_stream = analyzer;
+                break;
+            }
+            delete analyzer;
+        }
+
+        if (matched_block.size() == 0) {
+            std::cout << "I: No block at " << filename << " was found." << std::endl;
+            return;
+        }
+
+
+        ConfigurationModel *model = ModelContainer::lookupMainModel();
+        const BlockDefect *defect = sat_stream->analyzeBlock(matched_block.c_str(), model);
+
+        /* Get the Precondition */
+        DeadBlockDefect dead(sat_stream, matched_block.c_str());
+        std::string precondition = dead.getBlockPrecondition(model);
+
+        std::cout << "I: Block " << matched_block
+                  << " | Defect: " << (defect != 0 ? defect->defectTypeToString() : "no")
+                  << " | Global: " << (defect != 0 ? defect->isGlobal() : 0)<< std::endl;
+
+        std::cout << precondition << std::endl;
+
+        return;
+    } else if (work_mode == MODE_DEAD) {
+        CloudContainer s(filename);
+        if (!s.good()) {
+            usage(std::cout, "couldn't open file");
+            return;
+        }
+
+        std::istringstream cs(s.getConstraints());
+        clock_t start, end;
+        double t = -1;
+
+        start = clock();
+        for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
         std::istringstream codesat(c->getConstraints());
 
         CodeSatStream analyzer(codesat, filename,
@@ -109,10 +175,10 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
         analyzer.analyzeBlocks();
         if(dumpRuntimes)
             analyzer.dumpRuntimes();
-    }
-    end = clock();
-    t = (double) (end - start);
-    std::cout.precision(10);
+        }
+        end = clock();
+        t = (double) (end - start);
+        std::cout.precision(10);
 
         // this is the total runtime per *file*
         if(dumpRuntimes)
@@ -173,13 +239,15 @@ int main (int argc, char ** argv) {
             models.push_back(std::string(optarg));
             break;
         case 'j':
-            if (strcmp(optarg, "dead") == 0)
+            if (strcmp(optarg, "dead") == 0) {
                 work_mode = MODE_DEAD;
-            else if (strcmp(optarg, "coverage") == 0)
+            } else if (strcmp(optarg, "coverage") == 0) {
                 work_mode = MODE_COVERAGE;
-            else if (strcmp(optarg, "cpppc") == 0)
+            } else if (strcmp(optarg, "cpppc") == 0) {
                 work_mode = MODE_CPPPC;
-            else {
+            } else if (strcmp(optarg, "blockpc") == 0) {
+                work_mode = MODE_BLOCKPC;
+            } else {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
             }
