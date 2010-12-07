@@ -19,6 +19,7 @@ struct BlockDefect {
     virtual bool isGlobal() const = 0; //!< checks if the defect applies to all models
     virtual bool needsCrosscheck() const = 0; //!< defect will be present on every model
     virtual void defectIsGlobal();  //!< mark defect als valid on all models
+    const std::string defectTypeToString() const; //!< human readable identifier for the defect type
 
     /**
      * \brief Write out a report to a file.
@@ -58,6 +59,7 @@ public:
     virtual bool needsCrosscheck() const; //!< defect will be present on every model
     virtual bool writeReportToFile() const;
 
+    std::string getBlockPrecondition(const ConfigurationModel *model) const;
 protected:
     const std::string getCodeConstraints() const;
     const std::string getKconfigConstraints(const ConfigurationModel *model, std::set<std::string> &missing) const;

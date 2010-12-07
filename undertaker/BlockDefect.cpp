@@ -77,6 +77,21 @@ const std::string DeadBlockDefect::getMissingItemsConstraints(std::set<std::stri
     return _cs->getMissingItemsConstraints(missing);
 }
 
+const std::string BlockDefect::defectTypeToString() const {
+    switch(_defectType) {
+    case None: return "";  // Nothing to write
+    case Implementation:
+        return "code";
+    case Configuration:
+        return "kconfig";
+    case Referential:
+        return  "missing";
+    default:
+        assert(false);
+    }
+    return "";
+}
+
 bool DeadBlockDefect::writeReportToFile() const {
     StringJoiner fname_joiner;
 
@@ -87,15 +102,8 @@ bool DeadBlockDefect::writeReportToFile() const {
 
     switch(_defectType) {
     case None: return false;  // Nothing to write
-    case Implementation:
-        fname_joiner.push_back("code");
-        break;
-    case Configuration:
-        fname_joiner.push_back("kconfig");
-        break;
-    case Referential:
-        fname_joiner.push_back("missing");
-        break;
+    default:
+        fname_joiner.push_back(defectTypeToString());
     }
 
     if (_isGlobal)
@@ -120,6 +128,26 @@ bool DeadBlockDefect::writeReportToFile() const {
 
     return true;
 }
+
+std::string DeadBlockDefect::getBlockPrecondition(const ConfigurationModel *model) const {
+    StringJoiner formula;
+
+    /* Adding block and code constraints extraced from code sat stream */
+    formula.push_back(_block);
+    formula.push_back(getCodeConstraints());
+
+
+    if (model) {
+        /* Adding kconfig constraints and kconfig missing */
+        std::set<std::string> missingSet;
+        formula.push_back(this->getKconfigConstraints(model, missingSet));
+        formula.push_back(this->getMissingItemsConstraints(missingSet));
+    }
+
+    return formula.join("\n&&\n");
+}
+
+
 
 
 UndeadBlockDefect::UndeadBlockDefect(CodeSatStream *cs, const char *block)
