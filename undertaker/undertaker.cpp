@@ -114,9 +114,13 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
     t = (double) (end - start);
     std::cout.precision(10);
 
-    // this is the total runtime per *file*
-    if(dumpRuntimes)
-        std::cout << "RTF:" << filename << ":" << t << std::endl;
+        // this is the total runtime per *file*
+        if(dumpRuntimes)
+            std::cout << "RTF:" << filename << ":" << t << std::endl;
+    } else {
+        /* Should never be reaced */
+        assert(false);
+    }
 }
 
 int main (int argc, char ** argv) {
