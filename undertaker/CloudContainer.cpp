@@ -109,6 +109,13 @@ BlockCloud::index BlockCloud::search(int id) const {
     throw std::runtime_error(ss.str());
 }
 
+BlockCloud::index BlockCloud::search(std::string idstring) const {
+    int id;
+    idstring = idstring.substr(1);
+    std::stringstream ss(idstring);
+    ss >> id;
+    return search(id);
+}
 
 const ZizCondBlockPtr &BlockCloud::item(index n) const {
     return (*this)[n];
