@@ -82,6 +82,16 @@ public:
      */
     std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *model);
 
+    /**
+     * Find innermost block for a given position
+     *
+     * \param string of the form <line>:<column>
+     *
+     * \return innermost block or "" if no block matches
+     */
+    std::string positionToBlock(std::string);
+
+
     bool dumpRuntimes();
     RuntimeTable runtimes;
 
