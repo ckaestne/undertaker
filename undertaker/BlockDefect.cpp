@@ -9,7 +9,7 @@ void BlockDefect::markOk(const std::string &arch) {
 
 DeadBlockDefect::DeadBlockDefect(CodeSatStream *cs, const char *block)
     :  BlockDefect(None), _cs(cs), _block(block), _needsCrosscheck(false),
-       _arch(NULL), _suffix("dead") {}
+       _arch(NULL) { this->_suffix = "dead"; }
 
 bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;

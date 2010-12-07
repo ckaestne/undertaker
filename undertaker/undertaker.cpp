@@ -146,8 +146,13 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
         DeadBlockDefect dead(sat_stream, matched_block.c_str());
         std::string precondition = dead.getBlockPrecondition(model);
 
+        std::string defect_string = "no";
+        if (defect) {
+            defect_string = defect->getSuffix() + "/" + defect->defectTypeToString();
+        }
+        
         std::cout << "I: Block " << matched_block
-                  << " | Defect: " << (defect != 0 ? defect->defectTypeToString() : "no")
+                  << " | Defect: " << defect_string
                   << " | Global: " << (defect != 0 ? defect->isGlobal() : 0)<< std::endl;
 
         std::cout << precondition << std::endl;

@@ -20,6 +20,7 @@ struct BlockDefect {
     virtual bool needsCrosscheck() const = 0; //!< defect will be present on every model
     virtual void defectIsGlobal();  //!< mark defect als valid on all models
     const std::string defectTypeToString() const; //!< human readable identifier for the defect type
+    const std::string getSuffix() const { return std::string(_suffix); }
 
     /**
      * \brief Write out a report to a file.
@@ -46,6 +47,7 @@ protected:
     BlockDefect(int defecttype) : _defectType(defecttype), _isGlobal(false), _OKList() {}
     int _defectType;
     bool _isGlobal;
+    const char *_suffix;
     std::list<std::string> _OKList; //!< List of architectures on which this is proved to be OK
 };
 
@@ -71,7 +73,6 @@ protected:
 
     std::string _formula;
     const char *_arch;
-    const char *_suffix;
 };
 
 //! Checks a given block for "un-deselectable block" defects.
