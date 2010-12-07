@@ -61,13 +61,26 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
         for (it = solution.begin(); it != solution.end(); it++) {
             static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
             SatChecker::AssignmentMap::iterator j;
-            std::cout << "Solution " << i++ << ": ";
+            std::stringstream outfstream;
+            outfstream << filename << ".config" << i++;
+            std::ofstream outf;
+
+            outf.open(outfstream.str().c_str(), std::ios_base::trunc);
+            if (!outf.good()) {
+                std::cerr << "failed to write config in " 
+                          << outfstream.str().c_str()
+                          << std::endl;
+                outf.close();
+                continue;
+            }
+
             for (j = (*it).begin(); j != (*it).end(); j++) {
                 if (boost::regex_match((*j).first, block_regexp))
                     continue;
-                std::cout << "(" << (*j).first << "=" << (*j).second << ") ";
+                outf << "(" << (*j).first << "=" << (*j).second << ") ";
             }
-            std::cout << std::endl;
+            outf << std::endl;
+            outf.close();
         }
         return;
     }
@@ -125,6 +138,9 @@ int main (int argc, char ** argv) {
             break;
         case 'b':
             worklist = strdup(optarg);
+            break;
+        case 'c':
+            coverage = true;
             break;
         case 't':
             threads = strtol(optarg, (char **)0, 10);

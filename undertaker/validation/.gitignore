@@ -4,3 +4,4 @@
 *.expected
 *.dead
 *.undead
+*.c.config*
