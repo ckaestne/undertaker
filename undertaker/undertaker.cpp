@@ -32,22 +32,22 @@ void usage(std::ostream &out, const char *error) {
     out << "  -m: specify the model(s) (directory or file)\n";
     out << "  -M: specify the main model\n";
     out << "  -w: specify a whitelist\n";
-    
+
     out << "  -b: specify a worklist (batch mode)\n";
-    out << "  -t: specify count of parallel processes (only in batch mode)\n";
+    out << "  -t: specify count of parallel processes\n";
 
     out << "  -j: specify the jobs which should be done\n";
     out << "      dead: dead/undead file analysis (default)\n";
     out << "      coverage: coverage file analysis\n";
     out << "      cpppc: CPP Preconditions for whole file\n";
-    out << "      blockpc: Block precondition (format: <file>:<line>:<column>";
-    out << "  -r: dump runtimes\n";
+    out << "      blockpc: Block precondition (format: <file>:<line>:<column>\n";
+    out << "\nFiles:\n";
+    out << "  You can specify one or many files (the format is according to the\n";
+    out << "  job (-j) which should be done. If you specify - as file, undertaker\n";
+    out << "  will load models and whitelist and read files from stdin.\n";
+
     out << std::endl;
 }
-
-
-
-
 
 void process_file_coverage(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
@@ -102,7 +102,7 @@ void process_file_cpppc(const char *filename, bool batch_mode, bool loadModels) 
         std::cout << s.getConstraints() << std::endl;
     } catch (std::runtime_error &e) {
         std::cerr << "FAILED: " << e.what() << std::endl;
-        exit(EXIT_FAILURE);
+        return;
     }
 }
 
@@ -114,7 +114,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
     size_t colon_pos = fname.find_first_of(':');
     if (colon_pos == fname.npos) {
         std::cerr << "FAILED: " << "Invalid format for block precondition" << std::endl;
-        exit(EXIT_FAILURE);
+        return;
     }
     file = fname.substr(0, colon_pos);
     position = fname.substr(colon_pos + 1);
@@ -300,7 +300,16 @@ int main (int argc, char ** argv) {
         }
     }
 
-    if (threads > 1) {
+    /* Read from stdin after loading all models and whitelist */
+    if (workfiles.begin()->compare("-") == 0) {
+        std::string line;
+        /* Read from stdin and call process file for every line */
+        while (1) {
+            std::cout << ">>> ";
+            if (!std::getline(std::cin, line)) break;
+            process_file(line.c_str(), false, loadModels);
+        }
+    } else if (threads > 1) {
         std::cout << workfiles.size() << " files will be analyzed by " << threads << " processes." << std::endl;
 
         std::vector<int> forks;
