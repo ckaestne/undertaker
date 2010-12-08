@@ -15,6 +15,8 @@
 #include "BlockDefect.h"
 
 typedef std::deque<BlockCloud> CloudList;
+typedef void (* process_file_cb_t) (const char *filename, bool batch_mode, bool loadModels);
+
 
 enum WorkMode {
     MODE_DEAD, // Detect dead and undead files
@@ -43,134 +45,138 @@ void usage(std::ostream &out, const char *error) {
     out << std::endl;
 }
 
-void process_file(const char *filename, bool batch_mode, bool loadModels,
-                  bool dumpRuntimes, WorkMode work_mode) {
 
 
-    if (work_mode == MODE_COVERAGE) {
-        CloudContainer s(filename);
-        if (!s.good()) {
-            usage(std::cout, "couldn't open file");
-            return;
-        }
 
-        std::list<SatChecker::AssignmentMap> solution;
-        std::map<std::string,std::string> parents;
-        std::istringstream codesat(s.getConstraints());
 
-        ConfigurationModel *model = 0;
-        if (loadModels) {
-            ModelContainer *f = ModelContainer::getInstance();
-            model = f->lookupMainModel();
-        }
-
-        CodeSatStream analyzer(codesat, filename,
-                               s.getParents(), NULL, batch_mode, loadModels);
-        int i = 1;
-
-        solution = analyzer.blockCoverage(model);
-        std::cout << filename << " contains " << analyzer.Blocks().size()
-                  << " blocks" << std::endl;
-        std::cout << "Size of solution: " << solution.size() << std::endl;
-        std::list<SatChecker::AssignmentMap>::iterator it;
-        for (it = solution.begin(); it != solution.end(); it++) {
-            static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
-            SatChecker::AssignmentMap::iterator j;
-            std::cout << "Solution " << i++ << ": ";
-            for (j = (*it).begin(); j != (*it).end(); j++) {
-                if (boost::regex_match((*j).first, block_regexp))
-                    continue;
-                std::cout << "(" << (*j).first << "=" << (*j).second << ") ";
-            }
-            std::cout << std::endl;
-        }
+void process_file_coverage(const char *filename, bool batch_mode, bool loadModels) {
+    CloudContainer s(filename);
+    if (!s.good()) {
+        usage(std::cout, "couldn't open file");
         return;
-    } else if (work_mode == MODE_CPPPC) {
-        CloudContainer s(filename);
-        if (!s.good()) {
-            usage(std::cout, "couldn't open file");
-            return;
+    }
+
+    std::list<SatChecker::AssignmentMap> solution;
+    std::map<std::string,std::string> parents;
+    std::istringstream codesat(s.getConstraints());
+
+    ConfigurationModel *model = 0;
+    if (loadModels) {
+        ModelContainer *f = ModelContainer::getInstance();
+        model = f->lookupMainModel();
+    }
+
+    CodeSatStream analyzer(codesat, filename,
+                           s.getParents(), NULL, batch_mode, loadModels);
+    int i = 1;
+
+    solution = analyzer.blockCoverage(model);
+    std::cout << filename << " contains " << analyzer.Blocks().size()
+              << " blocks" << std::endl;
+    std::cout << "Size of solution: " << solution.size() << std::endl;
+    std::list<SatChecker::AssignmentMap>::iterator it;
+    for (it = solution.begin(); it != solution.end(); it++) {
+        static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
+        SatChecker::AssignmentMap::iterator j;
+        std::cout << "Solution " << i++ << ": ";
+        for (j = (*it).begin(); j != (*it).end(); j++) {
+            if (boost::regex_match((*j).first, block_regexp))
+                continue;
+            std::cout << "(" << (*j).first << "=" << (*j).second << ") ";
         }
-        std::cout << "I: CPP Precondition for " << filename << std::endl;
-        try {
-            std::cout << s.getConstraints() << std::endl;
-        } catch (std::runtime_error &e) {
-            std::cerr << "FAILED: " << e.what() << std::endl;
-            exit(EXIT_FAILURE);
-        }
+        std::cout << std::endl;
+    }
+}
+
+void process_file_cpppc(const char *filename, bool batch_mode, bool loadModels) {
+    (void) batch_mode;
+    (void) loadModels;
+
+    CloudContainer s(filename);
+    if (!s.good()) {
+        usage(std::cout, "couldn't open file");
         return;
-    } else if (work_mode == MODE_BLOCKPC) {
-        std::string fname = std::string(filename);
-        std::string file, position;
-        size_t colon_pos = fname.find_first_of(':');
-        if (colon_pos == fname.npos) {
-            std::cerr << "FAILED: " << "Invalid format for block precondition" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        file = fname.substr(0, colon_pos);
-        position = fname.substr(colon_pos + 1);
+    }
+    std::cout << "I: CPP Precondition for " << filename << std::endl;
+    try {
+        std::cout << s.getConstraints() << std::endl;
+    } catch (std::runtime_error &e) {
+        std::cerr << "FAILED: " << e.what() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
 
-        CloudContainer cloud(file.c_str());
-        if (!cloud.good()) {
-            usage(std::cout, "couldn't open file");
-            return;
-        }
+void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels) {
+    (void) batch_mode;
 
-        std::istringstream cs(cloud.getConstraints());
-        std::string matched_block;
-        CodeSatStream *sat_stream = 0;
-        for (CloudList::iterator c = cloud.begin(); c != cloud.end(); c++) {
-            std::istringstream codesat(c->getConstraints());
-            CodeSatStream *analyzer = new CodeSatStream(codesat, file,
-                                                        cloud.getParents(), &(*c), false, loadModels);
+    std::string fname = std::string(filename);
+    std::string file, position;
+    size_t colon_pos = fname.find_first_of(':');
+    if (colon_pos == fname.npos) {
+        std::cerr << "FAILED: " << "Invalid format for block precondition" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    file = fname.substr(0, colon_pos);
+    position = fname.substr(colon_pos + 1);
 
-            std::string block = analyzer->positionToBlock(filename);
-            if (block.size() != 0) {
-                matched_block = block;
-                sat_stream = analyzer;
-                break;
-            }
-            delete analyzer;
-        }
-
-        if (matched_block.size() == 0) {
-            std::cout << "I: No block at " << filename << " was found." << std::endl;
-            return;
-        }
-
-
-        ConfigurationModel *model = ModelContainer::lookupMainModel();
-        const BlockDefect *defect = sat_stream->analyzeBlock(matched_block.c_str(), model);
-
-        /* Get the Precondition */
-        DeadBlockDefect dead(sat_stream, matched_block.c_str());
-        std::string precondition = dead.getBlockPrecondition(model);
-
-        std::string defect_string = "no";
-        if (defect) {
-            defect_string = defect->getSuffix() + "/" + defect->defectTypeToString();
-        }
-        
-        std::cout << "I: Block " << matched_block
-                  << " | Defect: " << defect_string
-                  << " | Global: " << (defect != 0 ? defect->isGlobal() : 0)<< std::endl;
-
-        std::cout << precondition << std::endl;
-
+    CloudContainer cloud(file.c_str());
+    if (!cloud.good()) {
+        usage(std::cout, "couldn't open file");
         return;
-    } else if (work_mode == MODE_DEAD) {
-        CloudContainer s(filename);
-        if (!s.good()) {
-            usage(std::cout, "couldn't open file");
-            return;
+    }
+
+    std::istringstream cs(cloud.getConstraints());
+    std::string matched_block;
+    CodeSatStream *sat_stream = 0;
+    for (CloudList::iterator c = cloud.begin(); c != cloud.end(); c++) {
+        std::istringstream codesat(c->getConstraints());
+        CodeSatStream *analyzer = new CodeSatStream(codesat, file,
+                                                    cloud.getParents(), &(*c), false, loadModels);
+
+        std::string block = analyzer->positionToBlock(filename);
+        if (block.size() != 0) {
+            matched_block = block;
+            sat_stream = analyzer;
+            break;
         }
+        delete analyzer;
+    }
 
-        std::istringstream cs(s.getConstraints());
-        clock_t start, end;
-        double t = -1;
+    if (matched_block.size() == 0) {
+        std::cout << "I: No block at " << filename << " was found." << std::endl;
+        return;
+    }
 
-        start = clock();
-        for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
+
+    ConfigurationModel *model = ModelContainer::lookupMainModel();
+    const BlockDefect *defect = sat_stream->analyzeBlock(matched_block.c_str(), model);
+
+    /* Get the Precondition */
+    DeadBlockDefect dead(sat_stream, matched_block.c_str());
+    std::string precondition = dead.getBlockPrecondition(model);
+
+    std::string defect_string = "no";
+    if (defect) {
+        defect_string = defect->getSuffix() + "/" + defect->defectTypeToString();
+    }
+
+    std::cout << "I: Block " << matched_block
+              << " | Defect: " << defect_string
+              << " | Global: " << (defect != 0 ? defect->isGlobal() : 0)<< std::endl;
+
+    std::cout << precondition << std::endl;
+}
+
+void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
+    CloudContainer s(filename);
+    if (!s.good()) {
+        usage(std::cout, "couldn't open file");
+        return;
+    }
+
+    std::istringstream cs(s.getConstraints());
+
+    for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
         std::istringstream codesat(c->getConstraints());
 
         CodeSatStream analyzer(codesat, filename,
@@ -178,25 +184,11 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
 
         // this is the total runtime per *cloud*
         analyzer.analyzeBlocks();
-        if(dumpRuntimes)
-            analyzer.dumpRuntimes();
-        }
-        end = clock();
-        t = (double) (end - start);
-        std::cout.precision(10);
-
-        // this is the total runtime per *file*
-        if(dumpRuntimes)
-            std::cout << "RTF:" << filename << ":" << t << std::endl;
-    } else {
-        /* Should never be reaced */
-        assert(false);
     }
 }
 
 int main (int argc, char ** argv) {
     int opt;
-    bool dumpRuntimes = false;
     char *worklist = NULL;
     char *whitelist = NULL;
 
@@ -204,7 +196,7 @@ int main (int argc, char ** argv) {
     std::list<std::string> models;
     std::string main_model = "x86";
     /* Default is dead/undead analysis */
-    WorkMode work_mode = MODE_DEAD;
+    process_file_cb_t process_file = process_file_dead;
 
     /* Command line structure:
        - Model Options:
@@ -244,20 +236,20 @@ int main (int argc, char ** argv) {
             models.push_back(std::string(optarg));
             break;
         case 'j':
+            /* assign a new function pointer according to the jobs
+               which should be done */
             if (strcmp(optarg, "dead") == 0) {
-                work_mode = MODE_DEAD;
+                process_file = process_file_dead;
             } else if (strcmp(optarg, "coverage") == 0) {
-                work_mode = MODE_COVERAGE;
+                process_file = process_file_coverage;
             } else if (strcmp(optarg, "cpppc") == 0) {
-                work_mode = MODE_CPPPC;
+                process_file = process_file_cpppc;
             } else if (strcmp(optarg, "blockpc") == 0) {
-                work_mode = MODE_BLOCKPC;
+                process_file = process_file_blockpc;
             } else {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
             }
-
-
         default:
             break;
         }
@@ -319,7 +311,8 @@ int main (int argc, char ** argv) {
                 std::cout << "Fork " << thread_number << " started." << std::endl;
                 int worked_on = 0;
                 for (unsigned int i = thread_number; i < workfiles.size(); i+= threads) {
-                    process_file(workfiles[i].c_str(), true, loadModels, dumpRuntimes, work_mode);
+                    /* calling the function pointer */
+                    process_file(workfiles[i].c_str(), true, loadModels);
                     worked_on++;
                 }
                 std::cerr << "I: finished: " << worked_on << " files done (" << thread_number << ")" << std::endl;
@@ -341,7 +334,8 @@ int main (int argc, char ** argv) {
     } else {
         /* Now forks do anything sequential */
         for (unsigned int i = 0; i < workfiles.size(); i++) {
-            process_file(workfiles[i].c_str(), false, loadModels, dumpRuntimes, work_mode);
+            /* call process_file function pointer */
+            process_file(workfiles[i].c_str(), false, loadModels);
         }
     }
     return EXIT_SUCCESS;
