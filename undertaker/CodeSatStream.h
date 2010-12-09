@@ -40,7 +40,7 @@ class RuntimeEntry {
 
 typedef std::list<RuntimeEntry> RuntimeTable;
 
-struct BlockDefect;
+struct BlockDefectAnalyzer;
 
 class CodeSatStream : public std::stringstream {
 public:
@@ -50,7 +50,7 @@ public:
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
-    virtual const BlockDefect *analyzeBlock(const char *block, ConfigurationModel *p_model);
+    virtual const BlockDefectAnalyzer *analyzeBlock(const char *block, ConfigurationModel *p_model);
 
     /**
      * \brief Look up the enclosing block, if any

@@ -7,12 +7,12 @@
 /**
  * \brief Base Class of all Kind of Configuration Defects
  *
- * A BlockDefect is an Analyzer classe, that checks a CodeSatStream for
- * configuration defects. The known configuration defects are listed in
- * the enum DEFECTTYPE. It provides facilities to test a given block
- * number for a defect and report its results.
+ * A BlockDefectAnalyzer checks a CodeSatStream for configuration
+ * defects. The known configuration defects are listed in the enum
+ * DEFECTTYPE. It provides facilities to test a given block number for a
+ * defect and report its results.
  */
-struct BlockDefect {
+struct BlockDefectAnalyzer {
     enum DEFECTTYPE { None, Implementation, Configuration, Referential };
 
     virtual bool isDefect(const ConfigurationModel *model) = 0; //!< checks for a defect
@@ -43,9 +43,10 @@ struct BlockDefect {
     virtual void markOk(const std::string &arch);
     virtual std::list<std::string> getOKList() { return _OKList; }
     virtual int defectType() const { return _defectType; }
-    virtual ~BlockDefect() {}
+    virtual ~BlockDefectAnalyzer() {}
+
 protected:
-    BlockDefect(int defecttype) : _defectType(defecttype), _isGlobal(false), _OKList() {}
+    BlockDefectAnalyzer(int defecttype) : _defectType(defecttype), _isGlobal(false), _OKList() {}
     int _defectType;
     bool _isGlobal;
     const char *_block;
@@ -55,7 +56,7 @@ protected:
 };
 
 //! Checks a given block for "un-selectable block" defects.
-class DeadBlockDefect : public BlockDefect {
+class DeadBlockDefect : public BlockDefectAnalyzer {
 public:
     //! c'tor for Dead Block Defect Analysis
     DeadBlockDefect(CodeSatStream *cs, const char *block);

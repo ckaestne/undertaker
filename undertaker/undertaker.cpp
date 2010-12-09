@@ -12,7 +12,7 @@
 #include "ModelContainer.h"
 #include "CloudContainer.h"
 #include "CodeSatStream.h"
-#include "BlockDefect.h"
+#include "BlockDefectAnalyzer.h"
 
 typedef std::deque<BlockCloud> CloudList;
 typedef void (* process_file_cb_t) (const char *filename, bool batch_mode, bool loadModels);
@@ -160,7 +160,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 
 
     ConfigurationModel *model = ModelContainer::lookupMainModel();
-    const BlockDefect *defect = sat_stream->analyzeBlock(matched_block.c_str(), model);
+    const BlockDefectAnalyzer *defect = sat_stream->analyzeBlock(matched_block.c_str(), model);
 
     /* Get the Precondition */
     DeadBlockDefect dead(sat_stream, matched_block.c_str());

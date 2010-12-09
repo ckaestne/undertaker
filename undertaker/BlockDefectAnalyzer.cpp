@@ -1,13 +1,13 @@
 #include "StringJoiner.h"
-#include "BlockDefect.h"
+#include "BlockDefectAnalyzer.h"
 #include "ModelContainer.h"
 
 
-void BlockDefect::markOk(const std::string &arch) {
+void BlockDefectAnalyzer::markOk(const std::string &arch) {
     _OKList.push_back(arch);
 }
 
-std::string BlockDefect::getBlockPrecondition(const ConfigurationModel *model) const {
+std::string BlockDefectAnalyzer::getBlockPrecondition(const ConfigurationModel *model) const {
     StringJoiner formula;
 
     /* Adding block and code constraints extraced from code sat stream */
@@ -26,7 +26,7 @@ std::string BlockDefect::getBlockPrecondition(const ConfigurationModel *model) c
 }
 
 DeadBlockDefect::DeadBlockDefect(CodeSatStream *cs, const char *block)
-    :  BlockDefect(BlockDefect::None), _needsCrosscheck(false),
+    :  BlockDefectAnalyzer(None), _needsCrosscheck(false),
        _arch(NULL) {
     this->_suffix = "dead";
     this->_block = block;
@@ -84,9 +84,9 @@ bool DeadBlockDefect::needsCrosscheck() const {
     }
 }
 
-void BlockDefect::defectIsGlobal() { _isGlobal = true; }
+void BlockDefectAnalyzer::defectIsGlobal() { _isGlobal = true; }
 
-const std::string BlockDefect::defectTypeToString() const {
+const std::string BlockDefectAnalyzer::defectTypeToString() const {
     switch(_defectType) {
     case None: return "";  // Nothing to write
     case Implementation:

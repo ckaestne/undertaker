@@ -6,7 +6,7 @@
 #include "ModelContainer.h"
 #include "ConfigurationModel.h"
 #include "CodeSatStream.h"
-#include "BlockDefect.h"
+#include "BlockDefectAnalyzer.h"
 #include "SatChecker.h"
 #include "Ziz.h"
 
@@ -95,9 +95,9 @@ const char *CodeSatStream::getParent(const char *block) {
  * \param block    block to check
  * \param p_model  primary model to check against
  */
-const BlockDefect* CodeSatStream::analyzeBlock(const char *block, ConfigurationModel *p_model) {
+const BlockDefectAnalyzer* CodeSatStream::analyzeBlock(const char *block, ConfigurationModel *p_model) {
 
-    BlockDefect *defect = new DeadBlockDefect(this, block);
+    BlockDefectAnalyzer *defect = new DeadBlockDefect(this, block);
 
     // If this is neither an Implementation, Configuration nor Referential *dead*,
     // then destroy the analysis and retry with an Undead Analysis
@@ -112,7 +112,7 @@ const BlockDefect* CodeSatStream::analyzeBlock(const char *block, ConfigurationM
         }
     }
 
-    assert(defect->defectType() != BlockDefect::None);
+    assert(defect->defectType() != BlockDefectAnalyzer::None);
 
     // (ATM) Implementation and Configuration defects do not require a crosscheck
     if (!_doCrossCheck || !defect->needsCrosscheck())
@@ -153,7 +153,7 @@ void CodeSatStream::analyzeBlocks() {
             re.i_items = this->Items().size();
 
             start = clock();
-            const BlockDefect *defect = analyzeBlock((*i).c_str(), p_model);
+            const BlockDefectAnalyzer *defect = analyzeBlock((*i).c_str(), p_model);
             if (defect) {
                 defect->writeReportToFile();
                 delete defect;
