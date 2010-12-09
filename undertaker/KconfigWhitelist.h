@@ -5,16 +5,13 @@
 #include <list>
 #include <string>
 
-/**
- * \brief Manages the whitelist of Kconfig Items
- */
 struct KconfigWhitelist : protected std::list<std::string> {
-    static KconfigWhitelist *getInstance(); //!< accessor for this singleton
-    bool empty(); //!< checks if the whitelist is empty
-    bool isWhitelisted(const char *) const; //!< checks if the given item is in the whitelist
-    void addToWhitelist(const std::string); //!< adds an item to the whitelist
+    static KconfigWhitelist *getInstance();
+    bool empty();
+    bool isWhitelisted(const std::string) const;
+    void addToWhitelist(const std::string);
 private:
-    KconfigWhitelist() : std::list<std::string>() {} //!< private c'tor
+    KconfigWhitelist() : std::list<std::string>() {} // private c'tor
 };
 
 #endif
