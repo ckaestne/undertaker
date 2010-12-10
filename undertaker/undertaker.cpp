@@ -126,6 +126,9 @@ int main (int argc, char ** argv) {
         case 'b':
             worklist = strdup(optarg);
             break;
+        case 'c':
+            coverage = true;
+            break;
         case 't':
             threads = strtol(optarg, (char **)0, 10);
             if ((errno == ERANGE && (threads == LONG_MAX || threads == LONG_MIN))
