@@ -220,7 +220,6 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
                 }
                 if (new_solution)
                     ret.push_back(assignments);
-                //std::cout << "checking coverage for: " << *i << std::endl << formula << std::endl;
             }
         }
     } catch (SatCheckerError &e) {
