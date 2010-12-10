@@ -10,5 +10,5 @@ fi
 find . -name "*.[hcS]" | shuf > worklist
 find . -name '*dead' -exec rm -f {} +
 echo "Analyzing `wc -l < worklist` files"
-time undertaker -t `getconf _NPROCESSORS_ONLN` -b worklist
+time undertaker -t `getconf _NPROCESSORS_ONLN` -b worklist -m models -M x86
 printf "\n\nFound %s global defects\n" `find . -name '*dead'| grep globally | wc -l`
