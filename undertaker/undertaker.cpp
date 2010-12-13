@@ -77,12 +77,7 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
                 continue;
             }
 
-            for (j = (*it).begin(); j != (*it).end(); j++) {
-                if (boost::regex_match((*j).first, block_regexp))
-                    continue;
-                outf << "(" << (*j).first << "=" << (*j).second << ") ";
-            }
-            outf << std::endl;
+            SatChecker::formatConfigItems(*it, outf);
             outf.close();
         }
         return;
