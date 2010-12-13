@@ -69,21 +69,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename,
     }
 }
 
-std::string CodeSatStream::getMissingItemsConstraints(std::set<std::string> &missing) {
-    std::stringstream m;
-    for(std::set<std::string>::iterator it = missing.begin(); it != missing.end(); it++) {
-        if (it == missing.begin()) {
-            m << "( ! ( " << (*it);
-        } else {
-            m << " || " << (*it) ;
-        }
-    }
-    if (!m.str().empty()) {
-        m << " ) )";
-    }
-    return m.str();
-}
-
 std::string CodeSatStream::getCodeConstraints() {
     return std::string((*this).str());
 }

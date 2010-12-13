@@ -70,7 +70,6 @@ public:
 
     std::string getCodeConstraints();
     std::string getKconfigConstraints(const ConfigurationModel *model, std::set<std::string> &missing);
-    std::string getMissingItemsConstraints(std::set<std::string> &missing);
 
     /**
      * \brief Check for configuration coverage

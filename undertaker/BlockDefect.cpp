@@ -19,7 +19,7 @@ std::string BlockDefect::getBlockPrecondition(const ConfigurationModel *model) c
         /* Adding kconfig constraints and kconfig missing */
         std::set<std::string> missingSet;
         formula.push_back(_cs->getKconfigConstraints(model, missingSet));
-        formula.push_back(_cs->getMissingItemsConstraints(missingSet));
+        formula.push_back(ConfigurationModel::getMissingItemsConstraints(missingSet));
     }
 
     return formula.join("\n&&\n");
@@ -59,7 +59,7 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
             _isGlobal = true;
             return true;
         } else {
-            formula.push_back(_cs->getMissingItemsConstraints(missingSet));
+            formula.push_back(ConfigurationModel::getMissingItemsConstraints(missingSet));
             SatChecker missing_constraints(_formula = formula.join("\n&&\n"));
 
             if (!missing_constraints()) {
@@ -172,7 +172,7 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
             _isGlobal = true;
             return true;
         } else {
-            formula.push_back(_cs->getMissingItemsConstraints(missingSet));
+            formula.push_back(ConfigurationModel::getMissingItemsConstraints(missingSet));
             SatChecker missing_constraints(_formula = formula.join("\n&&\n"));
 
             if (!missing_constraints()) {

@@ -15,6 +15,7 @@ public:
 
     int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const;
     void findSetOfInterestingItems(std::set<std::string> &working) const;
+    static std::string getMissingItemsConstraints(std::set<std::string> &missing);
 };
 
 #endif
