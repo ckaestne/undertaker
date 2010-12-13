@@ -41,6 +41,7 @@ void usage(std::ostream &out, const char *error) {
     out << "      coverage: coverage file analysis\n";
     out << "      cpppc: CPP Preconditions for whole file\n";
     out << "      blockpc: Block precondition (format: <file>:<line>:<column>)\n";
+    out << "      symbolpc: Symbol precondition (format <symbol>)\n";
     out << "      interesting: Find all interesting items for a symbol (format <symbol>)\n";
     out << "\nFiles:\n";
     out << "  You can specify one or many files (the format is according to the\n";
@@ -221,6 +222,34 @@ void process_file_interesting(const char *filename, bool batch_mode, bool loadMo
     std::cout << std::endl;
 }
 
+void process_file_symbolpc(const char *filename, bool batch_mode, bool loadModels) {
+    (void) batch_mode;
+
+    if (!loadModels) {
+        usage(std::cerr, "To find interessing items for a given symbol you must load a model");
+        return;
+    }
+
+    ConfigurationModel *model = ModelContainer::lookupMainModel();
+    assert(model != NULL); // there should always be a main model loaded
+
+    std::set<std::string> initialItems, missingItems;
+    initialItems.insert(filename);
+
+    std::cout << "I: Symbol Precondition for `" << filename << "'" << std::endl;
+
+
+    /* Find all items that are related to the given item */
+    model->doIntersect(initialItems, std::cout, missingItems);
+
+    if (missingItems.size() > 0) {
+        /* There are missing items */
+        std::cout << "\n&&\n" << ConfigurationModel::getMissingItemsConstraints(missingItems);
+    }
+
+    std::cout << std::endl;;
+}
+
 int main (int argc, char ** argv) {
     int opt;
     char *worklist = NULL;
@@ -282,6 +311,8 @@ int main (int argc, char ** argv) {
                 process_file = process_file_blockpc;
             } else if (strcmp(optarg, "interesting") == 0) {
                 process_file = process_file_interesting;
+            } else if (strcmp(optarg, "symbolpc") == 0) {
+                process_file = process_file_symbolpc;
             } else {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
