@@ -24,7 +24,7 @@ void usage(std::ostream &out, const char *error) {
     out << "  -b: specify a worklist (batch mode)\n";
     out << "  -t: specify count of parallel processes (only in batch mode)\n";
     out << "  -w: specify a whitelist\n";
-    out << "  -c: coverage analysis mode\n";
+    out << "  -c: coverage analysis mode (format: <filename>,<#blocks>,<#solutions>)\n";
     out << "  -r: dump runtimes\n";
     out << std::endl;
 }
@@ -54,9 +54,12 @@ void process_file(const char *filename, bool batch_mode, bool loadModels,
         int i = 1;
 
         solution = analyzer.blockCoverage(model);
-        std::cout << filename << " contains " << analyzer.Blocks().size()
-                  << " blocks" << std::endl;
-        std::cout << "Size of solution: " << solution.size() << std::endl;
+        std::cout << filename << ","
+                  << analyzer.Blocks().size()
+                  << ","
+                  << solution.size()
+                  << std::endl;
+
         std::list<SatChecker::AssignmentMap>::iterator it;
         for (it = solution.begin(); it != solution.end(); it++) {
             static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
