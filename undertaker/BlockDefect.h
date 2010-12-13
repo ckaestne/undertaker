@@ -41,11 +41,13 @@ struct BlockDefect {
     virtual void markOk(const std::string &arch);
     virtual std::list<std::string> getOKList() { return _OKList; }
     virtual int defectType() const { return _defectType; }
+    const char * getSuffix() const { return _suffix; }
     virtual ~BlockDefect() {}
 protected:
     BlockDefect(int defecttype) : _defectType(defecttype), _isGlobal(false), _OKList() {}
     int _defectType;
     bool _isGlobal;
+    const char *_suffix;
     std::list<std::string> _OKList; //!< List of architectures on which this is proved to be OK
 };
 
@@ -70,7 +72,6 @@ protected:
 
     std::string _formula;
     const char *_arch;
-    const char *_suffix;
 };
 
 //! Checks a given block for "un-deselectable block" defects.
