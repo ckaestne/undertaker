@@ -240,11 +240,13 @@ void process_file_symbolpc(const char *filename, bool batch_mode, bool loadModel
 
 
     /* Find all items that are related to the given item */
-    model->doIntersect(initialItems, std::cout, missingItems);
+    int valid_items = model->doIntersect(initialItems, std::cout, missingItems);
 
     if (missingItems.size() > 0) {
-        /* There are missing items */
-        std::cout << "\n&&\n" << ConfigurationModel::getMissingItemsConstraints(missingItems);
+        /* given symbol is in the model */
+        if (valid_items != 0)
+            std::cout <<  "\n&&" << std::endl;
+        std::cout << ConfigurationModel::getMissingItemsConstraints(missingItems);
     }
 
     std::cout << std::endl;;
