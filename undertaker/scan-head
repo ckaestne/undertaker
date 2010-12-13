@@ -23,7 +23,7 @@ version=$(git describe)
 report="${resultdir}/${version}-report.txt"
 deadlist="${resultdir}/${version}-deads.txt"
 echo "Scanning version ${version}, logging to ${report}"
-dump-rsf.sh     2&>1 >  "$report"
-go.sh           2&>1 >> "$report"
+dump-rsf.sh     >  "$report" 2>dump-rsf-error-output.txt
+go.sh           >> "$report" 2>undertaker-error-output.txt
 find . -name '*dead' -ls > $deadlist
 tail -2 "$report"
