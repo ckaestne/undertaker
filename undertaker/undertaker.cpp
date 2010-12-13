@@ -40,7 +40,8 @@ void usage(std::ostream &out, const char *error) {
     out << "      dead: dead/undead file analysis (default)\n";
     out << "      coverage: coverage file analysis\n";
     out << "      cpppc: CPP Preconditions for whole file\n";
-    out << "      blockpc: Block precondition (format: <file>:<line>:<column>\n";
+    out << "      blockpc: Block precondition (format: <file>:<line>:<column>)\n";
+    out << "      interesting: Find all interesting items for a symbol (format <symbol>)\n";
     out << "\nFiles:\n";
     out << "  You can specify one or many files (the format is according to the\n";
     out << "  job (-j) which should be done. If you specify - as file, undertaker\n";
@@ -187,6 +188,39 @@ void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
     }
 }
 
+void process_file_interesting(const char *filename, bool batch_mode, bool loadModels) {
+    (void) batch_mode;
+
+    if (!loadModels) {
+        usage(std::cerr, "To find interessing items for a given symbol you must load a model");
+        return;
+    }
+
+    ConfigurationModel *model = ModelContainer::lookupMainModel();
+    assert(model != NULL); // there should always be a main model loaded
+
+    std::set<std::string> initialItems;
+    initialItems.insert(filename);
+
+    /* Find all items that are related to the given item */
+    model->findSetOfInterestingItems(initialItems);
+
+    /* remove the given item again */
+    initialItems.erase(filename);
+    std::cout << filename;
+
+    for(std::set<std::string>::const_iterator it = initialItems.begin(); it != initialItems.end(); ++it) {
+        if (model->find(*it) != model->end()) {
+            /* Item is present in model */
+            std::cout << " " << *it;
+        } else {
+            /* Item is missing in this model */
+            std::cout << " !" << *it;
+        }
+    }
+    std::cout << std::endl;
+}
+
 int main (int argc, char ** argv) {
     int opt;
     char *worklist = NULL;
@@ -246,6 +280,8 @@ int main (int argc, char ** argv) {
                 process_file = process_file_cpppc;
             } else if (strcmp(optarg, "blockpc") == 0) {
                 process_file = process_file_blockpc;
+            } else if (strcmp(optarg, "interesting") == 0) {
+                process_file = process_file_interesting;
             } else {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
