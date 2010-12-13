@@ -77,6 +77,7 @@ clean-check:
 	                 -o -name "*.c.error.expected" \
 	                 -o -name "*.c.error.got" \
 	                 -o -name "*.c.error.diff" \
+	                 -o -name "*.c.config*" \
 	                 -o -name "*.dead" \
 	                 -o -name "*.undead" \
 	                 \) -exec rm {} \;
