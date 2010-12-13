@@ -306,7 +306,7 @@ I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
 I: loaded 0 items to whitelist
-I: x86 is now the main model
+I: Using x86 as primary model
 I: creating rcupdate.c.B12.x86.kconfig.globally.dead
 I: creating rcupdate.c.B14.x86.kconfig.globally.undead
  * check-output-end

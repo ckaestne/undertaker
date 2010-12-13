@@ -22,7 +22,7 @@ No CPP Precond
  * check-command: undertaker -j blockpc -m preconditions.model $file:12
  * check-output-start
 I: loaded rsf model for preconditions
-I: preconditions is now the main model
+I: Using preconditions as primary model
 I: Block B8 | Defect: dead/kconfig | Global: 1
 B8
 &&
