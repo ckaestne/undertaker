@@ -1,3 +1,4 @@
+#include <boost/regex.hpp>
 #include <boost/spirit/include/classic.hpp>
 #include <boost/spirit/include/classic_core.hpp>
 #include <boost/spirit/include/classic_parse_tree.hpp>
@@ -392,6 +393,62 @@ std::string SatChecker::pprint() {
     return debug_parser + "\n";
 }
 
+int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out) {
+    typedef std::map<std::string, state> SelectionType;
+    SelectionType selection, other_variables;
+
+    for (AssignmentMap::iterator it = solution.begin(); it != solution.end(); it++) {
+        static const boost::regex item_regexp("^CONFIG_(.*)$", boost::regex::perl);
+        static const boost::regex module_regexp("^CONFIG_(.*)_MODULE$", boost::regex::perl);
+        static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+        const std::string &name = (*it).first;
+        const bool &valid = (*it).second;
+        boost::match_results<std::string::const_iterator> what;
+
+        if (valid && boost::regex_match(name, what, module_regexp)) {
+            const std::string &name = what[1];
+            selection[name] = module;
+        } else if (boost::regex_match(name, what, item_regexp)) {
+            const std::string &name = what[1];
+            // ignore entries if already set (e.g., by the module variant).
+            if (selection.find(name) == selection.end())
+                selection[name] = valid ? yes : no;
+        } else if (boost::regex_match(name, block_regexp))
+            // ignore block variables
+            continue;
+        else
+            other_variables[name] = valid ? yes : no;
+    }
+    for (SelectionType::iterator s = selection.begin(); s != selection.end(); s++) {
+        const string &item = (*s).first;
+        const int &state = (*s).second;
+        out << "CONFIG_" << item << "=";
+        if (state == no)
+            out << "n";
+        else if (state == module)
+            out << "m";
+        else if (state == yes)
+            out << "y";
+        else
+            assert(false);
+        out << std::endl;
+    }
+    for (SelectionType::iterator s = other_variables.begin(); s != other_variables.end(); s++) {
+        const string &item = (*s).first;
+        const int &state = (*s).second;
+        out << "# " << item << "=";
+        if (state == no)
+            out << "n";
+        else if (state == yes)
+            out << "y";
+        else
+            assert(false);
+        out << std::endl;
+    }
+    return selection.size();
+}
+
+
 #ifdef TEST_SatChecker
 #include <assert.h>
 #include <typeinfo>
@@ -512,6 +569,55 @@ START_TEST(pprinter_test)
 }
 END_TEST
 
+START_TEST(format_config_items_simple)
+{
+    SatChecker::AssignmentMap m;
+    m.insert(std::make_pair("CONFIG_FOO", true));
+    m.insert(std::make_pair("CONFIG_BAR", false));
+    m.insert(std::make_pair("CONFIG_HURZ", true));
+
+    std::stringstream ss;
+    int c = SatChecker::formatConfigItems(m, ss);
+    ck_assert_int_eq(3, c);
+    ck_assert_str_eq(ss.str().c_str(),
+                     "CONFIG_BAR=n\n"
+                     "CONFIG_FOO=y\n"
+                     "CONFIG_HURZ=y\n");
+}
+END_TEST
+
+START_TEST(format_config_items_module)
+{
+    SatChecker::AssignmentMap m;
+    m.insert(std::make_pair("CONFIG_FOO", false));
+    m.insert(std::make_pair("CONFIG_BAR", false));
+    m.insert(std::make_pair("CONFIG_FOO_MODULE", true));
+
+    std::stringstream ss;
+    int c = SatChecker::formatConfigItems(m, ss);
+    ck_assert_int_eq(2, c);
+    ck_assert_str_eq(ss.str().c_str(),
+                     "CONFIG_BAR=n\n"
+                     "CONFIG_FOO=m\n");
+}
+END_TEST
+
+START_TEST(format_config_items_module_not_valid_in_kconfig)
+{
+    SatChecker::AssignmentMap m;
+    m.insert(std::make_pair("CONFIG_FOO", true));
+    m.insert(std::make_pair("CONFIG_BAR", false));
+    m.insert(std::make_pair("CONFIG_FOO_MODULE", true));
+
+    std::stringstream ss;
+    int c = SatChecker::formatConfigItems(m, ss);
+    ck_assert_int_eq(2, c);
+    ck_assert_str_eq(ss.str().c_str(),
+                     "CONFIG_BAR=n\n"
+                     "CONFIG_FOO=m\n");
+}
+END_TEST
+
 Suite *
 satchecker_suite(void) {
     Suite *s  = suite_create("SatChecker");
@@ -519,6 +625,9 @@ satchecker_suite(void) {
     tcase_add_test(tc, cnf_translator_test);
     tcase_add_test(tc, pprinter_test);
     tcase_add_test(tc, bool_parser_test);
+    tcase_add_test(tc, format_config_items_simple);
+    tcase_add_test(tc, format_config_items_module);
+    tcase_add_test(tc, format_config_items_module_not_valid_in_kconfig);
 
     suite_add_tcase(s, tc);
 

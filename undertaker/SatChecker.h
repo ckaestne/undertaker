@@ -69,7 +69,13 @@ public:
                  DEBUG_CNF = 2 };
 
     /**
-     * Map to check what blocks have been set.
+     * \brief Map to check what blocks have been set.
+     *
+     * The solutions in this map contain all kinds of SAT variables,
+     * including block variables (e.g., B42), comparator (fake)
+     * variables (e.g., COMP_42) and item variables (e.g.,
+     * CONFIG_ACPI_MODULES).
+     *
      * key:   something like 'B42'
      * value: true if set, false if unset or unknown
      */
@@ -82,6 +88,20 @@ public:
     const AssignmentMap& getAssignment() {
         return assignmentTable;
     }
+
+    /**
+     * \brief format solutions
+     *
+     * This method filters out comparators and block variables from the
+     * given AssignmentMap solution.  Additionally,
+     * CONFIG_ACPI_MODULE and the like lead to the CONFIG_ACPI variable
+     * being set to '=m'. This output resembles a partial KConfig
+     * selection.
+     *
+     * \param solution the found solution to print out
+     * \param out an output stream on which the solution shall be printed
+     */
+    static int formatConfigItems(AssignmentMap solution, std::ostream &out);
 
 private:
     std::map<std::string, int> symbolTable;
@@ -122,6 +142,6 @@ private:
             }
         }
     }
-
+    enum state {no, yes, module};
 };
 #endif
