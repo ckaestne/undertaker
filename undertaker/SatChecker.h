@@ -79,7 +79,7 @@ public:
      * After doing the check, you can get the assignments for the
      * formula
      */
-    AssignmentMap getAssignment() {
+    const AssignmentMap& getAssignment() {
         return assignmentTable;
     }
 

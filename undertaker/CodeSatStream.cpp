@@ -210,7 +210,7 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
                 if (!sc())
                     continue;
 
-                SatChecker::AssignmentMap assignments = sc.getAssignment();
+                const SatChecker::AssignmentMap &assignments = sc.getAssignment();
                 SatChecker::AssignmentMap::const_iterator it;
                 for (it = assignments.begin(); it != assignments.end(); it++) {
                     if ((*it).second) {
