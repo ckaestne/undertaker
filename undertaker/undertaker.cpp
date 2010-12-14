@@ -52,7 +52,7 @@ void usage(std::ostream &out, const char *error) {
 void process_file_coverage(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
-        usage(std::cout, "couldn't open file");
+        std::cerr << "Failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -105,7 +105,7 @@ void process_file_cpppc(const char *filename, bool batch_mode, bool loadModels) 
 
     CloudContainer s(filename);
     if (!s.good()) {
-        usage(std::cout, "couldn't open file");
+        std::cerr << "Failed to open file: `" << filename << "'" << std::endl;
         return;
     }
     std::cout << "I: CPP Precondition for " << filename << std::endl;
@@ -132,7 +132,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 
     CloudContainer cloud(file.c_str());
     if (!cloud.good()) {
-        usage(std::cout, "couldn't open file");
+        std::cerr << "Failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -181,7 +181,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
-        usage(std::cout, "couldn't open file");
+        std::cerr << "Failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
