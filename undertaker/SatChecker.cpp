@@ -12,8 +12,6 @@
 
 #include "SatChecker-grammar.t"
 
-using namespace std;
-
 bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     SatChecker c(sat.c_str());
     try {
@@ -39,7 +37,7 @@ SatChecker::stringToSymbol(const std::string &key) {
         return newSymbol();
     }
 
-    map<std::string, int>::iterator it;
+    std::map<std::string, int>::iterator it;
     if ((it = symbolTable.find(key)) != symbolTable.end()) {
         return it->second;
     }
@@ -127,7 +125,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
 
     if (root_node->value.id() == bool_grammar::symbolID) {
         iter_t inner_node = root_node->children.begin();
-        string value (inner_node->value.begin(), inner_node->value.end());
+        std::string value (inner_node->value.begin(), inner_node->value.end());
         _debug_parser("- " + value, false);
         return stringToSymbol(value);
     } else if (root_node->value.id() == bool_grammar::not_symbolID) {
@@ -365,7 +363,7 @@ int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out) {
             other_variables[name] = valid ? yes : no;
     }
     for (SelectionType::iterator s = selection.begin(); s != selection.end(); s++) {
-        const string &item = (*s).first;
+        const std::string &item = (*s).first;
         const int &state = (*s).second;
         out << "CONFIG_" << item << "=";
         if (state == no)
@@ -379,7 +377,7 @@ int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out) {
         out << std::endl;
     }
     for (SelectionType::iterator s = other_variables.begin(); s != other_variables.end(); s++) {
-        const string &item = (*s).first;
+        const std::string &item = (*s).first;
         const int &state = (*s).second;
         out << "# " << item << "=";
         if (state == no)
