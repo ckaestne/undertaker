@@ -26,13 +26,13 @@ bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
 }
 
 
-    /* Got the impression from normal lisp implementations */
-int
-SatChecker::stringToSymbol(const std::string &key) {
+/* Got the impression from normal lisp implementations */
+int SatChecker::stringToSymbol(const std::string &key) {
     KconfigWhitelist *wl = KconfigWhitelist::getInstance();
 
     /* If whitelisted do always return a new symbol, so these items
        are free variables */
+
     if (wl->isWhitelisted(key.c_str())) {
         return newSymbol();
     }
@@ -46,20 +46,17 @@ SatChecker::stringToSymbol(const std::string &key) {
     return n;
 }
 
-int
-SatChecker::newSymbol(void) {
+int SatChecker::newSymbol(void) {
     return Picosat::picosat_inc_max_var();
 }
 
-void
-SatChecker::addClause(int *clause) {
+void SatChecker::addClause(int *clause) {
     for (int *x = clause; *x; x++)
         Picosat::picosat_add(*x);
     Picosat::picosat_add(0);
 }
 
-int
-SatChecker::notClause(int inner_clause) {
+int SatChecker::notClause(int inner_clause) {
     int this_clause  = newSymbol();
 
     int clause1[3] = { this_clause,  inner_clause, 0};
@@ -71,8 +68,7 @@ SatChecker::notClause(int inner_clause) {
     return this_clause;
 }
 
-int
-SatChecker::andClause(int A_clause, int B_clause) {
+int SatChecker::andClause(int A_clause, int B_clause) {
     // This function just does binary ands in contradiction to the
     // andID transform_rec
     // A & B & ..:
@@ -93,8 +89,7 @@ SatChecker::andClause(int A_clause, int B_clause) {
     return this_clause;
 }
 
-int
-SatChecker::orClause(int A_clause, int B_clause) {
+int SatChecker::orClause(int A_clause, int B_clause) {
     // This function just does binary ands in contradiction to the
     // andID transform_rec
     // A & B & ..:
@@ -116,8 +111,7 @@ SatChecker::orClause(int A_clause, int B_clause) {
 }
 
 
-int
-SatChecker::transform_bool_rec(iter_t const& input) {
+int SatChecker::transform_bool_rec(iter_t const& input) {
     iter_t root_node = input;
  beginning_of_function:
     iter_t iter = root_node->children.begin();
@@ -262,8 +256,7 @@ SatChecker::transform_bool_rec(iter_t const& input) {
     }
 }
 
-void
-SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
+void SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
     static bool_grammar e;
     tree_parse_info<> info = pt_parse(expression.c_str(), e,
                                       space_p | ch_p("\n") | ch_p("\r"));
@@ -280,8 +273,7 @@ SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
     }
 }
 
-void
-SatChecker::fillSatChecker(tree_parse_info<>& info) {
+void SatChecker::fillSatChecker(tree_parse_info<>& info) {
     iter_t expression = info.trees.begin()->children.begin();
     int top_clause = transform_bool_rec(expression);
     /* This adds the last clause */
