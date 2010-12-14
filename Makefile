@@ -19,6 +19,8 @@ clean:
 	$(MAKE) -C ziz clean
 	$(MAKE) -C rsf2model clean
 
+docs:
+	$(MAKE) -C undertaker docs
 
 check:
 	$(MAKE) -C undertaker $@
