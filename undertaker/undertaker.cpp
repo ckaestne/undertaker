@@ -58,6 +58,7 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
 
     std::list<SatChecker::AssignmentMap> solution;
     std::map<std::string,std::string> parents;
+    MissingSet missingSet;
     std::istringstream codesat(s.getConstraints());
 
     ConfigurationModel *model = 0;
@@ -70,12 +71,15 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
                            s.getParents(), NULL, batch_mode, loadModels);
     int i = 1;
 
-    solution = analyzer.blockCoverage(model);
-    std::cout << filename << ","
+    solution = analyzer.blockCoverage(model, missingSet);
+    std::cout << "S: "
+              << filename << ","
               << analyzer.Blocks().size()
               << ","
               << solution.size()
               << std::endl;
+
+    std::cout << "Entries in missingSet: " << missingSet.size() << std::endl;
 
     std::list<SatChecker::AssignmentMap>::iterator it;
     for (it = solution.begin(); it != solution.end(); it++) {
@@ -94,7 +98,7 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
             continue;
         }
 
-        SatChecker::formatConfigItems(*it, outf);
+        SatChecker::formatConfigItems(*it, outf, missingSet);
         outf.close();
     }
 }

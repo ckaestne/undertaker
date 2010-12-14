@@ -60,13 +60,15 @@ run-libcheck: test-SatChecker
 # coverage analysis will create validation/sched.c.config*
 run-coveragecheck: undertaker
 	@find validation/ -name 'sched.c.config*' -exec rm -f {} +
-	./undertaker -c validation/sched.c
+	@$(MAKE) -C kconfig-dumps all
+	./undertaker -c -m kconfig-dumps/models/x86.model validation/sched.c
 	# we expect between 25 and 30 solutions
 	test `find validation -name 'sched.c.config*' | wc -l` -gt 25
 	test `find validation -name 'sched.c.config*' | wc -l` -lt 30
 	md5sum validation/sched.c.config* | awk '// {print $$1}' | sort | uniq -c \
 		| awk '// { if ($$1 != 1) { print "duplicate solutions found" ; exit 1 } }' \
 		|| md5sum validation/sched.c.config* | sort
+	if grep -q ^CONFIG_IA64 validation/sched.c.config*; then echo "IA64 not selectable!"; false ; fi
 
 check: $(PROGS)
 	@$(MAKE) -s clean-check

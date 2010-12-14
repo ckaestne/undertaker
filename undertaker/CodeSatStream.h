@@ -39,6 +39,7 @@ class RuntimeEntry {
 };
 
 typedef std::list<RuntimeEntry> RuntimeTable;
+typedef std::set<std::string> MissingSet;
 
 struct BlockDefectAnalyzer;
 
@@ -69,7 +70,7 @@ public:
     std::string getLine(const char *block) const;
 
     std::string getCodeConstraints();
-    std::string getKconfigConstraints(const ConfigurationModel *model, std::set<std::string> &missing);
+    std::string getKconfigConstraints(const ConfigurationModel*, MissingSet&);
 
     /**
      * \brief Check for configuration coverage
@@ -79,7 +80,7 @@ public:
      *
      * \param model If not NULL, take the constraints of the goven model into account
      */
-    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *model);
+    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel*, MissingSet&);
 
     /**
      * Find innermost block for a given position

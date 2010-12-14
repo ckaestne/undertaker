@@ -127,13 +127,14 @@ END_TEST
 
 START_TEST(format_config_items_simple)
 {
+    MissingSet dummy;
     SatChecker::AssignmentMap m;
     m.insert(std::make_pair("CONFIG_FOO", true));
     m.insert(std::make_pair("CONFIG_BAR", false));
     m.insert(std::make_pair("CONFIG_HURZ", true));
 
     std::stringstream ss;
-    int c = SatChecker::formatConfigItems(m, ss);
+    int c = SatChecker::formatConfigItems(m, ss, dummy);
     ck_assert_int_eq(3, c);
     ck_assert_str_eq(ss.str().c_str(),
                      "CONFIG_BAR=n\n"
@@ -144,13 +145,14 @@ END_TEST
 
 START_TEST(format_config_items_module)
 {
+    MissingSet dummy;
     SatChecker::AssignmentMap m;
     m.insert(std::make_pair("CONFIG_FOO", false));
     m.insert(std::make_pair("CONFIG_BAR", false));
     m.insert(std::make_pair("CONFIG_FOO_MODULE", true));
 
     std::stringstream ss;
-    int c = SatChecker::formatConfigItems(m, ss);
+    int c = SatChecker::formatConfigItems(m, ss, dummy);
     ck_assert_int_eq(2, c);
     ck_assert_str_eq(ss.str().c_str(),
                      "CONFIG_BAR=n\n"
@@ -160,13 +162,14 @@ END_TEST
 
 START_TEST(format_config_items_module_not_valid_in_kconfig)
 {
+    MissingSet dummy;
     SatChecker::AssignmentMap m;
     m.insert(std::make_pair("CONFIG_FOO", true));
     m.insert(std::make_pair("CONFIG_BAR", false));
     m.insert(std::make_pair("CONFIG_FOO_MODULE", true));
 
     std::stringstream ss;
-    int c = SatChecker::formatConfigItems(m, ss);
+    int c = SatChecker::formatConfigItems(m, ss, dummy);
     ck_assert_int_eq(2, c);
     ck_assert_str_eq(ss.str().c_str(),
                      "CONFIG_BAR=n\n"

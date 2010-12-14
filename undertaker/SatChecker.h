@@ -8,6 +8,9 @@
 #include <stdexcept>
 #include <map>
 #include <sstream>
+#include <set>
+
+typedef std::set<std::string> MissingSet;
 
 using namespace BOOST_SPIRIT_CLASSIC_NS;
 
@@ -100,8 +103,9 @@ public:
      *
      * \param solution the found solution to print out
      * \param out an output stream on which the solution shall be printed
+     * \param missingSet set of items that are not available in the model
      */
-    static int formatConfigItems(AssignmentMap solution, std::ostream &out);
+    static int formatConfigItems(AssignmentMap solution, std::ostream &out, const MissingSet &missingSet);
 
 private:
     std::map<std::string, int> symbolTable;

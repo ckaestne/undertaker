@@ -222,14 +222,13 @@ std::string CodeSatStream::positionToBlock(std::string position) {
 
 
 
-std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationModel *model) {
+std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationModel *model, MissingSet &missingSet) {
     std::set<std::string>::iterator i;
     std::set<std::string> blocks_set;
     std::list<SatChecker::AssignmentMap> ret;
 
     try {
 	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
-	    std::set<std::string> missingSet;
             StringJoiner formula;
 
             formula.push_back((*i));

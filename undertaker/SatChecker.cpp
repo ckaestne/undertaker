@@ -328,7 +328,7 @@ std::string SatChecker::pprint() {
     return debug_parser + "\n";
 }
 
-int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out) {
+int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out, const MissingSet &missingSet) {
     typedef std::map<std::string, state> SelectionType;
     SelectionType selection, other_variables;
 
@@ -342,9 +342,21 @@ int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out) {
 
         if (valid && boost::regex_match(name, what, module_regexp)) {
             const std::string &name = what[1];
-            selection[name] = module;
+            std::string fullname = "CONFIG_" + name;
+            if (missingSet.find(fullname) != missingSet.end()) {
+                std::cout << "Ignoring 'missing' item " << fullname << std::endl;
+                other_variables[fullname] = valid ? yes : no;
+            } else
+                selection[name] = module;
         } else if (boost::regex_match(name, what, item_regexp)) {
             const std::string &name = what[1];
+            if (missingSet.find(what[0]) != missingSet.end()) {
+                std::cout << "Ignoring 'missing' item " << what[0] << std::endl;
+
+                other_variables[what[0]] = valid ? yes : no;
+                continue;
+            }
+
             // ignore entries if already set (e.g., by the module variant).
             if (selection.find(name) == selection.end())
                 selection[name] = valid ? yes : no;
