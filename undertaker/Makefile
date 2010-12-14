@@ -20,8 +20,9 @@ PARSEROBJ = CloudContainer.o RsfReader.o KconfigWhitelist.o ConfigurationModel.o
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ))
 
 PROGS = undertaker
+TESTPROGS = test-SatChecker
 
-all: ../ziz/libziz.a $(PROGS)
+all: ../ziz/libziz.a $(PROGS) $(TESTPROGS)
 
 undertaker: ../picosat/libpicosat.a ../ziz/libziz.a libparser.a
 KconfigIntersect: libparser.a
