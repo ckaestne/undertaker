@@ -12,7 +12,7 @@
   "Checks if undertaker is running and start it otherwise (ask the user)"
   (if (not (undertaker::process-runningp))
       (if (y-or-n-p "No undertaker running. Start it? ")
-          (call-interactively 'undertaker::start)
+          (call-interactively 'undertaker::shell)
         (progn
           (message "No undertaker process running -- undertaker::start")
           (return)))
@@ -26,7 +26,7 @@
        (save-excursion
          (undertaker::send-string
           (eval (cons 'concat (append (if command (list command " "))
-                                      args (list "\n")))))))))
+                                      args))))))))
 
 (defun undertaker::current-blockpc ()
   "Send current position in file to undertaker"
@@ -41,6 +41,14 @@
   (let ((symbol (thing-at-point 'symbol)))
     (if symbol
         (undertaker::send-command "::symbolpc" symbol))))
+
+(defun undertaker::current-interesting-symbols ()
+  "Send current symbol at point to the undertaker (with ::interesting)"
+  (interactive)
+  (let ((symbol (thing-at-point 'symbol)))
+    (if symbol
+        (undertaker::send-command "::interesting" symbol))))
+
 
 (defun undertaker::show-process ()
   "Show the process buffer, if process is running"
@@ -62,22 +70,6 @@
         (message "undertaker killed."))
     (message "No undertaker running")))
 
-(defun undertaker::start (cmdline)
-  "Starts an undertaker process in the current directory"
-  (interactive
-   (list
-    (read-string "undertaker::start> " "~/vamos/undertaker/undertaker -j blockpc -")))
-  (if (undertaker::process-runningp)
-      (message "undertaker ist running already, use undertaker::stop to kill it")
-    (progn
-      (setq undertaker::process
-            (eval
-             `(start-process "undertaker" "*undertaker*" ,@(split-string cmdline))))
-      ;; turn on the undertaker output mode, in order to get a little
-      ;; bit of syntax highlighting
-      (with-current-buffer "*undertaker*"
-        (undertaker-output-mode))
-      (undertaker::show-process))))
 
 (defun undertaker::get-position-at-point ()
   "In the current buffer, get filename:linum as string"
@@ -94,41 +86,27 @@
 (defun undertaker::send-string (input)
   "Send exactly this string to the undertaker process"
   (when (undertaker::process-runningp)
-    (undertaker::clear-buffer)
-    (undertaker::show-process)
-    (message input)
+    (undertaker::shell nil)
     (let ((dir default-directory))
       (with-current-buffer (process-buffer undertaker::process)
-        (process-send-string undertaker::process input)
-        (accept-process-output undertaker::process 0 500)
-        (beginning-of-buffer)
-        (insert (concat "Current Directory: "
-                        dir "\nInput: " input "\n"))))))
+        (save-excursion
+          (end-of-buffer)
+          (insert input)
+          (comint-send-input))))))
 
-(defun undertaker::clear-buffer ()
-  "Clears the undertaker buffer, if it exists"
-  (when (undertaker::process-runningp)
-    (with-current-buffer (process-buffer undertaker::process)
-      (delete-region (point-min) (point-max)))))
-
-
-(define-generic-mode
-  'undertaker-output-mode                         ;; name of the mode to create
-  '("I:")                           ;; comments start with '!!'
-  nil                               ;; keywords
-  '(("&&" . 'font-lock-operator)     ;; '&&' is an operator
-    ("||" . 'font-lock-operator)
-    ("<->" . 'font-lock-operator)
-    ("->" . 'font-lock-operator)
-    ("!" . 'font-lock-operator)
-    ("\\<B[0-9]+\\>" . 'font-lock-type-face)
-    ("\\<CONFIG_[0-9A-Za-z_]*\\>" . 'font-lock-keyword-face))
-  ;; ';' is a built-in
-  nil                     ;; files for which to activate this mode
-  nil                              ;; other functions to call
-  "A mode for the output of undertaker"            ;; doc string for this mode
-  )
-
+(defvar undertaker::toggle-buffer-old nil)
+(defun undertaker::toggle-buffer ()
+    "Toggles to undertaker output buffer or back to source buffer"
+    (interactive)
+    (if (and undertaker::toggle-buffer-old
+             (not (eq (process-buffer undertaker::process)
+                      undertaker::toggle-buffer-old)))
+        (progn
+          (pop-to-buffer undertaker::toggle-buffer-old)
+          (setq undertaker::toggle-buffer-old nil))
+      (progn
+        (setq undertaker::toggle-buffer-old (current-buffer))
+        (pop-to-buffer "*undertaker*"))))
 
 (define-minor-mode undertaker-mode
   "Toggle undertaker mode.
@@ -142,7 +120,37 @@ source files direct to the undertaker process."
   :init-value nil
   :lighter " UT"
   :keymap
-  '(("ub" . undertaker::current-blockpc)
-    ("us" . undertaker::current-symbolpc))
+  '(([tab]  . comint-dynamic-complete)
+    ("ub" . undertaker::current-blockpc)
+    ("us" . undertaker::current-symbolpc)
+    ("ui" . undertaker::current-interesting-symbols)
+    ("uu" . undertaker::toggle-buffer))
   :group 'undertaker
-)
+  )
+
+(define-derived-mode undertaker-shell-mode comint-mode "UT-Sh")
+(defun undertaker::shell (command)
+  (interactive (list nil))
+  (unless
+      (comint-check-proc "*undertaker*")
+    (if (not command)
+        (setq command (read-string "undertaker::start> " "~/vamos/undertaker/undertaker -j blockpc -")))
+    (setq command (split-string command))
+    ;; start process
+    (setq comint-prompt-read-only t)
+    (setq comint-postoutput-scroll-to-bottom t)
+    (setq undertaker::process
+          (get-buffer-process
+           (eval `(make-comint-in-buffer "undertaker" "*undertaker*" ,(car command) nil ,@(cdr command)))))
+    (with-current-buffer "*undertaker*"
+      (undertaker-shell-mode)
+      (undertaker-mode)
+      (setq font-lock-keywords undertaker-font-lock-keywords)))
+  (display-buffer "*undertaker*"))
+
+(defvar undertaker-font-lock-keywords
+  '(("\\<[A-Z_][A-Z0-9_]+\\>" 0 font-lock-keyword-face t)
+    ("\\<B[0-9]+\\>" 0 font-lock-type-face t)
+    ("::[a-z]+" 0 font-lock-string-face t)
+    ("^I:.*$" 0 font-lock-comment-face t))
+  "Additional expressions to highlight in undertaker process buffers.")
