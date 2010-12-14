@@ -5,8 +5,9 @@
 #endif
 /*
  * check-name: Nested elifs
- * check-command: cpppc $file
+ * check-command: undertaker -j cpppc $file
  * check-output-start
+I: CPP Precondition for cpppc-elif-cascade.c
 ( B0 <-> CONFIG_A )
 && ( B1 <-> CONFIG_B && ( ! (B0) )  )
 && ( B2 <-> CONFIG_C && ( ! (B1 || B0) )  )

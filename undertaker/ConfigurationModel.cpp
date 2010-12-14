@@ -79,6 +79,20 @@ void ConfigurationModel::findSetOfInterestingItems(std::set<std::string> &initia
     }
 }
 
+std::string ConfigurationModel::getMissingItemsConstraints(std::set<std::string> &missing) {
+    std::stringstream m;
+    for(std::set<std::string>::iterator it = missing.begin(); it != missing.end(); it++) {
+        if (it == missing.begin()) {
+            m << "( ! ( " << (*it);
+        } else {
+            m << " || " << (*it) ;
+        }
+    }
+    if (!m.str().empty()) {
+        m << " ) )";
+    }
+    return m.str();
+}
 
 int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const {
      int valid_items = 0;

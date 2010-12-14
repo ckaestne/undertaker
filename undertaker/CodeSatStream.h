@@ -70,7 +70,6 @@ public:
 
     std::string getCodeConstraints();
     std::string getKconfigConstraints(const ConfigurationModel *model, std::set<std::string> &missing);
-    std::string getMissingItemsConstraints(std::set<std::string> &missing);
 
     /**
      * \brief Check for configuration coverage
@@ -81,6 +80,16 @@ public:
      * \param model If not NULL, take the constraints of the goven model into account
      */
     std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *model);
+
+    /**
+     * Find innermost block for a given position
+     *
+     * \param string of the form <line>:<column>
+     *
+     * \return innermost block or "" if no block matches
+     */
+    std::string positionToBlock(std::string);
+
 
     bool dumpRuntimes();
     RuntimeTable runtimes;

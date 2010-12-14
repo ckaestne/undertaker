@@ -19,13 +19,12 @@ PARSEROBJ = CloudContainer.o RsfReader.o KconfigWhitelist.o ConfigurationModel.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ))
 
-PROGS = undertaker cpppc
+PROGS = undertaker
 
 all: ../ziz/libziz.a $(PROGS)
 
 undertaker: ../picosat/libpicosat.a ../ziz/libziz.a libparser.a
 KconfigIntersect: libparser.a
-cpppc: libparser.a ../ziz/libziz.a
 
 ../ziz/libziz.a: FORCE
 	$(MAKE) -C ../ziz libziz.a

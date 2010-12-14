@@ -69,21 +69,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename,
     }
 }
 
-std::string CodeSatStream::getMissingItemsConstraints(std::set<std::string> &missing) {
-    std::stringstream m;
-    for(std::set<std::string>::iterator it = missing.begin(); it != missing.end(); it++) {
-        if (it == missing.begin()) {
-            m << "( ! ( " << (*it);
-        } else {
-            m << " || " << (*it) ;
-        }
-    }
-    if (!m.str().empty()) {
-        m << " ) )";
-    }
-    return m.str();
-}
-
 std::string CodeSatStream::getCodeConstraints() {
     return std::string((*this).str());
 }
@@ -186,6 +171,56 @@ void CodeSatStream::analyzeBlocks() {
                   << e.what() << std::endl;
     }
 }
+
+static int lineFromPosition(std::string line) {
+    // INPUT: foo:121:2
+    // OUTPUT: 121
+
+    size_t start = line.find_first_of(':');
+    assert (start != line.npos);
+    size_t stop = line.find_first_of(':', start);
+    assert (stop != line.npos);
+
+    std::stringstream ss(line.substr(start+1, stop));
+    int i;
+    ss >> i;
+    return i;
+}
+
+static int lineFromPosition(position_type line) {
+    std::stringstream ss;
+    ss << line;
+    return lineFromPosition(ss.str());
+}
+
+
+std::string CodeSatStream::positionToBlock(std::string position) {
+    std::set<std::string>::iterator i;
+
+    int line = lineFromPosition(position);
+    std::string block;
+    int block_length = -1;
+
+    for(i = _blocks.begin(); i != _blocks.end(); ++i) {
+        BlockCloud::index index = _cc->search(*i);
+        ZizCondBlockPtr &ziz_block = _cc->at(index);
+        const Ziz::ConditionalBlock *cond_block = ziz_block.Block();
+        int begin = lineFromPosition(cond_block->Start());
+        int last = lineFromPosition(cond_block->End());
+
+        if (last < begin) continue;
+        /* Found a short block, using this one */
+        if ((((last - begin) < block_length) || block_length == -1)
+            && begin < line
+            && line < last) {
+            block = *i;
+            block_length = last - begin;
+        }
+    }
+    return block;
+}
+
+
 
 std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationModel *model) {
     std::set<std::string>::iterator i;

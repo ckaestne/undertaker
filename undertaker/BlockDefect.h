@@ -20,6 +20,8 @@ struct BlockDefect {
     virtual bool needsCrosscheck() const = 0; //!< defect will be present on every model
     virtual void defectIsGlobal();  //!< mark defect als valid on all models
     const std::string defectTypeToString() const; //!< human readable identifier for the defect type
+    const std::string getSuffix() const { return std::string(_suffix); }
+    std::string getBlockPrecondition(const ConfigurationModel *model) const;
 
     /**
      * \brief Write out a report to a file.
@@ -41,12 +43,13 @@ struct BlockDefect {
     virtual void markOk(const std::string &arch);
     virtual std::list<std::string> getOKList() { return _OKList; }
     virtual int defectType() const { return _defectType; }
-    const char * getSuffix() const { return _suffix; }
     virtual ~BlockDefect() {}
 protected:
     BlockDefect(int defecttype) : _defectType(defecttype), _isGlobal(false), _OKList() {}
     int _defectType;
     bool _isGlobal;
+    const char *_block;
+    CodeSatStream *_cs;
     const char *_suffix;
     std::list<std::string> _OKList; //!< List of architectures on which this is proved to be OK
 };
@@ -62,12 +65,6 @@ public:
     virtual bool writeReportToFile() const;
 
 protected:
-    const std::string getCodeConstraints() const;
-    const std::string getKconfigConstraints(const ConfigurationModel *model, std::set<std::string> &missing) const;
-    const std::string getMissingItemsConstraints(std::set<std::string> &missing) const;
-
-    CodeSatStream *_cs;
-    const char *_block;
     bool _needsCrosscheck;
 
     std::string _formula;

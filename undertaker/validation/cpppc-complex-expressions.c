@@ -3,8 +3,9 @@
 #endif
 /*
  * check-name: Handle Comparators
- * check-command: cpppc $file
+ * check-command: undertaker -j cpppc $file
  * check-output-start
+I: CPP Precondition for cpppc-complex-expressions.c
 ( B0 <-> BITS_PER_LONG == 32 && defined ( CONFIG_SMP ) )
 && ( B1 <-> ( ! (B0) )  )
  * check-output-end
