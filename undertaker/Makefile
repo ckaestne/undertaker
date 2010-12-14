@@ -50,8 +50,8 @@ endif
 clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
 
-test-%: %.cpp libparser.a
-	$(CXX) $(CXXFLAGS) -DTEST_$* -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
+test-%: test-%.cpp libparser.a
+	$(CXX) $(CXXFLAGS) -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
 
 run-libcheck: test-SatChecker
 	@for t in $^; do ./$$t; done
