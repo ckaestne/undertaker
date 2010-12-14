@@ -261,6 +261,25 @@ void process_file_symbolpc(const char *filename, bool batch_mode, bool loadModel
     std::cout << std::endl;;
 }
 
+process_file_cb_t parse_job_argument(const char *arg) {
+    if (strcmp(arg, "dead") == 0) {
+        return process_file_dead;
+    } else if (strcmp(arg, "coverage") == 0) {
+        return process_file_coverage;
+    } else if (strcmp(arg, "cpppc") == 0) {
+        return process_file_cpppc;
+    } else if (strcmp(arg, "blockpc") == 0) {
+        return process_file_blockpc;
+    } else if (strcmp(arg, "interesting") == 0) {
+        return process_file_interesting;
+    } else if (strcmp(arg, "symbolpc") == 0) {
+        return process_file_symbolpc;
+    }
+    return NULL;
+}
+
+
+
 int main (int argc, char ** argv) {
     int opt;
     char *worklist = NULL;
@@ -270,6 +289,7 @@ int main (int argc, char ** argv) {
     std::list<std::string> models;
     std::string main_model = "x86";
     /* Default is dead/undead analysis */
+    std::string process_mode = "dead";
     process_file_cb_t process_file = process_file_dead;
 
     /* Command line structure:
@@ -315,19 +335,9 @@ int main (int argc, char ** argv) {
         case 'j':
             /* assign a new function pointer according to the jobs
                which should be done */
-            if (strcmp(optarg, "dead") == 0) {
-                process_file = process_file_dead;
-            } else if (strcmp(optarg, "coverage") == 0) {
-                process_file = process_file_coverage;
-            } else if (strcmp(optarg, "cpppc") == 0) {
-                process_file = process_file_cpppc;
-            } else if (strcmp(optarg, "blockpc") == 0) {
-                process_file = process_file_blockpc;
-            } else if (strcmp(optarg, "interesting") == 0) {
-                process_file = process_file_interesting;
-            } else if (strcmp(optarg, "symbolpc") == 0) {
-                process_file = process_file_symbolpc;
-            } else {
+            process_file = parse_job_argument(optarg);
+            process_mode = std::string(optarg);
+            if (!process_file) {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
             }
@@ -386,9 +396,34 @@ int main (int argc, char ** argv) {
         std::string line;
         /* Read from stdin and call process file for every line */
         while (1) {
-            std::cout << ">>> ";
+            std::cout << process_mode << ">>> ";
             if (!std::getline(std::cin, line)) break;
-            process_file(line.c_str(), false, loadModels);
+            if (line.compare(0, 2, "::") == 0) {
+                /* Change mode */
+                std::string new_mode;
+                size_t space;
+                /* Possible valid inputs:
+                   ::<mode>
+                   ::<mode> <file>
+                */
+                if ((space = line.find(" ")) == line.npos) {
+                    new_mode = line.substr(2);
+                    line = "";
+                } else {
+                    new_mode = line.substr(2, space - 2);
+                    line = line.substr(space + 1);
+                }
+                process_file_cb_t new_function = parse_job_argument(new_mode.c_str());
+                if (!new_function) {
+                    std::cerr << "Invalid new working mode:" << new_mode << std::endl;
+                    continue;
+                }
+                /* now change the pointer and the working mode */
+                process_file = new_function;
+                process_mode = new_mode;
+            }
+            if (line.size() > 0)
+                process_file(line.c_str(), false, loadModels);
         }
     } else if (threads > 1) {
         std::cout << workfiles.size() << " files will be analyzed by " << threads << " processes." << std::endl;
