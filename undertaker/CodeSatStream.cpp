@@ -221,15 +221,16 @@ std::string CodeSatStream::positionToBlock(std::string position) {
 }
 
 
-
 std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationModel *model, MissingSet &missingSet) {
     std::set<std::string>::iterator i;
     std::set<std::string> blocks_set;
     std::list<SatChecker::AssignmentMap> ret;
+    std::set<SatChecker::AssignmentMap> found_solutions;
 
     try {
 	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
             StringJoiner formula;
+            SatChecker::AssignmentMap current_solution;
 
             formula.push_back((*i));
             formula.push_back(getCodeConstraints());
@@ -250,13 +251,26 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
                 const SatChecker::AssignmentMap &assignments = sc.getAssignment();
                 SatChecker::AssignmentMap::const_iterator it;
                 for (it = assignments.begin(); it != assignments.end(); it++) {
-                    if ((*it).second) {
+                    static const boost::regex item_regexp("^CONFIG_(.*)$", boost::regex::perl);
+                    static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+
+                    if (boost::regex_match((*it).first, item_regexp)) {
+                        current_solution.insert(std::make_pair<std::string,bool>((*it).first, (*it).second));
+                        continue;
+                    }
+
+                    if ((*it).second && boost::regex_match((*it).first, block_regexp)) {
                         blocks_set.insert((*it).first);
                         new_solution = true;
                     }
                 }
-                if (new_solution)
-                    ret.push_back(assignments);
+
+                if (found_solutions.find(current_solution) == found_solutions.end()) {
+                    found_solutions.insert(current_solution);
+
+                    if (new_solution)
+                        ret.push_back(assignments);
+                }
             }
         }
     } catch (SatCheckerError &e) {

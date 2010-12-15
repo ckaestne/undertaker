@@ -72,17 +72,32 @@ public:
                  DEBUG_CNF = 2 };
 
     /**
-     * \brief Map to check what blocks have been set.
+     * \brief Representation of a variable selection
      *
      * The solutions in this map contain all kinds of SAT variables,
      * including block variables (e.g., B42), comparator (fake)
      * variables (e.g., COMP_42) and item variables (e.g.,
      * CONFIG_ACPI_MODULES).
      *
-     * key:   something like 'B42'
-     * value: true if set, false if unset or unknown
+     *   - key:   something like 'B42'
+     *   - value: true if set, false if unset or unknown
      */
-    typedef std::map<std::string, bool> AssignmentMap;
+    struct AssignmentMap : public std::map<std::string, bool> {
+
+        /**
+         * \brief order independent content comparison
+         *
+         * This method compares if two assignments are equivalent.
+         */
+        bool operator==(const AssignmentMap &other) const {
+            for (const_iterator it = begin(); it != end(); it++) {
+                const_iterator ot = other.find((*it).first);
+                if (ot == other.end() || (*ot).second != (*it).second)
+                    return false;
+            }
+            return true;
+        }
+    };
 
     /**
      * After doing the check, you can get the assignments for the
