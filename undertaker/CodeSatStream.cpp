@@ -235,6 +235,9 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
             formula.push_back(getCodeConstraints());
             formula.push_back(getKconfigConstraints(model, missingSet));
 
+            for (MissingSet::iterator it = missingSet.begin(); it != missingSet.end(); it++)
+                formula.push_back("!" + (*it));
+
 	    if (blocks_set.find(*i) == blocks_set.end()) {
                 /* does the new contributes to the set of configurations? */
                 bool new_solution = false;
