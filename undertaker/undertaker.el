@@ -158,6 +158,6 @@ source files direct to the undertaker process.
 (defvar undertaker-font-lock-keywords
   '(("\\<[A-Z_][A-Z0-9_]+\\>" 0 font-lock-keyword-face t)
     ("\\<B[0-9]+\\>" 0 font-lock-type-face t)
-    ("::[a-z]+" 0 font-lock-string-face t)
+    ("::[a-z-]+" 0 font-lock-string-face t)
     ("^I:.*$" 0 font-lock-comment-face t))
   "Additional expressions to highlight in undertaker process buffers.")
