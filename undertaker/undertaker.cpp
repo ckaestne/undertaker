@@ -413,17 +413,28 @@ int main (int argc, char ** argv) {
                     new_mode = line.substr(2, space - 2);
                     line = line.substr(space + 1);
                 }
-                process_file_cb_t new_function = parse_job_argument(new_mode.c_str());
-                if (!new_function) {
-                    std::cerr << "Invalid new working mode:" << new_mode << std::endl;
+                if (new_mode.compare("load") == 0) {
+                    f->loadModels(line);
                     continue;
+                } else if (new_mode.compare("main-model") == 0) {
+                    ConfigurationModel *db = f->loadModels(line);
+                    if (db) {
+                        f->setMainModel(db->getName());
+                    }
+                    continue;
+                } else { /* Change working mode */
+                    process_file_cb_t new_function = parse_job_argument(new_mode.c_str());
+                    if (!new_function) {
+                        std::cerr << "Invalid new working mode: " << new_mode << std::endl;
+                        continue;
+                    }
+                    /* now change the pointer and the working mode */
+                    process_file = new_function;
+                    process_mode = new_mode;
                 }
-                /* now change the pointer and the working mode */
-                process_file = new_function;
-                process_mode = new_mode;
             }
             if (line.size() > 0)
-                process_file(line.c_str(), false, loadModels);
+                process_file(line.c_str(), false, f->size() > 0);
         }
     } else if (threads > 1) {
         std::cout << workfiles.size() << " files will be analyzed by " << threads << " processes." << std::endl;
