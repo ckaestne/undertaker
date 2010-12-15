@@ -52,7 +52,7 @@ void usage(std::ostream &out, const char *error) {
 void process_file_coverage(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
-        std::cerr << "Failed to open file: `" << filename << "'" << std::endl;
+        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -87,7 +87,7 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
 
         outf.open(outfstream.str().c_str(), std::ios_base::trunc);
         if (!outf.good()) {
-            std::cerr << "failed to write config in " 
+            std::cerr << "E: failed to write config in "
                       << outfstream.str().c_str()
                       << std::endl;
             outf.close();
@@ -105,14 +105,14 @@ void process_file_cpppc(const char *filename, bool batch_mode, bool loadModels) 
 
     CloudContainer s(filename);
     if (!s.good()) {
-        std::cerr << "Failed to open file: `" << filename << "'" << std::endl;
+        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
     std::cout << "I: CPP Precondition for " << filename << std::endl;
     try {
         std::cout << s.getConstraints() << std::endl;
     } catch (std::runtime_error &e) {
-        std::cerr << "FAILED: " << e.what() << std::endl;
+        std::cerr << "E: failed: " << e.what() << std::endl;
         return;
     }
 }
@@ -124,7 +124,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
     std::string file, position;
     size_t colon_pos = fname.find_first_of(':');
     if (colon_pos == fname.npos) {
-        std::cerr << "FAILED: " << "Invalid format for block precondition" << std::endl;
+        std::cerr << "E: invalid format for block precondition" << std::endl;
         return;
     }
     file = fname.substr(0, colon_pos);
@@ -132,7 +132,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 
     CloudContainer cloud(file.c_str());
     if (!cloud.good()) {
-        std::cerr << "Failed to open file: `" << filename << "'" << std::endl;
+        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -181,7 +181,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
-        std::cerr << "Failed to open file: `" << filename << "'" << std::endl;
+        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -202,7 +202,7 @@ void process_file_interesting(const char *filename, bool batch_mode, bool loadMo
     (void) batch_mode;
 
     if (!loadModels) {
-        usage(std::cerr, "To find interessing items for a given symbol you must load a model");
+        std::cerr << "E: for finding interessting items a model must be loaded" << std::endl;
         return;
     }
 
@@ -235,7 +235,7 @@ void process_file_symbolpc(const char *filename, bool batch_mode, bool loadModel
     (void) batch_mode;
 
     if (!loadModels) {
-        usage(std::cerr, "To find interessing items for a given symbol you must load a model");
+        std::cerr << "E: for symbolpc models must be loaded" << std::endl;
         return;
     }
 
@@ -443,7 +443,7 @@ int main (int argc, char ** argv) {
                 std::cerr << "I: finished: " << worked_on << " files done (" << thread_number << ")" << std::endl;
                 break;
             } else if (pid < 0) {
-                std::cerr << "E: Forking failed. Exiting." << std::endl;
+                std::cerr << "E: forking failed. Exiting." << std::endl;
                 exit(EXIT_FAILURE);
             } else { /* Father process */
                 forks.push_back(pid);
