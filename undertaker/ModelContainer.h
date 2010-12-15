@@ -16,7 +16,7 @@
  */
 class ModelContainer : public std::map<std::string, ConfigurationModel*> {
 public:
-    static void loadModels(std::string modeldir); ///< load models from the given directory
+    static ConfigurationModel *loadModels(std::string modeldir); ///< load models from the given directory
     static ConfigurationModel *lookupModel(const char *arch);
     static const char *lookupArch(const ConfigurationModel *model);
     static ModelContainer *getInstance();
