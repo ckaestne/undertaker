@@ -85,7 +85,7 @@ ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std:
                   << filename << std::endl;
         return NULL;
     }
-    db = new ConfigurationModel(rsf_file, devnull);
+    db = new ConfigurationModel(arch, rsf_file, devnull);
 
     this->insert(std::make_pair(arch,db));
 
