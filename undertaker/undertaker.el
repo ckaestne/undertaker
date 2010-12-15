@@ -116,7 +116,10 @@ Null prefix argument turns off the mode.
 
 When undertaker mode is enabled. Keybindings for sending
 the actual position or different informations about your
-source files direct to the undertaker process."
+source files direct to the undertaker process.
+
+\\{undertaker-mode-map}
+"
   :init-value nil
   :lighter " UT"
   :keymap
@@ -126,9 +129,13 @@ source files direct to the undertaker process."
     ("ui" . undertaker::current-interesting-symbols)
     ("uu" . undertaker::toggle-buffer))
   :group 'undertaker
+
+  (if undertaker-mode ;; mode was enbaled
+      (undertaker::shell nil)) ;; Ensure starting an undertaker process
   )
 
-(define-derived-mode undertaker-shell-mode comint-mode "UT-Sh")
+(define-derived-mode undertaker-shell-mode comint-mode "UT-Sh"
+  "\\{undertaker-mode-map}")
 (defun undertaker::shell (command)
   (interactive (list nil))
   (unless
