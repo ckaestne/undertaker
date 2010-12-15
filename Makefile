@@ -32,6 +32,7 @@ install: all
 	@install -v undertaker/undertaker $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/dump-rsf.sh $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/go.sh $(DESTDIR)$(PREFIX)/bin
+	@install -v undertaker/scan-head $(DESTDIR)$(PREFIX)/bin
 	@install -v rsf2model/rsf2model $(DESTDIR)$(PREFIX)/bin
 
 undertaker-lcov:
