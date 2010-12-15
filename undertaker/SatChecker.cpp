@@ -336,6 +336,7 @@ int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out, con
         static const boost::regex item_regexp("^CONFIG_(.*)$", boost::regex::perl);
         static const boost::regex module_regexp("^CONFIG_(.*)_MODULE$", boost::regex::perl);
         static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+        static const boost::regex choice_regexp("^CONFIG_CHOICE_", boost::regex::perl);
         const std::string &name = (*it).first;
         const bool &valid = (*it).second;
         boost::match_results<std::string::const_iterator> what;
@@ -348,6 +349,9 @@ int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out, con
                 other_variables[fullname] = valid ? yes : no;
             } else
                 selection[name] = module;
+        } else if (boost::regex_search(name, choice_regexp)) {
+            other_variables[what[0]] = valid ? yes : no;
+            continue;
         } else if (boost::regex_match(name, what, item_regexp)) {
             const std::string &name = what[1];
             if (missingSet.find(what[0]) != missingSet.end()) {

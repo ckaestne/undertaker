@@ -69,6 +69,7 @@ run-coveragecheck: undertaker
 		| awk '// { if ($$1 != 1) { print "duplicate solutions found" ; exit 1 } }' \
 		|| md5sum validation/sched.c.config* | sort
 	if grep -q ^CONFIG_IA64 validation/sched.c.config*; then echo "IA64 not selectable!"; false ; fi
+	if grep -q ^CONFIG_CHOICE validation/sched.c.config*; then echo "must not contain CONFIG_CHOICE*"; false ; fi
 
 check: $(PROGS)
 	@$(MAKE) -s clean-check
