@@ -59,7 +59,6 @@ run-libcheck: test-SatChecker
 
 # coverage analysis will create validation/sched.c.config*
 run-coveragecheck: undertaker
-	@find validation/ -name 'sched.c.config*' -exec rm -f {} +
 	@$(MAKE) -C kconfig-dumps all
 	./undertaker -c -m kconfig-dumps/models/x86.model validation/sched.c
 	# we expect between 25 and 30 solutions

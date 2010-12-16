@@ -6,6 +6,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <glob.h>
+
 #include <boost/regex.hpp>
 
 #include "KconfigWhitelist.h"
@@ -49,6 +51,20 @@ void usage(std::ostream &out, const char *error) {
     out << std::endl;
 }
 
+int rm_pattern(const char *pattern) {
+    glob_t globbuf;
+    int i, nr;
+
+    glob(pattern, 0, NULL, &globbuf);
+    nr = globbuf.gl_pathc;
+    for (i = 0; i < nr; i++)
+        if (0 != unlink(globbuf.gl_pathv[i]))
+            fprintf(stderr, "E: Couldn't unlink %s: %m", globbuf.gl_pathv[i]);
+
+    globfree(&globbuf);
+    return nr;
+}
+
 void process_file_coverage(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
@@ -79,7 +95,15 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
               << solution.size()
               << std::endl;
 
-    std::cout << "Entries in missingSet: " << missingSet.size() << std::endl;
+    std::cout << "I: Entries in missingSet: " << missingSet.size() << std::endl;
+
+    std::string pattern(filename);
+    pattern.append(".config*");
+    int r = rm_pattern(pattern.c_str());
+
+    std::cout << "I: Removed " << r << " old configurations matching " << pattern
+              << std::endl;
+
 
     std::list<SatChecker::AssignmentMap>::iterator it;
     for (it = solution.begin(); it != solution.end(); it++) {
