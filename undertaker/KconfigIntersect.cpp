@@ -35,7 +35,7 @@ int main (int argc, char **argv) {
     if (!kconfigRsfFile.good()) {
         std::stringstream ss;
         ss << "failed to open: " << argv[1];
-    usage(ss.str().c_str());
+        usage(ss.str().c_str());
         exit(EXIT_FAILURE);
     }
 
