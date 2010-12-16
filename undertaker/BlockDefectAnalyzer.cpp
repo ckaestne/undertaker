@@ -1,3 +1,5 @@
+#include <glob.h>
+
 #include "StringJoiner.h"
 #include "BlockDefectAnalyzer.h"
 #include "ModelContainer.h"
@@ -24,6 +26,21 @@ std::string BlockDefectAnalyzer::getBlockPrecondition(const ConfigurationModel *
 
     return formula.join("\n&&\n");
 }
+
+int BlockDefectAnalyzer::rmPattern(const char *pattern) {
+    glob_t globbuf;
+    int i, nr;
+
+    glob(pattern, 0, NULL, &globbuf);
+    nr = globbuf.gl_pathc;
+    for (i = 0; i < nr; i++)
+        if (0 != unlink(globbuf.gl_pathv[i]))
+            fprintf(stderr, "E: Couldn't unlink %s: %m", globbuf.gl_pathv[i]);
+
+    globfree(&globbuf);
+    return nr;
+}
+
 
 DeadBlockDefect::DeadBlockDefect(CodeSatStream *cs, const char *block)
     :  BlockDefectAnalyzer(None), _needsCrosscheck(false),

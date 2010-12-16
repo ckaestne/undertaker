@@ -45,6 +45,14 @@ struct BlockDefectAnalyzer {
     virtual int defectType() const { return _defectType; }
     virtual ~BlockDefectAnalyzer() {}
 
+    /**
+     * \brief helper functions to remove files matching a pattern
+     *
+     * \param pattern the pattern to match
+     * \return the number of files removed
+     */
+    static int rmPattern(const char *pattern);
+
 protected:
     BlockDefectAnalyzer(int defecttype) : _defectType(defecttype), _isGlobal(false), _OKList() {}
     int _defectType;
