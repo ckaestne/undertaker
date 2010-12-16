@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <boost/regex.hpp>
-#include <pstreams/pstream.h>
 
 #include "KconfigRsfDb.h"
 #include "CodeSatStream.h"
