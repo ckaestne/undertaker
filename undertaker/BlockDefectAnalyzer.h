@@ -73,6 +73,9 @@ public:
     virtual bool needsCrosscheck() const; //!< defect will be present on every model
     virtual bool writeReportToFile() const;
 
+    //! removes reports that may have been created from previous runs. returns number of files removed
+    static int removeOldReports(const char *filename);
+
 protected:
     bool _needsCrosscheck;
 

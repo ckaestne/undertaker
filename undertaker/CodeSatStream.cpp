@@ -139,6 +139,8 @@ void CodeSatStream::analyzeBlocks() {
         ModelContainer *f = ModelContainer::getInstance();
         p_model = f->lookupMainModel();
     }
+
+    DeadBlockDefect::removeOldReports(_filename.c_str());
     
     std::set<std::string>::iterator i;
     processed_units++;

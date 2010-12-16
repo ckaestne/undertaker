@@ -155,6 +155,15 @@ bool DeadBlockDefect::writeReportToFile() const {
     return true;
 }
 
+int DeadBlockDefect::removeOldReports(const char* filename) {
+    StringJoiner fname_joiner;
+
+    fname_joiner.push_back(filename);
+    fname_joiner.push_back("*dead");
+    
+    return rmPattern(fname_joiner.join(".").c_str());
+}
+
 UndeadBlockDefect::UndeadBlockDefect(CodeSatStream *cs, const char *block)
     : DeadBlockDefect(cs, block) { this->_suffix = "undead"; }
 
