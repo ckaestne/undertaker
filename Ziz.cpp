@@ -12,12 +12,12 @@ using namespace Ziz;
 
 File* Parser::Parse(const std::string file)
 {
-    try {
-        // Open and read in the specified input file.
-        std::ifstream instream(file.c_str());
-        if (!instream.is_open())
-            throw ZizException((std::string("could not open file: ") + file).c_str());
+    // Open and read in the specified input file.
+    std::ifstream instream(file.c_str());
+    if (!instream.is_open())
+        throw ZizException((std::string("could not open file: ") + file).c_str());
 
+    try {
         // create a file object, let _p_curBlockContainer point to it
         _p_file = new File;
         _p_curBlockContainer = _p_file;
