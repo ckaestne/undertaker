@@ -6,6 +6,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <glob.h>
 
 #include <boost/regex.hpp>
 
@@ -50,10 +51,24 @@ void usage(std::ostream &out, const char *error) {
     out << std::endl;
 }
 
+int rm_pattern(const char *pattern) {
+    glob_t globbuf;
+    int i, nr;
+
+    glob(pattern, 0, NULL, &globbuf);
+    nr = globbuf.gl_pathc;
+    for (i = 0; i < nr; i++)
+        if (0 != unlink(globbuf.gl_pathv[i]))
+            fprintf(stderr, "E: Couldn't unlink %s: %m", globbuf.gl_pathv[i]);
+
+    globfree(&globbuf);
+    return nr;
+}
+
 void process_file_coverage(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
-        std::cout << "skipping" << std::endl;
+        usage(std::cout, "couldn't open file");
         return;
     }
 
@@ -84,10 +99,11 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
 
     std::string pattern(filename);
     pattern.append(".config*");
-    int r = BlockDefectAnalyzer::rmPattern(pattern.c_str());
+    int r = rm_pattern(pattern.c_str());
 
     std::cout << "I: Removed " << r << " old configurations matching " << pattern
               << std::endl;
+
 
     std::list<SatChecker::AssignmentMap>::iterator it;
     for (it = solution.begin(); it != solution.end(); it++) {
@@ -117,7 +133,7 @@ void process_file_cpppc(const char *filename, bool batch_mode, bool loadModels) 
 
     CloudContainer s(filename);
     if (!s.good()) {
-        std::cout << "skipping" << std::endl;
+        usage(std::cout, "couldn't open file");
         return;
     }
     std::cout << "I: CPP Precondition for " << filename << std::endl;
@@ -144,7 +160,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 
     CloudContainer cloud(file.c_str());
     if (!cloud.good()) {
-        std::cout << "skipping" << std::endl;
+        usage(std::cout, "couldn't open file");
         return;
     }
 
@@ -193,7 +209,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
-        std::cout << "skipping" << std::endl;;
+        usage(std::cout, "couldn't open file");
         return;
     }
 
@@ -204,8 +220,6 @@ void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
 
         CodeSatStream analyzer(codesat, filename,
                                s.getParents(), &(*c), batch_mode, loadModels);
-
-        DeadBlockDefect::removeOldReports(filename);
 
         // this is the total runtime per *cloud*
         analyzer.analyzeBlocks();

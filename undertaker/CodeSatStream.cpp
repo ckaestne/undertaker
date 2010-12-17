@@ -139,7 +139,7 @@ void CodeSatStream::analyzeBlocks() {
         ModelContainer *f = ModelContainer::getInstance();
         p_model = f->lookupMainModel();
     }
-
+    
     std::set<std::string>::iterator i;
     processed_units++;
     try {

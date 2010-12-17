@@ -45,14 +45,6 @@ struct BlockDefectAnalyzer {
     virtual int defectType() const { return _defectType; }
     virtual ~BlockDefectAnalyzer() {}
 
-    /**
-     * \brief helper functions to remove files matching a pattern
-     *
-     * \param pattern the pattern to match
-     * \return the number of files removed
-     */
-    static int rmPattern(const char *pattern);
-
 protected:
     BlockDefectAnalyzer(int defecttype) : _defectType(defecttype), _isGlobal(false), _OKList() {}
     int _defectType;
@@ -72,9 +64,6 @@ public:
     virtual bool isGlobal() const; //!< checks if the defect applies to all models
     virtual bool needsCrosscheck() const; //!< defect will be present on every model
     virtual bool writeReportToFile() const;
-
-    //! removes reports that may have been created from previous runs. returns number of files removed
-    static int removeOldReports(const char *filename);
 
 protected:
     bool _needsCrosscheck;
