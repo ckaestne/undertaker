@@ -10,18 +10,6 @@ fi
 find . -name "*.[hcS]" | shuf > worklist
 find . -name '*dead' -exec rm -f {} +
 
-echo "Running coverage analysis"
-time undertaker -c -t `getconf _NPROCESSORS_ONLN` -b worklist -m models -M x86 2>/dev/null |
-	grep -v '^I:' |
-	grep -v '^Ignoring' |
-        grep './' > coverage.txt
-
-echo "TOP 50 variable files (format: #possible solutions, filename)"
-awk '/^S: / {print $2}' < coverage.txt |
-	awk -F, '{ printf "%s %s\n", $3, $1 }' |
-	sort -n -r |
-	head -n 50 | tee coverage.stats
-
 echo "Analyzing `wc -l < worklist` files"
 time undertaker -t `getconf _NPROCESSORS_ONLN` -b worklist -m models -M x86
 printf "\n\nFound %s global defects\n" `find . -name '*dead'| grep globally | wc -l`
