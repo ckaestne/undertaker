@@ -205,6 +205,8 @@ void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
         CodeSatStream analyzer(codesat, filename,
                                s.getParents(), &(*c), batch_mode, loadModels);
 
+        DeadBlockDefect::removeOldReports(filename);
+
         // this is the total runtime per *cloud*
         analyzer.analyzeBlocks();
     }
