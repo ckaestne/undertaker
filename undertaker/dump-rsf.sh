@@ -1,11 +1,13 @@
 #!/bin/bash
 
+set -e
+
 MODELS=${MODELS:-models}
 PATH=$PATH:/proj/i4vamos/tools/bin
 TMP=$(mktemp)
 
 
-ARCHS="alpha arm avr32 blackfin cris frv h8300 ia64 m32r m68k m68knommu microblaze mips mn10300 parisc powerpc s390 score sh sparc tile x86 xtensa"
+ARCHS=$(ls arch/*/Kconfig | cut -d '/' -f 2)
 
 mkdir -p "$MODELS"
 
