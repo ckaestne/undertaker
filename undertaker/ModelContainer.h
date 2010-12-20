@@ -24,6 +24,9 @@ public:
     static ConfigurationModel *lookupMainModel();
     static void setMainModel(std::string);
 
+    /// returns the main model as string or NULL, if not set
+    static const char *getMainModel();
+
 private:
     ModelContainer() {}
     std::string main_model;

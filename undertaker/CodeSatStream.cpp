@@ -1,6 +1,9 @@
-#include <boost/regex.hpp>
+#include <algorithm> // std::transform
+#include <cctype> // std::toupper
 #include <fstream>
 #include <utility>
+
+#include <boost/regex.hpp>
 
 #include "StringJoiner.h"
 #include "ModelContainer.h"
@@ -238,6 +241,15 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
 
             for (MissingSet::iterator it = missingSet.begin(); it != missingSet.end(); it++)
                 formula.push_back("!" + (*it));
+
+            std::string main_arch(ModelContainer::getMainModel());
+            if (main_arch.size() > 0) {
+                // stolen from http://www.codepedia.com/1/CppToUpperCase
+                // explicit cast needed to resolve ambiguity
+                std::transform(main_arch.begin(), main_arch.end(), main_arch.begin(),
+                               (int(*)(int))std::toupper);
+                formula.push_back("CONFIG_" + main_arch);
+            }
 
 	    if (blocks_set.find(*i) == blocks_set.end()) {
                 /* does the new contributes to the set of configurations? */

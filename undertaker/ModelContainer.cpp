@@ -130,6 +130,11 @@ void ModelContainer::setMainModel(std::string main_model) {
     f->main_model = main_model;
 }
 
+const char *ModelContainer::getMainModel() {
+    ModelContainer *f = getInstance();
+    return f->main_model.c_str();
+}
+
 
 ModelContainer *ModelContainer::getInstance() {
     static ModelContainer *instance;
