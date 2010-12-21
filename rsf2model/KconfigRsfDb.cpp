@@ -10,10 +10,12 @@
 
 static std::list<std::string> itemsOfString(std::string str);
 
+KconfigRsfDb::Item KconfigRsfDb::ItemDb::invalid_item("", INVALID);
+
 KconfigRsfDb::Item::Item(std::string name, unsigned type, bool required)
     : name_(name), type_(type), required_(required) { }
 
-KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(std::string key) const {
+KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(const std::string &key) const {
     ItemMap::const_iterator it = this->find(key);
 
     /* We only request config items, which are defined in the rsf.
@@ -24,13 +26,26 @@ KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(std::string key) const {
     return (*it).second;
 }
 
+KconfigRsfDb::Item &KconfigRsfDb::ItemDb::getItemReference(const std::string &key) {
+    ItemMap::iterator it = this->find(key);
+
+    /* We only request config items, which are defined in the rsf.
+       Be aware that no slicing is done here */
+    if(it == this->end())
+        return invalid_item;
+
+    return (*it).second;
+}
+
 KconfigRsfDb::KconfigRsfDb(std::ifstream &in, std::ostream &log)
     : _in(in),
       /* This are RsfBlocks! */
       choice_(in, "Choice", log),
       choice_item_(in, "ChoiceItem", log),
       depends_(in, "Depends", log),
-      item_(in, "Item", log)
+      item_(in, "Item", log),
+      defaults_(in, "Default", log),
+      has_prompts_(in, "HasPrompts", log)
 {}
 
 void KconfigRsfDb::initializeItems() {
@@ -114,9 +129,47 @@ void KconfigRsfDb::initializeItems() {
             assert(i != allItems.end());
             (*i).second.dependencies().push_front(rewritten);
         }
-
-
     }
+    for(RsfBlocks::iterator i = this->defaults_.begin(); i != this->defaults_.end(); i++) {
+        const std::string &itemName = (*i).first;
+        Item &item = allItems.getItemReference("CONFIG_" + itemName);
+
+        /* Ignore tristates and choices for now */
+        if (item.isTristate() || item.isChoice()) continue;
+
+        /* Check if the symbol has an prompt. If it has, skip all
+           default entries */
+        std::string *has_prompts = this->has_prompts_.getValue(itemName);
+        assert(has_prompts);
+        if (*has_prompts != "0") {
+            //            std::cerr << itemName << " has prompts" << std::endl;
+            continue;
+        }
+
+        // Format in Kconfig: default expr if visible_expr
+        std::deque<std::string>::iterator iter = i->second.begin();
+        std::string &expr = *iter;
+        iter++;
+        std::string &visible_expr = *iter;
+
+        //        std::cerr << itemName << " " << (expr == "y") << " " << (visible_expr =="y") << std::endl;
+
+        if (expr == "y" && visible_expr == "y") {
+            /* These options are always on */
+            alwaysOnItems.push_back(item);
+        } else if (expr == "y" || visible_expr == "y") {
+            /* if there is only one side y, we can treat this as
+               normal dependency */
+            std::string &dependency = expr;
+            if (expr == "y")
+                dependency = visible_expr;
+
+            std::string rewritten = "(" + rewriteExpressionPrefix(dependency) + ")";
+
+            item.dependencies().push_front(rewritten);
+        }
+    }
+
 }
 
 
@@ -329,6 +382,15 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
         }
         out << std::endl;
     }
+
+    /* Handle the always on options */
+    out << "I: Now all the items that are always on in this model follow" << std::endl;
+    out << "1";
+    for (std::list<Item>::const_iterator it = alwaysOnItems.begin(); it != alwaysOnItems.end(); ++it) {
+        Item item = *it;
+        out << " \"" << item.name() << "\"";
+    }
+
 }
 
 /* Returns all items (config tokens) from a string */

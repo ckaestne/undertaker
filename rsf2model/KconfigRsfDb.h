@@ -4,6 +4,7 @@
 
 #include <string>
 #include <map>
+#include <list>
 #include <deque>
 #include <set>
 
@@ -49,8 +50,10 @@ public:
 
 protected:
     struct ItemDb : public ItemMap {
+        static Item invalid_item;
         ItemMap missing;
-        Item getItem(std::string key) const;
+        Item getItem(const std::string &key) const;
+        Item &getItemReference(const std::string &key);
     };
 
     ItemDb allItems;
@@ -59,12 +62,19 @@ protected:
     const RsfBlocks &choice_item() const { return choice_item_; }
     const RsfBlocks &depends() const { return depends_; }
     const RsfBlocks &item() const { return item_; }
+    const RsfBlocks &defaults() const { return defaults_; }
+    const RsfBlocks &has_prompts() const { return has_prompts_; }
 
     std::ifstream &_in;
     RsfBlocks choice_;
     RsfBlocks choice_item_;
     RsfBlocks depends_;
     RsfBlocks item_;
+    RsfBlocks defaults_;
+    RsfBlocks has_prompts_;
+
+    std::list<Item> alwaysOnItems;
+
 };
 
 #endif
