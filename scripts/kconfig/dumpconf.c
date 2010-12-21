@@ -33,7 +33,7 @@ void my_print_symbol(FILE *out, struct menu *menu)
 	struct symbol *sym = menu->sym;
 	struct property *prop;
 	static char buf[12];
-
+	tristate is_tristate = no;
 
 	if (sym_is_choice(sym)) {
 		fprintf(out, "#startchoice\n");
@@ -64,9 +64,11 @@ void my_print_symbol(FILE *out, struct menu *menu)
 		switch (sym->type) {
 		case S_BOOLEAN:
 			fputs("\tboolean\n", out);
+			is_tristate = yes;
 			break;
 		case S_TRISTATE:
 			fputs("\ttristate\n", out);
+			is_tristate = mod;
 			break;
 		case S_STRING:
 			fputs("\tstring\n", out);
@@ -83,15 +85,35 @@ void my_print_symbol(FILE *out, struct menu *menu)
 		}
 	}
 
-	if (menu->dep) {
+	if (menu->dep || is_tristate != no) {
+		char itemname[50];
+
 		if (sym->name)
-			fprintf(out, "Depends\t%s\t\"", sym->name);
+			snprintf(itemname, sizeof itemname, "%s", sym->name);
 		else {
-			fprintf(out, "Depends\tCHOICE_%d\t\"", choice_count);
+			snprintf(itemname, sizeof itemname, "CHOICE_%d", choice_count);
 			choicestring = buf;
 		}
-		expr_fprint(menu->dep, out);
-		fprintf(out, "\"\n");
+		if (menu->dep) {
+		    fprintf(out, "Depends\t%s\t\"", itemname);
+		    expr_fprint(menu->dep, out);
+		    fprintf(out, "\"\n");
+		}
+		
+		for_all_properties(sym, prop, P_DEFAULT) {
+			fprintf(out, "Default\t%s\t\"", itemname);
+			expr_fprint(prop->expr, out);
+			fprintf(out, "\"\t\"");
+			expr_fprint(prop->visible.expr, out);
+			fprintf(out, "\"\n");
+		}
+		for_all_properties(sym, prop, P_SELECT) {
+			fprintf(out, "ItemSelects\t%s\t\"", itemname);
+			expr_fprint(prop->expr, out);
+			fprintf(out, "\"\t\"");
+			expr_fprint(prop->visible.expr, out);
+			fprintf(out, "\"\n");
+		}
 	}
 
 	for (prop = sym->prop; prop; prop = prop->next) {
@@ -102,6 +124,23 @@ void my_print_symbol(FILE *out, struct menu *menu)
 			fputs("#choice value\n", out);
 			break;
 #if 0
+                case P_DEFAULT:
+                    fprintf(out, "#default\t%s\t%s\t\"", sym->name, prop->text);
+                    expr_fprint(prop->visible.expr, out);
+                    fprintf(out, "\"\n");
+                    break;
+                case P_SELECT:
+                    fprintf(out, "#select\t%s\t\"", sym->name);                                                  
+                    expr_fprint(prop->expr, out);
+                    fprintf(out, "\"\t\"");
+                    expr_fprint(prop->visible.expr, out);
+                    fprintf(out, "\"\n");
+                    break;
+                case P_PROMPT:
+		    fprintf(out, "#prompt\t%s\t", prop->sym->name);
+		    expr_fprint(prop->visible.expr, out);
+		    fprintf(out, "\n");
+		    break;
 		default:
 			fprintf(out, "  unknown prop %d!\n", prop->type);
 			break;
