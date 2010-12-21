@@ -87,6 +87,7 @@ void my_print_symbol(FILE *out, struct menu *menu)
 
 	if (menu->dep || is_tristate != no) {
 		char itemname[50];
+		int has_prompts = 0;
 
 		if (sym->name)
 			snprintf(itemname, sizeof itemname, "%s", sym->name);
@@ -99,7 +100,12 @@ void my_print_symbol(FILE *out, struct menu *menu)
 		    expr_fprint(menu->dep, out);
 		    fprintf(out, "\"\n");
 		}
-		
+
+		for_all_prompts(sym, prop)
+			has_prompts++;
+
+		fprintf(out, "HasPrompts\t%s\t%d\n", itemname, has_prompts);
+
 		for_all_properties(sym, prop, P_DEFAULT) {
 			fprintf(out, "Default\t%s\t\"", itemname);
 			expr_fprint(prop->expr, out);
