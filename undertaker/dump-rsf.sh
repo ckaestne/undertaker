@@ -6,6 +6,10 @@ MODELS=${MODELS:-models}
 PATH=$PATH:/proj/i4vamos/tools/bin
 TMP=$(mktemp)
 
+if [ ! -f arch/x86/Kconfig ]; then
+    echo "Not run in an Linux Tree"
+    exit 1
+fi
 
 ARCHS=$(ls arch/*/Kconfig | cut -d '/' -f 2)
 
