@@ -362,6 +362,15 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
 
     out << "I: Items-Count: "  << allItems.size()  << std::endl;
     out << "I: Format: <variable> [presence condition]" << std::endl;
+    if (!alwaysOnItems.empty()) {
+        /* Handle the always on options */
+        out << "I: Items that are always defined: ";
+        for (std::list<Item>::const_iterator it = alwaysOnItems.begin(); it != alwaysOnItems.end(); ++it) {
+            Item item = *it;
+            out << " \"" << item.name() << "\"";
+        }
+        out << std::endl;
+    }
 
     for(it = allItems.begin(); it != allItems.end(); it++) {
         Item item = (*it).second;
@@ -379,16 +388,6 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
             if (item.isChoice() && item.choiceAlternatives().size() > 0) {
                 out << " \"" << item.dumpChoiceAlternative() << "\"";
             }
-        }
-        out << std::endl;
-    }
-
-    if (!alwaysOnItems.empty()) {
-        /* Handle the always on options */
-        out << "I: Items that are always defined: ";
-        for (std::list<Item>::const_iterator it = alwaysOnItems.begin(); it != alwaysOnItems.end(); ++it) {
-            Item item = *it;
-            out << " \"" << item.name() << "\"";
         }
         out << std::endl;
     }
