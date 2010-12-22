@@ -1,0 +1,25 @@
+Item	MODULES	boolean
+HasPrompts	MODULES	0
+Default	MODULES	"y"	"y"
+Item	64BIT	boolean
+HasPrompts	64BIT	1
+Default	64BIT	"ARCH=x86_64"	"y"
+Item	X86_32	boolean
+HasPrompts	X86_32	0
+Default	X86_32	"!64BIT"	"y"
+Item	X86_64	boolean
+HasPrompts	X86_64	0
+Default	X86_64	"64BIT"	"y"
+
+/*
+ * check-name: =n, =y, =m...
+ * check-output-start
+I: Items-Count: 4
+I: Format: <variable> [presence condition]
+CONFIG_64BIT
+CONFIG_MODULES
+CONFIG_X86_32 "(!CONFIG_64BIT)"
+CONFIG_X86_64 "(CONFIG_64BIT)"
+I: Items that are always defined:  "CONFIG_MODULES"
+ * check-output-end
+ */
