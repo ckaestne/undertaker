@@ -18,8 +18,8 @@ mkdir -p "$MODELS"
 for i in $ARCHS
 do
   echo "Calculating model for $i"
-  env ARCH="$i" dumpconf arch/$i/Kconfig | grep -v '^#' > "$MODELS/$i.rsf"
-  rsf2model "$MODELS/$i.rsf" > "$MODELS/$i.model"
+  env ARCH="$i" dumpconf arch/$i/Kconfig | grep -v '^#' > "$MODELS/kconfig-$i.rsf"
+  rsf2model "$MODELS/kconfig-$i.rsf" > "$MODELS/$i.model"
 
   # Add CONFIG_$i -> !CONFIG_*
   UPCASE_ARCH=$(echo $i | tr 'a-z' 'A-Z')
