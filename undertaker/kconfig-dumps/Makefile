@@ -4,7 +4,7 @@ MODELS=$(patsubst kconfig-%.rsf,models/%.model,$(RSF_FILES))
 
 all: $(RSF2MODEL) $(MODELS)
 
-models/%.model: kconfig-%.rsf
+models/%.model: kconfig-%.rsf $(RSF2MODEL)
 	@mkdir -p models
 	$(RSF2MODEL) $< > $@
 
