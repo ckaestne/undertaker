@@ -364,7 +364,7 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
     out << "I: Format: <variable> [presence condition]" << std::endl;
     if (!alwaysOnItems.empty()) {
         /* Handle the always on options */
-        out << "I: Items that are always defined: ";
+        out << "ALWAYS_ON";
         for (std::list<Item>::const_iterator it = alwaysOnItems.begin(); it != alwaysOnItems.end(); ++it) {
             Item item = *it;
             out << " \"" << item.name() << "\"";

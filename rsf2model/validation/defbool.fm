@@ -16,7 +16,7 @@ Default	X86_64	"64BIT"	"y"
  * check-output-start
 I: Items-Count: 4
 I: Format: <variable> [presence condition]
-I: Items that are always defined:  "CONFIG_MODULES"
+ALWAYS_ON "CONFIG_MODULES"
 CONFIG_64BIT
 CONFIG_MODULES
 CONFIG_X86_32 "(!CONFIG_64BIT)"
