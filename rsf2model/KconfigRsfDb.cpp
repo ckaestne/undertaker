@@ -383,12 +383,14 @@ void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
         out << std::endl;
     }
 
-    /* Handle the always on options */
-    out << "I: Now all the items that are always on in this model follow" << std::endl;
-    out << "1";
-    for (std::list<Item>::const_iterator it = alwaysOnItems.begin(); it != alwaysOnItems.end(); ++it) {
-        Item item = *it;
-        out << " \"" << item.name() << "\"";
+    if (!alwaysOnItems.empty()) {
+        /* Handle the always on options */
+        out << "I: Items that are always defined: ";
+        for (std::list<Item>::const_iterator it = alwaysOnItems.begin(); it != alwaysOnItems.end(); ++it) {
+            Item item = *it;
+            out << " \"" << item.name() << "\"";
+        }
+        out << std::endl;
     }
 
 }
