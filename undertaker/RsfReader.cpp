@@ -16,8 +16,8 @@ void RsfReader::print_contents(std::ostream &out) {
         out << (*i).first << " : " << (*i).second.front() << std::endl;
 }
 
-std::deque<std::string> RsfReader::parse(const std::string& line) {
-    std::deque<std::string> result;
+StringList RsfReader::parse(const std::string& line) {
+    StringList result;
     std::string item;
     std::stringstream ss(line);
 
@@ -49,7 +49,7 @@ void RsfReader::read_rsf(std::ifstream &rsf_file) {
     while (rsf_file.good()) {
         std::string line;
         getline (rsf_file, line);
-        std::deque<std::string> columns = parse(line);
+        StringList columns = parse(line);
         if (columns.size() == 0)
             continue;
         std::string key = columns.front();

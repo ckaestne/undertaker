@@ -7,10 +7,14 @@
 #include <string>
 #include <iostream>
 
+
+typedef std::deque<std::string> StringList;
+typedef std::map<std::string, StringList> RsfMap;
+
 /**
  * \brief Reads RSF files
  */
-class RsfReader : public std::map<std::string, std::deque<std::string> > {
+class RsfReader : public RsfMap {
 public:
 
     RsfReader(std::ifstream &f, std::ostream &log=std::cout);
@@ -19,7 +23,7 @@ public:
     void print_contents(std::ostream &out);
 
 private:
-    std::deque<std::string> parse(const std::string& line);
+    StringList parse(const std::string& line);
     void read_rsf(std::ifstream &rsf_file);
     std::ostream &log;
 };
