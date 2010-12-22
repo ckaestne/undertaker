@@ -12,35 +12,33 @@ RsfReader::RsfReader(std::ifstream &f, std::ostream &log)
 
 
 void RsfReader::print_contents(std::ostream &out) {
-
     for (iterator i = begin(); i != end(); i++)
         out << (*i).first << " : " << (*i).second.front() << std::endl;
 }
 
-std::deque<std::string>
-RsfReader::parse(const std::string& line) {
+std::deque<std::string> RsfReader::parse(const std::string& line) {
     std::deque<std::string> result;
     std::string item;
     std::stringstream ss(line);
 
     while(ss >> item){
-    if (item[0]=='"') {
-        if (item[item.length() - 1]=='"') {
-        // special case: single word was needlessly quoted
-        result.push_back(item.substr(1, item.length()-2));
+        if (item[0]=='"') {
+            if (item[item.length() - 1]=='"') {
+                // special case: single word was needlessly quoted
+                result.push_back(item.substr(1, item.length()-2));
+            } else {
+                // use the free-standing std::getline to read a "line"
+                // into another string
+                // starting after the current word, delimited by double-quote
+                std::string restOfItem;
+                getline(ss, restOfItem, '"');
+                // That trailing quote is removed from the stream
+                // and not copied to restOfItem.
+                result.push_back(item.substr(1) + restOfItem);
+            }
         } else {
-        // use the free-standing std::getline to read a "line"
-        // into another string
-        // starting after the current word, delimited by double-quote
-        std::string restOfItem;
-        getline(ss, restOfItem, '"');
-        // That trailing quote is removed from the stream
-        // and not copied to restOfItem.
-        result.push_back(item.substr(1) + restOfItem);
+            result.push_back(item);
         }
-    } else {
-        result.push_back(item);
-    }
     }
     return result;
 }
