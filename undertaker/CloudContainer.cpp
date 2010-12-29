@@ -59,7 +59,7 @@ const std::string& BlockCloud::getConstraints() const {
 
         std::string type = ( (exp.find("&&") != std::string::npos) || exp.find("||") != std::string::npos)  ? ":logic" : ":symbolic";
         std::stringstream ss;
-        ss << (*this)[i]._cb->Start() << type;
+        ss << (*this)[i]._cb->Start() << ":" << (*this)[i]._cb->End() << type;
         this->positions.insert(std::pair<std::string,std::string>(getBlockName(i), ss.str()));
         std::string position = ss.str();
         this->positions[bn] = position;
