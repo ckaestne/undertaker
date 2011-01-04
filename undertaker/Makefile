@@ -34,7 +34,7 @@ KconfigIntersect: libparser.a
 	cd ../picosat/; test -s makefile || ./configure
 	$(MAKE) -C ../picosat libpicosat.a
 
-libparser.a: $(PARSEROBJ)
+libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
 
 #Don't create dependencies when we're cleaning, for instance

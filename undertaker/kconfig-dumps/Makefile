@@ -9,7 +9,7 @@ models/%.model: kconfig-%.rsf $(RSF2MODEL)
 	$(RSF2MODEL) $< > $@
 
 $(RSF2MODEL): FORCE
-	$(MAKE) -s -C ../../rsf2model rsf2model
+	$(MAKE) -C ../../rsf2model rsf2model
 
 FORCE:
 

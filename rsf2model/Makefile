@@ -17,11 +17,11 @@ DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ))
 
 PROGS = rsf2model
 
-all: $(PROGS)
+all: $(DEPFILES) $(PROGS)
 
 rsf2model: librsfmodel.a
 
-librsfmodel.a: $(PARSEROBJ)
+librsfmodel.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
 
 #Don't create dependencies when we're cleaning, for instance
@@ -38,7 +38,7 @@ endif
 clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
 
-check: $(PROGS)
+check: all
 	@$(MAKE) -s clean-check
 	cd validation && ./test-suite
 	@# $(MAKE) -s run-libcheck
