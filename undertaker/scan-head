@@ -30,6 +30,6 @@ tail -2 "$report"
 
 nice do-coverage.sh  >  "$report" 2>coverage-error-output.txt
 
-echo "\n\n"
+echo -e "\n\n"
 echo "TOP 15 variable implementation files (format: #possible solutions, filename)"
 grep '.c$' coverage.stats
