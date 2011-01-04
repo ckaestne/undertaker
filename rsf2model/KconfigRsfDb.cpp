@@ -10,7 +10,7 @@
 
 static std::list<std::string> itemsOfString(std::string str);
 
-KconfigRsfDb::Item KconfigRsfDb::ItemDb::invalid_item("", INVALID);
+KconfigRsfDb::Item KconfigRsfDb::ItemDb::invalid_item("VAMOS_INAVLID", INVALID);
 
 KconfigRsfDb::Item::Item(std::string name, unsigned type, bool required)
     : name_(name), type_(type), required_(required) { }
@@ -21,7 +21,7 @@ KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(const std::string &key) const {
     /* We only request config items, which are defined in the rsf.
        Be aware that no slicing is done here */
     if(it == this->end())
-        return Item("", INVALID);
+        return Item(invalid_item);
 
     return (*it).second;
 }
