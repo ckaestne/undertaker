@@ -46,14 +46,19 @@ START_TEST(rewrite_expression)
          "(!CONFIG_BAR && !CONFIG_FOO && !CONFIG_BAR_MODULE && !CONFIG_FOO_MODULE))"));
     teststrings.push_back(std::make_pair(
        "B43 && (HW_RANDOM || HW_RANDOM=B43)",
-       ""));
+       "CONFIG_B43 && "
+       "(CONFIG_HW_RANDOM || "
+       "((CONFIG_HW_RANDOM && CONFIG_B43) || "
+       "(CONFIG_HW_RANDOM_MODULE && CONFIG_B43_MODULE) || "
+       "(!CONFIG_HW_RANDOM && !CONFIG_B43 && "
+       "!CONFIG_HW_RANDOM_MODULE && !CONFIG_B43_MODULE)))"));
 
     for (StringPairList::iterator i = teststrings.begin();
          i != teststrings.end(); ++i) {
         const char *input     = (*i).first.c_str();
         const char *reference = (*i).second.c_str();
         char *output          = strdup(db.rewriteExpressionPrefix(input).c_str());
-        
+
         ck_assert_str_eq(output, reference);
         free(output);
     }
