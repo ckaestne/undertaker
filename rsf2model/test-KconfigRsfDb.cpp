@@ -31,6 +31,22 @@ START_TEST(rewrite_expression)
     teststrings.push_back(std::make_pair("FOO!=BAR",
        "((CONFIG_FOO && !CONFIG_BAR) || (CONFIG_FOO_MODULE && !CONFIG_BAR_MODULE) || "
        "(!CONFIG_FOO && CONFIG_BAR && !CONFIG_FOO_MODULE && CONFIG_BAR_MODULE))"));
+    teststrings.push_back(std::make_pair(
+       "FOO && BAR",
+       "CONFIG_FOO && CONFIG_BAR"));
+    teststrings.push_back(std::make_pair(
+       "FOO && BAR=HURZ",
+       "CONFIG_FOO && "
+         "((CONFIG_BAR && CONFIG_HURZ) || (CONFIG_BAR_MODULE && CONFIG_HURZ_MODULE) || "
+         "(!CONFIG_BAR && !CONFIG_HURZ && !CONFIG_BAR_MODULE && !CONFIG_HURZ_MODULE))"));
+    teststrings.push_back(std::make_pair(
+       "FOO && BAR=FOO",
+       "CONFIG_FOO && "
+         "((CONFIG_BAR && CONFIG_FOO) || (CONFIG_BAR_MODULE && CONFIG_FOO_MODULE) || "
+         "(!CONFIG_BAR && !CONFIG_FOO && !CONFIG_BAR_MODULE && !CONFIG_FOO_MODULE))"));
+    teststrings.push_back(std::make_pair(
+       "B43 && (HW_RANDOM || HW_RANDOM=B43)",
+       ""));
 
     for (StringPairList::iterator i = teststrings.begin();
          i != teststrings.end(); ++i) {
