@@ -197,12 +197,16 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
     std::string separators[] = {"(", ")", " ", "!", "=", "<", ">", "&", "|" };
     std::list<std::string> itemsExp = itemsOfString(exp);
 
-    for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); ++i) {
-        Item item = allItems.getItem("CONFIG_" + *i);
-        const bool tristate = item.isValid() && item.isTristate() && !item.isChoice();
-        size_t pos = 0;
+    size_t start_pos = 0;
 
-        while ( (pos = exp.find(*i,pos)) != std::string::npos) {
+    while (start_pos != std::string::npos) {
+        bool found_item = false;
+        for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); ++i) {
+            Item item = allItems.getItem("CONFIG_" + *i);
+            const bool tristate = item.isValid() && item.isTristate() && !item.isChoice();
+            size_t pos = exp.find(*i, start_pos);
+            /* Item not found search for the next one */
+            if (pos == std::string::npos) continue;
 
             std::string *sep_before = 0;
             std::string *sep_after = 0;
@@ -227,10 +231,13 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
             }
 
             if (sep_before && sep_after) {
+                /* No we are sure we will replace something */
+                found_item = true;
+
                 /* Check if character after token isn't a blank or a )
                    => do not rewrite it here */
                 size_t consume = i->size();
-                enum { NOP,
+                enum { NOP, NOP_TRISTATE,
                        NEQUALS_N, NEQUALS_Y, NEQUALS_M,
                        EQUALS_N, EQUALS_Y, EQUALS_M,
                        EQUALS_SYMBOL, NEQUALS_SYMBOL
@@ -287,7 +294,7 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                     }
                 } else if (tristate) {
                     /* No Postfix, but a tristate */
-                    state = NEQUALS_N;
+                    state = NOP_TRISTATE;
                 }
 
                 switch (state) {
@@ -325,12 +332,28 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                     // Just replace it if the separator before isn't a =
                     if (sep_before->compare("=") != 0) {
                         pos += replace_item(exp, "CONFIG_%1", pos, consume, *i);
+                    } else {
+                        /* Try next item */
+                        continue;
+                    }
+                    break;
+                case NOP_TRISTATE:
+                    // Just replace it if the separator before isn't a =
+                    if (sep_before->compare("=") != 0) {
+                        pos += replace_item(exp, "(CONFIG_%1_MODULE || CONFIG_%1)", pos, consume, *i);
+                    } else {
+                        /* Try next item */
+                        continue;
                     }
                     break;
                 }
+                /* start with searching all tokens again */
+                start_pos = pos;
+                break;
             }
-            pos += 1;
         }
+        /* No item was found at all, so we can stop replacing */
+        if (!found_item) break;
     }
     return exp;
 }
