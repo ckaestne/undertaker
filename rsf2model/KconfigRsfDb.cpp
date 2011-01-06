@@ -231,7 +231,7 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                 enum { NOP,
                        NEQUALS_N, NEQUALS_Y, NEQUALS_M,
                        EQUALS_N, EQUALS_Y, EQUALS_M,
-                       EQUALS_SYMBOL,
+                       EQUALS_SYMBOL, NEQUALS_SYMBOL
                 } state = NOP;
 
                 std::string left, right;
@@ -256,8 +256,7 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                     state = EQUALS_M;
                     consume = 2 + i->size();
                 } else if (exp.compare(p, 1, "=") == 0 || (pos != 0 && exp.compare(pos - 1, 1, "=") == 0)) {
-                    /* Something completly fucked up like
-                       CONFIG_A=CONFIG_B */
+                    /*  CONFIG_A=CONFIG_B */
                     /* We have to save the left and the right side of
                        the equal sign */
                     state = EQUALS_SYMBOL;
@@ -269,6 +268,20 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                     else {
                         right = *next;
                         consume = left.size() + 1 + right.size();
+                    }
+                } else if (exp.compare(p, 2, "!=") == 0 || (pos != 0 && exp.compare(pos - 1, 2, "!=") == 0)) {
+                    /* CONFIG_A!=CONFIG_B */
+                    /* We have to save the left and the right side of
+                       the equal sign */
+                    state = NEQUALS_SYMBOL;
+                    left = *i;
+                    std::list<std::string>::iterator next = i;
+                    ++next;
+                    if (next == itemsExp.end())
+                        state = NOP;
+                    else {
+                        right = *next;
+                        consume = left.size() + 2 + right.size();
                     }
                 } else if (tristate) {
                     /* No Postfix, but a tristate */
@@ -296,6 +309,13 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                                         "(CONFIG_%1_MODULE && CONFIG_%2_MODULE) || "
                                         "(!CONFIG_%1 && !CONFIG_%2 && "
                                         "!CONFIG_%1_MODULE && !CONFIG_%2_MODULE))",
+                                        pos, consume, left, right);
+                    break;
+                case NEQUALS_SYMBOL:
+                    pos += replace_item(exp, "((CONFIG_%1 && !CONFIG_%2) || "
+                                        "(CONFIG_%1_MODULE && !CONFIG_%2_MODULE) || "
+                                        "(!CONFIG_%1 && CONFIG_%2 && "
+                                        "!CONFIG_%1_MODULE && CONFIG_%2_MODULE))",
                                         pos, consume, left, right);
                     break;
                 case EQUALS_Y:
