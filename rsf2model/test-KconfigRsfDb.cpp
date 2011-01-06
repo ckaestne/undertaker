@@ -16,7 +16,10 @@ typedef std::list<std::pair<std::string, std::string> > StringPairList;
 
 START_TEST(rewrite_expression)
 {
-    KconfigRsfDb db(devnulli, devnullo);
+    std::ifstream rsf("validation/test.rsf");
+    fail_if(!rsf.good());
+    KconfigRsfDb db(rsf, devnullo);
+    db.initializeItems();
 
     StringPairList teststrings;
     teststrings.push_back(std::make_pair("FOO=y", "CONFIG_FOO"));
@@ -52,6 +55,12 @@ START_TEST(rewrite_expression)
        "(CONFIG_HW_RANDOM_MODULE && CONFIG_B43_MODULE) || "
        "(!CONFIG_HW_RANDOM && !CONFIG_B43 && "
        "!CONFIG_HW_RANDOM_MODULE && !CONFIG_B43_MODULE)))"));
+    teststrings.push_back(std::make_pair(
+       "SSB_POSSIBLE && SSB && (PCI || PCI=SSB)",
+       "CONFIG_SSB_POSSIBLE && CONFIG_SSB && "
+         "(CONFIG_PCI || "
+           "((CONFIG_PCI && CONFIG_SSB) || (CONFIG_PCI_MODULE && CONFIG_SSB_MODULE) || "
+           "(!CONFIG_PCI && !CONFIG_SSB && !CONFIG_PCI_MODULE && !CONFIG_SSB_MODULE)))"));
 
     for (StringPairList::iterator i = teststrings.begin();
          i != teststrings.end(); ++i) {
@@ -62,6 +71,8 @@ START_TEST(rewrite_expression)
         ck_assert_str_eq(output, reference);
         free(output);
     }
+
+//    db.dumpAllItems(std::cout);
 }
 END_TEST
 

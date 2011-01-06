@@ -1,0 +1,7 @@
+Item    PCI   tristate
+HasPrompts  PCI   1
+Item    SSB  tristate
+HasPrompts  SSB  1
+
+Item    SSB_PCIHOST_POSSIBLE    boolean
+Depends SSB_PCIHOST_POSSIBLE    "SSB_POSSIBLE && SSB && (PCI || PCI=SSB)"
