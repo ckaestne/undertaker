@@ -11,13 +11,14 @@ CFLAGS = -Wall -Wextra -O2 $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
-LDLIBS = 
+LDLIBS = librsfmodel.a
 PARSEROBJ = KconfigRsfDb.o RsfBlocks.o
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ))
 
 PROGS = rsf2model
+TESTPROGS = test-KconfigRsfDb
 
-all: $(DEPFILES) $(PROGS)
+all: $(DEPFILES) $(PROGS) $(TESTPROGS)
 
 rsf2model: librsfmodel.a
 
@@ -38,10 +39,16 @@ endif
 clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
 
+test-%: test-%.cpp librsfmodel.a
+	$(CXX) $(CXXFLAGS) -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
+
+run-libcheck: $(TESTPROGS)
+	@for t in $^; do ./$$t; done
+
 check: all
 	@$(MAKE) -s clean-check
 	cd validation && ./test-suite
-	@# $(MAKE) -s run-libcheck
+	@$(MAKE) -s run-libcheck
 
 clean-check:
 	find validation/ \( -name "*.c.output.expected" \
