@@ -57,9 +57,9 @@ START_TEST(rewrite_expression)
        "!CONFIG_HW_RANDOM_MODULE && !CONFIG_B43_MODULE)))"));
     teststrings.push_back(std::make_pair(
        "SSB_POSSIBLE && SSB && (PCI || PCI=SSB)",
-       "CONFIG_SSB_POSSIBLE && CONFIG_SSB && "
-         "(CONFIG_PCI || "
-           "((CONFIG_PCI && CONFIG_SSB) || (CONFIG_PCI_MODULE && CONFIG_SSB_MODULE) || "
+       "CONFIG_SSB_POSSIBLE && (CONFIG_SSB_MODULE || CONFIG_SSB) && "
+         "((CONFIG_PCI_MODULE || CONFIG_PCI) || ((CONFIG_PCI && CONFIG_SSB) || "
+           "(CONFIG_PCI_MODULE && CONFIG_SSB_MODULE) || "
            "(!CONFIG_PCI && !CONFIG_SSB && !CONFIG_PCI_MODULE && !CONFIG_SSB_MODULE)))"));
 
     for (StringPairList::iterator i = teststrings.begin();
