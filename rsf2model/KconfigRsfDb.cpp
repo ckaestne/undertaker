@@ -194,7 +194,7 @@ replace_item(std::string &exp, std::string fmt, size_t start_pos,
 }
 
 std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
-    std::string separators[9] = { " ", "!", "(", ")", "=", "<", ">", "&", "|" };
+    std::string separators[] = {"(", ")", " ", "!", "=", "<", ">", "&", "|" };
     std::list<std::string> itemsExp = itemsOfString(exp);
 
     for(std::list<std::string>::iterator i = itemsExp.begin(); i != itemsExp.end(); ++i) {
@@ -204,21 +204,23 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
 
         while ( (pos = exp.find(*i,pos)) != std::string::npos) {
 
-            bool sep_before = false;
-            bool sep_after = false;
+            std::string *sep_before = 0;
+            std::string *sep_after = 0;
 
             if (pos == 0)
-                sep_before = true;
+                sep_before = &separators[0]; // ")"
             if (pos + i->size() == exp.size())
-                sep_after = true;
+                sep_after = &separators[1]; // ")"
 
             /* Nine separators */
-            for(int j = 0; j<9; j++) {
+            for(unsigned int j = 0;
+                j < (sizeof(separators)/sizeof(*separators));
+                j++) {
                 if (pos != 0 && exp.compare(pos - 1,1, separators[j]) == 0) {
-                    sep_before = true;
+                    sep_before = &separators[j];
                 }
                 if (exp.compare(pos + i->size(), 1, separators[j]) == 0) {
-                    sep_after = true;
+                    sep_after = &separators[j];
                 }
                 if (sep_before && sep_after)
                     break;
@@ -255,7 +257,7 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                 } else if (exp.compare(p, 2, "=m") == 0) {
                     state = EQUALS_M;
                     consume = 2 + i->size();
-                } else if (exp.compare(p, 1, "=") == 0 || (pos != 0 && exp.compare(pos - 1, 1, "=") == 0)) {
+                } else if (exp.compare(p, 1, "=") == 0) {
                     /*  CONFIG_A=CONFIG_B */
                     /* We have to save the left and the right side of
                        the equal sign */
@@ -269,10 +271,10 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                         right = *next;
                         consume = left.size() + 1 + right.size();
                     }
-                } else if (exp.compare(p, 2, "!=") == 0 || (pos != 0 && exp.compare(pos - 1, 2, "!=") == 0)) {
+                } else if (exp.compare(p, 2, "!=") == 0) {
                     /* CONFIG_A!=CONFIG_B */
                     /* We have to save the left and the right side of
-                       the equal sign */
+                       the unequal sign */
                     state = NEQUALS_SYMBOL;
                     left = *i;
                     std::list<std::string>::iterator next = i;
@@ -320,7 +322,10 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
                     break;
                 case EQUALS_Y:
                 case NOP:
-                    pos += replace_item(exp, "CONFIG_%1", pos, consume, *i);
+                    // Just replace it if the separator before isn't a =
+                    if (sep_before->compare("=") != 0) {
+                        pos += replace_item(exp, "CONFIG_%1", pos, consume, *i);
+                    }
                     break;
                 }
             }
