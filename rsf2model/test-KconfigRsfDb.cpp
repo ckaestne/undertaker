@@ -16,7 +16,7 @@ typedef std::list<std::pair<std::string, std::string> > StringPairList;
 
 START_TEST(rewrite_expression)
 {
-    std::ifstream rsf("validation/test.rsf");
+    std::ifstream rsf("validation/equals-module.fm");
     fail_if(!rsf.good());
     KconfigRsfDb db(rsf, devnullo);
     db.initializeItems();
