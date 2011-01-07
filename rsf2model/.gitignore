@@ -3,3 +3,4 @@
 *.d
 *~
 rsf2model
+test-KconfigRsfTranslator
