@@ -1,0 +1,37 @@
+--- /usr/bin/code2html	2006-06-19 13:08:00.000000000 +0200
++++ /proj/i4vamos/tools/qy03fugy/bin//code2html	2010-12-20 15:21:49.000000000 +0100
+@@ -198,10 +198,15 @@
+       unless ($STYLE{'template'} =~ /^(.*)%%code%%(.*)$/s) {
+ 	  die "template does not contain a %%code%% variable";
+       };
++
++      my $stdin = <STDIN>;
++
+       $STYLE{'header'} = $1;
+       $STYLE{'footer'} = $2;
+       $STYLE{'header'} =~ s/%%title%%/$params{'title'}/g;
+       $STYLE{'footer'} =~ s/%%title%%/$params{'title'}/g;
++      $STYLE{'header'} =~ s/%%style%%/$stdin/g;
++      $STYLE{'footer'} =~ s/%%style%%/$stdin/g;
+       $STYLE{'header'} =~ s/%%version%%/$vernr/g;
+       $STYLE{'footer'} =~ s/%%version%%/$vernr/g;
+ 
+@@ -1326,6 +1331,7 @@
+ '<html>
+ <head>
+   <title>%%title%%</title>
++     %%style%%
+ </head>
+ <body bgcolor="#ffffff" text="#000000">
+ <pre>
+@@ -1358,8 +1364,8 @@
+ 
+                                                                    my $nr = 0;
+                                                                    my $lengthofnr = length(@lines);
+-                                                                   my $format = qq{<a name="$_[1]line%u">%${lengthofnr}u</a> %s\n} ;
+-					                           join ('', map (  {$nr++; sprintf ( $format , $nr, $nr, $_ )} @lines));
++                                                                   my $format = qq{<span id="$_[1]line%u"><a name="$_[1]line%u">%${lengthofnr}u</a> %s</span>\n} ;
++					                           join ('', map (  {$nr++; sprintf ( $format , $nr, $nr, $nr, $_ )} @lines));
+ 					                           },
+ 			                     'linked'       => sub { 
+                                                                    # this should do the same as above only with linenumbers that link to themselves
