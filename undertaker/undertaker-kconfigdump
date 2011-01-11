@@ -6,9 +6,9 @@ set -e
 # rsf file. This rsf file is piped to rsf2model which calculates the
 # model which is used by the undertaker afterwards.
 #
-# dumpconf and rsf2model can be placed in /usr/local/lib/undertaker
-# (/usr/lib/undertaker), because they won't be needed anywhere else
-# than here.
+# dumpconf and rsf2model can be placed in $PREFIX/lib/undertaker or
+# /usr/lib/undertaker or /usr/local/lib/undertaker, because they won't
+# be needed anywhere else than here.
 #
 # Enviroment variables:
 # - MODELS: the directory where the models are placed (default:
@@ -25,7 +25,7 @@ function debug() {
 }
 
 # Find path to the undertaker helping executables
-LIBPATH=/usr/local/lib:/usr/lib:/lib
+LIBPATH=$(dirname $0)/../lib:/usr/local/lib:/usr/lib:/lib
 LIBPOSTFIX=undertaker
 
 OLDIFS=$IFS
