@@ -1,9 +1,9 @@
-PROGS = scripts/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model
+PROGS = dumpconf/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model
 PREFIX ?= /usr/local
 
 all: $(PROGS)
 
-scripts/kconfig/dumpconf: FORCE
+dumpconf/kconfig/dumpconf: FORCE
 	$(MAKE) -f Makefile.kbuild dumpconf
 
 undertaker/undertaker: FORCE
@@ -28,16 +28,19 @@ check:
 
 install: all
 	@install -d -v $(DESTDIR)$(PREFIX)/bin
-	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(PREFIX)/bin
+	@install -d -v $(DESTDIR)$(PREFIX)/lib/undertaker 
+
+	@install -v dumpconf/kconfig/dumpconf $(DESTDIR)$(PREFIX)/lib/undertaker
+	@install -v rsf2model/rsf2model $(DESTDIR)$(PREFIX)/lib/undertaker
+
 	@install -v undertaker/undertaker $(DESTDIR)$(PREFIX)/bin
-	@install -v undertaker/dump-rsf.sh $(DESTDIR)$(PREFIX)/bin
-	@install -v undertaker/go.sh $(DESTDIR)$(PREFIX)/bin
-	@install -v undertaker/scan-head $(DESTDIR)$(PREFIX)/bin
-	@install -v undertaker/do-coverage.sh $(DESTDIR)$(PREFIX)/bin
-	@install -v rsf2model/rsf2model $(DESTDIR)$(PREFIX)/bin
+	@install -v undertaker/undertaker-kconfigdump $(DESTDIR)$(PREFIX)/bin
+	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(PREFIX)/bin
+
+#	@install -v undertaker/scan-head $(DESTDIR)$(PREFIX)/bin
 
 undertaker-lcov:
 	$(MAKE) -C undertaker run-lcov
 
 FORCE:
-.PHONY: FORCE check undertaker-lcov
+.PHONY: FORCE check undertaker-lcov install clean
