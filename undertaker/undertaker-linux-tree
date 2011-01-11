@@ -1,0 +1,42 @@
+#!/bin/bash -e
+
+# This script is indented to run the undertaker on a whole linux
+# tree. It will determine which files to be processed and how many
+# threads can be started according to the count of processors your
+# machine has. It assumes, that you have run undertaker-kconfigdump
+# before, in order to create the models.
+#
+# Enviroment variables:
+# - MODELS: where the models are searched (default: ./models)
+# - DEFAULT_ARCH: which is the primary arch checked against (default:
+#       x86). If you don't know what you are doing keep the default here.
+
+
+MODELS=${MODELS:-models}
+DEFAULT_ARCH=${DEFAULT_ARCH:-x86}
+
+version="$(git describe)"
+if [ -z "$version" ]; then
+    echo "Please run in a Linux tree"
+else
+    echo "Running on Linux Version ${version}"
+fi
+
+if ! which  undertaker > /dev/null; then
+    echo "No undertaker binary found."
+    exit 1
+fi
+
+if ! ls "$MODELS"/*.model >/dev/null 2>&1; then
+    echo "No models found, please call undertaker-kconfigdump"
+    exit
+fi
+
+find . -name "*.[hcS]" | shuf > undertaker-worklist
+find . -name '*dead' -exec rm -f {} +
+
+PROCESSORS="$(getconf _NPROCESSORS_ONLN)"
+
+echo "Analyzing $(wc -l < worklist) files with $PROCESSORS threads."
+time undertaker -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"
+printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"

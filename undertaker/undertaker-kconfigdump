@@ -1,0 +1,84 @@
+#!/bin/bash
+set -e
+
+# This script is used for precalculating the configuration models of a
+# linux tree. Therefore the config is first dumped with dumpconf to an
+# rsf file. This rsf file is piped to rsf2model which calculates the
+# model which is used by the undertaker afterwards.
+#
+# dumpconf and rsf2model can be placed in /usr/local/lib/undertaker
+# (/usr/lib/undertaker), because they won't be needed anywhere else
+# than here.
+#
+# Enviroment variables:
+# - MODELS: the directory where the models are placed (default:
+#           models)
+# - DEBUG: give some debug informations
+
+
+MODELS=${MODELS:-models}
+
+function debug() {
+    if [ -n "$DEBUG" ]; then
+        echo -e "$@"
+    fi
+}
+
+# Find path to the undertaker helping executables
+LIBPATH=/usr/local/lib:/usr/lib:/lib
+LIBPOSTFIX=undertaker
+
+OLDIFS=$IFS
+IFS=:
+for path in $LIBPATH; do
+    if [ -x "$path"/"$LIBPOSTFIX" ]; then
+        PATH="$path"/"$LIBPOSTFIX":"$PATH"
+        debug "Added $path/$LIBPOSTFIX to path"
+        break
+    fi
+done
+IFS=$OLDIFS
+debug "PATH=$PATH\n"
+
+if ! which dumpconf > /dev/null; then
+    echo "No dumpconf binary found."
+    exit 1
+fi
+
+if ! which  rsf2model > /dev/null; then
+    echo "No rsf2model binary found."
+    exit 1
+fi
+
+if [ ! -f arch/x86/Kconfig ]; then
+    echo "Not run in an linux tree. Please run inside an linux tree without arguments"
+    exit 1
+fi
+
+ARCHS=$(ls arch/*/Kconfig | cut -d '/' -f 2)
+
+mkdir -p "$MODELS"
+
+for ARCH in $ARCHS
+do
+  UPCASE_ARCH=$(echo $ARCH | tr 'a-z' 'A-Z')
+  echo "Calculating model for $ARCH"
+
+  # dumpconf, remove all the comments because they will confuse rsf2model
+  ARCH=$ARCH dumpconf arch/$ARCH/Kconfig | grep -v '^#' > "$MODELS/kconfig-$ARCH.rsf"
+
+  # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by 
+  # a rule that no other architecture can be selected at the same
+  # time. E.g. X86 -> !ARM && !S390
+
+  rsf2model "$MODELS/kconfig-$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
+
+  # Add CONFIG_$i -> !CONFIG_* for every architecture
+  echo $ARCHS | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | \
+      sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
+      >> "$MODELS/$ARCH.model"
+
+  if [ -z "$DEBUG" ]; then
+      rm -f "$MODELS/kconfig-$ARCH.rsf"
+  fi
+done
