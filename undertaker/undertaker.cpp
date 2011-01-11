@@ -68,7 +68,7 @@ int rm_pattern(const char *pattern) {
 void process_file_coverage(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
-        std::cout << "skipping" << std::endl;
+        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -115,7 +115,7 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
 
         outf.open(outfstream.str().c_str(), std::ios_base::trunc);
         if (!outf.good()) {
-            std::cerr << "failed to write config in " 
+            std::cerr << "E: failed to write config in "
                       << outfstream.str().c_str()
                       << std::endl;
             outf.close();
@@ -133,14 +133,14 @@ void process_file_cpppc(const char *filename, bool batch_mode, bool loadModels) 
 
     CloudContainer s(filename);
     if (!s.good()) {
-        std::cout << "skipping" << std::endl;
+        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
     std::cout << "I: CPP Precondition for " << filename << std::endl;
     try {
         std::cout << s.getConstraints() << std::endl;
     } catch (std::runtime_error &e) {
-        std::cerr << "FAILED: " << e.what() << std::endl;
+        std::cerr << "E: failed: " << e.what() << std::endl;
         return;
     }
 }
@@ -152,7 +152,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
     std::string file, position;
     size_t colon_pos = fname.find_first_of(':');
     if (colon_pos == fname.npos) {
-        std::cerr << "FAILED: " << "Invalid format for block precondition" << std::endl;
+        std::cerr << "E: invalid format for block precondition" << std::endl;
         return;
     }
     file = fname.substr(0, colon_pos);
@@ -160,7 +160,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 
     CloudContainer cloud(file.c_str());
     if (!cloud.good()) {
-        std::cout << "skipping" << std::endl;
+        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -209,7 +209,7 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
     CloudContainer s(filename);
     if (!s.good()) {
-        std::cout << "skipping" << std::endl;;
+        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -230,7 +230,7 @@ void process_file_interesting(const char *filename, bool batch_mode, bool loadMo
     (void) batch_mode;
 
     if (!loadModels) {
-        usage(std::cerr, "To find interessing items for a given symbol you must load a model");
+        std::cerr << "E: for finding interessting items a model must be loaded" << std::endl;
         return;
     }
 
@@ -263,7 +263,7 @@ void process_file_symbolpc(const char *filename, bool batch_mode, bool loadModel
     (void) batch_mode;
 
     if (!loadModels) {
-        usage(std::cerr, "To find interessing items for a given symbol you must load a model");
+        std::cerr << "E: for symbolpc models must be loaded" << std::endl;
         return;
     }
 
@@ -289,6 +289,25 @@ void process_file_symbolpc(const char *filename, bool batch_mode, bool loadModel
     std::cout << std::endl;;
 }
 
+process_file_cb_t parse_job_argument(const char *arg) {
+    if (strcmp(arg, "dead") == 0) {
+        return process_file_dead;
+    } else if (strcmp(arg, "coverage") == 0) {
+        return process_file_coverage;
+    } else if (strcmp(arg, "cpppc") == 0) {
+        return process_file_cpppc;
+    } else if (strcmp(arg, "blockpc") == 0) {
+        return process_file_blockpc;
+    } else if (strcmp(arg, "interesting") == 0) {
+        return process_file_interesting;
+    } else if (strcmp(arg, "symbolpc") == 0) {
+        return process_file_symbolpc;
+    }
+    return NULL;
+}
+
+
+
 int main (int argc, char ** argv) {
     int opt;
     char *worklist = NULL;
@@ -298,6 +317,7 @@ int main (int argc, char ** argv) {
     std::list<std::string> models;
     std::string main_model = "x86";
     /* Default is dead/undead analysis */
+    std::string process_mode = "dead";
     process_file_cb_t process_file = process_file_dead;
 
     /* Command line structure:
@@ -343,19 +363,9 @@ int main (int argc, char ** argv) {
         case 'j':
             /* assign a new function pointer according to the jobs
                which should be done */
-            if (strcmp(optarg, "dead") == 0) {
-                process_file = process_file_dead;
-            } else if (strcmp(optarg, "coverage") == 0) {
-                process_file = process_file_coverage;
-            } else if (strcmp(optarg, "cpppc") == 0) {
-                process_file = process_file_cpppc;
-            } else if (strcmp(optarg, "blockpc") == 0) {
-                process_file = process_file_blockpc;
-            } else if (strcmp(optarg, "interesting") == 0) {
-                process_file = process_file_interesting;
-            } else if (strcmp(optarg, "symbolpc") == 0) {
-                process_file = process_file_symbolpc;
-            } else {
+            process_file = parse_job_argument(optarg);
+            process_mode = std::string(optarg);
+            if (!process_file) {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
             }
@@ -414,9 +424,45 @@ int main (int argc, char ** argv) {
         std::string line;
         /* Read from stdin and call process file for every line */
         while (1) {
-            std::cout << ">>> ";
+            std::cout << process_mode << ">>> ";
             if (!std::getline(std::cin, line)) break;
-            process_file(line.c_str(), false, loadModels);
+            if (line.compare(0, 2, "::") == 0) {
+                /* Change mode */
+                std::string new_mode;
+                size_t space;
+                /* Possible valid inputs:
+                   ::<mode>
+                   ::<mode> <file>
+                */
+                if ((space = line.find(" ")) == line.npos) {
+                    new_mode = line.substr(2);
+                    line = "";
+                } else {
+                    new_mode = line.substr(2, space - 2);
+                    line = line.substr(space + 1);
+                }
+                if (new_mode.compare("load") == 0) {
+                    f->loadModels(line);
+                    continue;
+                } else if (new_mode.compare("main-model") == 0) {
+                    ConfigurationModel *db = f->loadModels(line);
+                    if (db) {
+                        f->setMainModel(db->getName());
+                    }
+                    continue;
+                } else { /* Change working mode */
+                    process_file_cb_t new_function = parse_job_argument(new_mode.c_str());
+                    if (!new_function) {
+                        std::cerr << "Invalid new working mode: " << new_mode << std::endl;
+                        continue;
+                    }
+                    /* now change the pointer and the working mode */
+                    process_file = new_function;
+                    process_mode = new_mode;
+                }
+            }
+            if (line.size() > 0)
+                process_file(line.c_str(), false, f->size() > 0);
         }
     } else if (threads > 1) {
         std::cout << workfiles.size() << " files will be analyzed by " << threads << " processes." << std::endl;
@@ -436,7 +482,7 @@ int main (int argc, char ** argv) {
                 std::cerr << "I: finished: " << worked_on << " files done (" << thread_number << ")" << std::endl;
                 break;
             } else if (pid < 0) {
-                std::cerr << "E: Forking failed. Exiting." << std::endl;
+                std::cerr << "E: forking failed. Exiting." << std::endl;
                 exit(EXIT_FAILURE);
             } else { /* Father process */
                 forks.push_back(pid);

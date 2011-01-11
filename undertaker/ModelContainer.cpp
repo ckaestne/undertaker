@@ -6,17 +6,18 @@
 #include "ModelContainer.h"
 #include "KconfigWhitelist.h"
 
-void ModelContainer::loadModels(std::string model) {
+ConfigurationModel* ModelContainer::loadModels(std::string model) {
     ModelContainer *f = getInstance();
     int found_models = 0;
     typedef std::list<std::string> FilenameContainer;
     FilenameContainer filenames;
+    ConfigurationModel *ret = 0;
 
     const boost::regex model_regex("^([[:alnum:]]+)\\.model$", boost::regex::perl);
 
     if (! boost::filesystem::exists(model)){
         std::cerr << "E: model '" << model << "' doesn't exist (neither directory nor file)" << std::endl;
-        exit(-1);
+        return 0;
     }
 
     if (! boost::filesystem::is_directory(model)) {
@@ -28,11 +29,11 @@ void ModelContainer::loadModels(std::string model) {
         if (boost::regex_search(model_name.c_str(), what, model_regex)) {
             model_name = std::string(what[1]);
         }
-        f->registerModelFile(model, model_name);
+        ret = f->registerModelFile(model, model_name);
         std::cout << "I: loaded rsf model for " << model_name
                   << std::endl;
 
-        return;
+        return ret;
     }
 
 
@@ -52,7 +53,9 @@ void ModelContainer::loadModels(std::string model) {
             ModelContainer::iterator a = f->find(found_arch);
 
             if (a == f->end()) {
-                f->registerModelFile(model + "/" + filename->c_str(), found_arch);
+                ConfigurationModel *a = f->registerModelFile(model + "/" + filename->c_str(), found_arch);
+                /* overwrite the return value */
+                if (a) ret = a;
                 found_models++;
 
                 std::cout << "I: loaded rsf model for " << found_arch
@@ -63,9 +66,10 @@ void ModelContainer::loadModels(std::string model) {
 
     if (found_models > 0) {
         std::cout << "I: found " << found_models << " rsf models" << std::endl;
+        return ret;
     } else {
         std::cerr << "E: could not find any models" << std::endl;
-        exit(-1);
+        return 0;
     }
 }
 
@@ -85,7 +89,7 @@ ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std:
                   << filename << std::endl;
         return NULL;
     }
-    db = new ConfigurationModel(rsf_file, devnull);
+    db = new ConfigurationModel(arch, rsf_file, devnull);
 
     this->insert(std::make_pair(arch,db));
 

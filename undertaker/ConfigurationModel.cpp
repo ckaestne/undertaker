@@ -10,8 +10,8 @@
 #include <stack>
 
 
-ConfigurationModel::ConfigurationModel(std::ifstream &in, std::ostream &log)
-    : RsfReader(in, log) {
+ConfigurationModel::ConfigurationModel(std::string name, std::ifstream &in, std::ostream &log)
+    : RsfReader(in, log), _name(name) {
 }
 
 std::list<std::string> itemsOfString(std::string str) {
