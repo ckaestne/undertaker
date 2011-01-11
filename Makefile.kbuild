@@ -48,30 +48,27 @@ obj		:= $(objtree)
 export srctree objtree
 
 # We need some generic definitions (do not try to remake the file).
-$(srctree)/scripts/Kbuild.include: ;
-include $(srctree)/scripts/Kbuild.include
+$(srctree)/dumpconf/Kbuild.include: ;
+include $(srctree)/dumpconf/Kbuild.include
 
 # Basic helpers built in scripts/
 PHONY += scripts_basic
 scripts_basic:
-	$(Q)$(MAKE) $(build)=scripts/basic
-
-undertaker: FORCE
-	$(Q)$(MAKE) -C undertaker $@ MAKEFLAGS=
+	$(Q)$(MAKE) $(build)=dumpconf/basic
 
 config: scripts_basic FORCE
 	$(Q)mkdir -p include/linux include/config
-	$(Q)$(MAKE) $(build)=scripts/kconfig $@
+	$(Q)$(MAKE) $(build)=dumpconf/kconfig $@
 
 %config: scripts_basic FORCE
-	$(Q)$(MAKE) $(build)=scripts/kconfig $@
+	$(Q)$(MAKE) $(build)=dumpconf/kconfig $@
 
 dumpconf: scripts_basic FORCE
-	$(Q)$(MAKE) $(build)=scripts/kconfig $@
-	scripts/kconfig/dumpconf $(KBUILD_KCONFIG)
+	$(Q)$(MAKE) $(build)=dumpconf/kconfig $@
+
 
 clean:
-	@find . $(RCS_FIND_IGNORE) \
+	@find dumpconf $(RCS_FIND_IGNORE) \
 		\( -name '*.[oas]' -o -name '*.ko' -o -name '.*.cmd' \
 		-o -name '.*.d' -o -name '.*.tmp' -o -name '*.mod.c' \
 		-o -name 'Module.markers' -o -name '.tmp_*.o.*' \) \
