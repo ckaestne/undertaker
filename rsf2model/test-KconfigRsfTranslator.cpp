@@ -1,4 +1,4 @@
-#include "KconfigRsfDb.h"
+#include "KconfigRsfTranslator.h"
 
 #include <assert.h>
 #include <typeinfo>
@@ -18,7 +18,7 @@ START_TEST(rewrite_expression)
 {
     std::ifstream rsf("validation/equals-module.fm");
     fail_if(!rsf.good());
-    KconfigRsfDb db(rsf, devnullo);
+    KconfigRsfTranslator db(rsf, devnullo);
     db.initializeItems();
 
     StringPairList teststrings;

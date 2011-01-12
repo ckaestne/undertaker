@@ -12,11 +12,11 @@ CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
 LDLIBS = librsfmodel.a
-PARSEROBJ = KconfigRsfDb.o RsfBlocks.o
+PARSEROBJ = KconfigRsfTranslator.o RsfBlocks.o
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ))
 
 PROGS = rsf2model
-TESTPROGS = test-KconfigRsfDb
+TESTPROGS = test-KconfigRsfTranslator
 
 all: $(DEPFILES) $(PROGS) $(TESTPROGS)
 

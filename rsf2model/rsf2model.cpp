@@ -8,7 +8,7 @@
 #include <sys/wait.h>
 #include <boost/regex.hpp>
 
-#include "KconfigRsfDb.h"
+#include "KconfigRsfTranslator.h"
 
 void usage(std::ostream &out, const char *error) {
     if (error)
@@ -33,7 +33,7 @@ int main (int argc, char ** argv) {
     }
 
     /* Load the rsf model */
-    KconfigRsfDb model(rsf_file, devnull);
+    KconfigRsfTranslator model(rsf_file, devnull);
     model.initializeItems();
 
     /* Dump all Items to stdout */

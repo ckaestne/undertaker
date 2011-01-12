@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
-#ifndef kconfigrsfdb_h__
-#define kconfigrsfdb_h__
+#ifndef kconfigrsftranlator_h__
+#define kconfigrsftranslator_h__
 
 #include <string>
 #include <map>
@@ -10,12 +10,12 @@
 
 #include "RsfBlocks.h"
 #include "StringJoiner.h"
-
-class KconfigRsfDb {
+ 
+class KconfigRsfTranslator {
 public:
     enum ITEMTYPE { BOOLEAN=1, TRISTATE=2, ITEM=4, CHOICE=8, INVALID=16, WHITELIST=32 };
 
-    KconfigRsfDb(std::ifstream &in, std::ostream &log);
+    KconfigRsfTranslator(std::ifstream &in, std::ostream &log);
 
     void dumpAllItems(std::ostream &out) const;
     void initializeItems();

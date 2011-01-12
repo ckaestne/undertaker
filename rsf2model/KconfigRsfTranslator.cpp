@@ -1,4 +1,4 @@
-#include "KconfigRsfDb.h"
+#include "KconfigRsfTranslator.h"
 #include "StringJoiner.h"
 
 #include <cassert>
@@ -10,12 +10,12 @@
 
 static std::list<std::string> itemsOfString(std::string str);
 
-KconfigRsfDb::Item KconfigRsfDb::ItemDb::invalid_item("VAMOS_INAVLID", INVALID);
+KconfigRsfTranslator::Item KconfigRsfTranslator::ItemDb::invalid_item("VAMOS_INAVLID", INVALID);
 
-KconfigRsfDb::Item::Item(std::string name, unsigned type, bool required)
+KconfigRsfTranslator::Item::Item(std::string name, unsigned type, bool required)
     : name_(name), type_(type), required_(required) { }
 
-KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(const std::string &key) const {
+KconfigRsfTranslator::Item KconfigRsfTranslator::ItemDb::getItem(const std::string &key) const {
     ItemMap::const_iterator it = this->find(key);
 
     /* We only request config items, which are defined in the rsf.
@@ -26,7 +26,7 @@ KconfigRsfDb::Item KconfigRsfDb::ItemDb::getItem(const std::string &key) const {
     return (*it).second;
 }
 
-KconfigRsfDb::Item &KconfigRsfDb::ItemDb::getItemReference(const std::string &key) {
+KconfigRsfTranslator::Item &KconfigRsfTranslator::ItemDb::getItemReference(const std::string &key) {
     ItemMap::iterator it = this->find(key);
 
     /* We only request config items, which are defined in the rsf.
@@ -37,7 +37,7 @@ KconfigRsfDb::Item &KconfigRsfDb::ItemDb::getItemReference(const std::string &ke
     return (*it).second;
 }
 
-KconfigRsfDb::KconfigRsfDb(std::ifstream &in, std::ostream &log)
+KconfigRsfTranslator::KconfigRsfTranslator(std::ifstream &in, std::ostream &log)
     : _in(in),
       /* This are RsfBlocks! */
       choice_(in, "Choice", log),
@@ -48,7 +48,7 @@ KconfigRsfDb::KconfigRsfDb(std::ifstream &in, std::ostream &log)
       has_prompts_(in, "HasPrompts", log)
 {}
 
-void KconfigRsfDb::initializeItems() {
+void KconfigRsfTranslator::initializeItems() {
 
     for(RsfBlocks::iterator i = this->item_.begin(); i != this->item_.end(); i++) {
         std::stringstream ss;
@@ -194,8 +194,8 @@ replace_item(std::string &exp, std::string fmt, size_t start_pos,
 }
 
 
-KconfigRsfDb::rewriteAction
-KconfigRsfDb::rewriteExpressionIdentify(const std::string &exp, const std::string &item, const std::string &next,
+KconfigRsfTranslator::rewriteAction
+KconfigRsfTranslator::rewriteExpressionIdentify(const std::string &exp, const std::string &item, const std::string &next,
                                         size_t item_pos, size_t &consume) {
 
     rewriteAction action = NORMAL;
@@ -248,7 +248,7 @@ KconfigRsfDb::rewriteExpressionIdentify(const std::string &exp, const std::strin
 
 
 
-std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
+std::string KconfigRsfTranslator::rewriteExpressionPrefix(std::string exp) {
     std::string separators[] = {"(", ")", " ", "!", "=", "<", ">", "&", "|" };
     std::list<std::string> itemsExp = itemsOfString(exp);
 
@@ -346,7 +346,7 @@ std::string KconfigRsfDb::rewriteExpressionPrefix(std::string exp) {
     return exp;
 }
 
-std::string KconfigRsfDb::Item::dumpChoiceAlternative() const {
+std::string KconfigRsfTranslator::Item::dumpChoiceAlternative() const {
     std::stringstream ret("");
 
     if (!isChoice() || choiceAlternatives_.size() == 0)
@@ -393,7 +393,7 @@ std::string KconfigRsfDb::Item::dumpChoiceAlternative() const {
     return "(" + orClause.join(" || ") + ")";
 }
 
-void KconfigRsfDb::dumpAllItems(std::ostream &out) const {
+void KconfigRsfTranslator::dumpAllItems(std::ostream &out) const {
     ItemMap::const_iterator it;
 
     out << "I: Items-Count: "  << allItems.size()  << std::endl;
