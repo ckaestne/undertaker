@@ -19,6 +19,18 @@ public:
 
     void dumpAllItems(std::ostream &out) const;
     void initializeItems();
+
+    enum rewriteAction { NORMAL,
+           NEQUALS_N, NEQUALS_Y, NEQUALS_M,
+           EQUALS_N, EQUALS_Y, EQUALS_M,
+           EQUALS_SYMBOL, NEQUALS_SYMBOL
+    };
+
+
+    rewriteAction rewriteExpressionIdentify(const std::string &exp,const std::string &item,
+                                            const std::string &next,
+                                            size_t item_pos, size_t &consume);
+
     std::string rewriteExpressionPrefix(std::string exp);
 
     struct Item {

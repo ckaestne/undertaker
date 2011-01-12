@@ -62,6 +62,13 @@ START_TEST(rewrite_expression)
            "(CONFIG_PCI_MODULE && CONFIG_SSB_MODULE) || "
            "(!CONFIG_PCI && !CONFIG_SSB && !CONFIG_PCI_MODULE && !CONFIG_SSB_MODULE)))"));
 
+    teststrings.push_back(std::make_pair(
+       "THINKPAD_ACPI && SND && (SND=y || THINKPAD_ACPI=SND)",
+       "CONFIG_THINKPAD_ACPI && CONFIG_SND && "
+         "(CONFIG_SND || ((CONFIG_THINKPAD_ACPI && CONFIG_SND) || "
+         "(CONFIG_THINKPAD_ACPI_MODULE && CONFIG_SND_MODULE) || "
+         "(!CONFIG_THINKPAD_ACPI && !CONFIG_SND && !CONFIG_THINKPAD_ACPI_MODULE && !CONFIG_SND_MODULE)))"));
+
     for (StringPairList::iterator i = teststrings.begin();
          i != teststrings.end(); ++i) {
         const char *input     = (*i).first.c_str();
