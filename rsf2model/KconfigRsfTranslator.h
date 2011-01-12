@@ -27,6 +27,7 @@ public:
     };
 
 
+    /* These are defined in KconfigRsfTranslatorRewrite.cpp */
     rewriteAction rewriteExpressionIdentify(const std::string &exp,const std::string &item,
                                             const std::string &next,
                                             size_t item_pos, size_t &consume);
