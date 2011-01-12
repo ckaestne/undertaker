@@ -22,7 +22,7 @@ namespace Picosat {
 
     /* Include the Limmat library header as C */
     extern "C" {
-#include "picosat.h"
+#include <picosat/picosat.h>
     }
 };
 

@@ -7,12 +7,12 @@ NODEPS:=clean clean-check
 # DEBUG = -g3 -DDEBUG
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
-CFLAGS = -Wall -Wextra -O2 -I../ziz -I../picosat $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 -I../ziz $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
 # LDCOV = -coverage
-LDLIBS = -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  ../picosat/libpicosat.a -lboost_wave-mt $(LDCOV)
+LDLIBS = -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  -lpicosat -lboost_wave-mt $(LDCOV)
 
 PARSEROBJ = CloudContainer.o RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
 	    ModelContainer.o SatChecker.o CodeSatStream.o BlockDefectAnalyzer.o
@@ -24,15 +24,11 @@ TESTPROGS = test-SatChecker
 
 all: ../ziz/libziz.a $(PROGS) $(TESTPROGS)
 
-undertaker: ../picosat/libpicosat.a ../ziz/libziz.a libparser.a
+undertaker: ../ziz/libziz.a libparser.a
 KconfigIntersect: libparser.a
 
 ../ziz/libziz.a: FORCE
 	$(MAKE) -C ../ziz libziz.a
-
-../picosat/libpicosat.a: FORCE
-	cd ../picosat/; test -s makefile || ./configure
-	$(MAKE) -C ../picosat libpicosat.a
 
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
