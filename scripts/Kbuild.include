@@ -121,12 +121,12 @@ cc-option-align = $(subst -functions=0,,\
 
 # cc-version
 # Usage gcc-ver := $(call cc-version)
-cc-version = $(shell $(CONFIG_SHELL) $(srctree)/dumpconf/gcc-version.sh $(CC))
+cc-version = $(shell $(CONFIG_SHELL) $(srctree)/scripts/gcc-version.sh $(CC))
 
 # cc-fullversion
 # Usage gcc-ver := $(call cc-fullversion)
 cc-fullversion = $(shell $(CONFIG_SHELL) \
-	$(srctree)/dumpconf/gcc-version.sh -p $(CC))
+	$(srctree)/scripts/gcc-version.sh -p $(CC))
 
 # cc-ifversion
 # Usage:  EXTRA_CFLAGS += $(call cc-ifversion, -lt, 0402, -O1)
@@ -145,16 +145,16 @@ ld-option = $(call try-run,\
 ######
 
 ###
-# Shorthand for $(Q)$(MAKE) -f dumpconf/Makefile.build obj=
+# Shorthand for $(Q)$(MAKE) -f scripts/Makefile.build obj=
 # Usage:
 # $(Q)$(MAKE) $(build)=dir
-build := -f $(if $(KBUILD_SRC),$(srctree)/)dumpconf/Makefile.build obj
+build := -f $(if $(KBUILD_SRC),$(srctree)/)scripts/Makefile.build obj
 
 ###
-# Shorthand for $(Q)$(MAKE) -f dumpconf/Makefile.modbuiltin obj=
+# Shorthand for $(Q)$(MAKE) -f scripts/Makefile.modbuiltin obj=
 # Usage:
 # $(Q)$(MAKE) $(modbuiltin)=dir
-modbuiltin := -f $(if $(KBUILD_SRC),$(srctree)/)dumpconf/Makefile.modbuiltin obj
+modbuiltin := -f $(if $(KBUILD_SRC),$(srctree)/)scripts/Makefile.modbuiltin obj
 
 # Prefix -I with $(srctree) if it is not an absolute path.
 # skip if -I has no parameter
@@ -211,7 +211,7 @@ if_changed = $(if $(strip $(any-prereq) $(arg-check)),                       \
 if_changed_dep = $(if $(strip $(any-prereq) $(arg-check) ),                  \
 	@set -e;                                                             \
 	$(echo-cmd) $(cmd_$(1));                                             \
-	dumpconf/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).tmp;\
+	scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).tmp;\
 	rm -f $(depfile);                                                    \
 	mv -f $(dot-target).tmp $(dot-target).cmd)
 

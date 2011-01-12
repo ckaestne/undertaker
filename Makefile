@@ -1,9 +1,9 @@
-PROGS = dumpconf/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model
+PROGS = scripts/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model
 PREFIX ?= /usr/local
 
 all: $(PROGS)
 
-dumpconf/kconfig/dumpconf: FORCE
+scripts/kconfig/dumpconf: FORCE
 	$(MAKE) -f Makefile.kbuild dumpconf
 
 undertaker/undertaker: FORCE
@@ -28,11 +28,12 @@ check:
 
 install: all
 	@install -d -v $(DESTDIR)$(PREFIX)/bin
+
 	@install -d -v $(DESTDIR)$(PREFIX)/lib/undertaker 
 	@install -d -v $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
 
-	@install -v dumpconf/kconfig/dumpconf $(DESTDIR)$(PREFIX)/lib/undertaker
+	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(PREFIX)/lib/undertaker
 	@install -v rsf2model/rsf2model $(DESTDIR)$(PREFIX)/lib/undertaker
 
 	@install -v undertaker/undertaker $(DESTDIR)$(PREFIX)/bin
@@ -41,10 +42,8 @@ install: all
 
 	@install -v contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
-#	@install -v undertaker/scan-head $(DESTDIR)$(PREFIX)/bin
-
 undertaker-lcov:
 	$(MAKE) -C undertaker run-lcov
 
 FORCE:
-.PHONY: FORCE check undertaker-lcov install clean
+.PHONY: FORCE check undertaker-lcov
