@@ -1,0 +1,6 @@
+*.o
+*.gcda
+*.gcno
+libziz.a
+zizler
+test/out/*
