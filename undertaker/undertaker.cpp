@@ -29,7 +29,7 @@ enum WorkMode {
 
 void usage(std::ostream &out, const char *error) {
     if (error)
-        out << error << std::endl;
+        out << error << std::endl << std::endl;
     out << "Usage: undertaker [-b worklist] [-w whitelist] [-m model] [-M main model] [-j <job>] <file> [more files]\n";
     out << "  -m: specify the model(s) (directory or file)\n";
     out << "  -M: specify the main model\n";
@@ -393,16 +393,6 @@ int main (int argc, char ** argv) {
         free(whitelist);
     }
 
-    /* Are there any models loaded? */
-    bool loadModels = f->size() > 0;
-    /* Specify main model, if models where loaded */
-    if (f->size() == 1) {
-        /* If there is only one model file loaded use this */
-        f->setMainModel(f->begin()->first);
-    } else if (f->size() > 1) {
-        f->setMainModel(main_model);
-    }
-
     std::vector<std::string> workfiles;
     if (!worklist) {
         /* Use files from command line */
@@ -413,14 +403,31 @@ int main (int argc, char ** argv) {
         /* Read files from worklist */
         std::ifstream workfile(worklist);
         std::string line;
+        if (! workfile.good()) {
+            usage(std::cout, "worklist was not found");
+            exit(EXIT_FAILURE);
+
+        }
         /* Collect all files that should be worked on */
         while(std::getline(workfile, line)) {
             workfiles.push_back(line);
         }
     }
 
+    /* Are there any models loaded? */
+    bool loadModels = f->size() > 0;
+    /* Specify main model, if models where loaded */
+    if (f->size() == 1) {
+        /* If there is only one model file loaded use this */
+        f->setMainModel(f->begin()->first);
+    } else if (f->size() > 1) {
+        f->setMainModel(main_model);
+    }
+
+
+
     /* Read from stdin after loading all models and whitelist */
-    if (workfiles.begin()->compare("-") == 0) {
+    if (workfiles.size() > 0 && workfiles.begin()->compare("-") == 0) {
         std::string line;
         /* Read from stdin and call process file for every line */
         while (1) {
