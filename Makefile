@@ -32,9 +32,9 @@ install: all
 	@install -d -v $(DESTDIR)$(PREFIX)/lib/undertaker 
 	@install -d -v $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
-
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(PREFIX)/lib/undertaker
 	@install -v rsf2model/rsf2model $(DESTDIR)$(PREFIX)/lib/undertaker
+	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(PREFIX)/lib/undertaker
 
 	@install -v undertaker/undertaker $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/undertaker-kconfigdump $(DESTDIR)$(PREFIX)/bin
