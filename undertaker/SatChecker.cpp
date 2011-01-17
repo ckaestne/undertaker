@@ -325,7 +325,7 @@ std::string SatChecker::pprint() {
         (*this)();
         debug_flags = old_debug_flags;
     }
-    return debug_parser + "\n";
+    return _sat + "\n\n" + debug_parser + "\n";
 }
 
 int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out, const MissingSet &missingSet) {

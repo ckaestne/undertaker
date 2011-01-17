@@ -104,6 +104,10 @@ START_TEST(pprinter_test)
                            "&  ! CONFIG_MMU ) "
                            "& ( B72 <->  ( B67 )  & CONFIG_MMU )").pprint()
                 ==
+                "B72 & ( B67 <->  ! CONFIG_MMU ) "
+                "& ( B69 <->  ( B67 )  "
+                "&  ! CONFIG_MMU ) "
+                "& ( B72 <->  ( B67 )  & CONFIG_MMU )\n\n"
                 "\n"
                 "- and\n"
                 "  - B72\n"
