@@ -25,7 +25,9 @@ function debug() {
 }
 
 # Find path to the undertaker helping executables
-LIBPATH=$(dirname $0)/../lib:/usr/local/lib:/usr/lib:/lib
+LIBPATH=$(dirname $(which $0))/../lib:$(dirname $0)/../lib:/usr/local/lib:/usr/lib:/lib
+# Canonicalize dir/../ to /
+LIBPATH=$(echo $LIBPATH | sed 's#/\([^/]\+\)/\.\./#/#g')
 LIBPOSTFIX=undertaker
 
 OLDIFS=$IFS
@@ -49,6 +51,9 @@ if ! which  rsf2model > /dev/null; then
     echo "No rsf2model binary found."
     exit 1
 fi
+
+debug "rsf2model: $(which rsf2model)"
+debug "dumpconf: $(which dumpconf)"
 
 if [ ! -f arch/x86/Kconfig ]; then
     echo "Not run in an linux tree. Please run inside an linux tree without arguments"
