@@ -109,7 +109,8 @@ Ask for starting if it isn't running"
   (when (undertaker::ensure-running)
    (let ((filename (buffer-file-name (current-buffer)))
          (undertaker-path (file-truename (undertaker::process-cwd))))
-     (if (string-equal (subseq filename 0 (length undertaker-path))
+     (if (string-equal (subseq filename 0 (min (length undertaker-path)
+                                               (length filename)))
                        undertaker-path)
          (setq filename (subseq filename (length undertaker-path))))
      (when filename
