@@ -25,9 +25,8 @@ function debug() {
 }
 
 # Find path to the undertaker helping executables
-LIBPATH=$(dirname $(which $0))/../lib:$(dirname $0)/../lib:/usr/local/lib:/usr/lib:/lib
+LIBPATH=$(dirname $(readlink -f $(which $0)))/../lib:$(dirname $0)/../lib:/usr/local/lib:/usr/lib:/lib
 # Canonicalize dir/../ to /
-LIBPATH=$(echo $LIBPATH | sed 's#/\([^/]\+\)/\.\./#/#g')
 LIBPOSTFIX=undertaker
 
 OLDIFS=$IFS
