@@ -77,13 +77,13 @@ deadlist="${resultdir}/${version}-deads.txt"
 echo "Scanning version ${version}, logging to ${report}"
 
 undertaker-kconfigdump  > "$report" 2> dump-rsf-error-output.txt
-undertaker-linux-tree -t ${PROCESSORS}    >>"$report" 2>undertaker-error-output.txt
-undertaker-linux-tree -t ${PROCESSORS} -c >>"$report" 2>coverage-error-output.txt
 
+undertaker-linux-tree -t ${PROCESSORS}    >>"$report" 2>undertaker-error-output.txt
 find . -name '*dead' -ls > "$deadlist"
 echo "Found $(grep globally $deadlist | wc -l) globally dead blocks"
 
 
+undertaker-linux-tree -t ${PROCESSORS} -c >>"$report" 2>coverage-error-output.txt
 echo "TOP 15 variable implementation files (format: #possible solutions, filename)"
 grep '.c$' "${report}"
 
