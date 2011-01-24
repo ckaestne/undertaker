@@ -1,13 +1,114 @@
-How to checkout
----------------
+= The VAMOS Project =
 
-This branch uses submodules. After cloning this branch, you need to
-update the submodules manually. This is done with the following steps
+Topic of the project is variability of system software evoked by the
+non-functional properties of operating-system functions, which emerges
+from (a) different implementations of the same system function to make
+an appearance of certain non-functional properties and (b) the using
+level of those implementations in order to compensate for effects of
+these properties.
 
- $ git submodule update --init
+With this project, the undertaker, we provide tools to examine and
+evaluate CPP based source files. See
+http://www4.informatik.uni-erlangen.de/Research/VAMOS/publications.shtml
+for a list of publications.
 
-In order to update the 'ziz' submodule, use
 
- $ git submodule update
+For a up-to-date version of this document see
+
+http://vamos.informatik.uni-erlangen.de/trac/undertaker/wiki
+
+= undertaker =
+
+The undertaker is an implementation of our preprocessor and
+configuration analysis approaches. It can check the structure of your
+preprocessor directives against different configuration models to find
+blocks than can't be selected or deselected.
+
+= Requirements =
+ * libboost-wave (1.40 or above)
+ * libboost-regex (1.40 or above)
+ * libboost-filesystem (1.40 or above)
+ * libboost (1.40 or above)
+ * [http://check.sourceforge.net check] - testing suite for C
+ * [http://fmv.jku.at/picosat/ picosat] (913-4 or above)
+
+= Building = 
+To install the dependencies in Debian or Ubuntu, you
+paste this in your shell, but be aware that the picosat package in
+Debian Lenny is far to outdated.
+
+,----
+| apt-get install libboost-wave1.40-dev libboost-regex1.40-dev libboost-filesystem1.40-dev \
+|    libboost1.40-dev check picosat
+`----
 
 
+Compiling and installation
+
+,----
+|     $ make
+| and
+|     $ make install
+| or  $ PREFIX=/path/to/install make install
+`----
+
+
+= Workflow (example) = 
+To check a single file (or all files) in the
+Linux kernel for dead or undead preprocessor blocks, you have to
+extract the configuration models from the kconfig first. Therefore you
+just have to execute undertaker-kconfigdump in the root of an Linux
+tree. This will generate models for each architecture and place them
+in the subfolder models.
+
+
+,----[ $ ls models ]
+| alpha.model  blackfin.model  h8300.model  m68k.model        mips.model     powerpc.model  sh.model     x86.model
+| arm.model    cris.model      ia64.model   m68knommu.model   mn10300.model  s390.model     sparc.model  xtensa.model
+| avr32.model  frv.model       m32r.model   microblaze.model  parisc.model   score.model    tile.model
+`----
+
+
+If you want to examine a single file for dead blocks with checks
+against the models you can execute
+
+,----[ $ undertaker -j dead -m models kernel/sched.c ]
+| I: loaded rsf model for alpha
+| [...]
+| I: loaded rsf model for xtensa
+| I: found 23 rsf models
+| I: Using x86 as primary model
+| I: creating kernel/sched.c.B250.x86.missing.dead
+| I: creating kernel/sched.c.B360.x86.missing.dead
+| I: creating kernel/sched.c.B362.x86.missing.dead
+| I: creating kernel/sched.c.B364.missing.globally.dead
+| I: creating kernel/sched.c.B368.x86.missing.dead
+| I: creating kernel/sched.c.B396.x86.missing.dead
+| I: creating kernel/sched.c.B408.x86.missing.dead
+| I: creating kernel/sched.c.B421.x86.missing.dead
+| I: creating kernel/sched.c.B437.x86.missing.dead
+| I: creating kernel/sched.c.B447.missing.globally.dead
+| I: creating kernel/sched.c.B556.x86.missing.dead
+`----
+
+
+This means in detail:
+ * -j dead: do an dead analysis
+ * -m models: load all models from directory models/
+ * kernel/sched.c: examine this file
+
+ * I: Using x86 as primary model": x86 is the default model which the
+   file is checked against (this can be changed with -M <arch>) All
+ * x86.missing.dead files are just dead on x86, there is at least one
+   architecture this block can be enabled missing.globally.dead files
+   are dead on every architecture.
+
+To check all files in the Linux kernel there is the helper script
+undertaker-linux-tree, which starts the undertaker with the correct
+list of working files and gives it the correct count of parallel
+worker processes on your multicore machine.
+
+
+,----
+| $ undertaker-linux-tree
+`----
