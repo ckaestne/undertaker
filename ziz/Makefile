@@ -19,10 +19,14 @@ $(ZIZOBJ): $(HEADERS)
 libziz.a: $(ZIZOBJ) $(HEADERS)
 	ar r $@ $(ZIZOBJ)
 
-clean:
+clean: clean-check
 	rm -rf *.o *.a
 
+clean-check:
+	rm -rf test/out
+
 test: all
+	@mkdir -p test/out
 	@cd test && ./test-suite.sh
 
 test-clean:

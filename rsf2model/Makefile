@@ -51,15 +51,15 @@ check: all
 	@$(MAKE) -s run-libcheck
 
 clean-check:
-	find validation/ \( -name "*.c.output.expected" \
-	                 -o -name "*.c.output.got" \
-	                 -o -name "*.c.output.diff" \
-	                 -o -name "*.c.error.expected" \
-	                 -o -name "*.c.error.got" \
-	                 -o -name "*.c.error.diff" \
-	                 -o -name "*.dead" \
-	                 -o -name "*.undead" \
-	                 \) -exec rm {} \;
+	find validation/ \( -name "*.output.expected" \
+                     -o -name "*.output.got" \
+                     -o -name "*.output.diff" \
+                     -o -name "*.error.expected" \
+                     -o -name "*.error.diff" \
+                     -o -name "*.error.got" \
+                     -o -name "*.dead" \
+                     -o -name "*.undead" \
+                     \) -delete
 docs:
 	doxygen
 
