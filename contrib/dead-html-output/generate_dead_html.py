@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import glob, os, subprocess, sys
-from multiprocessing import Pool
 
 format_dead = "#line%(linum)s { background-color: #ff6655; cursor: pointer;}\n"
 format_undead = "#line%(linum)s { background-color: #66dd11; cursor: pointer;}\n"
@@ -27,39 +26,24 @@ def dead_text(count):
         return ""
     return str(count)
 
-def dead_file(filename):
+def dead_file(filename, version):
     html = open(filename + ".html", "w+")
+    deads = glob.glob(filename+"*globally*dead") + glob.glob(filename + "*globally*undead")
+    
     p = subprocess.Popen("code2html -n " + filename, shell = True,
                          stdin=subprocess.PIPE, stdout=html, stderr=subprocess.PIPE)
 
-    deads = glob.glob(filename+"*globally*dead") + glob.glob(filename + "*globally*undead")
-    css = icon_file_css
-    js = """$('<a href="." class="icon up">[parent directory]</a> | %s<hr>').insertBefore('pre');\n""" % filename
-    for dead in deads:
-        fd = open(dead)
-        head = fd.readline().split(":")
-        for line in range(int(head[2]), int(head[5])):
-            js += '$("#line%d").click(function() { window.location = "%s"; } );\n' % (line, os.path.basename(dead))
-            if "undead" in dead:
-                css += format_undead % {"linum": line,
-                                        "target": os.path.basename(dead)}
-            else:
-                css += format_dead % {"linum": line,
-                                      "target": os.path.basename(dead)}
-        fd.close()
-
-    p.stdin.write('<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.js"></script>')
-    p.stdin.write("<style type=\"text/css\">\n" + css + "</style>\n")
-    p.stdin.write("<script type=\"text/javascript\">$(document).ready(function () {\n" + js + "}) </script>")
+    p.stdin.write('<script type="text/javascript" src="/Research/VAMOS/linux-trees/%s/jquery.js"></script>\n' % version);
+    p.stdin.write('<script type="text/javascript" src="/Research/VAMOS/linux-trees/%s/explorer.js"></script>\n' % version);
 
     p.stdin.close()
     p.wait()
     return len(deads)
 
-def dead_directory(dir="."):
-    global pool
+def dead_directory(dir=".", version = ""):
     fd = open(os.path.join(dir, "index.html"), "w+")
     deads = 0
+
 
     fd.write("""<html>
 <head>
@@ -74,26 +58,25 @@ def dead_directory(dir="."):
 
     paths = [path for path in os.listdir(dir) if os.path.isdir(os.path.join(dir, path))]
     paths_ = [os.path.join(dir, path) for path in paths]
-    counts = map(dead_directory, paths_)
+    counts = map(lambda x:dead_directory(x, version), paths_)
     deads += sum(counts)
     for (path, d) in zip(paths, counts):
             fd.write("<tr><td>%s</td><td><a href='%s/index.html' class='icon dir'>%s</a></td></tr>\n" %(dead_text(d), path, path))
 
 
     files = glob.glob(dir + "/*.h") + glob.glob(dir + "/*.c")
-    counts = pool.map(dead_file, files)
+    counts = map(lambda x: dead_file(x, version), files)
     deads += sum(counts)
     for (filename, d) in zip(files, counts):
         f = os.path.basename(filename)
         fd.write("<tr><td>%s</td><td><a href='%s.html' class='icon file'>%s</a></td></tr>\n" %(dead_text(d), f, f))
 
     fd.write("</ul>")
+
     fd.close()
     return deads
 
-global pool
 if __name__ == '__main__':
-    pool  = Pool(6)
-    print dead_directory(sys.argv[1])
+    print dead_directory(sys.argv[1], sys.argv[2])
 
 
