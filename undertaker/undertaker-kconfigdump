@@ -63,13 +63,21 @@ ARCHS=$(ls arch/*/Kconfig | cut -d '/' -f 2)
 
 mkdir -p "$MODELS"
 
-for ARCH in $ARCHS
+for ARCH in $ARCHS um
 do
   UPCASE_ARCH=$(echo $ARCH | tr 'a-z' 'A-Z')
   echo "Calculating model for $ARCH"
 
+  # special case for user mode linux
+  SUBARCH=$ARCH
+  KCONFIG=Kconfig
+  if [ x"$ARCH" = x"um" ]; then
+      SUBARCH=x86
+      KCONFIG=Kconfig.x86
+  fi
+
   # dumpconf, remove all the comments because they will confuse rsf2model
-  ARCH=$ARCH dumpconf arch/$ARCH/Kconfig | grep -v '^#' > "$MODELS/kconfig-$ARCH.rsf"
+  SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | grep -v '^#' > "$MODELS/kconfig-$ARCH.rsf"
 
   # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by 
   # a rule that no other architecture can be selected at the same
