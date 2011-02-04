@@ -389,7 +389,12 @@ int main (int argc, char ** argv) {
     if (whitelist) {
         KconfigWhitelist *wl = KconfigWhitelist::getInstance();
         int n = wl->loadWhitelist(whitelist);
-        std::cout << "I: loaded " << n << " items to whitelist" << std::endl;
+        if (n >= 0) {
+            std::cout << "I: loaded " << n << " items to whitelist" << std::endl;            
+        } else {
+            std::cout << "E: couldn't load whitelist" << std::endl;
+            exit(-1);
+        }
         free(whitelist);
     }
 

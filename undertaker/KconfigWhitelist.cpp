@@ -49,11 +49,11 @@ KconfigWhitelist *KconfigWhitelist::getInstance() {
 }
 
 int KconfigWhitelist::loadWhitelist(const char *file) {
-    ModelContainer *f = ModelContainer::getInstance();
-    if (f->empty())
-        return 0;
-
     std::ifstream whitelist(file);
+
+    if (!whitelist.good())
+        return -1;
+
     std::string line;
     const boost::regex r("^#.*", boost::regex::perl);
 
