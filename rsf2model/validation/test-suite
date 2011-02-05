@@ -246,6 +246,7 @@ case "$1" in
 			1) echo "$2 failed !";;
 			2) echo "$2 can't be handled by $prog_name";;
 		esac
+        cat "$2"*.diff
 		;;
 	format)
 		arg_file "$2"
