@@ -1,0 +1,27 @@
+Item	A	boolean
+Depends	A	"!C"
+HasPrompts	A	1
+Item	Atri	tristate
+Depends	Atri	"!(C || B)"
+HasPrompts	Atri	1
+Item	B	tristate
+HasPrompts	C	1
+Item	C	tristate
+HasPrompts	C	1
+Item	MODULES	boolean
+HasPrompts	MODULES	1
+/*
+ * check-name: correct usage of not in dependencies
+ * check-output-start
+I: Items-Count: 8
+I: Format: <variable> [presence condition]
+CONFIG_A "!CONFIG_C"
+CONFIG_Atri "((!CONFIG_C_MODULE && !CONFIG_C) && (!CONFIG_B_MODULE && !CONFIG_B)) && !CONFIG_Atri_MODULE"
+CONFIG_Atri_MODULE "(!CONFIG_C && !CONFIG_B) && !CONFIG_Atri && CONFIG_MODULES"
+CONFIG_C "!CONFIG_C_MODULE"
+CONFIG_C_MODULE "!CONFIG_C && CONFIG_MODULES"
+CONFIG_B "!CONFIG_B_MODULE"
+CONFIG_B_MODULE "!CONFIG_B && CONFIG_MODULES"
+CONFIG_MODULES
+* check-output-end
+*/

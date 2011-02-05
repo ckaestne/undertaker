@@ -201,10 +201,10 @@ class BoolRewriter(tools.UnicodeMixin):
                 # Symbol == Symbol
                 return [BoolParser.OR,
                         [BoolParser.AND, left_y, right_y], # Either both y
-                        [BoolParser.AND, right_y, right_m], # Or both
+                        [BoolParser.AND, left_m, right_m], # Or both
                         [BoolParser.AND, # Or everything disabled
-                         [BoolParser.NOT, left_y], [BoolParser.NOT, left_m],
-                         [BoolParser.NOT, right_y], [BoolParser.NOT, right_m]]]
+                         [BoolParser.NOT, left_y], [BoolParser.NOT, right_y],
+                         [BoolParser.NOT, left_m], [BoolParser.NOT, right_m]]]
 
 
         if tree[0] == BoolParser.NEQUAL:
