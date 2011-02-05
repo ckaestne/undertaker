@@ -107,6 +107,8 @@ class BoolRewriter(tools.UnicodeMixin):
 
     def __init__(self, rsf, expr, eval_to_module = True):
         self.expr = BoolParser(expr).to_bool()
+        if type(self.expr) == str or self.expr[0] == BoolParser.NOT:
+            self.expr = [BoolParser.AND, self.expr]
         self.rsf = rsf
         self.eval_to_module = eval_to_module
 
@@ -192,9 +194,9 @@ class BoolRewriter(tools.UnicodeMixin):
             elif right == "m":
                 return left_m
             elif right == "n":
-                return [BoolParser.AND,
-                        [BoolParser.NOT, left_y],
-                        [BoolParser.NOT, left_m]]
+                return [BoolParser.AND, 
+                        [BoolParser.NOT, left_m],
+                        [BoolParser.NOT, left_y]]
             else:
                 # Symbol == Symbol
                 return [BoolParser.OR,
@@ -222,7 +224,7 @@ class BoolRewriter(tools.UnicodeMixin):
             elif right == "m":
                 return [BoolParser.NOT, left_m]
             elif right == "n":
-                return [BoolParser.OR, left_y, left_m]
+                return [BoolParser.OR, left_m, left_y]
             else:
                 # y -> !y =  !y1 or !y2
                 # m -> !m =  !m1 or !m2
@@ -236,18 +238,18 @@ class BoolRewriter(tools.UnicodeMixin):
 
     def dump(self):
         def __concat(tree):
+            if not type(tree) in [list, tuple]:
+                return tree
+            if tree[0] == BoolParser.NOT:
+                return "!" + tree[1]
             elements = []
             for e in tree[1:]:
-                if type(e) in [list, tuple]:
-                    if e[0] == BoolParser.NOT:
-                        elements.append("!" + e[1])
-                    else:
-                        elements.append(__concat(e))
-                else:
-                    elements.append(e)
+                elements.append(__concat(e))
             cat = " && "
             if tree[0] == BoolParser.OR:
                 cat = " || "
+            if len(elements) == 1:
+                return cat.join(elements)
             return "(" + cat.join(elements) + ")"
         return __concat(self.expr)
     def rewrite(self):

@@ -33,16 +33,16 @@ class TranslatedModel(tools.UnicodeMixin):
         # Add dependency
         if option.tristate():
             # For tristate symbols (without _MODULE) the dependency must evaluate to y
-            dep = option.dependency(["y"])
+            dep = option.dependency(eval_to_module = False)
             if dep:
                 self.deps[symbol].insert(0, dep)
 
             # for _MODULE also "m" is ok
-            dep = option.dependency()
+            dep = option.dependency(eval_to_module = True)
             if dep:
                 self.deps[option.symbol_module()].insert(0, dep)
         else:
-            dep = option.dependency(["y", "m"])
+            dep = option.dependency(eval_to_module = True)
             if dep:
                 self.deps[symbol].insert(0, dep)
 
