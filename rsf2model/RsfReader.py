@@ -73,7 +73,14 @@ class RsfReader:
         return result
 
     def depends(self):
-        return self.collect("Depends")
+        deps = self.collect("Depends", 0, True)
+        for k, v in deps.items():
+            v = map(lambda x: x[0], v)
+            if len(v) > 1:
+                deps[k] = ["(" + ") && (".join(v) + ")"]
+            else:
+                deps[k] = v
+        return deps
 
 
 
