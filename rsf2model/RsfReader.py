@@ -13,7 +13,11 @@ class RsfReader:
             self.database[key] = []
 
         for line in fd.readlines():
-            row = shlex.split(line)
+            try:
+                row = shlex.split(line)
+            except:
+                print "Couldn't parse %s" % line
+                continue
             if len(row) > 1 and row[0] in keys:
                 self.database[row[0]].append(row[1:])
 
@@ -72,6 +76,7 @@ class RsfReader:
                 result[item[col]] = item[0:col] + item[col+1:]
         return result
 
+    @tools.memoized
     def depends(self):
         deps = self.collect("Depends", 0, True)
         for k, v in deps.items():
@@ -117,11 +122,14 @@ class Option (tools.Repr):
         depends = self.rsf.depends()
         if not self.name in depends or len(depends[self.name]) == 0:
             return None
-        
+
         depends = depends[self.name][0]
 
         # Rewrite the dependency
-        return str(BoolRewriter.BoolRewriter(self.rsf, depends, eval_to_module = eval_to_module).rewrite())
+        try:
+            return str(BoolRewriter.BoolRewriter(self.rsf, depends, eval_to_module = eval_to_module).rewrite())
+        except:
+            return ""
 
     def __unicode__(self):
         return u"<Option %s, tri: %s>" % (self.name, str(self.tristate()))
