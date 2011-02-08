@@ -15,15 +15,16 @@ class BoolParser (ast.NodeTransformer):
     NOT = "not"
     EQUAL = "=="
     NEQUAL = "!="
-    def __init__(self, expr):
+    def __init__(self, bool_expr):
         try:
-            expr = expr.replace("&&", " and ").replace("||", "or")
+            expr = bool_expr.replace("&&", " and ").replace("||", "or")
             expr = re.sub("!(?=[^=])", " not ", expr)
             expr = re.sub("(?<=[^!])=", " == ", expr)
+            expr = re.sub("((?<=[( &|])|^)(?=[0-9])", "VAMOS_MAGIC_", expr)
             expr = re.sub("^ *", "", expr)
             self.tree = ast.parse(expr)
         except:
-            raise BoolParserException("Parsing failed")
+            raise BoolParserException("Parsing failed: '" + expr + "'")
 
         if self.tree.__class__ != ast.Module \
                 or len(self.tree.body) > 1 \
@@ -63,6 +64,8 @@ class BoolParser (ast.NodeTransformer):
         raise BoolParserException("Unkown compare operation")
 
     def visit_Name(self, node):
+        if node.id.startswith("VAMOS_MAGIC_"):
+            return node.id[len("VAMOS_MAGIC_"):]
         return node.id
 
     def visit(self, node):

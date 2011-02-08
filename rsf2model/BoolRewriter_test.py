@@ -19,6 +19,11 @@ CRAP CARASDD"""
         def rewrite(a, b, to_module = True):
             self.assertEqual(str(BR(self.rsf, a, eval_to_module = to_module).rewrite()), b)
 
+        rewrite("64BIT", "CONFIG_64BIT")
+        rewrite("FOO && 64BIT", "(CONFIG_FOO && CONFIG_64BIT)")
+        rewrite("FOO && (64BIT)", "(CONFIG_FOO && CONFIG_64BIT)")
+
+
         rewrite("A", "CONFIG_A")
         rewrite("!A", "!CONFIG_A")
         rewrite("!(A && C)", "(!CONFIG_A || !CONFIG_C)")
