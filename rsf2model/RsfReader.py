@@ -42,7 +42,10 @@ class RsfReader:
         tristate = {}
         options = set()
         for item in self.database["Item"]:
-            if len(item) < 2: continue
+            if not item[1].lower() in ["boolean", "tristate"]:
+                continue
+            if len(item) < 2:
+                continue
             options.add(item[0])
             tristate[item[0]] = item[1].lower() == "tristate"
 
