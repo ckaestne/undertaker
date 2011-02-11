@@ -239,14 +239,11 @@ class BoolRewriter(tools.UnicodeMixin):
             elif right == "n":
                 return [BoolParser.OR, left_m, left_y]
             else:
-                # y -> !y =  !y1 or !y2
-                # m -> !m =  !m1 or !m2
-                # n -> !n =  !(y1 |m1) or (y2 | m2)
-                return [BoolParser.AND,
-                        [BoolParser.OR, [BoolParser.NOT, left_y], [BoolParser.NOT, right_y]],
-                        [BoolParser.OR, [BoolParser.NOT, left_m], [BoolParser.NOT, right_m]],
-                        [BoolParser.OR, [BoolParser.NOT, [BoolParser.OR, left_y, left_m]],
-                         [BoolParser.OR, right_y, right_m]]]
+                return [BoolParser.OR,
+                        [BoolParser.AND, left_y, [BoolParser.NOT, right_y]],
+                        [BoolParser.AND, left_m, [BoolParser.NOT, right_m]],
+                        [BoolParser.AND, [BoolParser.NOT, left_y], right_y],
+                        [BoolParser.AND, [BoolParser.NOT, left_m], right_m]]
 
 
     def dump(self):
