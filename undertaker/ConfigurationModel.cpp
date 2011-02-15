@@ -24,6 +24,7 @@
 #include "KconfigWhitelist.h"
 #include "StringJoiner.h"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <cassert>
 #include <cstdlib>
 #include <sstream>
@@ -150,7 +151,8 @@ int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &o
                 continue;
             }
 
-            if (it->size() > 1)
+            /* free variables are never missing */
+            if (it->size() > 1 && !boost::starts_with(*it, "__FREE__"))
                 missing.insert(*it);
         }
     }
