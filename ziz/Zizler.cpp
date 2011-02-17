@@ -26,13 +26,35 @@
 using namespace Ziz;
 
 
+static Ziz::Defines defines;
+
+// search defines in global defines mal for block b
+std::list<std::string> search_defs(Block const &b) {
+    std::list<std::string> found;
+
+    for (Defines::iterator i = defines.begin(); i != defines.end(); i++) {
+        const std::string &s = (*i).first;
+        const std::list<Define*> &list = (*i).second;
+        if (list.empty())
+            continue;
+
+        for (std::list<Define*>::const_iterator d = list.begin(); d != list.end(); d++) {
+            if (&b == (*d)->_block)
+                found.push_back(s);
+        }
+    }
+    return found;
+}
+
 // output operators
 
 // + short output (--short mode)
 std::ostream & operator+(std::ostream &stream, File const * p_f)
 {
-    assert(p_f != NULL);
     std::vector<Block*>::const_iterator it;
+
+    assert(p_f != NULL);
+    defines = p_f->_defines_map;
     for (it = p_f->begin(); it != p_f->end(); ++it)
         stream + **it;
     return stream;
@@ -52,6 +74,8 @@ std::ostream & operator+(std::ostream &stream, Block const &b)
 
 std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
 {
+    std::list<std::string> found;
+
     stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] ";
 
     stream << "[E=" << b.ExpressionStr() << "] ";
@@ -59,6 +83,14 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
     std::string header = b.Header();
     chomp(header);
     stream << "[H=" << header << "] ";
+
+    found = search_defs(b);
+    if (!found.empty()) {
+        stream << "[D=";
+        for (std::list<std::string>::iterator i = found.begin(); i!=found.end(); i++)
+            stream << (*i) << " ";
+        stream << "] ";
+    }
 
     std::string footer = b.Footer();
     chomp(footer);
@@ -117,8 +149,17 @@ std::ostream & operator<<(std::ostream &stream, Block const &b)
 
 std::ostream & operator<<(std::ostream &stream, CodeBlock const &b)
 {
+    std::list<std::string> found;
+
     stream << "START CODE BLOCK " << b.Id() << "\n";
     stream << b.Content();
+    found = search_defs(b);
+    if (!found.empty()) {
+        stream << "[#defines: ";
+        for (std::list<std::string>::iterator i = found.begin(); i!=found.end(); i++)
+            stream << (*i) << " ";
+        stream << "] ";
+    }
     stream << "END CODE BLOCK " << b.Id() << "\n";
     return stream;
 }

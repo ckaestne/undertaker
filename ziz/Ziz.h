@@ -175,21 +175,41 @@ class ConditionalBlock : public Block, public BlockContainer {
         ConditionalBlock*       _p_prevSib;
 };
 
+struct Define {
+        Define(int id, std::string flag, position_type pos, ConditionalBlock* block, bool define)
+            : _id(id), _flag(flag), _position(pos), _block(block), _define(define) {}
+        int             _id;
+        std::string     _flag;
+        position_type   _position;
+        ConditionalBlock* _block;
+        bool            _define; // 1 define, 0 undef
+};
+
+// key: the cpp identifier, value: list of "define" objects
+typedef std::map<std::string,std::list<Define*> > Defines;
+
 class File : public BlockContainer {
     public:
-        File() : _blocks(0) {}
+
+        File() : _blocks(0), _defines(0) {}
         ~File() {};
 
-    public:
         virtual container_type ContainerType() const { return OuterBlock; }
 
         CodeBlock*        CreateCodeBlock       (int, position_type,
                                                  BlockContainer*);
         ConditionalBlock* CreateConditionalBlock(int, position_type,
                                                  BlockContainer*, lexer_type&);
+        void CreateDefine(std::string flag, position_type pos, ConditionalBlock* block, bool define);
+        Defines& getDefinesMap() { return _defines_map; }
+
+//    protected: FIXME
+//        friend std::ostream& Ziz::operator+(std::ostream&, const Ziz::File*);
+        Defines _defines_map;
 
     private:
         int _blocks;
+        int _defines;
 };
 
 
@@ -211,6 +231,7 @@ class Parser {
 
         void HandleOpeningCondBlock             (lexer_type&);
         void HandleElseBlock                    (lexer_type&);
+        void HandleDefines                      (bool define, lexer_type&);
 
         void HandleIF                           (lexer_type&);
         void HandleIFDEF                        (lexer_type&);
@@ -218,6 +239,8 @@ class Parser {
         void HandleELSE                         (lexer_type&);
         void HandleELIF                         (lexer_type&);
         void HandleENDIF                        (lexer_type&);
+        void HandleDEFINE                       (lexer_type&);
+        void HandleUNDEF                        (lexer_type&);
 
         void HandleToken                        (lexer_type&);
 

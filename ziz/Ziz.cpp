@@ -79,6 +79,12 @@ File* Parser::Parse(const std::string file)
                 case boost::wave::T_PP_ENDIF:
                     HandleENDIF(it);
                     break;
+                case boost::wave::T_PP_DEFINE:
+                    HandleDEFINE(it);
+                    break;
+                case boost::wave::T_PP_UNDEF:
+                    HandleUNDEF(it);
+                    break;
                 default:
                     HandleToken(it);
                     break;
@@ -182,6 +188,85 @@ void Parser::HandleELSE(lexer_type& lexer)
 void Parser::HandleELIF(lexer_type& lexer)
 {
     HandleElseBlock(lexer);
+}
+
+void Parser::HandleDEFINE(lexer_type& lexer)
+{
+    HandleDefines(true,lexer);
+}
+
+void Parser::HandleUNDEF(lexer_type& lexer)
+{
+    HandleDefines(false, lexer);
+}
+
+void Parser::HandleDefines(bool define, lexer_type& lexer)
+{ 
+
+    /* needed: 
+     *  id (File._defines),
+     *  _flag (next token),
+     *  _position (current position),
+     *  _block (current block),
+     *  _define (define)
+     */
+
+    if (_p_curCodeBlock == NULL)
+        _p_curCodeBlock = _p_file->CreateCodeBlock(_condBlockStack.size(),
+                                           _curPos, _p_curBlockContainer);
+
+    // skip whitespace
+    while (boost::wave::token_id(*lexer) == boost::wave::T_SPACE
+           || boost::wave::token_id(*lexer) == boost::wave::T_SPACE2) {
+        ++lexer;
+    }
+
+    if (define)
+        assert(boost::wave::token_id(*lexer) == boost::wave::T_PP_DEFINE);
+    else
+        assert(boost::wave::token_id(*lexer) == boost::wave::T_PP_UNDEF);
+
+    _p_curCodeBlock->AppendContent(lexer->get_value());
+    lexer++;
+
+    _p_curCodeBlock->AppendContent(std::string(" "));
+
+    // skip whitespace
+    while (boost::wave::token_id(*lexer) == boost::wave::T_SPACE
+           || boost::wave::token_id(*lexer) == boost::wave::T_SPACE2) {
+        ++lexer;
+    }
+
+    if (boost::wave::token_id(*lexer) != boost::wave::T_IDENTIFIER)
+        assert(false); // identifier expected
+
+    _p_curCodeBlock->AppendContent(lexer->get_value());
+
+    std::stringstream flag;
+    flag << lexer->get_value();
+    position_type pos = _curPos;
+    ConditionalBlock* block = dynamic_cast<ConditionalBlock*> (_p_curBlockContainer);
+    int id = -1;
+    if (block != NULL) {
+        id = block->Id();
+    }
+
+    _p_file->CreateDefine(flag.str(), pos, block, define);
+
+    //this while just moves lexer to the next line; it takes macros spanning several lines into consideration
+    while (boost::wave::token_id(*lexer) != boost::wave::T_NEWLINE) {
+        if (boost::wave::token_id(*lexer) == boost::wave::T_CONTLINE) {
+	    lexer++; // the '//' character
+        }	
+
+        lexer++;    
+    }
+    _p_curCodeBlock->AppendContent(std::string("\n"));
+
+
+#ifdef DEBUG
+    std::cout << (define ? "#define " : "#undef ") << flag.str() << " at: " << pos << ", in B" << id << std::endl;
+#endif
 }
 
 void Parser::HandleENDIF(lexer_type& lexer)
@@ -317,6 +402,13 @@ File::CreateConditionalBlock(int depth, position_type startPos,
     }
 
     return pCurBlock;
+}
+
+void
+File::CreateDefine(std::string flag, position_type pos, ConditionalBlock* block, bool define)
+{
+    Define* r =  new Define(_defines++,flag,pos,block,define);
+    _defines_map[flag].push_back(r);
 }
 
 
