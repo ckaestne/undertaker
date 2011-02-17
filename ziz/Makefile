@@ -25,11 +25,11 @@ clean: clean-check
 clean-check:
 	rm -rf test/out
 
-test: all
+check test: all
 	@mkdir -p test/out
 	@cd test && ./test-suite.sh
 
 test-clean:
 	rm -rf test/out/*
 
-.PHONY: check
+.PHONY: check test
