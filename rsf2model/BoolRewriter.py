@@ -186,6 +186,15 @@ class BoolRewriter(tools.UnicodeMixin):
         def to_symbol(tree):
             if type(tree) in [list, tuple]:
                 return tree_change(self.__rewrite_symbol, tree)
+            if tree == "m":
+                if self.eval_to_module:
+                    # m is true, if the expression can evaluate to module
+                    return tools.new_free_item()
+                else:
+                    #otherwise it is false, because expr = y is needed
+                    a = tools.new_free_item()
+                    return [BoolParser.AND, a,
+                            [BoolParser.NOT, a]]
             return self.rsf.symbol(tree)
 
         if tree[0] in [BoolParser.NOT, BoolParser.AND, BoolParser.OR]:
