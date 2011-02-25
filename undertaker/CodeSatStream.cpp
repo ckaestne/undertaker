@@ -255,21 +255,25 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
     StringList empty;
     StringList &sl = empty;
 
-    try {
+    if (model) {
         const std::string magic("ALWAYS_ON");
         RsfMap::const_iterator j = model->find(magic);
         if (j != model->end()) {
             sl = (*j).second;
             std::cout << "I: " << sl.size() << " Items have been forcefully set" << std::endl;
         }
-        
+
+    }
+
+    try {
 	for(i = _blocks.begin(); i != _blocks.end(); ++i) {
             StringJoiner formula;
             SatChecker::AssignmentMap current_solution;
 
             formula.push_back((*i));
             formula.push_back(getCodeConstraints());
-            formula.push_back(getKconfigConstraints(model, missingSet));
+            if (model)
+                formula.push_back(getKconfigConstraints(model, missingSet));
 
             for (MissingSet::iterator it = missingSet.begin(); it != missingSet.end(); it++)
                 formula.push_back("!" + (*it));
