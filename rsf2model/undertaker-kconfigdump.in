@@ -17,6 +17,8 @@ set -e
 
 
 MODELS=${MODELS:-models}
+PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
+
 
 function debug() {
     if [ -n "$DEBUG" ]; then
@@ -50,34 +52,52 @@ ARCHS=$(ls arch/*/Kconfig | cut -d '/' -f 2)
 
 mkdir -p "$MODELS"
 
-for ARCH in $ARCHS um
-do
-  UPCASE_ARCH=$(echo $ARCH | tr 'a-z' 'A-Z')
-  echo "Calculating model for $ARCH"
+function pwait() {
+    # This functions blocks until less than $1 subprocesses are running
+    jobs="$1"
+    [ -z "$jobs" ] && jobs=5
 
+    while [ $(jobs -r | wc -l) -ge "$jobs" ]; do
+        sleep 0.5
+    done
+}
+
+function do_convert() {
+    ARCH=$1
+    UPCASE_ARCH=$(echo $ARCH | tr 'a-z' 'A-Z')
+    echo "Calculating model for $ARCH"
+    
   # special case for user mode linux
-  SUBARCH=$ARCH
-  KCONFIG=Kconfig
-  if [ x"$ARCH" = x"um" ]; then
-      SUBARCH=x86
-      KCONFIG=Kconfig.x86
-  fi
-
+    SUBARCH=$ARCH
+    KCONFIG=Kconfig
+    if [ x"$ARCH" = x"um" ]; then
+        SUBARCH=x86
+        KCONFIG=Kconfig.x86
+    fi
+    
   # dumpconf, remove all the comments because they will confuse rsf2model
-  SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | grep -v '^#' > "$MODELS/kconfig-$ARCH.rsf"
-
+    SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | grep -v '^#' > "$MODELS/kconfig-$ARCH.rsf"
+    
   # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by 
   # a rule that no other architecture can be selected at the same
   # time. E.g. X86 -> !ARM && !S390
 
-  rsf2model "$MODELS/kconfig-$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
-
+    rsf2model "$MODELS/kconfig-$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
+  
   # Add CONFIG_$i -> !CONFIG_* for every architecture
-  echo $ARCHS | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | \
-      sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
-      >> "$MODELS/$ARCH.model"
+    echo $ARCHS | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | \
+        sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
+        >> "$MODELS/$ARCH.model"
+    
+    if [ -z "$DEBUG" ]; then
+        rm -f "$MODELS/kconfig-$ARCH.rsf"
+    fi
 
-  if [ -z "$DEBUG" ]; then
-      rm -f "$MODELS/kconfig-$ARCH.rsf"
-  fi
+}
+
+for ARCH in $ARCHS um
+do
+    do_convert $ARCH &
+    # run many converting processes in parallel
+    pwait ${PROCESSORS}
 done
