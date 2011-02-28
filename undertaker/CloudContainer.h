@@ -29,6 +29,8 @@
 
 #include "Ziz.h"
 
+int getLineFromPos(position_type pos);
+
 class ZizCondBlockPtr {
 public:
     ZizCondBlockPtr(const Ziz::ConditionalBlock *cb) :  _cb(cb), _expression(NULL) {}
@@ -90,10 +92,16 @@ public:
     const std::string& getConstraints();
     bool good() const { return !_fail; }
     ParentMap getParents();
+    std::string rewriteExpression(ZizCondBlockPtr&);
 
 protected:
     Ziz::File *_zfile;
     bool _fail;
+    std::set<std::string> rw_constraints;
+    void rewriteAllExpressions();
+    int getLastDefinePos(std::string flag, int limit);
+    int getLastDefinePosFromDepth(std::string flag, int limit, Ziz::ConditionalBlock* cb);
+    bool isLastDefineAtLevel(Ziz::Define* def, int limit);
 
 private:
     std::string *_constraints;

@@ -216,9 +216,8 @@ void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
     std::istringstream cs(s.getConstraints());
 
     for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
-        std::istringstream codesat(c->getConstraints());
 
-        CodeSatStream analyzer(codesat, filename,
+        CodeSatStream analyzer(cs, filename,
                                s.getParents(), &(*c), batch_mode, loadModels);
 
         // this is the total runtime per *cloud*
