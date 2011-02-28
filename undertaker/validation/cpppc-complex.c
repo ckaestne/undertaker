@@ -27,5 +27,6 @@ I: CPP Precondition for cpppc-complex.c
 && ( B7 <->  ( B5 )  && CONFIG_A && ( ! (B6) )  )
 && ( B8 <->  ( B7 )  && CONFIG_E )
 && ( B9 <->  ( B5 )  && CONFIG_B && ( ! (B7 || B6) )  )
+&& B00
  * check-output-end
  */

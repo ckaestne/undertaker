@@ -8,5 +8,6 @@
 I: CPP Precondition for cpppc-handle-defined.c
 ( B0 <-> defined ( CONFIG_A ) && ( defined CONFIG_B ) )
 && ( B1 <-> defined ( CONFIG_A ) && ( ! (B0) )  )
+&& B00
  * check-output-end
  */

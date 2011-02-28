@@ -126,12 +126,16 @@ do_test()
 	actual_exit_value=$?
 
 	for stream in output error; do
-		diff -u "$file".$stream.expected "$file".$stream.got > "$file".$stream.diff
+        tmpa=$(mktemp); tmpb=$(mktemp)
+        sort "$file".$stream.expected > $tmpa
+        sort "$file".$stream.got > $tmpb
+		diff -u  $tmpa  $tmpb > "$file".$stream.diff
 		if [ "$?" -ne "0" ]; then
 			error "actual $stream text does not match expected $stream text."
 			error  "see $file.$stream.* for further investigation."
 			test_failed=1
 		fi
+        rm -f $tmpa $tmpb
 	done
 
 	if [ "$actual_exit_value" -ne "$expected_exit_value" ]; then

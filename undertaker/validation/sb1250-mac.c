@@ -50,10 +50,8 @@
 
 /* Operational parameters that usually are not changed. */
 
-#define CONFIG_SBMAC_COALESCE
 
 /* Time in jiffies before concluding the transmitter is hung. */
-#define TX_TIMEOUT  (2*HZ)
 
 
 MODULE_AUTHOR("Mitch Lichtenberg (Broadcom Corp.)");
@@ -90,7 +88,6 @@ MODULE_PARM_DESC(int_timeout_rx, "RX timeout value");
 #if defined(CONFIG_SIBYTE_BCM1x55) || defined(CONFIG_SIBYTE_BCM1x80)
 #include <asm/sibyte/bcm1480_regs.h>
 #include <asm/sibyte/bcm1480_int.h>
-#define R_MAC_DMA_OODPKTLOST_RX	R_MAC_DMA_OODPKTLOST
 #elif defined(CONFIG_SIBYTE_SB1250) || defined(CONFIG_SIBYTE_BCM112X)
 #include <asm/sibyte/sb1250_regs.h>
 #include <asm/sibyte/sb1250_int.h>
@@ -102,17 +99,13 @@ MODULE_PARM_DESC(int_timeout_rx, "RX timeout value");
 #include <asm/sibyte/sb1250_dma.h>
 
 #if defined(CONFIG_SIBYTE_BCM1x55) || defined(CONFIG_SIBYTE_BCM1x80)
-#define UNIT_INT(n)		(K_BCM1480_INT_MAC_0 + ((n) * 2))
 #elif defined(CONFIG_SIBYTE_SB1250) || defined(CONFIG_SIBYTE_BCM112X)
-#define UNIT_INT(n)		(K_INT_MAC_0 + (n))
 #else
 #error invalid SiByte MAC configuration
 #endif
 
 #ifdef K_INT_PHY
-#define SBMAC_PHY_INT			K_INT_PHY
 #else
-#define SBMAC_PHY_INT			PHY_POLL
 #endif
 
 /**********************************************************************
@@ -153,17 +146,11 @@ enum sbmac_state {
  ********************************************************************* */
 
 
-#define SBDMA_NEXTBUF(d,f) ((((d)->f+1) == (d)->sbdma_dscrtable_end) ? \
 			  (d)->sbdma_dscrtable : (d)->f+1)
 
 
-#define NUMCACHEBLKS(x) (((x)+SMP_CACHE_BYTES-1)/SMP_CACHE_BYTES)
 
-#define SBMAC_MAX_TXDESCR	256
-#define SBMAC_MAX_RXDESCR	256
 
-#define ETHER_ADDR_LEN		6
-#define ENET_PACKET_SIZE	1518
 /*#define ENET_PACKET_SIZE	9216 */
 
 /**********************************************************************
@@ -340,15 +327,8 @@ static char sbmac_mdio_string[] = "sb1250-mac-mdio";
  *  MDIO constants
  ********************************************************************* */
 
-#define	MII_COMMAND_START	0x01
-#define	MII_COMMAND_READ	0x02
-#define	MII_COMMAND_WRITE	0x01
-#define	MII_COMMAND_ACK		0x02
 
-#define M_MAC_MDIO_DIR_OUTPUT	0		/* for clarity */
 
-#define ENABLE 		1
-#define DISABLE		0
 
 /**********************************************************************
  *  SBMAC_MII_SYNC(sbm_mdio)
@@ -2717,21 +2697,21 @@ I: loaded rsf model for xtensa
 I: found 23 rsf models
 I: Using x86 as primary model
 I: creating sb1250-mac.c.B1.missing.globally.dead
-I: creating sb1250-mac.c.B4.x86.missing.dead
-I: creating sb1250-mac.c.B6.x86.missing.dead
 I: creating sb1250-mac.c.B11.x86.missing.dead
-I: creating sb1250-mac.c.B13.x86.missing.dead
-I: creating sb1250-mac.c.B23.missing.globally.dead
-I: creating sb1250-mac.c.B26.missing.globally.dead
-I: creating sb1250-mac.c.B32.missing.globally.dead
-I: creating sb1250-mac.c.B35.missing.globally.dead
-I: creating sb1250-mac.c.B40.missing.globally.dead
-I: creating sb1250-mac.c.B50.missing.globally.dead
-I: creating sb1250-mac.c.B52.missing.globally.undead
-I: creating sb1250-mac.c.B56.x86.missing.dead
-I: creating sb1250-mac.c.B61.x86.missing.dead
-I: creating sb1250-mac.c.B63.x86.missing.dead
-I: creating sb1250-mac.c.B68.missing.globally.dead
-I: creating sb1250-mac.c.B76.missing.globally.dead
+I: creating sb1250-mac.c.B12.x86.missing.dead
+I: creating sb1250-mac.c.B19.missing.globally.dead
+I: creating sb1250-mac.c.B22.missing.globally.dead
+I: creating sb1250-mac.c.B28.missing.globally.dead
+I: creating sb1250-mac.c.B31.missing.globally.dead
+I: creating sb1250-mac.c.B36.missing.globally.dead
+I: creating sb1250-mac.c.B4.x86.missing.dead
+I: creating sb1250-mac.c.B46.missing.globally.dead
+I: creating sb1250-mac.c.B48.missing.globally.undead
+I: creating sb1250-mac.c.B52.x86.missing.dead
+I: creating sb1250-mac.c.B57.x86.missing.dead
+I: creating sb1250-mac.c.B59.x86.missing.dead
+I: creating sb1250-mac.c.B6.x86.missing.dead
+I: creating sb1250-mac.c.B64.missing.globally.dead
+I: creating sb1250-mac.c.B72.missing.globally.dead
  * check-output-end
  */

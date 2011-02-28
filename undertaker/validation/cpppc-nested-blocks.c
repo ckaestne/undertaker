@@ -12,5 +12,6 @@ I: CPP Precondition for cpppc-nested-blocks.c
 ( B0 <-> CONFIG_A )
 && ( B1 <->  ( B0 )  && CONFIG_B )
 && ( B2 <->  ( B1 )  && CONFIG_C )
+&& B00
  * check-output-end
  */
