@@ -70,6 +70,7 @@ check: $(PROGS)
 	@$(MAKE) -s clean-check
 	@$(MAKE) run-coveragecheck
 	@$(MAKE) -C kconfig-dumps all
+	cd def-tests && ./run-tests
 	cd validation && ./test-suite
 	@$(MAKE) -s run-libcheck
 

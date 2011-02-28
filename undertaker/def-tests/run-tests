@@ -1,0 +1,19 @@
+#!/bin/bash
+
+tmp=$(mktemp)
+passed=0
+total=0
+for f in *.c; do
+  if ./test-defines.py $f | grep DIFFERENT > $tmp; then
+    echo "FAILED $f";
+    cat $tmp;
+  else
+    echo "PASSED $f"
+    passed=$(( $passed + 1 ))
+  fi
+  total=$(( $total + 1 ))
+done
+
+echo "$passed/$total checks passed"
+rm -f $tmp
+[ $passed -eq $total ] || exit 1
