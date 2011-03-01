@@ -62,7 +62,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs,
 
     while (std::getline(_istream, line)) {
         std::string item;
-        std::stringstream ss;
         std::string::size_type pos = std::string::npos;
         boost::match_results<std::string::iterator> what;
         boost::match_flag_type flags = boost::match_default;
@@ -77,19 +76,20 @@ CodeSatStream::CodeSatStream(std::istream &ifs,
         while ((pos = line.find("defined")) != std::string::npos)
             line.erase(pos,7);
 
-        ss.str(line);
+        const std::list<std::string> &items = itemsOfString(line);
+        for (std::list<std::string>::const_iterator item = items.begin(); item != items.end(); ++item) {
 
-        while (ss >> item) {
-            if ((pos = item.find(prefix)) != std::string::npos) { // i.e. matched
-                _items.insert(item);
+            if ((pos = (*item).find(prefix)) != std::string::npos) { // i.e. matched
+                _items.insert(*item);
                 continue;
             }
-            if (boost::regex_match(item.begin(), item.end(), block_regexp)) {
-                _blocks.insert(item);
+            if (boost::regex_match((*item).begin(), (*item).end(), block_regexp)) {
+                _blocks.insert(*item);
                 continue;
             }
-            if (boost::regex_match(item.begin(), item.end(), free_item_regexp)) {
-                _free_items.insert(item);
+            if (boost::regex_match((*item).begin(), (*item).end(), free_item_regexp)) {
+                _free_items.insert(*item);
+
             }
         }
 

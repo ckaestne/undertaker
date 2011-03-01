@@ -36,9 +36,9 @@ ConfigurationModel::ConfigurationModel(std::string name, std::ifstream &in, std:
     : RsfReader(in, log), _name(name) {
 }
 
-std::list<std::string> itemsOfString(std::string str) {
+std::list<std::string> itemsOfString(const std::string &str) {
     std::list<std::string> mylist;
-    std::string::iterator it = str.begin();
+    std::string::const_iterator it = str.begin();
     std::string tmp = "";
     while (it != str.end()) {
         switch (*it) {
