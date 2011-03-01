@@ -17,7 +17,7 @@ LDLIBS = -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  -lpicosat
 PARSEROBJ = CloudContainer.o RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
 	    ModelContainer.o SatChecker.o CodeSatStream.o BlockDefectAnalyzer.o
 
-DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ))
+DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
 PROGS = undertaker
 TESTPROGS = test-SatChecker
