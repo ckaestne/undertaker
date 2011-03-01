@@ -401,7 +401,7 @@ std::string CloudContainer::rewriteExpression(ZizCondBlockPtr& block)
             std::string new_item;
             if (new_vars.find(item) == new_vars.end()  ) { // this is the first rewriting of item taking place
                 new_vars[item].push_back(current_pos);
-                new_item = item+"_";
+                new_item = item+".";
                 last_change[item] = new_item;
                 replace[item] = new_item;
                 new_constraint = true;
@@ -412,7 +412,7 @@ std::string CloudContainer::rewriteExpression(ZizCondBlockPtr& block)
                     int c = new_vars[item].size();
                     std::string append = "";
                     for(int i=0; i<c; i++) {
-                        append += "_" ;
+                        append += "." ;
                     }
                     new_item = item+append;
                     last_change[item] = new_item;

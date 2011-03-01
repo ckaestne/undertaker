@@ -14,10 +14,10 @@
  * check-output-start
 I: CPP Precondition for cpppc-def-undef.c
 ( B0 <-> X )
-&& ( B2 <->  ( B0 )  && X_ )
-&& (  ( (X) && !(B0) ) -> X_ )
-&& (  ( (X_)  && !(B0) ) -> X )
-&& ( B0 -> X_ )
+&& ( B2 <->  ( B0 )  && X. )
+&& (  ( (X) && !(B0) ) -> X. )
+&& (  ( (X.)  && !(B0) ) -> X )
+&& ( B0 -> X. )
 && B00
  * check-output-end
  */

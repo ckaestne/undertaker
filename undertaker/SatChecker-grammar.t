@@ -29,7 +29,7 @@ struct bool_grammar : public grammar<bool_grammar>
                Operators (from weak to strong): <->, ->, |, &, !(),
              */
             (void) self;
-            symbol       = lexeme_d[ leaf_node_d[ +(alnum_p | ch_p('_')) ]];
+            symbol       = lexeme_d[ leaf_node_d[ +(alnum_p | ch_p('_') | ch_p('.')) ]];
             group        = no_node_d[ ch_p('(') ]
                 >> start_rule
                 >> no_node_d[ ch_p(')') ];
