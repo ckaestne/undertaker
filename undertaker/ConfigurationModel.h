@@ -28,14 +28,24 @@
 #include <map>
 #include <deque>
 #include <set>
+#include <list>
 
 #include "RsfReader.h"
 
+std::list<std::string> itemsOfString(const std::string &str);
+
 class ConfigurationModel : public RsfReader {
 public:
+
+    struct Checker {
+        //! checks if the item is a candidate for addition in the 'missing' set
+        virtual bool operator()(const std::string &item) const = 0;
+    };
+
     ConfigurationModel(std::string name, std::ifstream &in, std::ostream &log);
 
-    int doIntersect(const std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const;
+    int doIntersect(const std::set<std::string> myset, std::ostream &out,
+                    std::set<std::string> &missing, const Checker *c=NULL) const;
     void findSetOfInterestingItems(std::set<std::string> &working) const;
     static std::string getMissingItemsConstraints(std::set<std::string> &missing);
     std::string getName() const { return _name; }

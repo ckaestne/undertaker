@@ -48,7 +48,8 @@ CodeSatStream::CodeSatStream(std::istream &ifs,
                              bool loadModels)
     : _istream(ifs), _items(), _free_items(), _blocks(), _filename(cloudContainer.getFilename()),
       _doCrossCheck(loadModels), _cloudContainer(cloudContainer), _blockCloud(blockCloud),
-      _batch_mode(batch_mode), parents(cloudContainer.getParents()) {
+      _batch_mode(batch_mode), parents(cloudContainer.getParents()),
+      _defineChecker(CodeSatStream::ItemChecker(cloudContainer)) {
 
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
@@ -105,7 +106,7 @@ std::string CodeSatStream::getKconfigConstraints(const ConfigurationModel *model
                                                  std::set<std::string> &missing) {
     std::stringstream ss;
 
-    if (!_doCrossCheck || model->doIntersect(Items(), ss, missing) <= 0)
+    if (!_doCrossCheck || model->doIntersect(Items(), ss, missing, &_defineChecker) <= 0)
         return "";
 
     return std::string(ss.str());
@@ -348,4 +349,9 @@ std::string CodeSatStream::getLine(const char *block) const {
         return this->_blockCloud->getPosition(block);
     else
         throw std::runtime_error("no cloud container");
+}
+
+bool CodeSatStream::ItemChecker::operator()(const std::string &item) const {
+    const Ziz::Defines &defines = _cloudContainer.getDefinesMap();
+    return defines.find(item.substr(0, item.find('.'))) == defines.end();
 }

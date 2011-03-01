@@ -117,7 +117,8 @@ std::string ConfigurationModel::getMissingItemsConstraints(std::set<std::string>
     return m.str();
 }
 
-int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &out, std::set<std::string> &missing) const {
+int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &out,
+                                    std::set<std::string> &missing, const ConfigurationModel::Checker *c) const {
      int valid_items = 0;
      StringJoiner sj;
 
@@ -132,6 +133,12 @@ int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &o
             if (item->compare("") != 0)
                 sj.push_back("(" + *it + " -> (" + *item + "))");
         } else {
+
+            // iff we are given a checker for items, skip if it doesn't pass the test
+            if(c && ! (*c)(*it)) {
+                continue;
+            }
+
             if (it->size() > 1)
                 missing.insert(*it);
         }

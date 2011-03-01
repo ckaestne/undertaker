@@ -94,6 +94,7 @@ public:
     ParentMap getParents() const;
     const char *getFilename() const { return _filename; };
     std::string rewriteExpression(ZizCondBlockPtr&);
+    const Ziz::Defines &getDefinesMap() const { return _zfile->getDefinesMap(); }
 
 protected:
     Ziz::File *_zfile;

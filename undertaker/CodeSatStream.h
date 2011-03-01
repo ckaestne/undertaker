@@ -119,6 +119,14 @@ public:
     RuntimeTable runtimes;
 
 protected:
+
+    struct ItemChecker : public ConfigurationModel::Checker {
+        ItemChecker(const CloudContainer &cc) : _cloudContainer(cc) {}
+        bool operator()(const std::string &item) const;
+    private:
+        const CloudContainer &_cloudContainer;
+    };
+
     std::istream &_istream;
     std::set<std::string> _items; //kconfig items
     std::set<std::string> _free_items; //non-kconfig items
@@ -138,6 +146,8 @@ protected:
     static unsigned int processed_blocks;
     static unsigned int failed_blocks;
     static unsigned int processed_items;
+
+    const ItemChecker _defineChecker;
 };
 
 
