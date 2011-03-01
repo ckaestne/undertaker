@@ -41,11 +41,14 @@ unsigned int CodeSatStream::processed_blocks;
 unsigned int CodeSatStream::failed_blocks;
 
 
-CodeSatStream::CodeSatStream(std::istream &ifs, std::string filename,
-                             ParentMap pars, BlockCloud *cc,
-                             bool batch_mode, bool loadModels)
-    : _istream(ifs), _items(), _free_items(), _blocks(), _filename(filename),
-      _doCrossCheck(loadModels), _cc(cc), _batch_mode(batch_mode), parents(pars) {
+CodeSatStream::CodeSatStream(std::istream &ifs,
+                             const CloudContainer &cloudContainer,
+                             BlockCloud *blockCloud,
+                             bool batch_mode,
+                             bool loadModels)
+    : _istream(ifs), _items(), _free_items(), _blocks(), _filename(cloudContainer.getFilename()),
+      _doCrossCheck(loadModels), _cloudContainer(cloudContainer), _blockCloud(blockCloud),
+      _batch_mode(batch_mode), parents(cloudContainer.getParents()) {
 
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
@@ -227,8 +230,8 @@ std::string CodeSatStream::positionToBlock(std::string position) {
     int block_length = -1;
 
     for(i = _blocks.begin(); i != _blocks.end(); ++i) {
-        BlockCloud::index index = _cc->search(*i);
-        ZizCondBlockPtr &ziz_block = _cc->at(index);
+        BlockCloud::index index = _blockCloud->search(*i);
+        ZizCondBlockPtr &ziz_block = _blockCloud->at(index);
         const Ziz::ConditionalBlock *cond_block = ziz_block.Block();
         int begin = lineFromPosition(cond_block->Start());
         int last = lineFromPosition(cond_block->End());
@@ -341,8 +344,8 @@ bool CodeSatStream::dumpRuntimes() {
 }
 
 std::string CodeSatStream::getLine(const char *block) const {
-    if (this->_cc)
-        return this->_cc->getPosition(block);
+    if (this->_blockCloud)
+        return this->_blockCloud->getPosition(block);
     else
         throw std::runtime_error("no cloud container");
 }

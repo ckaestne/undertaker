@@ -91,7 +91,8 @@ public:
     ~CloudContainer();
     const std::string& getConstraints();
     bool good() const { return !_fail; }
-    ParentMap getParents();
+    ParentMap getParents() const;
+    const char *getFilename() const { return _filename; };
     std::string rewriteExpression(ZizCondBlockPtr&);
 
 protected:
@@ -103,8 +104,8 @@ protected:
     int getLastDefinePosFromDepth(std::string flag, int limit, Ziz::ConditionalBlock* cb);
     bool isLastDefineAtLevel(Ziz::Define* def, int limit);
 
-private:
     std::string *_constraints;
+    const char *_filename;
 };
 
 #endif

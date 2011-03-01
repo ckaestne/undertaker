@@ -67,8 +67,9 @@ struct BlockDefectAnalyzer;
 
 class CodeSatStream : public std::stringstream {
 public:
-    CodeSatStream (std::istream &ifs, std::string filename,
-                   const ParentMap parents, BlockCloud *cc=NULL,
+    CodeSatStream (std::istream &ifs,
+                   const CloudContainer &cloudContainer,
+                   BlockCloud *blockCloud,
                    bool batch_mode=false, bool loadModels=false);
     const std::set<std::string> &Items()  const { return _items;  }
     const std::set<std::string> &FreeItems()  const { return _free_items;  }
@@ -124,7 +125,8 @@ protected:
     std::set<std::string> _blocks;
     std::string _filename;
     bool _doCrossCheck;
-    BlockCloud *_cc;
+    const CloudContainer &_cloudContainer;
+    BlockCloud *_blockCloud;
     const bool _batch_mode;
     const ParentMap parents;
 

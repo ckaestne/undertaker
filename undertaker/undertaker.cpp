@@ -83,8 +83,7 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
         model = f->lookupMainModel();
     }
 
-    CodeSatStream analyzer(codesat, filename,
-                           s.getParents(), NULL, batch_mode, loadModels);
+    CodeSatStream analyzer(codesat, s, NULL, batch_mode, loadModels);
     int i = 1;
 
     solution = analyzer.blockCoverage(model, missingSet);
@@ -169,8 +168,8 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
     CodeSatStream *sat_stream = 0;
     for (CloudList::iterator c = cloud.begin(); c != cloud.end(); c++) {
         std::istringstream codesat(c->getConstraints());
-        CodeSatStream *analyzer = new CodeSatStream(codesat, file,
-                                                    cloud.getParents(), &(*c), false, loadModels);
+        CodeSatStream *analyzer = new CodeSatStream(codesat, cloud,
+                                                    &(*c), false, loadModels);
 
         std::string block = analyzer->positionToBlock(filename);
         if (block.size() != 0) {
@@ -207,18 +206,17 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
 }
 
 void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
-    CloudContainer s(filename);
-    if (!s.good()) {
+    CloudContainer clouds(filename);
+    if (!clouds.good()) {
         std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
-    std::istringstream cs(s.getConstraints());
+    std::istringstream cs(clouds.getConstraints());
 
-    for (CloudList::iterator c = s.begin(); c != s.end(); c++) {
+    for (CloudList::iterator c = clouds.begin(); c != clouds.end(); c++) {
 
-        CodeSatStream analyzer(cs, filename,
-                               s.getParents(), &(*c), batch_mode, loadModels);
+        CodeSatStream analyzer(cs, clouds, &(*c), batch_mode, loadModels);
 
         // this is the total runtime per *cloud*
         analyzer.analyzeBlocks();

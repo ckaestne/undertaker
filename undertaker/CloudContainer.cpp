@@ -180,7 +180,7 @@ std::string BlockCloud::noPredecessor(index n) const {
 
 
 CloudContainer::CloudContainer(const char *filename)
-    : _zfile(NULL), _fail(false), _constraints(NULL) {
+    : _zfile(NULL), _fail(false), _constraints(NULL), _filename(filename) {
     Ziz::Parser parser;
 
     try {
@@ -201,9 +201,9 @@ CloudContainer::~CloudContainer() {
         delete _constraints;
 }
 
-ParentMap CloudContainer::getParents() {
+ParentMap CloudContainer::getParents() const {
     std::map<std::string, std::string> ret;
-    for (CloudList::iterator c = this->begin(); c != this->end(); c++) {
+    for (CloudList::const_iterator c = this->begin(); c != this->end(); c++) {
         for (unsigned int i = 0; i < c->size(); i++) {
             std::string papa(c->parent(i));
             if (!papa.empty()) {
