@@ -215,11 +215,18 @@ void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
     std::istringstream cs(clouds.getConstraints());
 
     for (CloudList::iterator c = clouds.begin(); c != clouds.end(); c++) {
+        std::istringstream cloud((*c).getConstraints());
 
-        CodeSatStream analyzer(cs, clouds, &(*c), batch_mode, loadModels);
+        // If we have no defines in the file we can surely use only
+        // the expression for a single block cloud and not the whole file
+        if (clouds.getDefinesMap().size() == 0) {
+            CodeSatStream analyzer(cloud, clouds, &(*c), batch_mode, loadModels);
+            analyzer.analyzeBlocks();
+        } else {
+            CodeSatStream analyzer(cs, clouds, &(*c), batch_mode, loadModels);
+            analyzer.analyzeBlocks();
+        }
 
-        // this is the total runtime per *cloud*
-        analyzer.analyzeBlocks();
     }
 }
 
