@@ -147,6 +147,10 @@ def usage():
     print "  -v 0: only print differences"
     print "  -v 1: print result for all combinations"
     print "  -v 2: noisy debug output"
+    print
+    print "Return values:"
+    print " 1: Operation Error"
+    print " 2: Some checks didn't pass"
 
 if __name__ == '__main__':
     opts, args = getopt.getopt(sys.argv[1:], "hv:")
@@ -174,4 +178,4 @@ if __name__ == '__main__':
 
     m = Main()
     m.main()
-    sys.exit(23 if m.check() else 0)
+    sys.exit(2 if m.check() else 0)
