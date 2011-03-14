@@ -376,9 +376,14 @@ std::string CloudContainer::rewriteExpression(ZizCondBlockPtr& block)
     Ziz::Defines defines_map = _zfile->getDefinesMap();
     static const boost::regex free_item_regexp("[a-zA-Z0-9\\-_]+", boost::regex::extended);
     static const boost::regex non_items("B[0-9]+", boost::regex::extended);
-    std::stringstream ss(exp);
     std::string item;
     std::stringstream result;
+    std::string::size_type pos = std::string::npos;
+
+    while ((pos = exp.find("defined")) != std::string::npos)
+        exp.erase(pos,7);
+
+    std::stringstream ss(exp);
 
     while (ss >> item) {
         if (replace.find(item) != replace.end()) { // item already processed for the current exp
