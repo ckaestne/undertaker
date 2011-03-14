@@ -3,7 +3,7 @@ LDXX=g++
 DEBUG = -g3
 CFLAGS = -Wall -Wextra -O2 $(DEBUG)
 CXXFLAGS = $(CFLAGS)
-LDXXFLAGS = -lboost_wave-mt
+LDLIBS = -lboost_wave-mt $(LDCOV)
 
 ZIZOBJ = Ziz.o
 HEADERS = $(wildcard *.h)
@@ -13,7 +13,7 @@ all: zizler
 Zizler.o: Zizler.cpp $(HEADERS)
 
 zizler: Zizler.o libziz.a
-	$(LDXX) -o $@ $(LDXXFLAGS) $^
+	$(LDXX) -o $@ $(LDLIBS) $^
 
 $(ZIZOBJ): $(HEADERS)
 libziz.a: $(ZIZOBJ) $(HEADERS)

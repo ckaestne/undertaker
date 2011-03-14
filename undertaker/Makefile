@@ -92,6 +92,7 @@ docs:
 	doxygen
 
 run-lcov:
+	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage" -C ../ziz zizler libziz.a
 	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage"
 	rm -rf coverage-html ; mkdir coverage-html
 	lcov --directory $(CURDIR) --zerocounters
