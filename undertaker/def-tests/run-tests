@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export PATH=..:$PATH
+
 tmp=$(mktemp)
 passed=0
 total=0

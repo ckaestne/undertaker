@@ -32,7 +32,7 @@ class Main:
         ergs = sorted([ sorted([ i.strip() for i in j.split('\n') if i.startswith('B') ]) for j in ergs ])
 
         def undertaker_test(conditionstring):
-            cpppc = subprocess.Popen(['/proj/i4vamos/tools/bin/undertaker', '-j', 'cpppc', sys.argv[1]],
+            cpppc = subprocess.Popen(['undertaker', '-j', 'cpppc', sys.argv[1]],
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
 
             cpppc = ' '.join(cpppc.split('\n')[1:])
