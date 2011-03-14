@@ -32,6 +32,7 @@
 #include "SatChecker.h"
 #include "KconfigWhitelist.h"
 
+#include "ConfigurationModel.h"
 #include "SatChecker-grammar.t"
 
 bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
@@ -428,4 +429,27 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
         out << std::endl;
     }
     return selection.size();
+}
+
+int SatChecker::AssignmentMap::formatModel(std::ostream &out, const ConfigurationModel *model) {
+    int items = 0;
+
+    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
+        const std::string &name = (*it).first;
+        const bool &valid = (*it).second;
+        if (!model->inConfigurationSpace(name))
+            continue;
+        out << name << "=" << (valid ? 1 : 0) << std::endl;;
+        items ++;
+    }
+    return items;
+}
+
+int SatChecker::AssignmentMap::formatAll(std::ostream &out) {
+    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
+        const std::string &name = (*it).first;
+        const bool &valid = (*it).second;
+        out << name << "=" << (valid ? 1 : 0) << std::endl;;
+    }
+    return size();
 }

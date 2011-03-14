@@ -27,6 +27,12 @@ enum WorkMode {
     MODE_BLOCKPC, // Block precondition
 };
 
+enum CoverageOutputMode {
+    COVERAGE_MODE_KCONFIG, // kconfig specific mode
+    COVERAGE_MODE_MODEL,   // prints all configuration space itms, no blocks
+    COVERAGE_MODE_ALL,     // prints all items and blocks
+} coverageOutputMode;
+
 void usage(std::ostream &out, const char *error) {
     if (error)
         out << error << std::endl << std::endl;
@@ -44,6 +50,11 @@ void usage(std::ostream &out, const char *error) {
     out << "      blockpc: Block precondition (format: <file>:<line>:<column>)\n";
     out << "      symbolpc: Symbol precondition (format <symbol>)\n";
     out << "      interesting: Find all interesting items for a symbol (format <symbol>)\n";
+    out << "\nCoverage Options:\n";
+    out << "  -O: specify the output mode of generated configurations\n";
+    out << "      kconfig - generated partial kconfig configuration (default)\n";
+    out << "      model   - print all options which are in the configuration space\n";
+    out << "      all     - dump every assigned symbol (both items and code blocks)\n";
     out << "\nFiles:\n";
     out << "  You can specify one or many files (the format is according to the\n";
     out << "  job (-j) which should be done. If you specify - as file, undertaker\n";
@@ -121,7 +132,21 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
             continue;
         }
 
-        (*it).formatKconfig(outf, missingSet);
+        switch (coverageOutputMode) {
+        case COVERAGE_MODE_KCONFIG:
+            (*it).formatKconfig(outf, missingSet);
+            break;
+        case COVERAGE_MODE_MODEL:
+            if (!loadModels) {
+                std::cerr << "E: no model loaded but, model output mode specified" << std::endl;
+                exit(1);
+            }
+            (*it).formatModel(outf, model);
+            break;
+        case COVERAGE_MODE_ALL:
+            (*it).formatAll(outf);
+            break;
+        }
         outf.close();
     }
 }
@@ -335,8 +360,9 @@ int main (int argc, char ** argv) {
        -- job            -j: do a specific job
        load all model files in directory)
     */
+    coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:")) != -1) {
         switch (opt) {
         case 'w':
             whitelist = strdup(optarg);
@@ -346,6 +372,17 @@ int main (int argc, char ** argv) {
             break;
         case 'c':
             process_file = process_file_coverage;
+            break;
+        case 'O':
+            if (0 == strcmp(optarg, "kconfig"))
+                coverageOutputMode = COVERAGE_MODE_KCONFIG;
+            else if (0 == strcmp(optarg, "model"))
+                coverageOutputMode = COVERAGE_MODE_MODEL;
+            else if (0 == strcmp(optarg, "all"))
+                coverageOutputMode = COVERAGE_MODE_ALL;
+            else
+                std::cerr << "WARNING, mode " << optarg << " is unknown, using 'kconfig' instead"
+                          << std::endl;
             break;
         case 't':
             threads = strtol(optarg, (char **)0, 10);
@@ -396,7 +433,7 @@ int main (int argc, char ** argv) {
         KconfigWhitelist *wl = KconfigWhitelist::getInstance();
         int n = wl->loadWhitelist(whitelist);
         if (n >= 0) {
-            std::cout << "I: loaded " << n << " items to whitelist" << std::endl;            
+            std::cout << "I: loaded " << n << " items to whitelist" << std::endl;
         } else {
             std::cout << "E: couldn't load whitelist" << std::endl;
             exit(-1);
@@ -434,8 +471,6 @@ int main (int argc, char ** argv) {
     } else if (f->size() > 1) {
         f->setMainModel(main_model);
     }
-
-
 
     /* Read from stdin after loading all models and whitelist */
     if (workfiles.size() > 0 && workfiles.begin()->compare("-") == 0) {

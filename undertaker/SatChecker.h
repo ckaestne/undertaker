@@ -32,6 +32,9 @@
 #include <sstream>
 #include <set>
 
+// Forward declaration for configuration model, becasue the boost
+// namespace seems to break, when we include ConfigurationModel
+class ConfigurationModel;
 typedef std::set<std::string> MissingSet;
 
 using namespace BOOST_SPIRIT_CLASSIC_NS;
@@ -121,7 +124,7 @@ public:
         }
 
         /**
-         * \brief format solutions
+         * \brief format solutions (kconfig specific)
          *
          * This method filters out comparators and block variables from the
          * given AssignmentMap solution.  Additionally,
@@ -134,6 +137,28 @@ public:
          */
         int formatKconfig(std::ostream &out,
                           const MissingSet &missingSet);
+
+        /**
+         * \brief format solutions (model)
+         *
+         *  Print out all assignments that are in the configuration space
+         *
+         * \param out an output stream on which the solution shall be
+         *     printed
+         * \param configuration model, that specifies the
+         *     configuration space
+         */
+        int formatModel(std::ostream &out, const ConfigurationModel *model);
+
+        /**
+         * \brief format solutions (all)
+         *
+         *  Print out all assignments!
+         *
+         * \param out an output stream on which the solution shall be
+         *     printed
+         */
+        int formatAll(std::ostream &out);
 
     };
 
