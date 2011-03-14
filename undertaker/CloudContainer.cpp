@@ -443,7 +443,9 @@ std::string CloudContainer::rewriteExpression(ZizCondBlockPtr& block)
                     if (!global) {
                         main_define_block = block_name((*it)->_block->Id());
                         depends.push(block_name((*it)->_block->Id())); //THINK HERE
-                    }
+                    } else {
+		        depends.push(main_define_block);
+		    }
 
                     std::list<Define*>::iterator from = it;
                     int ignore_rw_c = false; //ignore rw constraint
@@ -464,7 +466,7 @@ std::string CloudContainer::rewriteExpression(ZizCondBlockPtr& block)
                             } else {
                                 successors.push("B00");
                                 depends.push("B00");
-                                ignore_rw_c = true; //is this define depends on the non existence of the global scope, we don't need this constraint
+                                ignore_rw_c = true; //if this define depends on the non existence of the global scope, we don't need this constraint
                             }
                         }
                     }
