@@ -4,6 +4,7 @@ import sys
 import subprocess
 
 VERBOSE = False
+filename = ""
 
 def call_undertaker(filename):
     """ Generates the presence conditions for `filename' in one line """
@@ -53,8 +54,13 @@ class Main:
             for i in zip(combination, list(self.vars)):
                 if i[0]:
                     flags.append('-D%s' % i[1])
-            flags.append(sys.argv[1])
-            blob = subprocess.Popen(flags, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+            flags.append('-')
+            zizzler = subprocess.Popen(['zizler', '-c', filename], stdout=subprocess.PIPE)
+            blob = subprocess.Popen(flags,
+                                    stdin=zizzler.stdout,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE).communicate()[0]
+            zizzler.stdout.close()
             return set([ i.strip() for i in blob.split('\n') if i.startswith('B') ])
 
         return for_all_combinations(len(self.vars), tester)
@@ -99,7 +105,7 @@ class Main:
         if len(sys.argv) < 2:
             print "need a filename"
             sys.exit(23)
-        with open(sys.argv[1]) as f:
+        with open(filename) as f:
             for line in f:
                 if line.startswith('B'):
                     self.blocks.add(line.strip())
@@ -110,6 +116,12 @@ class Main:
                         pass
 
 if __name__ == '__main__':
+    if len(sys.argv) < 1:
+        print "Need filename to look at"
+        sys.exit(42)
+
+    filename = sys.argv[1]
+
     if len(sys.argv) > 2 and sys.argv[2] == 'v':
         VERBOSE = True
 
