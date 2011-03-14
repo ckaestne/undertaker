@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATH=..:../../ziz:$PATH
+PATH=..:../../ziz:/usr/local/bin:$PATH
 export PATH
 
 passed=0
