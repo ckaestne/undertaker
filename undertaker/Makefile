@@ -27,8 +27,11 @@ all: ../ziz/libziz.a $(PROGS) $(TESTPROGS)
 undertaker: ../ziz/libziz.a libparser.a
 KconfigIntersect: libparser.a
 
-../ziz/libziz.a: FORCE
+# we require FORCE here because we don't want to duplicate all
+# dependencies from libziz' Makefiles
+../ziz/zizler ../ziz/libziz.a: FORCE
 	$(MAKE) -C ../ziz libziz.a
+	$(MAKE) -C ../ziz zizler
 
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
@@ -66,7 +69,7 @@ run-coveragecheck: undertaker
 	if grep -q ^CONFIG_IA64 validation/sched.c.config*; then echo "IA64 not selectable!"; false ; fi
 	if grep -q ^CONFIG_CHOICE validation/sched.c.config*; then echo "must not contain CONFIG_CHOICE*"; false ; fi
 
-check: $(PROGS)
+check: $(PROGS) ../ziz/zizler
 	@$(MAKE) -s clean-check
 	@$(MAKE) run-coveragecheck
 	@$(MAKE) -C kconfig-dumps all

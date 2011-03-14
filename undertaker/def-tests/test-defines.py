@@ -27,6 +27,8 @@ def call_limboole(selection, cpppc):
 def for_all_combinations(length, fn):
     """ applies `fn' to all combinations of a boolean string of length `length' """
     def recursor(rest):
+        if rest == 0:
+            raise RuntimeError("Internal Error: cannot permutate empty list")
         if rest == 1:
             return [[ False ], [ True ]]
         else:
@@ -93,16 +95,21 @@ class Main:
             blockstring = ' && '.join(needed + [ '!%s' % i for i in notneeded ] )
             undertakerresult = call_limboole(blockstring, cpppc)
 
-            print blockstring.ljust(7*(len(needed) + len(notneeded))),
-            print '\t1' if cppresult else '\t0',
-            print '\t1' if undertakerresult else '\t0',
-            print '\tFINE' if cppresult == undertakerresult else '\tDIFFERENT'
+            if VERBOSE or cppresult != undertakerresult:
+                print blockstring.ljust(7*(len(needed) + len(notneeded))),
+                print '\t1' if cppresult else '\t0',
+                print '\t1' if undertakerresult else '\t0',
+                print '\tFINE' if cppresult == undertakerresult else '\tDIFFERENT'
+
             return cppresult == undertakerresult
 
         return False in for_all_combinations(len(self.blocks), printer)
 
     def main(self):
-        self.content = subprocess.Popen(['zizler', '-c', filename], stdout=subprocess.PIPE).communicate()[0]
+        p = subprocess.Popen(['zizler', '-c', filename], stdout=subprocess.PIPE)
+        self.content = p.communicate()[0]
+        if p.returncode != 0:
+            raise RuntimeError("Error while running zizler")
 
         continue_with_next = False
 

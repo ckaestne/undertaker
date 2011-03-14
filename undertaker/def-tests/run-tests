@@ -1,14 +1,14 @@
 #!/bin/bash
 
-export PATH=..:$PATH
+PATH=..:../../ziz:$PATH
+export PATH
 
-tmp=$(mktemp)
 passed=0
 total=0
+
 for f in *.c; do
-  if ./test-defines.py $f | grep DIFFERENT > $tmp; then
+  if ! ./test-defines.py $f; then
     echo "FAILED $f";
-    cat $tmp;
   else
     echo "PASSED $f"
     passed=$(( $passed + 1 ))
@@ -17,5 +17,4 @@ for f in *.c; do
 done
 
 echo "$passed/$total checks passed"
-rm -f $tmp
 [ $passed -eq $total ] || exit 1
