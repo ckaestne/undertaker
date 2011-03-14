@@ -7,7 +7,7 @@ passed=0
 total=0
 
 for f in *.c; do
-  if ! ./test-defines.py $f; then
+  if ! ./test-defines.py -v0 $f; then
     echo "FAILED $f";
   else
     echo "PASSED $f"

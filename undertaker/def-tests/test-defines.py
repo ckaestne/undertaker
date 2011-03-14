@@ -2,8 +2,9 @@
 
 import sys
 import subprocess
+import getopt
 
-VERBOSE = False
+VERBOSITY=1
 filename = ""
 
 def call_undertaker(filename):
@@ -16,7 +17,7 @@ def call_limboole(selection, cpppc):
     """ returns True if (selection) && (cpppc) is satisfiable """
     limboole_in = ' && '.join([selection, cpppc]).replace('&&', '&').replace("||", "|")
 
-    if VERBOSE:
+    if VERBOSITY == 2:
         print limboole_in
 
     return not ' UNSATIS' in subprocess.Popen(['limboole', '-s'],
@@ -50,7 +51,7 @@ class Main:
         """
         def tester(combination):
             """ generating preprocessor result for specific set of Macros
-                [ True, False, True ] -> cpp -DA -DC -> set(['B1', 'B3', 'B4', 'B12'])
+            [ True, False, True ] -> cpp -DA -DC -> set(['B1', 'B3', 'B4', 'B12'])
             """
             flags = ['cpp']
             for i in zip(combination, list(self.vars)):
@@ -84,7 +85,7 @@ class Main:
     def check(self):
         cpppc = call_undertaker(filename)
         cppergs = self.cpp_results()
-        if VERBOSE:
+        if VERBOSITY == 2:
             print cppergs
 
         def printer(combination):
@@ -95,7 +96,7 @@ class Main:
             blockstring = ' && '.join(needed + [ '!%s' % i for i in notneeded ] )
             undertakerresult = call_limboole(blockstring, cpppc)
 
-            if VERBOSE or cppresult != undertakerresult:
+            if VERBOSITY > 0 or cppresult != undertakerresult:
                 print blockstring.ljust(7*(len(needed) + len(notneeded))),
                 print '\t1' if cppresult else '\t0',
                 print '\t1' if undertakerresult else '\t0',
@@ -130,23 +131,46 @@ class Main:
                 pass
 
         for line in self.content.split('\n'):
-            if VERBOSE:
+            if VERBOSITY == 2:
                 print line
             extract_block(line)
             extract_cppflag(line)
-        if VERBOSE:
+        if VERBOSITY == 2:
             print self.vars
             print self.blocks
 
+def usage():
+    print "%s [-v level] filename" % sys.argv[0]
+    print "%s -h" % sys.argv[0]
+    print
+    print "-v: Verbosity"
+    print "  -v 0: only print differences"
+    print "  -v 1: print result for all combinations"
+    print "  -v 2: noisy debug output"
+
 if __name__ == '__main__':
-    if len(sys.argv) < 1:
-        print "Need filename to look at"
-        sys.exit(42)
+    opts, args = getopt.getopt(sys.argv[1:], "hv:")
 
-    filename = sys.argv[1]
+    for opt,arg in opts:
+        if opt in ('-v', '--verbose'):
+            VERBOSITY=int(arg)
+            if VERBOSITY < 0 or VERBOSITY > 2:
+                print "invalid verbosity level"
+                usage()
+                sys.exit(1)
+        elif opt in ('-h', '--help'):
+            usage()
+            sys.exit(0)
+        else:
+            usage()
+            assert False, "unknown option"
 
-    if len(sys.argv) > 2 and sys.argv[2] == 'v':
-        VERBOSE = True
+    if len(args) != 1:
+        print "(only) expecting filename as argument"
+        usage()
+        sys.exit(1)
+
+    filename = args[0]
 
     m = Main()
     m.main()
