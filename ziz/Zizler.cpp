@@ -22,6 +22,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <sstream>
 
 using namespace Ziz;
 
@@ -123,6 +124,60 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
     stream << "END BLOCK " << b.Id() << "\n";
     return stream;
 }
+
+// + convert output (--convert mode)
+std::ostream & operator*(std::ostream &stream, File const * p_f)
+{
+    std::vector<Block*>::const_iterator it;
+
+    assert(p_f != NULL);
+    defines = p_f->_defines_map;
+    for (it = p_f->begin(); it != p_f->end(); ++it)
+        stream * **it;
+    stream << std::endl;
+    return stream;
+}
+
+std::ostream & operator*(std::ostream &stream, Block const &b)
+{
+    if (b.BlockType() == Code) {
+        stream * dynamic_cast<CodeBlock const &>(b);
+    } else if (b.BlockType() == Conditional) {
+        stream * dynamic_cast<ConditionalBlock const &>(b);
+    } else {
+        assert(false);      // this may not happen
+    }
+    return stream;
+}
+
+std::ostream & operator*(std::ostream &stream, ConditionalBlock const &b)
+{
+    std::list<std::string> found;
+
+    stream << b.Header();
+    stream << "B" << b.Id() << std::endl;
+    std::vector<Block*>::const_iterator it;
+    for (it = b.begin(); it != b.end(); ++it)
+        stream * **it;
+    stream << b.Footer() << std::endl;
+
+    return stream;
+}
+
+std::ostream & operator*(std::ostream &stream, CodeBlock const &b)
+{
+    std::list<std::string> found;
+    std::stringstream content (b.Content());
+    std::string line;
+    while (getline (content, line)) {
+        if (line.find("#define") != std::string::npos
+            || line.find("#undef") != std::string::npos)
+            stream << line << std::endl;
+    }
+
+    return stream;
+}
+
 
 
 // << normal output (default mode)
@@ -287,7 +342,8 @@ std::string Indent(int depth)
 
 bool ziztest(std::string file, Mode mode)
 {
-    std::cerr << "Testing " << file << std::endl;
+    if (mode != Convert)
+        std::cerr << "Testing " << file << std::endl;
     Ziz::Parser parser;
     Ziz::File* p_zfile;
     try {
@@ -305,6 +361,8 @@ bool ziztest(std::string file, Mode mode)
         std::cout << p_zfile;
     } else if (mode == Long) {
         std::cout >> p_zfile;
+    } else if (mode == Convert) {
+        std::cout * p_zfile;
     } else {
         assert(false); // shall never happen
         return false;
@@ -316,7 +374,7 @@ int main(int argc, char **argv)
 {
     if (argc < 2) {
         std::cerr << "Usage: " << std::string(argv[0])
-	          << " [-s|--short|-l|--long] FILE [FILES]" << std::endl;
+                  << " [-s|--short|-l|--long|-c|--convert] FILE [FILES]" << std::endl;
         return 0;
     }
 
@@ -324,28 +382,35 @@ int main(int argc, char **argv)
     int fileArg = 1;
     std::string arg(argv[1]);
     if (arg.compare("-l") == 0 || arg.compare("--long") == 0) {
-	fileArg++;
-	mode = Long;
+        fileArg++;
+        mode = Long;
     } else if (arg.compare("-s") == 0 || arg.compare("--short") == 0) {
-	fileArg++;
-	mode = Short;
+        fileArg++;
+        mode = Short;
+    } else if (arg.compare("-c") == 0 || arg.compare("--convert") == 0) {
+        fileArg++;
+        mode = Convert;
     }
+
 
     int fail = 0;
     for (int i = fileArg; i < argc; i++) {
         std::string file(argv[i]);
         if (ziztest(file, mode)) {
-            std::cerr << file << " ok" << std::endl;
+            if (mode != Convert)
+                std::cerr << file << " ok" << std::endl;
         } else {
             std::cerr << file << " failed" << std::endl;
             fail++;
         }
     }
 
-    if (fail == 0) {
-        std::cerr << "All tests passed." << std::endl;
-    } else {
-        std::cerr << "Some tests failed." << std::endl;
+    if (mode != Convert) {
+        if (fail == 0) {
+            std::cerr << "All tests passed." << std::endl;
+        } else {
+            std::cerr << "Some tests failed." << std::endl;
+        }
     }
     return fail;
 }
