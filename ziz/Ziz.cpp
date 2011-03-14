@@ -237,9 +237,6 @@ void Parser::HandleDefines(bool define, lexer_type& lexer)
         ++lexer;
     }
 
-    if (boost::wave::token_id(*lexer) != boost::wave::T_IDENTIFIER)
-        assert(false); // identifier expected
-
     _p_curCodeBlock->AppendContent(lexer->get_value());
 
     std::stringstream flag;
