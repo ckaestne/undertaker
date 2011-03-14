@@ -272,8 +272,12 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
             if (model)
                 formula.push_back(getKconfigConstraints(model, missingSet));
 
-            for (MissingSet::iterator it = missingSet.begin(); it != missingSet.end(); it++)
-                formula.push_back("!" + (*it));
+            /* only add missing items if we can assume the model is
+               complete */
+            if (model && model->isComplete()) {
+                for (MissingSet::iterator it = missingSet.begin(); it != missingSet.end(); it++)
+                    formula.push_back("!" + (*it));
+            }
 
             std::string main_arch(ModelContainer::getMainModel());
             if (main_arch.size() > 0) {

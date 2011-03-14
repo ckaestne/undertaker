@@ -53,6 +53,9 @@ public:
 
     // ! checks if a given item should be in the model space
     bool inConfigurationSpace(const std::string &symbol) const;
+
+    // ! checks if we can assume that the configuration space is complete
+    bool isComplete() const;
 private:
     std::string _name;
     boost::regex _inConfigurationSpace_regexp;

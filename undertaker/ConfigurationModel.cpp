@@ -165,3 +165,10 @@ bool ConfigurationModel::inConfigurationSpace(const std::string &symbol) const {
     return false;
 }
 
+bool ConfigurationModel::isComplete() const {
+    const StringList *configuration_space_complete = getMetaValue("CONFIGURATION_SPACE_INCOMPLETE");
+    // Reverse logic at this point to ensure Legacy models for kconfig
+    // to work
+    return !(configuration_space_complete != NULL);
+}
+
