@@ -39,15 +39,20 @@ typedef std::map<std::string, StringList> RsfMap;
 class RsfReader : public RsfMap {
 public:
 
-    RsfReader(std::ifstream &f, std::ostream &log=std::cout);
+    RsfReader(std::ifstream &f, std::ostream &log=std::cout,
+              const std::string metaflag = "");
 
     const std::string *getValue(const std::string &key) const;
+    const StringList *getMetaValue(const std::string &key) const;
+
     void print_contents(std::ostream &out);
 
 private:
+    std::map<std::string, StringList> meta_information;
     StringList parse(const std::string& line);
     void read_rsf(std::ifstream &rsf_file);
     std::ostream &log;
+    std::string metaflag;
 };
 
 #endif

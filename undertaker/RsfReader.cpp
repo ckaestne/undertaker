@@ -27,8 +27,8 @@
 
 #include "RsfReader.h"
 
-RsfReader::RsfReader(std::ifstream &f, std::ostream &log)
-    : std::map<key_type, mapped_type>(), log(log) {
+RsfReader::RsfReader(std::ifstream &f, std::ostream &log, std::string metaflag)
+    : std::map<key_type, mapped_type>(), log(log), metaflag(metaflag) {
     this->read_rsf(f);
 }
 
@@ -76,7 +76,19 @@ void RsfReader::read_rsf(std::ifstream &rsf_file) {
             continue;
         std::string key = columns.front();
         columns.pop_front();
-        insert(make_pair(key, columns));
+        // Check if the current line is an metainformation line
+        // if so, put it there
+        // UNDERTAKER_SET ALWAYS_ON fooooo
+        // self.meta_information("ALWAYS_ON") == ["foooo"]
+        if (metaflag.size() > 0 && key.compare(metaflag) == 0) {
+            if (columns.size() == 0)
+                continue;
+            std::string key = columns.front();
+            columns.pop_front();
+            meta_information.insert(make_pair(key, columns));
+        } else {
+            insert(make_pair(key, columns));
+        }
     }
 
     log << "I: " << " inserted " << this->size()
@@ -94,4 +106,12 @@ const std::string *RsfReader::getValue(const std::string &key) const {
         return &null_string;
 
     return &(i->second.front());
+}
+
+const StringList *RsfReader::getMetaValue(const std::string &key) const {
+    static std::string null_string("");
+    std::map<std::string, StringList>::const_iterator i = meta_information.find(key);
+    if (i == meta_information.end())
+        return NULL;
+    return &((*i).second);
 }

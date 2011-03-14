@@ -33,7 +33,7 @@
 
 
 ConfigurationModel::ConfigurationModel(std::string name, std::ifstream &in, std::ostream &log)
-    : RsfReader(in, log), _name(name) {
+    : RsfReader(in, log, "UNDERTAKER_SET"), _name(name) {
 }
 
 std::list<std::string> itemsOfString(const std::string &str) {

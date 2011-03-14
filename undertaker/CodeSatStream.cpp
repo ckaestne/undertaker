@@ -252,17 +252,14 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
     std::list<SatChecker::AssignmentMap> ret;
     std::set<SatChecker::AssignmentMap> found_solutions;
 
-    StringList empty;
-    StringList &sl = empty;
+    const StringList *always_on = NULL;
 
     if (model) {
         const std::string magic("ALWAYS_ON");
-        RsfMap::const_iterator j = model->find(magic);
-        if (j != model->end()) {
-            sl = (*j).second;
-            std::cout << "I: " << sl.size() << " Items have been forcefully set" << std::endl;
+        always_on = model->getMetaValue(magic);
+        if (always_on) {
+            std::cout << "I: " << always_on->size() << " Items have been forcefully set" << std::endl;
         }
-
     }
 
     try {
@@ -287,8 +284,10 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
                 formula.push_back("CONFIG_" + main_arch);
             }
 
-            for (StringList::const_iterator sli=sl.begin(); sli != sl.end(); ++sli) {
-                formula.push_back(*sli);
+            if (always_on) {
+                for (StringList::const_iterator sli = always_on->begin(); sli != always_on->end(); ++sli) {
+                    formula.push_back(*sli);
+                }
             }
 
 	    if (blocks_set.find(*i) == blocks_set.end()) {
