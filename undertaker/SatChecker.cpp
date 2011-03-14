@@ -359,11 +359,11 @@ std::string SatChecker::pprint() {
     return _sat + "\n\n" + debug_parser + "\n";
 }
 
-int SatChecker::formatConfigItems(AssignmentMap solution, std::ostream &out, const MissingSet &missingSet) {
+int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet &missingSet) {
     typedef std::map<std::string, state> SelectionType;
     SelectionType selection, other_variables;
 
-    for (AssignmentMap::iterator it = solution.begin(); it != solution.end(); it++) {
+    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
         static const boost::regex item_regexp("^CONFIG_(.*)$", boost::regex::perl);
         static const boost::regex module_regexp("^CONFIG_(.*)_MODULE$", boost::regex::perl);
         static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);

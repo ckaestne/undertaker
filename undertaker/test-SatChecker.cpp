@@ -162,7 +162,7 @@ START_TEST(format_config_items_simple)
     m.insert(std::make_pair("CONFIG_HURZ", true));
 
     std::stringstream ss;
-    int c = SatChecker::formatConfigItems(m, ss, dummy);
+    int c = m.formatKconfig(ss, dummy);
     ck_assert_int_eq(3, c);
     ck_assert_str_eq(ss.str().c_str(),
                      "CONFIG_BAR=n\n"
@@ -180,7 +180,7 @@ START_TEST(format_config_items_module)
     m.insert(std::make_pair("CONFIG_FOO_MODULE", true));
 
     std::stringstream ss;
-    int c = SatChecker::formatConfigItems(m, ss, dummy);
+    int c = m.formatKconfig(ss, dummy);
     ck_assert_int_eq(2, c);
     ck_assert_str_eq(ss.str().c_str(),
                      "CONFIG_BAR=n\n"
@@ -197,7 +197,7 @@ START_TEST(format_config_items_module_not_valid_in_kconfig)
     m.insert(std::make_pair("CONFIG_FOO_MODULE", true));
 
     std::stringstream ss;
-    int c = SatChecker::formatConfigItems(m, ss, dummy);
+    int c = m.formatKconfig(ss, dummy);
     ck_assert_int_eq(2, c);
     ck_assert_str_eq(ss.str().c_str(),
                      "CONFIG_BAR=n\n"

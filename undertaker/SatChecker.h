@@ -119,6 +119,22 @@ public:
             }
             return true;
         }
+
+        /**
+         * \brief format solutions
+         *
+         * This method filters out comparators and block variables from the
+         * given AssignmentMap solution.  Additionally,
+         * CONFIG_ACPI_MODULE and the like lead to the CONFIG_ACPI variable
+         * being set to '=m'. This output resembles a partial KConfig
+         * selection.
+         *
+         * \param out an output stream on which the solution shall be printed
+         * \param missingSet set of items that are not available in the model
+         */
+        int formatKconfig(std::ostream &out,
+                          const MissingSet &missingSet);
+
     };
 
     /**
@@ -129,20 +145,6 @@ public:
         return assignmentTable;
     }
 
-    /**
-     * \brief format solutions
-     *
-     * This method filters out comparators and block variables from the
-     * given AssignmentMap solution.  Additionally,
-     * CONFIG_ACPI_MODULE and the like lead to the CONFIG_ACPI variable
-     * being set to '=m'. This output resembles a partial KConfig
-     * selection.
-     *
-     * \param solution the found solution to print out
-     * \param out an output stream on which the solution shall be printed
-     * \param missingSet set of items that are not available in the model
-     */
-    static int formatConfigItems(AssignmentMap solution, std::ostream &out, const MissingSet &missingSet);
 
 private:
     std::map<std::string, int> symbolTable;

@@ -121,7 +121,7 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
             continue;
         }
 
-        SatChecker::formatConfigItems(*it, outf, missingSet);
+        (*it).formatKconfig(outf, missingSet);
         outf.close();
     }
 }
