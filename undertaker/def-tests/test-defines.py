@@ -55,12 +55,10 @@ class Main:
                 if i[0]:
                     flags.append('-D%s' % i[1])
             flags.append('-')
-            zizzler = subprocess.Popen(['zizler', '-c', filename], stdout=subprocess.PIPE)
             blob = subprocess.Popen(flags,
-                                    stdin=zizzler.stdout,
+                                    stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE).communicate()[0]
-            zizzler.stdout.close()
+                                    stderr=subprocess.PIPE).communicate(self.content)[0]
             return set([ i.strip() for i in blob.split('\n') if i.startswith('B') ])
 
         return for_all_combinations(len(self.vars), tester)
@@ -82,8 +80,10 @@ class Main:
         return needed, notneeded
 
     def check(self):
-        cpppc = call_undertaker(sys.argv[1])
+        cpppc = call_undertaker(filename)
         cppergs = self.cpp_results()
+        if VERBOSE:
+            print cppergs
 
         def printer(combination):
             needed, notneeded = self.create_combination(combination)
@@ -102,18 +102,34 @@ class Main:
         return False in for_all_combinations(len(self.blocks), printer)
 
     def main(self):
-        if len(sys.argv) < 2:
-            print "need a filename"
-            sys.exit(23)
-        with open(filename) as f:
-            for line in f:
-                if line.startswith('B'):
-                    self.blocks.add(line.strip())
-                elif line.startswith('#'):
-                    try:
-                        self.vars.add(line.split()[1])
-                    except:
-                        pass
+        self.content = subprocess.Popen(['zizler', '-c', filename], stdout=subprocess.PIPE).communicate()[0]
+
+        continue_with_next = False
+
+        def extract_block(line):
+            if line.startswith('B'):
+                self.blocks.add(line.strip())
+
+        def extract_cppflag(line):
+            try:
+                if line.startswith('#if') or continue_with_next:
+                    continue_with_next = False
+                    if "\\" in line:
+                        continue_with_next = True
+                    for token in ["(", ")", "||", "&&", "defined", "==", '\\']:
+                        line = line.replace(token, " ")
+                    self.vars = self.vars | set(line.split()[1:])
+            except:
+                pass
+
+        for line in self.content.split('\n'):
+            if VERBOSE:
+                print line
+            extract_block(line)
+            extract_cppflag(line)
+        if VERBOSE:
+            print self.vars
+            print self.blocks
 
 if __name__ == '__main__':
     if len(sys.argv) < 1:
