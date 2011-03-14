@@ -133,6 +133,10 @@ int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &o
             if (item->compare("") != 0)
                 sj.push_back("(" + *it + " -> (" + *item + "))");
         } else {
+            // check if the symbol might be in the model space.
+            // if not it can't be missing!
+            if (!inConfigurationSpace(*it))
+                continue;
 
             // iff we are given a checker for items, skip if it doesn't pass the test
             if(c && ! (*c)(*it)) {
@@ -147,3 +151,12 @@ int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &o
 
     return valid_items;
 }
+
+bool ConfigurationModel::inConfigurationSpace(const std::string &symbol) const {
+    const char *prefix = "CONFIG_";
+    if (symbol.find(prefix) != std::string::npos) {
+        return true;
+    }
+    return false;
+}
+

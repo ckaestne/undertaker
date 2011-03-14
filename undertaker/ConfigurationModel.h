@@ -49,6 +49,9 @@ public:
     void findSetOfInterestingItems(std::set<std::string> &working) const;
     static std::string getMissingItemsConstraints(std::set<std::string> &missing);
     std::string getName() const { return _name; }
+
+    // ! checks if a given item should be in the model space
+    bool inConfigurationSpace(const std::string &symbol) const;
 private:
     std::string _name;
 };

@@ -72,7 +72,6 @@ public:
                    BlockCloud *blockCloud,
                    bool batch_mode=false, bool loadModels=false);
     const std::set<std::string> &Items()  const { return _items;  }
-    const std::set<std::string> &FreeItems()  const { return _free_items;  }
     const std::set<std::string> &Blocks() const { return _blocks; }
     virtual const BlockDefectAnalyzer *analyzeBlock(const char *block, ConfigurationModel *p_model);
 
@@ -128,8 +127,7 @@ protected:
     };
 
     std::istream &_istream;
-    std::set<std::string> _items; //kconfig items
-    std::set<std::string> _free_items; //non-kconfig items
+    std::set<std::string> _items; // All these options might be in an model
     std::set<std::string> _blocks;
     std::string _filename;
     bool _doCrossCheck;

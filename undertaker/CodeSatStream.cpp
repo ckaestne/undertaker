@@ -46,14 +46,12 @@ CodeSatStream::CodeSatStream(std::istream &ifs,
                              BlockCloud *blockCloud,
                              bool batch_mode,
                              bool loadModels)
-    : _istream(ifs), _items(), _free_items(), _blocks(), _filename(cloudContainer.getFilename()),
+    : _istream(ifs), _items(), _blocks(), _filename(cloudContainer.getFilename()),
       _doCrossCheck(loadModels), _cloudContainer(cloudContainer), _blockCloud(blockCloud),
       _batch_mode(batch_mode), parents(cloudContainer.getParents()),
       _defineChecker(CodeSatStream::ItemChecker(cloudContainer)) {
 
-    static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
-    static const boost::regex free_item_regexp("[a-zA-Z0-9\\-_]+", boost::regex::extended);
     std::string line;
 
     if (!_istream.good())
@@ -78,22 +76,17 @@ CodeSatStream::CodeSatStream(std::istream &ifs,
 
         const std::list<std::string> &items = itemsOfString(line);
         for (std::list<std::string>::const_iterator item = items.begin(); item != items.end(); ++item) {
-
-            if ((pos = (*item).find(prefix)) != std::string::npos) { // i.e. matched
-                _items.insert(*item);
-                continue;
-            }
             // Fallback, when no block cloud is given, we search for
             // all blocks in given expression
-            if (!_blockCloud) {
-                if (boost::regex_match((*item).begin(), (*item).end(), block_regexp)) {
+            if (boost::regex_match((*item).begin(), (*item).end(), block_regexp)) {
+                if (!_blockCloud) {
                     _blocks.insert(*item);
-                    continue;
                 }
-            }
-            if (boost::regex_match((*item).begin(), (*item).end(), free_item_regexp)) {
-                _free_items.insert(*item);
-
+                continue;
+            } else {
+                // No block and no free item, so it may be an
+                // interessting item
+                _items.insert(*item);
             }
         }
 
@@ -310,10 +303,13 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
                 const SatChecker::AssignmentMap &assignments = sc.getAssignment();
                 SatChecker::AssignmentMap::const_iterator it;
                 for (it = assignments.begin(); it != assignments.end(); it++) {
-                    static const boost::regex item_regexp("^CONFIG_(.*)$", boost::regex::perl);
                     static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
 
-                    if (boost::regex_match((*it).first, item_regexp)) {
+                    /* If no model is given or the symbol is in the
+                       model space we can push the assignment to the
+                       current solution.
+                    */
+                    if (!model || model->inConfigurationSpace((*it).first)) {
                         current_solution.insert(std::make_pair<std::string,bool>((*it).first, (*it).second));
                         continue;
                     }
