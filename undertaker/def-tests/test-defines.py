@@ -29,15 +29,15 @@ class Main:
             flags.append(sys.argv[1])
             return subprocess.Popen(flags, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
         ergs = self.for_all_combinations(len(self.vars), tester)
-        ergs = sorted([ [ i.strip() for i in j.split('\n') if i.startswith('B') ] for j in ergs ])
+        ergs = sorted([ sorted([ i.strip() for i in j.split('\n') if i.startswith('B') ]) for j in ergs ])
 
         def undertaker_test(conditionstring):
-            cpppc = subprocess.Popen(['../undertaker', '-j', 'cpppc', sys.argv[1]],
+            cpppc = subprocess.Popen(['/proj/i4vamos/tools/bin/undertaker', '-j', 'cpppc', sys.argv[1]],
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
 
             cpppc = ' '.join(cpppc.split('\n')[1:])
             
-            limboole_in = ' && '.join([conditionstring, cpppc]).replace('&&', '&').replace("||", "|")
+            limboole_in = ' && '.join([conditionstring, cpppc]).replace('&&', '&')
 
             if len(sys.argv) > 2 and sys.argv[2] == 'v':
                 print limboole_in
