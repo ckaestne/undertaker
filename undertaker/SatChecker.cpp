@@ -271,6 +271,15 @@ int SatChecker::transform_bool_rec(iter_t const& input) {
         }
         _debug_parser();
         return A_clause;
+    } else if (root_node->value.id() == bool_grammar::comparatorID) {
+        /* Skip and rule if there is only one child */
+        if (root_node->children.size() == 1) {
+            return transform_bool_rec(iter);
+        }
+        int this_clause  = newSymbol();
+        _debug_parser("- __COMP__N", false);
+        return this_clause;
+
     } else {
         /* Just a Container node, we simply go inside and try again. */
         root_node = root_node->children.begin();

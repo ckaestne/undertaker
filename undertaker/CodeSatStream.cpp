@@ -53,8 +53,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs,
 
     static const char prefix[] = "CONFIG_";
     static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
-    static const boost::regex comp_regexp("[_[:alnum:]]+[[:space:]]*[!]?[><=]+[[:space:]]*[_[:alnum:]]+",
-                                          boost::regex::extended);
     static const boost::regex free_item_regexp("[a-zA-Z0-9\\-_]+", boost::regex::extended);
     std::string line;
 
@@ -65,14 +63,6 @@ CodeSatStream::CodeSatStream(std::istream &ifs,
         std::string item;
         std::string::size_type pos = std::string::npos;
         boost::match_results<std::string::iterator> what;
-        boost::match_flag_type flags = boost::match_default;
-
-        while (boost::regex_search(line.begin(), line.end(), what, comp_regexp, flags)) {
-            char buf[20];
-            static int c;
-            snprintf(buf, sizeof buf, "COMP_%d", c++);
-            line.replace(what[0].first, what[0].second, buf);
-        }
 
         while ((pos = line.find("defined")) != std::string::npos)
             line.erase(pos,7);

@@ -9,6 +9,7 @@ using namespace BOOST_SPIRIT_CLASSIC_NS;
 struct bool_grammar : public grammar<bool_grammar>
 {
     enum {symbolID = 2, not_symbolID, andID, orID, impliesID, iffID,
+          comparatorID,
     };
 
     template <typename ScannerT>
@@ -22,6 +23,7 @@ struct bool_grammar : public grammar<bool_grammar>
         rule<ScannerT, parser_context<>, parser_tag<orID> > or_term;
         rule<ScannerT, parser_context<>, parser_tag<impliesID> > implies_term;
         rule<ScannerT, parser_context<>, parser_tag<iffID> > iff_term;
+        rule<ScannerT, parser_context<>, parser_tag<comparatorID> > comparator_term;
         rule<ScannerT> start_rule, group, term, expression;
 
         definition(bool_grammar const& self)  {
@@ -37,9 +39,14 @@ struct bool_grammar : public grammar<bool_grammar>
 
             term = group | not_symbol | symbol;
 
+#define __C_OPERATORS(p) (p(|) | p(^) | p(&) | p(==) | p(!=) | p(>) | p(>=) | p(<) | p(<=) | \
+                          p(<<) | p(>>) | p(+) | p(-) | p(*) | p(/) | p(%) )
+#define __my_str_p(s) str_p( #s )
+            comparator_term = term >> *( __C_OPERATORS(__my_str_p) >> term);
+
             /* nodes that aren't leaf nodes */
-            and_term     = term         >> *(no_node_d[ch_p("&") >> (*ch_p("&"))] >> term);
-            or_term      = and_term     >> *(no_node_d[ch_p("|") >> (*ch_p("|"))] >> and_term);
+            and_term     = comparator_term >> *(no_node_d[str_p("&&")] >> comparator_term);
+            or_term      = and_term        >> *(no_node_d[str_p("||")] >> and_term);
 
             implies_term = or_term      >> *(no_node_d[str_p("->")] >> or_term);
             iff_term     = implies_term
