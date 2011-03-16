@@ -483,7 +483,7 @@ std::string CloudContainer::rewriteExpression(ZizCondBlockPtr& block)
                         sj.push_back(successors.top());
                         successors.pop();
                     }
-                    std::string suc = sj.join(" | ");
+                    std::string suc = sj.join(" || ");
                     std::stringstream nc;
                     std::string right_side = ((*it)->_define) ? cur_item : "!"+cur_item;
                     if (suc.empty()) {
@@ -504,7 +504,7 @@ std::string CloudContainer::rewriteExpression(ZizCondBlockPtr& block)
                         depends.pop();
                     }
                     if (first) {
-                        std::string deps = dj.join(" | ");
+                        std::string deps = dj.join(" || ");
                         std::stringstream s1,s2;
                         std::string prev = replace[item].substr(0,replace[item].size()-1);
                         s1 << " ( (" << prev << ")";
