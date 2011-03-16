@@ -74,18 +74,29 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     if (model) {
         std::set<std::string> missingSet;
         formula.push_back(_cs->getKconfigConstraints(model, missingSet));
-        SatChecker kconfig_constraints(_formula = formula.join("\n&&\n"));
+        std::string formula_str = formula.join("\n&&\n");
+        SatChecker kconfig_constraints(formula_str);
 
         if (!kconfig_constraints()) {
+            if (_defectType != Configuration) {
+                // Wasn't already identified as Configuration defect
+                // crosscheck doesn't overwrite formula
+                _formula = formula_str;
+                _arch = ModelContainer::lookupArch(model);
+            }
             _defectType = Configuration;
             _isGlobal = true;
             return true;
         } else {
             formula.push_back(ConfigurationModel::getMissingItemsConstraints(missingSet));
-            SatChecker missing_constraints(_formula = formula.join("\n&&\n"));
+            std::string formula_str = formula.join("\n&&\n");
+            SatChecker missing_constraints(formula_str);
 
             if (!missing_constraints()) {
-                _defectType = Referential;
+                if (_defectType != Configuration) {
+                    _formula = formula_str;
+                    _defectType = Referential;
+                }
                 return true;
             }
         }
@@ -187,18 +198,29 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
     if (model) {
         std::set<std::string> missingSet;
         formula.push_back(_cs->getKconfigConstraints(model, missingSet));
-        SatChecker kconfig_constraints(_formula = formula.join("\n&&\n"));
+        std::string formula_str = formula.join("\n&&\n");
+        SatChecker kconfig_constraints(formula_str);
 
         if (!kconfig_constraints()) {
+            if (_defectType != Configuration) {
+                // Wasn't already identified as Configuration defect
+                // crosscheck doesn't overwrite formula
+                _formula = formula_str;
+                _arch = ModelContainer::lookupArch(model);
+            }
             _defectType = Configuration;
             _isGlobal = true;
             return true;
         } else {
             formula.push_back(ConfigurationModel::getMissingItemsConstraints(missingSet));
-            SatChecker missing_constraints(_formula = formula.join("\n&&\n"));
+            std::string formula_str = formula.join("\n&&\n");
+            SatChecker missing_constraints(formula_str);
 
             if (!missing_constraints()) {
-                _defectType = Referential;
+                if (_defectType != Configuration) {
+                    _formula = formula_str;
+                    _defectType = Referential;
+                }
                 return true;
             }
         }

@@ -9435,13 +9435,13 @@ I: Using x86 as primary model
 I: creating sched.c.B251.x86.missing.dead
 I: creating sched.c.B361.x86.missing.dead
 I: creating sched.c.B363.x86.missing.dead
-I: creating sched.c.B365.missing.globally.dead
+I: creating sched.c.B365.s390.kconfig.globally.dead
 I: creating sched.c.B369.x86.missing.dead
 I: creating sched.c.B397.x86.missing.dead
 I: creating sched.c.B409.x86.missing.dead
 I: creating sched.c.B422.x86.missing.dead
 I: creating sched.c.B438.x86.missing.dead
-I: creating sched.c.B448.missing.globally.dead
+I: creating sched.c.B448.s390.kconfig.globally.dead
 I: creating sched.c.B522.x86.kconfig.globally.undead
 I: creating sched.c.B527.x86.kconfig.globally.undead
 I: creating sched.c.B564.x86.missing.dead
