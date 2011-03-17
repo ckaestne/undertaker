@@ -116,6 +116,8 @@ START_TEST(bool_parser_test)
     parse_test("A && !A || B && !B", true);
     parse_test("A -> B -> C", true);
     parse_test("A <-> B", true);
+
+    parse_test("( B23 <->  ( B1 )  && ( MAX_DMA_CHANNELS >= 12 ) >> 2 )", true);
 }
 END_TEST
 

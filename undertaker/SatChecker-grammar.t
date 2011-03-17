@@ -39,8 +39,9 @@ struct bool_grammar : public grammar<bool_grammar>
 
             term = group | not_symbol | symbol;
 
-#define __C_OPERATORS(p) (p(|) | p(^) | p(&) | p(==) | p(!=) | p(>) | p(>=) | p(<) | p(<=) | \
-                          p(<<) | p(>>) | p(+) | p(-) | p(*) | p(/) | p(%) )
+#define __C_OPERATORS(p) (p(|) | p(^) | p(&) | p(==) | p(!=) | p(<<) | p(>>) \
+                          | p(>=) | p(>) | p(<=) | p(<)                 \
+                          | p(+)  | p(-) | p(*)  | p(/) | p(%) )
 #define __my_str_p(s) str_p( #s )
             comparator_term = term >> *( __C_OPERATORS(__my_str_p) >> term);
 
