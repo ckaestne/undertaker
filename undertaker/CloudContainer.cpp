@@ -370,9 +370,7 @@ std::string block_name(int i)
 std::string CloudContainer::rewriteExpression(ZizCondBlockPtr& block)
 {
     std::map<std::string,std::string> replace;
-    static std::map<std::string,std::string> last_change;
     std::string exp = block.Block()->ExpressionStr();
-    static std::map<std::string,std::list<int> > new_vars;
     Ziz::Defines defines_map = _zfile->getDefinesMap();
     static const boost::regex free_item_regexp("[a-zA-Z0-9\\-_]+", boost::regex::extended);
     static const boost::regex non_items("B[0-9]+", boost::regex::extended);
@@ -404,27 +402,27 @@ std::string CloudContainer::rewriteExpression(ZizCondBlockPtr& block)
             bool new_constraint = false;
 
             std::string new_item;
-            if (new_vars.find(item) == new_vars.end()  ) { // this is the first rewriting of item taking place
-                new_vars[item].push_back(current_pos);
+            if (rewriteDefine_new_vars.find(item) == rewriteDefine_new_vars.end()  ) { // this is the first rewriting of item taking place
+                rewriteDefine_new_vars[item].push_back(current_pos);
                 new_item = item+".";
-                last_change[item] = new_item;
+                rewriteDefine_last_change[item] = new_item;
                 replace[item] = new_item;
                 new_constraint = true;
             } else {
-                int last_pos = *(--new_vars[item].end()); // last position where a rewriting of item took place
+                int last_pos = *(--rewriteDefine_new_vars[item].end()); // last position where a rewriting of item took place
                 if (defineInBetween(current_pos, last_pos, defines_map, item)) {
-                    new_vars[item].push_back(current_pos);
-                    int c = new_vars[item].size();
+                    rewriteDefine_new_vars[item].push_back(current_pos);
+                    int c = rewriteDefine_new_vars[item].size();
                     std::string append = "";
                     for(int i=0; i<c; i++) {
                         append += "." ;
                     }
                     new_item = item+append;
-                    last_change[item] = new_item;
+                    rewriteDefine_last_change[item] = new_item;
                     replace[item] = new_item;
                     new_constraint = true;
                 } else {
-                    replace[item] = last_change[item]; // no need for a new variable just use the last definition
+                    replace[item] = rewriteDefine_last_change[item]; // no need for a new variable just use the last definition
                 }
             }
             // constraints for the new item

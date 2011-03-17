@@ -107,6 +107,10 @@ protected:
 
     std::string *_constraints;
     const char *_filename;
+
+    std::map<std::string,std::string> rewriteDefine_last_change;
+    std::map<std::string,std::list<int> > rewriteDefine_new_vars;
+
 };
 
 #endif
