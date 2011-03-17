@@ -24,21 +24,8 @@ function debug() {
     fi
 }
 
-# Find path to the undertaker helping executables
-LIBPATH=$(dirname $(readlink -f $(which $0)))/../lib:$(dirname $0)/../lib:/usr/local/lib:/usr/lib:/lib
-# Canonicalize dir/../ to /
-LIBPOSTFIX=undertaker
+PATH="@LIBDIR@:$PATH"
 
-OLDIFS=$IFS
-IFS=:
-for path in $LIBPATH; do
-    if [ -x "$path"/"$LIBPOSTFIX" ]; then
-        PATH="$path"/"$LIBPOSTFIX":"$PATH"
-        debug "Added $path/$LIBPOSTFIX to path"
-        break
-    fi
-done
-IFS=$OLDIFS
 debug "PATH=$PATH\n"
 
 if ! which dumpconf > /dev/null; then

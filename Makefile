@@ -1,8 +1,9 @@
 PROGS = scripts/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model
+TEMPLATED = rsf2model/undertaker-kconfigdump
 PREFIX ?= /usr/local
 LIBDIR ?= $(PREFIX)/lib
 
-all: $(PROGS)
+all: $(PROGS) $(TEMPLATED)
 
 scripts/kconfig/dumpconf: FORCE
 	$(MAKE) -f Makefile.kbuild dumpconf
@@ -13,12 +14,16 @@ undertaker/undertaker: FORCE
 rsf2model/rsf2model: FORCE
 	$(MAKE) -C rsf2model
 
+%: %.in
+	@echo "Template: $< -> $@"
+	@sed "s#@LIBDIR@#${LIBDIR}#g" < $< > $@
 
 clean:
 	$(MAKE) -f Makefile.kbuild clean
 	$(MAKE) -C undertaker clean
 	$(MAKE) -C ziz clean
 	$(MAKE) -C rsf2model clean
+	@rm -f $(TEMPLATED)
 
 docs:
 	$(MAKE) -C undertaker docs
@@ -27,7 +32,7 @@ check:
 	$(MAKE) -C undertaker $@
 	$(MAKE) -C rsf2model $@
 
-install: all
+install: all 
 	@install -d -v $(DESTDIR)$(PREFIX)/bin
 
 	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker 
@@ -38,7 +43,7 @@ install: all
 	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(LIBDIR)/undertaker
 
 	@install -v undertaker/undertaker $(DESTDIR)$(PREFIX)/bin
-	@install -v undertaker/undertaker-kconfigdump $(DESTDIR)$(PREFIX)/bin
+	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(PREFIX)/bin
 
 	@install -v contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
