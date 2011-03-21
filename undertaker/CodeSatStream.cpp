@@ -59,6 +59,15 @@ CodeSatStream::CodeSatStream(std::istream &ifs,
     if (!_istream.good())
         return;
 
+    if (_blockCloud) {
+        for(std::deque<ZizCondBlockPtr>::iterator zcp = _blockCloud->begin(); zcp != _blockCloud->end(); zcp++) {
+            std::stringstream ss;
+            ss << "B" << (*zcp).getId();
+            _blocks.insert(ss.str());
+        }
+    }
+
+
     while (std::getline(_istream, line)) {
         std::string item;
         std::string::size_type pos = std::string::npos;
@@ -74,9 +83,13 @@ CodeSatStream::CodeSatStream(std::istream &ifs,
                 _items.insert(*item);
                 continue;
             }
-            if (boost::regex_match((*item).begin(), (*item).end(), block_regexp)) {
-                _blocks.insert(*item);
-                continue;
+            // Fallback, when no block cloud is given, we search for
+            // all blocks in given expression
+            if (!_blockCloud) {
+                if (boost::regex_match((*item).begin(), (*item).end(), block_regexp)) {
+                    _blocks.insert(*item);
+                    continue;
+                }
             }
             if (boost::regex_match((*item).begin(), (*item).end(), free_item_regexp)) {
                 _free_items.insert(*item);

@@ -212,10 +212,12 @@ void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
         return;
     }
 
-    std::istringstream cs(clouds.getConstraints());
+    std::string cloud_constrains(clouds.getConstraints());
+
 
     for (CloudList::iterator c = clouds.begin(); c != clouds.end(); c++) {
         std::istringstream cloud((*c).getConstraints());
+        std::istringstream cs(cloud_constrains);
 
         // If we have no defines in the file we can surely use only
         // the expression for a single block cloud and not the whole file
