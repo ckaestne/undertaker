@@ -24,7 +24,7 @@ function debug() {
     fi
 }
 
-PATH="@LIBDIR@:$PATH"
+PATH="@LIBDIR@/undertaker:$PATH"
 
 debug "PATH=$PATH\n"
 

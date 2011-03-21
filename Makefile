@@ -3,7 +3,7 @@ TEMPLATED = rsf2model/undertaker-kconfigdump
 PREFIX ?= /usr/local
 LIBDIR ?= $(PREFIX)/lib
 
-all: $(PROGS) $(TEMPLATED)
+all: $(PROGS)
 
 scripts/kconfig/dumpconf: FORCE
 	$(MAKE) -f Makefile.kbuild dumpconf
@@ -17,6 +17,7 @@ rsf2model/rsf2model: FORCE
 %: %.in
 	@echo "Template: $< -> $@"
 	@sed "s#@LIBDIR@#${LIBDIR}#g" < $< > $@
+	@chmod --reference="$<" $@
 
 clean:
 	$(MAKE) -f Makefile.kbuild clean
@@ -32,7 +33,7 @@ check:
 	$(MAKE) -C undertaker $@
 	$(MAKE) -C rsf2model $@
 
-install: all 
+install: all $(TEMPLATED)
 	@install -d -v $(DESTDIR)$(PREFIX)/bin
 
 	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker 
