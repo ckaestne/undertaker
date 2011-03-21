@@ -49,8 +49,8 @@ install: all
 	@install -v contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
 dist: clean
-	tar -C .. -czvf ../undertaker-$(VERSION).tar.gz vamos --exclude=*.rsf --exclude=*.model \
-		--exclude-vcs --exclude="*nfs*" --exclude="*git*" --exclude=*.tar.gz --exclude="*.html"
+	tar -C .. -czvf ../undertaker-$(VERSION).tar.gz $(shell basename `pwd`) --exclude=*.rsf --exclude=*.model \
+		--exclude-vcs --exclude="*nfs*" --exclude="*git*" --exclude=*.tar.gz --exclude="*html*" \
 
 undertaker-lcov:
 	$(MAKE) -C undertaker run-lcov
