@@ -29,6 +29,7 @@
 #include <deque>
 #include <set>
 #include <list>
+#include <boost/regex.hpp>
 
 #include "RsfReader.h"
 
@@ -54,6 +55,7 @@ public:
     bool inConfigurationSpace(const std::string &symbol) const;
 private:
     std::string _name;
+    boost::regex _inConfigurationSpace_regexp;
 };
 
 #endif

@@ -34,6 +34,13 @@
 
 ConfigurationModel::ConfigurationModel(std::string name, std::ifstream &in, std::ostream &log)
     : RsfReader(in, log, "UNDERTAKER_SET"), _name(name) {
+    const StringList *configuration_space_regex = getMetaValue("CONFIGURATION_SPACE_REGEX");
+
+    if (configuration_space_regex != NULL && configuration_space_regex->size() > 0) {
+        std::cout << "I: Set configuration space regex to '" << configuration_space_regex->front() << "'" << std::endl;
+        _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
+    } else
+        _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);
 }
 
 std::list<std::string> itemsOfString(const std::string &str) {
@@ -153,10 +160,8 @@ int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &o
 }
 
 bool ConfigurationModel::inConfigurationSpace(const std::string &symbol) const {
-    const char *prefix = "CONFIG_";
-    if (symbol.find(prefix) != std::string::npos) {
+    if (boost::regex_match(symbol, _inConfigurationSpace_regexp))
         return true;
-    }
     return false;
 }
 
