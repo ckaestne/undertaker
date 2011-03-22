@@ -2,6 +2,7 @@ PROGS = scripts/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model
 TEMPLATED = rsf2model/undertaker-kconfigdump
 PREFIX ?= /usr/local
 LIBDIR ?= $(PREFIX)/lib
+VERSION=$(shell cat VERSION)
 
 all: $(PROGS)
 
