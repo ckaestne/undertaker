@@ -51,8 +51,17 @@ install: all $(TEMPLATED)
 	@install -v contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
 dist: clean
-	tar -C .. -czvf ../undertaker-$(VERSION).tar.gz $(shell basename `pwd`) --exclude=*.rsf --exclude=*.model \
-		--exclude-vcs --exclude="*nfs*" --exclude="*git*" --exclude=*.tar.gz --exclude="*html*" \
+	tar -czvf ../undertaker-$(VERSION).tar.gz . \
+		--show-transformed-names \
+		--transform 's,^./,undertaker-$(VERSION)/,'\
+		--exclude=*~ \
+		--exclude=*.rsf \
+		--exclude=*.model \
+		--exclude-vcs \
+		--exclude="*nfs*" \
+		--exclude="*git*" \
+		--exclude=*.tar.gz \
+		--exclude="*.html"
 
 undertaker-lcov:
 	$(MAKE) -C undertaker run-lcov
