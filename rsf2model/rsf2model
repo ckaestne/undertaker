@@ -20,23 +20,25 @@ class TranslatedModel(tools.UnicodeMixin):
         for (name, option) in self.rsf.options().items():
             if type(option) == Choice:
                 self.translate_choice(option)
-        for (item, default) in self.rsf.collect("Default").items():
-            option = self.rsf.options().get(item, None)
-            if option:
-                try:
-                    self.translate_default(option, default)
-                except BoolRewriter.BoolParserException:
-                    # Parsing expression failed, just ignore it
-                    pass
 
-        for (item, select) in self.rsf.collect("ItemSelects").items():
-            option = self.rsf.options().get(item, None)
-            if option:
-                try:
-                    self.translate_select(option, select)
-                except BoolRewriter.BoolParserException:
-                    # Parsing of a substring failed, just ignore it
-                    pass
+        for (item, default_set) in self.rsf.collect("Default", 0, True).items():
+            for default in default_set:
+                option = self.rsf.options().get(item, None)
+                if option:
+                    try:
+                        self.translate_default(option, default)
+                    except BoolRewriter.BoolParserException:
+                        # Parsing expression failed, just ignore it
+                        pass
+        for (item, select_set) in self.rsf.collect("ItemSelects", 0, True).items():
+            for select in select_set:
+                option = self.rsf.options().get(item, None)
+                if option:
+                    try:
+                        self.translate_select(option, select)
+                    except BoolRewriter.BoolParserException:
+                        # Parsing of a substring failed, just ignore it
+                        pass
 
     def translate_option(self, option):
         # Generate symbols

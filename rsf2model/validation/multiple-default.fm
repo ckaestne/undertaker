@@ -1,0 +1,22 @@
+Item	HAS_IOMEM	boolean
+HasPrompts	HAS_IOMEM	1
+
+Item	SPI	boolean
+HasPrompts	SPI	1
+
+Item	SPI_MASTER	boolean
+Depends	SPI_MASTER	"SPI"
+HasPrompts	SPI_MASTER	0
+Default	SPI_MASTER	"HAS_IOMEM"	"SPI"
+Default	SPI_MASTER	"HAS_IOMEM_OTHER"	"SPI_OTHER"
+/*
+ * check-name: item with multiple defaults
+ * check-output-start
+I: Items-Count: 3
+I: Format: <variable> [presence condition]
+CONFIG_SPI
+CONFIG_HAS_IOMEM
+CONFIG_SPI_MASTER "CONFIG_SPI && ((CONFIG_HAS_IOMEM && CONFIG_SPI) || (CONFIG_HAS_IOMEM_OTHER && CONFIG_SPI_OTHER))"
+ * check-output-end
+ */
+
