@@ -1,0 +1,71 @@
+#!/usr/bin/python
+
+import sys
+import tools
+from RsfReader import RsfReader
+
+
+class TranslatedModel(tools.UnicodeMixin):
+    def __init__(self, rsf):
+        self.symbols = []
+        self.deps = {}
+
+        self.rsf = rsf
+        for (name, option) in self.rsf.options().items():
+            self.translate_option(option)
+
+    def translate_option(self, option):
+        # Generate symbols
+        symbol = option.symbol()
+        self.symbols.append(symbol)
+        self.deps[symbol] = []
+
+        if option.tristate:
+            symbol_module = option.symbol_module()
+            self.symbols.append(symbol_module)
+            self.deps[symbol_module] = []
+
+            # mutual exclusion for tristate symbols
+            self.deps[symbol].append("!%s" % symbol_module)
+            self.deps[symbol_module].append("!%s" % symbol)
+            self.deps[symbol_module].append("CONFIG_MODULES")
+
+        # Add dependency
+        if option.tristate:
+            # For tristate symbols (without _MODULE) the dependency must evaluate to y
+            dep = option.dependency(["y"])
+            if dep:
+                self.deps[symbol].insert(0, dep)
+
+            # for _MODULE also "m" is ok
+            dep = option.dependency(["y", "m"])
+            if dep:
+                self.deps[option.symbol_module()].insert(0, dep)
+        else:
+            dep = option.dependency(["y", "m"])
+            if dep:
+                self.deps[symbol].insert(0, dep)
+
+
+    def __unicode__(self):
+        result = u""
+        result += u"I: Items-Count: %d\n" % len(self.symbols)
+        result += u"I: Format: <variable> [presence condition]\n"
+        for symbol in self.symbols:
+            expression = ""
+            if symbol in self.deps:
+                expression += " && ".join(self.deps[symbol])
+            if expression == "":
+                result += "%s\n" % symbol
+            else:
+                result += "%s \"%s\"\n" % (symbol, expression)
+        return result
+
+
+if __name__ == '__main__':
+    fd = sys.stdin
+    if len(sys.argv) > 1:
+        fd = open(sys.argv[1])
+    rsf = RsfReader(fd)
+    sys.stdout.write(str(TranslatedModel(rsf)))
+

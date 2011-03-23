@@ -1,6 +1,0 @@
-*.o
-*.a
-*.d
-*~
-rsf2model
-test-KconfigRsfTranslator
