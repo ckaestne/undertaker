@@ -121,6 +121,9 @@ class Option (tools.Repr):
             raise OptionNotTristate()
         return "CONFIG_%s_MODULE" % self.name
 
+    def prompts(self):
+        prompts = self.rsf.collect("HasPrompts")
+        return int(prompts.get(self.name, ["-1"])[0])
     def dependency(self, eval_to_module = True):
         depends = self.rsf.depends()
         if not self.name in depends or len(depends[self.name]) == 0:

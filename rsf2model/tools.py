@@ -38,3 +38,12 @@ class memoized(object):
    def __get__(self, obj, objtype):
       """Support instance methods."""
       return functools.partial(self.__call__, obj)
+
+
+free_count = 0
+def new_free_item():
+    global free_count
+    i = free_count
+    free_count += 1
+    return "__FREE__%d" % i
+

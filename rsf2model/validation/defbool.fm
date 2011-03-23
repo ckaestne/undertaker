@@ -12,14 +12,14 @@ HasPrompts	X86_64	0
 Default	X86_64	"64BIT"	"y"
 
 /*
- * check-name: =n, =y, =m...
+ * check-name: always on && simple default
  * check-output-start
 I: Items-Count: 4
 I: Format: <variable> [presence condition]
 UNDERTAKER_SET ALWAYS_ON "CONFIG_MODULES"
-CONFIG_64BIT
-CONFIG_MODULES
 CONFIG_X86_32 "(!CONFIG_64BIT)"
 CONFIG_X86_64 "(CONFIG_64BIT)"
+CONFIG_64BIT
+CONFIG_MODULES "(__FREE__0)"
  * check-output-end
  */

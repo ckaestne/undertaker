@@ -3,12 +3,16 @@
 import sys
 import tools
 from RsfReader import RsfReader, Choice
+import BoolRewriter
 
 
 class TranslatedModel(tools.UnicodeMixin):
     def __init__(self, rsf):
         self.symbols = []
         self.deps = {}
+        self.defaultSelects = {}
+
+        self.always_on = []
 
         self.rsf = rsf
         for (name, option) in self.rsf.options().items():
@@ -16,6 +20,10 @@ class TranslatedModel(tools.UnicodeMixin):
         for (name, option) in self.rsf.options().items():
             if type(option) == Choice:
                 self.translate_choice(option)
+        for (item, default) in self.rsf.collect("Default").items():
+            option = self.rsf.options().get(item, None)
+            if option:
+                self.translate_default(option, default)
 
 
     def translate_option(self, option):
@@ -23,6 +31,7 @@ class TranslatedModel(tools.UnicodeMixin):
         symbol = option.symbol()
         self.symbols.append(symbol)
         self.deps[symbol] = []
+        self.defaultSelects[symbol] = []
 
         if option.tristate():
             symbol_module = option.symbol_module()
@@ -54,15 +63,52 @@ class TranslatedModel(tools.UnicodeMixin):
         for (symbol, dep) in choice.insert_forward_references().items():
             self.deps[symbol].extend(dep)
 
+    def translate_default(self, option, dependency):
+        # dependency: [state, if <expr>]
+        if len(dependency) != 2:
+            return
+
+        if type(option) == Choice or option.prompts() != 0 or option.tristate():
+            return
+        [state, cond] = dependency
+        if state == "y" and cond == "y" \
+               and option.prompts() == 0 \
+               and not option.tristate():
+            self.always_on.append(option.symbol())
+            # we add a free item to the defaultSelect list. this is
+            # important in the following scenario:
+            # 1. Item ist default on
+            # 2. item is selected by other item
+            # 3. without the free item it is implied, that the second
+            #    item is on, byt with default to y this isn't right
+            #
+            # Difference:
+            # A DEPS && (SELECT1)
+            # A DEPS && (__FREE__ || SELECT1)
+            self.defaultSelects[option.symbol()].append(tools.new_free_item())
+        elif state == "y" or cond == "y":
+            expr = state
+            if state == "y":
+                expr = cond
+            expr =  str(BoolRewriter.BoolRewriter(self.rsf, expr).rewrite())
+            self.defaultSelects[option.symbol()].append(expr)
+
 
     def __unicode__(self):
         result = u""
         result += u"I: Items-Count: %d\n" % len(self.symbols)
         result += u"I: Format: <variable> [presence condition]\n"
+        if len(self.always_on) > 0:
+            result += "UNDERTAKER_SET ALWAYS_ON " + (" ".join(map(lambda x: '"' + x + '"', self.always_on))) + "\n"
+
         for symbol in self.symbols:
             expression = ""
-            if symbol in self.deps:
-                expression += " && ".join(self.deps[symbol])
+            deps = self.deps.get(symbol, [])
+            if symbol in self.defaultSelects and len(self.defaultSelects[symbol]) > 0:
+                dS = self.defaultSelects[symbol]
+                deps.append("(" + (" || ".join(dS)) + ")")
+
+            expression = " && ".join(deps)
             if expression == "":
                 result += "%s\n" % symbol
             else:
