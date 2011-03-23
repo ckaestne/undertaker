@@ -47,16 +47,29 @@ class RsfReader:
         for option_name in options:
             result[option_name] = Option(self, option_name, tristate[option_name])
 
+        for item in self.database["Choice"]:
+            if len(item) < 2: continue
+            tristate = item[2] == "tristate"
+            required = item[1] == "required"
+            result[item[0]] = Choice(self, item[0], tristate = tristate, required = required)
+
+
         return result
 
 
     @tools.memoized
-    def collect(self, key, col = 0):
+    def collect(self, key, col = 0, multival = False):
         """Collect all database keys and put them by the n'th column in a dict"""
         result = {}
         for item in self.database[key]:
             if len(item) < col: continue
-            result[item[col]] = item[0:col] + item[col+1:]
+            if multival:
+                if item[col] in result:
+                    result[item[col]].append(item[0:col] + item[col+1:])
+                else:
+                    result[item[col]] = [item[0:col] + item[col+1:]]
+            else:
+                result[item[col]] = item[0:col] + item[col+1:]
         return result
 
     def depends(self):
@@ -104,4 +117,50 @@ class Option (tools.Repr):
         return str(BoolRewriter.BoolRewriter(self.rsf, depends, eval_to_module = eval_to_module).rewrite())
 
     def __unicode__(self):
-        return u"<Option %s, tri: %s>" % (self.name, str(self.tristate))
+        return u"<Option %s, tri: %s>" % (self.name, str(self.tristate()))
+
+class Choice(Option):
+    def __init__(self, rsf, name, tristate, required):
+        Option.__init__(self, rsf, name, tristate)
+        self._required = required
+    def insert_forward_references(self):
+        """Insert dependencies SYMBOL -> CHOICE"""
+        items = self.rsf.collect("ChoiceItem", 1, True)
+        deps = {}
+        own_items = []
+        deps[self.rsf.symbol(self.name)] = []
+        if self.tristate():
+            deps[self.rsf.symbol_module(self.name)] = []
+
+        if self.name in items:
+            for [symbol] in items[self.name]:
+                if symbol in self.rsf.options():
+                    own_items.append(symbol)
+                    deps[self.rsf.symbol(symbol)] = [self.rsf.symbol(self.name)]
+                    if self.tristate():
+                        # If the choice is tristate the CHOICE_MODULE
+                        # implies, that no option from the choice is
+                        # selected as static unit
+                        deps[self.rsf.symbol_module(self.name)].append("!" + self.rsf.symbol(symbol))
+                        opt = self.rsf.options()[symbol]
+                        if opt.tristate():
+                            deps[self.rsf.symbol_module(symbol)] = [self.rsf.symbol_module(self.name)]
+
+
+        or_clause = []
+        and_clause_count = len(own_items)
+        if not self._required:
+            # If we have an optional choice, also no item can be
+            # selected. So we add an and clause where all items are negated.
+            and_clause_count += 1
+        for x in range(0, and_clause_count):
+            and_clause = []
+            for y in range(0, len(own_items)):
+                if x == y:
+                    and_clause.append(self.rsf.symbol(own_items[y]))
+                else:
+                    and_clause.append("!" + self.rsf.symbol(own_items[y]))
+            or_clause.append(" && ".join(and_clause))
+        deps[self.rsf.symbol(self.name)].extend([ "((" + ") || (".join(or_clause) + "))"])
+
+        return deps

@@ -101,7 +101,6 @@ def tree_change(func, tree):
             i+= 1
     return tree
 
-
 class BoolRewriter(tools.UnicodeMixin):
     ELEMENT = "in"
 
@@ -165,6 +164,17 @@ class BoolRewriter(tools.UnicodeMixin):
                     tree[i] = tristate(tree[i])
             return tree
 
+    def rewrite_choice(self):
+        """Removes all CHOICE_ items"""
+        def __recr(tree):
+            tree = filter(lambda x: not(type(x) == str and x.startswith("CHOICE_")), tree)
+            if len(tree) == 1:
+                return []
+            return tree
+
+        self.expr = tree_change(__recr, self.expr)
+        return self.expr
+
     def rewrite_symbol(self):
         self.expr = tree_change(self.__rewrite_symbol, self.expr)
         return self.expr
@@ -194,7 +204,7 @@ class BoolRewriter(tools.UnicodeMixin):
             elif right == "m":
                 return left_m
             elif right == "n":
-                return [BoolParser.AND, 
+                return [BoolParser.AND,
                         [BoolParser.NOT, left_m],
                         [BoolParser.NOT, left_y]]
             else:
@@ -251,9 +261,12 @@ class BoolRewriter(tools.UnicodeMixin):
             if len(elements) == 1:
                 return cat.join(elements)
             return "(" + cat.join(elements) + ")"
+        if self.expr == []:
+            return ""
         return __concat(self.expr)
     def rewrite(self):
         self.rewrite_not()
+        self.rewrite_choice()
         self.rewrite_tristate()
         self.rewrite_symbol()
         return self

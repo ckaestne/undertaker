@@ -2,7 +2,7 @@
 
 import sys
 import tools
-from RsfReader import RsfReader
+from RsfReader import RsfReader, Choice
 
 
 class TranslatedModel(tools.UnicodeMixin):
@@ -13,6 +13,10 @@ class TranslatedModel(tools.UnicodeMixin):
         self.rsf = rsf
         for (name, option) in self.rsf.options().items():
             self.translate_option(option)
+        for (name, option) in self.rsf.options().items():
+            if type(option) == Choice:
+                self.translate_choice(option)
+
 
     def translate_option(self, option):
         # Generate symbols
@@ -45,6 +49,10 @@ class TranslatedModel(tools.UnicodeMixin):
             dep = option.dependency(eval_to_module = True)
             if dep:
                 self.deps[symbol].insert(0, dep)
+
+    def translate_choice(self, choice):
+        for (symbol, dep) in choice.insert_forward_references().items():
+            self.deps[symbol].extend(dep)
 
 
     def __unicode__(self):
