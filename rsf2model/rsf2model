@@ -20,7 +20,7 @@ class TranslatedModel(tools.UnicodeMixin):
         self.symbols.append(symbol)
         self.deps[symbol] = []
 
-        if option.tristate:
+        if option.tristate():
             symbol_module = option.symbol_module()
             self.symbols.append(symbol_module)
             self.deps[symbol_module] = []
@@ -31,14 +31,14 @@ class TranslatedModel(tools.UnicodeMixin):
             self.deps[symbol_module].append("CONFIG_MODULES")
 
         # Add dependency
-        if option.tristate:
+        if option.tristate():
             # For tristate symbols (without _MODULE) the dependency must evaluate to y
             dep = option.dependency(["y"])
             if dep:
                 self.deps[symbol].insert(0, dep)
 
             # for _MODULE also "m" is ok
-            dep = option.dependency(["y", "m"])
+            dep = option.dependency()
             if dep:
                 self.deps[option.symbol_module()].insert(0, dep)
         else:

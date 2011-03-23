@@ -1,6 +1,6 @@
 import tools
 import shlex
-import BooleanRewriter
+import BoolRewriter
 
 class RsfReader:
     def __init__(self, fd):
@@ -16,6 +16,20 @@ class RsfReader:
             row = shlex.split(line)
             if len(row) > 1 and row[0] in keys:
                 self.database[row[0]].append(row[1:])
+
+    def symbol(self, name):
+        if " " in name:
+            raise OptionInvalid()
+
+        return "CONFIG_%s" % name
+
+    def symbol_module(self, name):
+        if " " in name:
+            raise OptionInvalid()
+
+        return "CONFIG_%s_MODULE" % name
+
+
 
     @tools.memoized
     def options(self):
@@ -60,7 +74,10 @@ class Option (tools.Repr):
     def __init__(self, rsf, name, tristate = False):
         self.rsf = rsf
         self.name = name
-        self.tristate = tristate
+        self._tristate = tristate
+
+    def tristate(self):
+        return self._tristate
 
     def symbol(self):
         if " " in self.name:
@@ -72,11 +89,11 @@ class Option (tools.Repr):
         if " " in self.name:
             raise OptionInvalid()
 
-        if not self.tristate:
+        if not self._tristate:
             raise OptionNotTristate()
         return "CONFIG_%s_MODULE" % self.name
 
-    def dependency(self, possible_evals = ["y", "m"]):
+    def dependency(self, eval_to_module = True):
         depends = self.rsf.depends()
         if not self.name in depends or len(depends[self.name]) == 0:
             return None
@@ -84,7 +101,7 @@ class Option (tools.Repr):
         depends = depends[self.name][0]
 
         # Rewrite the dependency
-        return str(BooleanRewriter.BooleanRewriter(self.rsf, depends))
+        return str(BoolRewriter.BoolRewriter(self.rsf, depends, eval_to_module = eval_to_module).rewrite())
 
     def __unicode__(self):
         return u"<Option %s, tri: %s>" % (self.name, str(self.tristate))

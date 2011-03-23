@@ -18,13 +18,13 @@ CRAP CARASDD"""
             opt = self.rsf.options()[name]
             if opt.name == "A":
                 opts.add("A")
-                self.assertEqual(opt.tristate, False, "Item state wrong parsed")
+                self.assertEqual(opt.tristate(), False, "Item state wrong parsed")
             if opt.name == "B":
                 opts.add("B")
-                self.assertEqual(opt.tristate, True, "Item state wrong parsed")
+                self.assertEqual(opt.tristate(), True, "Item state wrong parsed")
             if opt.name == "C":
                 opts.add("C")
-                self.assertEqual(opt.tristate, False, "Item state wrong parsed")
+                self.assertEqual(opt.tristate(), False, "Item state wrong parsed")
 
     def test_symbol_generation(self):
         self.assertEqual(self.rsf.options()["A"].symbol(), "CONFIG_A")
