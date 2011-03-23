@@ -1,0 +1,16 @@
+Item    OPTION boolean
+HasPrompts  OPTION   1
+ItemSelects OPTION "SELECT" "BARFOO"
+
+Item    SELECT boolean
+HasPrompts SELECT 0
+/*
+ * check-name: boolean item selects boolean item with expression
+ * check-output-start
+I: Items-Count: 2
+I: Format: <variable> [presence condition]
+CONFIG_OPTION "((CONFIG_BARFOO) -> CONFIG_SELECT)"
+CONFIG_SELECT "(CONFIG_OPTION)"
+ * check-output-end
+ */
+

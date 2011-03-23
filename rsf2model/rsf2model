@@ -27,7 +27,11 @@ class TranslatedModel(tools.UnicodeMixin):
         for (item, select) in self.rsf.collect("ItemSelects").items():
             option = self.rsf.options().get(item, None)
             if option:
-                self.translate_select(option, select)
+                try:
+                    self.translate_select(option, select)
+                except BoolRewriter.BoolParserException:
+                    # Parsing of a substring failed, just ignore it
+                    pass
 
     def translate_option(self, option):
         # Generate symbols
@@ -97,7 +101,7 @@ class TranslatedModel(tools.UnicodeMixin):
             self.defaultSelects[option.symbol()].append(expr)
 
     def translate_select(self, option, select):
-        if type(option) == Choice or option.tristate():
+        if type(option) == Choice:
             return
 
         if len(select) != 2:
@@ -107,7 +111,8 @@ class TranslatedModel(tools.UnicodeMixin):
         if not selected:
             return
 
-        if type(selected) == Choice or selected.tristate():
+        # We only look on boolean selected options
+        if type(selected) == Choice or selected.tristate() or selected.prompts() > 0:
             return
 
         expr = select[1]
@@ -115,6 +120,22 @@ class TranslatedModel(tools.UnicodeMixin):
             # select foo if y
             self.defaultSelects[selected.symbol()].append(option.symbol())
             self.deps[option.symbol()].append(selected.symbol())
+            if option.tristate():
+                self.defaultSelects[selected.symbol()].append(option.symbol_module())
+                self.deps[option.symbol_module()].append(selected.symbol())
+        else:
+            # select foo if expr
+            expr = str(BoolRewriter.BoolRewriter(self.rsf, expr, eval_to_module = True).rewrite())
+            if expr == "":
+                # We are in a Choice, and the choice is the only dependency....
+                imply = selected.symbol()
+            else:
+                imply = "((%s) -> %s)" %(expr, selected.symbol())
+            self.defaultSelects[selected.symbol()].append(option.symbol())
+            self.deps[option.symbol()].append(imply)
+            if option.tristate():
+                self.defaultSelects[selected.symbol()].append(option.symbol_module())
+                self.deps[option.symbol_module()].append(imply)
 
 
     def __unicode__(self):
