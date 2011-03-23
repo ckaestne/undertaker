@@ -1,265 +1,190 @@
-#!/bin/sh
+#!/usr/bin/python
 
-#set -x
+import fnmatch
+import threading
+from subprocess import Popen, PIPE
+import sys
+import os
+import difflib
+import getopt
 
-default_path=".."
-default_cmd="undertaker -m models \$file"
-tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
-prog_name=`basename $0`
+threads = 1
+testcase_pattern = "*.c"
+default_command = "undertaker -m models $file"
+default_path = ".."
 
-# counts:
-#	- tests that have not been converted to test-suite format
-#	- tests that passed
-#	- tests that failed
-#	- tests that failed but are known to fail
-unhandled_tests=0
-ok_tests=0
-ko_tests=0
-known_ko_tests=0
+class Future:
+    import threading
+    def __init__(self):
+        self.value = None
+        self.__set = False
+        self.cond = threading.Condition()
+    def get(self):
+        if self.__set:
+            return self.value
+        self.cond.acquire()
+        while not self.__set:
+            self.cond.wait()
+        self.cond.release()
+        return self.value
 
-# defaults to not verbose
-[ -z "$V" ] && V=0
+    def set(self, value):
+        self.cond.acquire()
+        self.value = value
+        self.__set = True
+        self.cond.notifyAll()
+        self.cond.release()
 
-##
-# get_value(key, file) - gets the value of a (key, value) pair in file.
-#
-# returns 0 on success, 1 if the file does not have the key
-get_value()
-{
-	last_result=`grep $1: $2 | sed -e "s/^.*$1:\(.*\)$/\1/"`
-	[ -z "$last_result" ] && return 1
-	return 0
-}
 
-##
-# get_tag(key, file) - does file has the tag key in it ?
-#
-# returns 0 if present, 1 otherwise
-get_tag()
-{
-	last_result=`grep $1 $2`
-	return $?
-}
+def test_case_open(test_case):
+    try:
+        fd = open(test_case);
+    except:
+        print " Couldn't open test case: " + test_case
+        sys.exit(2)
+    return fd
 
-##
-# verbose(string) - prints string if we are in verbose mode
-verbose()
-{
-	[ "$V" -eq "1" ] && echo "        $1"
-	return 0
-}
+def get_tag(test_case, field, default = None):
+    fd = test_case_open(test_case)
+    value = default
+    for line in fd.readlines():
+        if field in line and ":" in line:
+            value = line[line.index(":") + 1:-1].strip()
+    fd.close()
+    return value
 
-##
-# error(string[, die]) - prints an error and exits with value die if given
-error()
-{
-	echo "error: $1"
-	[ -n "$2" ] && exit $2
-	return 0
-}
+def get_area(test_case, start, stop):
+    fd = test_case_open(test_case)
+    value = []
+    dump = False
+    for line in fd.readlines():
+        if stop in line:
+            dump = False
+        if dump:
+            value.append(line)
+        if start in line:
+            dump = True
+    fd.close()
+    return value
 
-do_usage()
-{
-echo "$prog_name - a tiny automatic testing script"
-echo "Usage: $prog_name [command] [command arguments]"
-echo
-echo "commands:"
-echo "    none                       runs the whole test suite"
-echo "    single file                runs the test in 'file'"
-echo "    format file [name [cmd]]   helps writing a new test case using cmd"
-echo
-echo "    help                       prints usage"
-}
+def run_testcase_helper(test_case, check_name, future):
+    stdout_expected = get_area(test_case, "check-output-start", "check-output-end")
+    stderr_expected = get_area(test_case, "check-error-start", "check-error-end")
+    exit_value = get_tag(test_case, "check-exit-value", "0")
+    command = get_tag(test_case, "check-command", default_command)
+    if "$file" in command:
+        command = command.replace("$file", test_case)
 
-##
-# do_test(file) - tries to validate a test case
-#
-# it "parses" file, looking for check-* tags and tries to validate
-# the test against an expected result
-# returns:
-#	- 0 if the test passed,
-#	- 1 if it failed,
-#	- 2 if it is not a "test-suite" test.
-do_test()
-{
-	test_failed=0
-	file="$1"
+    command = default_path + "/" + command
 
-	# can this test be handled by test-suite ?
-	# (it has to have a check-name key in it)
-	get_value "check-name" $file
-	if [ "$?" -eq 1 ]; then
-		echo "warning: test '$file' unhandled"
-		unhandled_tests=`expr $unhandled_tests + 1`
-		return 2
-	fi
-	test_name=$last_result
+    output = "  TEST %s (%s)\n" % (check_name, test_case)
 
-	echo "     TEST    $test_name ($file)"
+    failed = False
 
-	# does the test provide a specific command ?
-	cmd=`eval echo $default_path/$default_cmd`
-	get_value "check-command" $file
-	if [ "$?" -eq "0" ]; then
-		last_result=`echo $last_result | sed -e 's/^ *//'`
-		cmd=`eval echo $default_path/$last_result`
-	fi
-	verbose "Using command       : $cmd"
+    p = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+              close_fds=True)
+    p.stdin.close()
+    (stdout_got, stderr_got) = (p.stdout.readlines(), p.stderr.readlines())
+    p.wait()
 
-	# grab the expected exit value
-	get_value "check-exit-value" $file
-	if [ "$?" -eq "0" ]; then
-		expected_exit_value=`echo $last_result | tr -d ' '`
-	else
-		expected_exit_value=0
-	fi
-	verbose "Expecting exit value: $expected_exit_value"
+    if int(exit_value) != p.returncode:
+        output += "    Exit code was %d (%s exptected)" % (p.returncode, exit_value)
+        failed = True
 
-	# grab the expected output
-	sed -n '/check-output-start/,/check-output-end/p' $file \
-		| grep -v check-output > "$file".output.expected
-	sed -n '/check-error-start/,/check-error-end/p' $file \
-		| grep -v check-error > "$file".error.expected
+    stdout_diff = list(difflib.unified_diff(sorted(stdout_expected), sorted(stdout_got)))
+    stderr_diff = list(difflib.unified_diff(sorted(stderr_expected), sorted(stderr_got)))
 
-	# grab the actual output & exit value
-	$cmd 1> $file.output.got 2> $file.error.got
-	actual_exit_value=$?
+    def write_file(suffix, content):
+        fd = open(test_case + "." + suffix, "w+")
+        for i in content:
+            fd.write(i)
+        fd.close()
 
-	for stream in output error; do
-        tmpa=$(mktemp); tmpb=$(mktemp)
-        sort "$file".$stream.expected > $tmpa
-        sort "$file".$stream.got > $tmpb
-		diff -u  $tmpa  $tmpb > "$file".$stream.diff
-		if [ "$?" -ne "0" ]; then
-			error "actual $stream text does not match expected $stream text."
-			error  "see $file.$stream.* for further investigation."
-			test_failed=1
-		fi
-        rm -f $tmpa $tmpb
-	done
+    write_file("output.expected", stdout_expected)
+    write_file("output.got", stdout_got)
+    write_file("output.diff", stdout_diff)
 
-	if [ "$actual_exit_value" -ne "$expected_exit_value" ]; then
-		error "Actual exit value does not match the expected one."
-		error "expected $expected_exit_value, got $actual_exit_value."
-		test_failed=1
-	fi
+    write_file("error.expected", stderr_expected)
+    write_file("error.got", stderr_got)
+    write_file("error.diff", stderr_diff)
 
-	if [ "$test_failed" -eq "1" ]; then
-		ko_tests=`expr $ko_tests + 1`
-		get_tag "check-known-to-fail" $file
-		if [ "$?" -eq "0" ]; then
-			echo "info: test '$file' is known to fail"
-			known_ko_tests=`expr $known_ko_tests + 1`
-		fi
-		return 1
-	else
-		ok_tests=`expr $ok_tests + 1`
-		return 0
-	fi
-}
+    if len(stdout_diff) > 0:
+        output += "   STDOUT-DIFF:\n" + "".join(stdout_diff)
+        failed = True
+    if len(stderr_diff) > 0:
+        output += "   STDERR-DIFF:\n" + "".join(stderr_diff)
+        failed = True
 
-do_test_suite()
-{
-	for i in $tests_list; do
-		do_test "$i"
-	done
+    sys.stdout.write(output)
 
-	# prints some numbers
-	tests_nr=`expr $ok_tests + $ko_tests`
-	echo -n "Out of $tests_nr tests, $ok_tests passed, $ko_tests failed"
-	echo " ($known_ko_tests of them are known to fail)"
-	if [ "$unhandled_tests" -ne "0" ]; then
-		echo "$unhandled_tests tests could not be handled by $prog_name"
-	fi
-}
+    future.set(not failed)
 
-##
-# do_format(file[, name[, cmd]]) - helps a test writer to format test-suite tags
-do_format()
-{
-	if [ -z "$2" ]; then
-		fname="$1"
-		fcmd=$default_cmd
-	elif [ -z "$3" ]; then
-		fname="$2"
-		fcmd=$default_cmd
-	else
-		fname="$2"
-		fcmd="$3"
-	fi
-	file="$1"
-	cmd=`eval echo $default_path/$fcmd`
-	$cmd 1> $file.output.got 2> $file.error.got
-	fexit_value=$?
-	cat <<_EOF
-/*
- * check-name: $fname
-_EOF
-	if [ "$fcmd" != "$default_cmd" ]; then
-		echo " * check-command: $fcmd"
-	fi
-	if [ "$fexit_value" -ne "0" ]; then
-		echo " * check-exit-value: $fexit_value"
-	fi
-	for stream in output error; do
-		if [ -s "$file.$stream.got" ]; then
-			echo " *"
-			echo " * check-$stream-start"
-			cat "$file.$stream.got"
-			echo " * check-$stream-end"
-		fi
-	done
-	echo " */"
-	return 0
-}
 
-##
-# arg_file(filename) - checks if filename exists
-arg_file()
-{
-	[ -z "$1" ] && {
-		do_usage
-		exit 1
-	}
-	[ -e "$1" ] || {
-		error "Can't open file $1"
-		exit 1
-	}
-	return 0
-}
+def run_testcase(test_case, check_name):
+    future = Future()
+    if threading.active_count() >= threads:
+        run_testcase_helper(test_case, check_name, future)
+        future.get()
+    else:
+        t = threading.Thread(target = run_testcase_helper,
+                             args = (test_case, check_name, future))
+        t.start()
+    return future
 
-case "$1" in
-	'')
-		do_test_suite
-		if test `expr $ko_tests - $known_ko_tests` -gt 0; then
-		    for f in *.error.diff *.output.diff; do
-		        if test -s "$f"; then
-		            echo "Contents of $f:"
-		            cat "$f"
-		            echo "==="
-		        fi
-		    done
-		    exit 1
-		fi
-		;;
-	single)
-		arg_file "$2"
-		do_test "$2"
-		case "$?" in
-			0) echo "$2 passed !";;
-			1) echo "$2 failed !";;
-			2) echo "$2 can't be handled by $prog_name";;
-		esac
-		;;
-	format)
-		arg_file "$2"
-		do_format "$2" "$3" "$4"
-		;;
-	help | *)
-		do_usage
-		exit 1
-		;;
-esac
+def run_test_suite(tests = sorted(fnmatch.filter(os.listdir("."), testcase_pattern))):
+    tests_run = 0
+    tests_failed = 0
+    tests_known_fail = 0
 
-exit 0
+    failed_tests = []
 
+    for test_case in tests:
+        check_name = get_tag(test_case, "check-name")
+        if not check_name:
+            print "warning: test '%s' unhandled" % test_case
+            continue
+        failed_tests.append((run_testcase(test_case, check_name),
+                       get_tag(test_case, "check-known-to-fail")))
+
+    for (passed, expected) in failed_tests:
+        if not passed.get():
+            tests_failed += 1
+            if expected:
+                tests_known_fail += 1
+        tests_run += 1
+    print "Out of %d tests, %d passed, %d failed (%d of them are known to fail)" \
+          % (tests_run, tests_run - tests_failed, tests_failed, tests_known_fail)
+
+    return tests_failed <= tests_known_fail
+
+
+def usage():
+    print "%s [-t threads] [test-cases...]" % sys.argv[0]
+    print " if no test-cases are given, all in current directory are run"
+
+if __name__ == '__main__':
+    opts, args = getopt.getopt(sys.argv[1:], "ht:")
+
+    for opt,arg in opts:
+        if opt in ('-t', '--threads'):
+            threads = int(arg)
+            if threads < 1:
+                print "invalid thread_count"
+                usage()
+                sys.exit(1)
+        elif opt in ('-h', '--help'):
+            usage()
+            sys.exit(0)
+        else:
+            print "unkown option"
+            assert False
+
+    if len(args) > 0:
+        ret = run_test_suite(args)
+    else:
+        ret = run_test_suite()
+
+    if ret:
+        sys.exit(0)
+    else:
+        sys.exit(-1)

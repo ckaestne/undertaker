@@ -74,7 +74,7 @@ check: $(PROGS) ../ziz/zizler
 	@$(MAKE) run-coveragecheck
 	@$(MAKE) -C kconfig-dumps all
 	cd def-tests && ./run-tests
-	cd validation && ./test-suite
+	cd validation && ./test-suite -t $$(getconf _NPROCESSORS_ONLN)
 	@$(MAKE) -s run-libcheck
 
 clean-check:
