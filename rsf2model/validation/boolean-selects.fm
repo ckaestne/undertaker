@@ -1,0 +1,29 @@
+Item    64BIT   boolean
+HasPrompts  64BIT   1
+Default 64BIT   "ARCH=x86_64"   "y"   
+Item    X86_32  boolean
+HasPrompts  X86_32  0
+Default X86_32  "y" "!64BIT"
+Item    X86_64  boolean
+HasPrompts  X86_64  0
+Default X86_64  "64BIT" "y"
+ItemSelects	X86_64	"HAVE_KVM"	"y"
+Item	HAVE_KVM     boolean
+HasPrompts	HAVE_KVM	0
+Item    X86_ON  boolean
+HasPrompts  X86_ON  0
+Default X86_ON  "y" "y"
+/*
+ * check-name: boolean defaults
+ * check-output-start
+I: Items-Count: 5
+I: Format: <variable> [presence condition]
+UNDERTAKER_SET ALWAYS_ON "CONFIG_X86_ON"
+CONFIG_X86_32 "(!CONFIG_64BIT)"
+CONFIG_X86_64 "CONFIG_HAVE_KVM && (CONFIG_64BIT)"
+CONFIG_64BIT
+CONFIG_X86_ON "(__FREE__0)"
+CONFIG_HAVE_KVM "(CONFIG_X86_64)"
+ * check-output-end
+ */
+

@@ -24,7 +24,10 @@ class TranslatedModel(tools.UnicodeMixin):
             option = self.rsf.options().get(item, None)
             if option:
                 self.translate_default(option, default)
-
+        for (item, select) in self.rsf.collect("ItemSelects").items():
+            option = self.rsf.options().get(item, None)
+            if option:
+                self.translate_select(option, select)
 
     def translate_option(self, option):
         # Generate symbols
@@ -92,6 +95,26 @@ class TranslatedModel(tools.UnicodeMixin):
                 expr = cond
             expr =  str(BoolRewriter.BoolRewriter(self.rsf, expr).rewrite())
             self.defaultSelects[option.symbol()].append(expr)
+
+    def translate_select(self, option, select):
+        if type(option) == Choice or option.tristate():
+            return
+
+        if len(select) != 2:
+            return
+
+        selected = self.rsf.options().get(select[0], None)
+        if not selected:
+            return
+
+        if type(selected) == Choice or selected.tristate():
+            return
+
+        expr = select[1]
+        if expr == "y":
+            # select foo if y
+            self.defaultSelects[selected.symbol()].append(option.symbol())
+            self.deps[option.symbol()].append(selected.symbol())
 
 
     def __unicode__(self):
