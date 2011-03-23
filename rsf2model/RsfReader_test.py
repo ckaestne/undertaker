@@ -1,6 +1,6 @@
 import unittest as t
 import StringIO
-import RsfReader
+from undertaker import RsfReader
 
 
 class TestRsfReader(t.TestCase):

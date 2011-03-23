@@ -2,6 +2,7 @@ PROGS = scripts/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model
 TEMPLATED = rsf2model/undertaker-kconfigdump
 PREFIX ?= /usr/local
 LIBDIR ?= $(PREFIX)/lib
+PYTHONLIBDIR ?= $(LIBDIR)/python2.6/dist-packages
 VERSION=$(shell cat VERSION)
 
 all: $(PROGS)
@@ -11,9 +12,6 @@ scripts/kconfig/dumpconf: FORCE
 
 undertaker/undertaker: FORCE
 	$(MAKE) -C undertaker undertaker
-
-rsf2model/rsf2model: FORCE
-	$(MAKE) -C rsf2model
 
 %: %.in
 	@echo "Template: $< -> $@"
@@ -38,6 +36,7 @@ install: all $(TEMPLATED)
 	@install -d -v $(DESTDIR)$(PREFIX)/bin
 
 	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker 
+	@install -d -v $(DESTDIR)$(PYTHONLIBDIR)/undertaker 
 	@install -d -v $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(LIBDIR)/undertaker
@@ -49,6 +48,14 @@ install: all $(TEMPLATED)
 	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(PREFIX)/bin
 
 	@install -v -m 0644 contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
+
+	@install -v -t $(DESTDIR)$(PYTHONLIBDIR)/undertaker \
+		rsf2model/undertaker/__init__.py \
+		rsf2model/undertaker/BoolRewriter.py \
+		rsf2model/undertaker/RsfReader.py \
+		rsf2model/undertaker/TranslatedModel.py \
+		rsf2model/undertaker/tools.py \
+
 
 dist: clean
 	tar -czvf ../undertaker-$(VERSION).tar.gz . \

@@ -1,8 +1,8 @@
 import unittest as t
 import StringIO
-import RsfReader
-from BoolRewriter import BoolParser as BP
-from BoolRewriter import BoolRewriter as BR
+from undertaker import RsfReader
+from undertaker.BoolRewriter import BoolParser as BP
+from undertaker.BoolRewriter import BoolRewriter as BR
 
 
 

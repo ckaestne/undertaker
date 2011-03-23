@@ -1,6 +1,3 @@
-PROGS = rsf2model
-TESTPROGS = 
-
 all: 
 
 check: all
@@ -8,6 +5,7 @@ check: all
 	@for test in *_test.py; do python "$$test"; done
 	cd validation && ./test-suite
 
+clean: clean-check
 
 clean-check:
 	find validation/ \( -name "*.output.expected" \
