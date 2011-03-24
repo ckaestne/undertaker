@@ -1,5 +1,5 @@
 # test-suite
-!preconditions.model
+!*.model
 *.diff
 *.got
 *.expected
