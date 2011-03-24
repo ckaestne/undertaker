@@ -280,13 +280,6 @@ std::list<SatChecker::AssignmentMap> CodeSatStream::blockCoverage(ConfigurationM
             }
 
             std::string main_arch(ModelContainer::getMainModel());
-            if (main_arch.size() > 0) {
-                // stolen from http://www.codepedia.com/1/CppToUpperCase
-                // explicit cast needed to resolve ambiguity
-                std::transform(main_arch.begin(), main_arch.end(), main_arch.begin(),
-                               (int(*)(int))std::toupper);
-                formula.push_back("CONFIG_" + main_arch);
-            }
 
             if (always_on) {
                 for (StringList::const_iterator sli = always_on->begin(); sli != always_on->end(); ++sli) {
