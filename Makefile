@@ -48,7 +48,7 @@ install: all $(TEMPLATED)
 	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(PREFIX)/bin
 
-	@install -v contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
+	@install -v -m 0644 contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
 dist: clean
 	tar -czvf ../undertaker-$(VERSION).tar.gz . \
