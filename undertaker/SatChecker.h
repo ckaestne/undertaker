@@ -31,6 +31,7 @@
 #include <map>
 #include <sstream>
 #include <set>
+#include <list>
 
 // Forward declaration for configuration model, becasue the boost
 // namespace seems to break, when we include ConfigurationModel
@@ -169,6 +170,15 @@ public:
     const AssignmentMap& getAssignment() {
         return assignmentTable;
     }
+
+    /**
+     * Prints the assignments in an human readable way on stdout
+     */
+    static void pprintAssignments(std::ostream& out,
+                                  const std::list< AssignmentMap > solution,
+                                  const ConfigurationModel *model,
+                                  const MissingSet &missingSet);
+
 
 
 private:

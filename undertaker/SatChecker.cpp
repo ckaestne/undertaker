@@ -453,3 +453,76 @@ int SatChecker::AssignmentMap::formatAll(std::ostream &out) {
     }
     return size();
 }
+
+void SatChecker::pprintAssignments(std::ostream& out,
+                                   const std::list<SatChecker::AssignmentMap> solution,
+                                   const ConfigurationModel *model,
+                                   const MissingSet &missingSet) {
+    out << "I: Found " << solution.size() << " assignments" << std::endl;
+    std::map<std::string, bool> common_subset;
+
+
+    for (std::list<AssignmentMap>::const_iterator conf = solution.begin(); conf != solution.end(); ++conf) {
+        for (AssignmentMap::const_iterator  it = (*conf).begin(); it != (*conf).end(); it++) {
+            const std::string &name = (*it).first;
+            const bool &valid = (*it).second;
+
+            if (model && !model->inConfigurationSpace(name))
+                continue;
+
+            if (conf == solution.begin()) {
+                // Copy first assignment to common subset map
+                common_subset[name] = valid;
+            } else {
+                if (common_subset.find(name) != common_subset.end()
+                    && common_subset[name] != valid) {
+                    // In this assignment the symbol has a different
+                    // value, remove it from the common subset map
+                    common_subset.erase(name);
+                }
+            }
+        }
+    }
+
+    // Remove all items from common subset, that are not in all
+    // assignments
+    for (std::map<std::string, bool>::const_iterator it = common_subset.begin();
+         it != common_subset.end(); ++it) {
+
+        const std::string &name = (*it).first;
+
+        for (std::list<AssignmentMap>::const_iterator conf = solution.begin(); conf != solution.end(); ++conf) {
+            if ((*conf).find(name) == (*conf).end()) {
+                common_subset.erase(name);
+            }
+        }
+    }
+
+    out << "I: In all assignments the following symbols are equally set" << std::endl;
+    for (std::map<std::string, bool>::const_iterator it = common_subset.begin();
+         it != common_subset.end(); ++it) {
+            const std::string &name = (*it).first;
+            const bool &valid = (*it).second;
+
+            out << name << "=" << (valid ? 1 : 0) << std::endl;
+    }
+
+    out << "I: All differences in the assignments" << std::endl;
+
+    int i = 0;
+    for (std::list<AssignmentMap>::const_iterator conf = solution.begin(); conf != solution.end(); ++conf) {
+        out << "I: Config " << i++ << std::endl;
+        for (AssignmentMap::const_iterator  it = (*conf).begin(); it != (*conf).end(); it++) {
+            const std::string &name = (*it).first;
+            const bool &valid = (*it).second;
+
+            if (model && !model->inConfigurationSpace(name))
+                continue;
+
+            if (common_subset.find(name) != common_subset.end())
+                continue;
+
+            out << name << "=" << (valid ? 1 : 0) << std::endl;
+        }
+    }
+}

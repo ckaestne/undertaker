@@ -33,6 +33,7 @@ enum WorkMode {
 
 enum CoverageOutputMode {
     COVERAGE_MODE_KCONFIG, // kconfig specific mode
+    COVERAGE_MODE_STDOUT,  // prints out on stdout generated configurations
     COVERAGE_MODE_MODEL,   // prints all configuration space itms, no blocks
     COVERAGE_MODE_ALL,     // prints all items and blocks
 } coverageOutputMode;
@@ -58,6 +59,7 @@ void usage(std::ostream &out, const char *error) {
     out << "\nCoverage Options:\n";
     out << "  -O: specify the output mode of generated configurations\n";
     out << "      - kconfig: generated partial kconfig configuration (default)\n";
+    out << "      - stdout: print on stdout the found configurations\n";
     out << "      - model:   print all options which are in the configuration space\n";
     out << "      - all:     dump every assigned symbol (both items and code blocks)\n";
     out << "\nSpecifying Files:\n";
@@ -101,7 +103,14 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
     CodeSatStream analyzer(codesat, s, NULL, batch_mode, loadModels);
     int i = 1;
 
+
     solution = analyzer.blockCoverage(model, missingSet);
+
+    if (coverageOutputMode == COVERAGE_MODE_STDOUT) {
+        SatChecker::pprintAssignments(std::cout, solution, model, missingSet);
+        return;
+    }
+
     std::cout << "S: "
               << filename << ","
               << analyzer.Blocks().size()
@@ -150,6 +159,8 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
         case COVERAGE_MODE_ALL:
             (*it).formatAll(outf);
             break;
+        default:
+            assert(false);
         }
         outf.close();
     }
@@ -380,6 +391,8 @@ int main (int argc, char ** argv) {
         case 'O':
             if (0 == strcmp(optarg, "kconfig"))
                 coverageOutputMode = COVERAGE_MODE_KCONFIG;
+            else if (0 == strcmp(optarg, "stdout"))
+                coverageOutputMode = COVERAGE_MODE_STDOUT;
             else if (0 == strcmp(optarg, "model"))
                 coverageOutputMode = COVERAGE_MODE_MODEL;
             else if (0 == strcmp(optarg, "all"))
