@@ -1,0 +1,23 @@
+.TH "UNDERTAKER\-KCONFIGDUMP" "1" "1.1" "Undertaker" "User Commands"
+.SH "NAME"
+undertaker\-kconfigdump \- get a configuration dump from a Linux kernel tree
+.SH "SYNOPSIS"
+.B undertaker\-kconfigdump
+.SH "DESCRIPTION"
+.PP
+This script should be run with the current directory set to the top level of
+a Linux kernel source tree.  It extracts information from the Kconfig files,
+and processes that information to produce a model.
+.SH "ENVIRONMENT VARIABLES"
+.TP
+\fBMODELS\fR
+If set, the directory where models are placed.  Default: "model".
+.TP
+\fBDEBUG\fR
+If set (to any value), print some debug information.
+.SH AUTHOR
+Written by the VAMOS team <URL:http://vamos.informatik.uni\-erlangen.de>
+.SH "REPORTING BUGS"
+Report bugs to <vamos\-dev@i4.informatik.uni\-erlangen.de>.
+.SH "SEE ALSO"
+\fIundertaker\fP(1) \fIundertaker-kconfigdump\fP(1), \fIundertaker-linux-tree\fP(1).
