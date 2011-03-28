@@ -7,7 +7,8 @@ NODEPS:=clean clean-check
 # DEBUG = -g3 -DDEBUG
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
-CFLAGS = -Wall -Wextra -O2 -I../ziz $(DEBUG)
+VERSION ?= git
+CFLAGS = -Wall -Wextra -O2 -I../ziz -DVERSION=$(VERSION) $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =

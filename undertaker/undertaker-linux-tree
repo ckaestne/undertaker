@@ -7,7 +7,7 @@
 # before, in order to create the models.
 #
 
-while getopts :t:m:a:c OPT; do
+while getopts :t:m:a:cvh OPT; do
     case $OPT in
         m)
             MODELS="$OPTARG"
@@ -21,17 +21,23 @@ while getopts :t:m:a:c OPT; do
         c)
             COVERAGE=t
             ;;
-        *)
-            echo "usage: ${0##*/} [-m DIR] [-a ARCH] [-t PROCS] [-c]"
-            echo 
+        v)
+            echo "undertaker-linux-tree"
+            exit
+            ;;
+        h)
+            echo "\`undertaker-linux-tree' runs the undertaker a whole linux-tree"
+            echo
+            echo "Usage: ${0##*/} [-m DIR] [-a ARCH] [-t PROCS] [-c]"
             echo " -m <modeldir>  Specify the directory for the models"
-            echo "                 (default: models)"
+            echo "           (default: models)"
             echo " -a <arch>  Default architecture to check for"
-            echo "                 (default: x86)"
+            echo "        (default: x86)"
             echo " -t <count>   Number of analyzing processes"
-            echo "                 (default: _NPROCESSORS_ONLN)"
+            echo "        (default: _NPROCESSORS_ONLN)"
             echo " -c  Do coverage analysis instead of dead block search"
-            exit 2
+            exit
+            ;;
     esac
 done
 shift $(( OPTIND - 1 ))

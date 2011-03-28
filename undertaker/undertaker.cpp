@@ -16,6 +16,10 @@
 #include "CodeSatStream.h"
 #include "BlockDefectAnalyzer.h"
 
+
+#define __cpp_str(x) #x
+#define _cpp_str(x) __cpp_str(x)
+
 typedef std::deque<BlockCloud> CloudList;
 typedef void (* process_file_cb_t) (const char *filename, bool batch_mode, bool loadModels);
 
@@ -36,30 +40,30 @@ enum CoverageOutputMode {
 void usage(std::ostream &out, const char *error) {
     if (error)
         out << error << std::endl << std::endl;
-    out << "Usage: undertaker [-b worklist] [-w whitelist] [-m model] [-M main model] [-j <job>] <file> [more files]\n";
-    out << "  -m: specify the model(s) (directory or file)\n";
-    out << "  -M: specify the main model\n";
-    out << "  -w: specify a whitelist\n";
-    out << "  -b: specify a worklist (batch mode)\n";
-    out << "  -t: specify count of parallel processes\n";
-
-    out << "  -j: specify the jobs which should be done\n";
-    out << "      dead: dead/undead file analysis (default)\n";
-    out << "      coverage: coverage file analysis (format: <filename>,<#blocks>,<#solutions>)\n";
-    out << "      cpppc: CPP Preconditions for whole file\n";
-    out << "      blockpc: Block precondition (format: <file>:<line>:<column>)\n";
-    out << "      symbolpc: Symbol precondition (format <symbol>)\n";
-    out << "      interesting: Find all interesting items for a symbol (format <symbol>)\n";
+    out << "`undertaker' does analysis on conditinal C code.\n\n";
+    out << "Usage: undertaker [OPTIONS] <file..>\n";
+    out << "\nOptions:\n";
+    out << "  -m  specify the model(s) (directory or file)\n";
+    out << "  -M  specify the main model\n";
+    out << "  -w  specify a whitelist\n";
+    out << "  -b  specify a worklist (batch mode)\n";
+    out << "  -t  specify count of parallel processes\n";
+    out << "  -j  specify the jobs which should be done\n";
+    out << "      - dead: dead/undead file analysis (default)\n";
+    out << "      - coverage: coverage file analysis\n";
+    out << "      - cpppc: CPP Preconditions for whole file\n";
+    out << "      - blockpc: Block precondition (format: <file>:<line>:<column>)\n";
+    out << "      - symbolpc: Symbol precondition (format <symbol>)\n";
+    out << "      - interesting: Find all interesting items for a symbol (format <symbol>)\n";
     out << "\nCoverage Options:\n";
     out << "  -O: specify the output mode of generated configurations\n";
-    out << "      kconfig - generated partial kconfig configuration (default)\n";
-    out << "      model   - print all options which are in the configuration space\n";
-    out << "      all     - dump every assigned symbol (both items and code blocks)\n";
-    out << "\nFiles:\n";
+    out << "      - kconfig: generated partial kconfig configuration (default)\n";
+    out << "      - model:   print all options which are in the configuration space\n";
+    out << "      - all:     dump every assigned symbol (both items and code blocks)\n";
+    out << "\nSpecifying Files:\n";
     out << "  You can specify one or many files (the format is according to the\n";
     out << "  job (-j) which should be done. If you specify - as file, undertaker\n";
-    out << "  will load models and whitelist and read files from stdin.\n";
-    out << std::endl;
+    out << "  will load models and whitelist and read files from stdin (interactive).\n";
 }
 
 int rm_pattern(const char *pattern) {
@@ -362,7 +366,7 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:vh")) != -1) {
         switch (opt) {
         case 'w':
             whitelist = strdup(optarg);
@@ -412,6 +416,14 @@ int main (int argc, char ** argv) {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
             }
+        case 'h':
+            usage(std::cout, NULL);
+            exit(0);
+            break;
+        case 'v':
+            std::cout << "undertaker " << _cpp_str(VERSION) << std::endl;
+            exit(0);
+            break;
         default:
             break;
         }
