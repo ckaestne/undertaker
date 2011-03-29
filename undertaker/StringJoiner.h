@@ -25,8 +25,10 @@
 #define string_joiner_h__
 
 #include <deque>
+#include <set>
 #include <string>
 #include <sstream>
+#include <iostream>
 
 /**
  * \brief Helper subclass of std::deque<std::string> for convenient
@@ -69,6 +71,39 @@ struct StringJoiner : public std::deque<std::string> {
             return;
         std::deque<value_type>::push_back(x);
     }
+
+    /**
+     * \brief append strings to list.
+     *
+     * Appends the given value to the list of values if it isn't the
+     * empty string. "" will be ignored.
+     */
+    void push_front(const value_type &x) {
+        if (x.compare("") == 0)
+            return;
+        std::deque<value_type>::push_front(x);
+    }
+};
+
+struct UniqueStringJoiner : public StringJoiner {
+    void push_back(const value_type &x) {
+        /* Simulate an map when StringJoiner is unique */
+        if (_unique_set.count(x) > 0) return;
+        _unique_set.insert(x);
+
+        StringJoiner::push_back(x);
+    }
+
+    void push_front(const value_type &x) {
+        /* Simulate an map when StringJoiner is unique */
+        if (_unique_set.count(x) > 0) return;
+        _unique_set.insert(x);
+
+        StringJoiner::push_front(x);
+    }
+
+ private:
+    std::set<std::string> _unique_set;;
 };
 
 #endif
