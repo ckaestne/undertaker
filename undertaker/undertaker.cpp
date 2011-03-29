@@ -416,6 +416,7 @@ int main (int argc, char ** argv) {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
             }
+            break;
         case 'h':
             usage(std::cout, NULL);
             exit(0);
