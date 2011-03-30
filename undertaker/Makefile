@@ -15,8 +15,8 @@ LDFLAGS =
 # LDCOV = -coverage
 LDLIBS = -lstdc++ -lboost_system -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  -lpicosat -lboost_wave-mt $(LDCOV)
 
-PARSEROBJ = CloudContainer.o RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
-	    ModelContainer.o SatChecker.o CodeSatStream.o BlockDefectAnalyzer.o
+PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
+		    ModelContainer.o SatChecker.o BlockDefectAnalyzer.o 
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
