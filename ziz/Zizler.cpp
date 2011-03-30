@@ -40,7 +40,7 @@ std::list<std::string> search_defs(Block const &b) {
             continue;
 
         for (std::list<Define*>::const_iterator d = list.begin(); d != list.end(); d++) {
-            if (&b == (*d)->_block)
+            if (&b == (const Block *) (*d)->Parent())
                 found.push_back(s);
         }
     }
@@ -67,6 +67,8 @@ std::ostream & operator+(std::ostream &stream, Block const &b)
         stream << "<code>\n";
     } else if (b.BlockType() == Conditional) {
         stream + dynamic_cast<ConditionalBlock const &>(b);
+    } else if (b.BlockType() == DefineBlock) {
+        //        stream << dynamic_cast<DefineBlock const &>(b);
     } else {
         assert(false);      // this may not happen
     }
@@ -144,6 +146,8 @@ std::ostream & operator*(std::ostream &stream, Block const &b)
         stream * dynamic_cast<CodeBlock const &>(b);
     } else if (b.BlockType() == Conditional) {
         stream * dynamic_cast<ConditionalBlock const &>(b);
+    } else if (b.BlockType() == DefineBlock) {
+        //        stream << dynamic_cast<DefineBlock const &>(b);
     } else {
         assert(false);      // this may not happen
     }
@@ -196,6 +200,8 @@ std::ostream & operator<<(std::ostream &stream, Block const &b)
         stream << dynamic_cast<CodeBlock const &>(b);
     } else if (b.BlockType() == Conditional) {
         stream << dynamic_cast<ConditionalBlock const &>(b);
+    } else if (b.BlockType() == DefineBlock) {
+        //        stream << dynamic_cast<DefineBlock const &>(b);
     } else {
         assert(false);      // this may not happen
     }
@@ -253,6 +259,8 @@ std::ostream & operator>>(std::ostream &stream, Block const &b)
         stream >> dynamic_cast<CodeBlock const &>(b);
     } else if (b.BlockType() == Conditional) {
         stream >> dynamic_cast<ConditionalBlock const &>(b);
+    } else if (b.BlockType() == DefineBlock) {
+        //        stream << dynamic_cast<DefineBlock const &>(b);
     } else {
         assert(false);      // this may not happen
     }
