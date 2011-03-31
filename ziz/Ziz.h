@@ -79,7 +79,6 @@ class Block {
         // only allow in derived classes
         Block(int i, int d, position_type s, BlockContainer* pbc)
             : _id(i), _depth(d), _start(s), _pParent(pbc) {}
-        virtual ~Block() {}
     private:
         Block(Block&);                        // disable copy c'tor
 
@@ -105,7 +104,6 @@ class Block {
 class BlockContainer : public std::vector<Block*> {
     protected:
         BlockContainer() {}   // only allow in derived classes
-        virtual ~BlockContainer() {}
     public:
         virtual container_type ContainerType()  const = 0;
 };
@@ -114,7 +112,6 @@ class CodeBlock : public Block {
     public:
         CodeBlock(int i, int d, position_type s, BlockContainer* pbc)
             : Block(i, d, s, pbc) {}
-        virtual ~CodeBlock() {}
     private:
         CodeBlock(CodeBlock&);   // disable copy c'tor
 
@@ -202,7 +199,6 @@ class File : public BlockContainer {
     public:
 
         File() : _blocks(0), _defines(0) {}
-        ~File() {};
 
         virtual container_type ContainerType() const { return OuterBlock; }
 
