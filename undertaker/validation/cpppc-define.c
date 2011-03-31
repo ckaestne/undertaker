@@ -14,9 +14,9 @@
 I: CPP Precondition for cpppc-define.c
 ( B1 <-> CONFIG_A )
 && ( B3 <-> CONFIG_C. )
-&& (  ( (CONFIG_C) && !(B1) ) -> CONFIG_C. )
-&& (  ( (CONFIG_C.)  && !(B1) ) -> CONFIG_C )
-&& ( B1 -> CONFIG_C. )
+&& (B1 -> CONFIG_C.)
+&& ((CONFIG_C  && !(B1)) -> CONFIG_C.)
+&& ((CONFIG_C. && !(B1)) -> CONFIG_C )
 && B00
  * check-output-end
  */

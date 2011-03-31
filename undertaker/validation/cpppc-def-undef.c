@@ -9,15 +9,19 @@
 
 #endif
 /*
- * check-name: Useless defines on the same depth
+ * check-name: Define and undefine in same level
  * check-command: undertaker -j cpppc $file
  * check-output-start
 I: CPP Precondition for cpppc-def-undef.c
 ( B0 <-> X )
-&& ( B2 <->  ( B0 )  && X. )
-&& (  ( (X) && !(B0) ) -> X. )
-&& (  ( (X.)  && !(B0) ) -> X )
-&& ( B0 -> X. )
+&& (B0 -> !X.)
+&& ((X  && !(B0)) -> X.)
+&& ((X. && !(B0)) -> X )
+&& (( B0 && !(B0)) -> !X..)
+&& (B0 -> X..)
+&& ((X.  && !(B0)) -> X..)
+&& ((X.. && !(B0)) -> X. )
 && B00
+&& ( B2 <-> B0 && X.. )
  * check-output-end
  */
