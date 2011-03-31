@@ -13,6 +13,8 @@ testcase_pattern = "*.c"
 default_command = "undertaker -m models $file"
 default_path = ".."
 
+QUIET = False
+
 class Future:
     import threading
     def __init__(self):
@@ -109,12 +111,16 @@ def run_testcase_helper(test_case, check_name, future):
     write_file("error.diff", stderr_diff)
 
     if len(stdout_diff) > 0:
-        output += "   STDOUT-DIFF:\n" + "".join(stdout_diff)
+        if not QUIET:
+            output += "   STDOUT-DIFF:\n" + "".join(stdout_diff)
         failed = True
     if len(stderr_diff) > 0:
-        output += "   STDERR-DIFF:\n" + "".join(stderr_diff)
+        if not QUIET:
+            output += "   STDERR-DIFF:\n" + "".join(stderr_diff)
         failed = True
 
+    if failed:
+        output += "  Failed\n"
     sys.stdout.write(output)
 
     future.set(not failed)
@@ -159,11 +165,11 @@ def run_test_suite(tests = sorted(fnmatch.filter(os.listdir("."), testcase_patte
 
 
 def usage():
-    print "%s [-t threads] [test-cases...]" % sys.argv[0]
+    print "%s [-t threads] [-q] [test-cases...]" % sys.argv[0]
     print " if no test-cases are given, all in current directory are run"
 
 if __name__ == '__main__':
-    opts, args = getopt.getopt(sys.argv[1:], "ht:")
+    opts, args = getopt.getopt(sys.argv[1:], "ht:q")
 
     for opt,arg in opts:
         if opt in ('-t', '--threads'):
@@ -175,6 +181,8 @@ if __name__ == '__main__':
         elif opt in ('-h', '--help'):
             usage()
             sys.exit(0)
+        elif opt in ('-q', '--quiet'):
+            QUIET = True
         else:
             print "unkown option"
             assert False
