@@ -161,6 +161,16 @@ public:
          */
         int formatAll(std::ostream &out);
 
+        /**
+         * \brief format solutions as CPP compatible arguments
+         *
+         *  Print out all cpp symbols
+         *
+         * \param out an output stream on which the solution shall be
+         *     printed
+         */
+        int formatCPP(std::ostream &out, const ConfigurationModel *model);
+
     };
 
     /**

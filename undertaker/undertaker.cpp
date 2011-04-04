@@ -35,6 +35,7 @@ enum CoverageOutputMode {
     COVERAGE_MODE_KCONFIG, // kconfig specific mode
     COVERAGE_MODE_STDOUT,  // prints out on stdout generated configurations
     COVERAGE_MODE_MODEL,   // prints all configuration space itms, no blocks
+    COVERAGE_MODE_CPP,     // prints all cpp items as cpp cmd-line arguments
     COVERAGE_MODE_ALL,     // prints all items and blocks
 } coverageOutputMode;
 
@@ -60,6 +61,7 @@ void usage(std::ostream &out, const char *error) {
     out << "  -O: specify the output mode of generated configurations\n";
     out << "      - kconfig: generated partial kconfig configuration (default)\n";
     out << "      - stdout: print on stdout the found configurations\n";
+    out << "      - cpp: print on stdout cpp -D command line arguments\n";
     out << "      - model:   print all options which are in the configuration space\n";
     out << "      - all:     dump every assigned symbol (both items and code blocks)\n";
     out << "\nSpecifying Files:\n";
@@ -111,7 +113,7 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
         return;
     }
 
-    std::cout << "S: "
+    std::cout << "I: "
               << filename << ","
               << analyzer.Blocks().size()
               << ","
@@ -136,13 +138,17 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
         outfstream << filename << ".config" << i++;
         std::ofstream outf;
 
-        outf.open(outfstream.str().c_str(), std::ios_base::trunc);
-        if (!outf.good()) {
-            std::cerr << "E: failed to write config in "
-                      << outfstream.str().c_str()
-                      << std::endl;
-            outf.close();
-            continue;
+        if (coverageOutputMode == COVERAGE_MODE_KCONFIG
+            || coverageOutputMode == COVERAGE_MODE_MODEL
+            || coverageOutputMode == COVERAGE_MODE_ALL) {
+            outf.open(outfstream.str().c_str(), std::ios_base::trunc);
+            if (!outf.good()) {
+                std::cerr << "E: failed to write config in "
+                          << outfstream.str().c_str()
+                          << std::endl;
+                outf.close();
+                continue;
+            }
         }
 
         switch (coverageOutputMode) {
@@ -158,6 +164,9 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
             break;
         case COVERAGE_MODE_ALL:
             (*it).formatAll(outf);
+            break;
+        case COVERAGE_MODE_CPP:
+            (*it).formatCPP(std::cout, model);
             break;
         default:
             assert(false);
@@ -395,6 +404,8 @@ int main (int argc, char ** argv) {
                 coverageOutputMode = COVERAGE_MODE_STDOUT;
             else if (0 == strcmp(optarg, "model"))
                 coverageOutputMode = COVERAGE_MODE_MODEL;
+            else if (0 == strcmp(optarg, "cpp"))
+                coverageOutputMode = COVERAGE_MODE_CPP;
             else if (0 == strcmp(optarg, "all"))
                 coverageOutputMode = COVERAGE_MODE_ALL;
             else

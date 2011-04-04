@@ -25,6 +25,7 @@
 #include <boost/spirit/include/classic_core.hpp>
 #include <boost/spirit/include/classic_parse_tree.hpp>
 #include <boost/spirit/include/classic_tree_to_xml.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <iostream>
 #include <string>
 #include <map>
@@ -47,7 +48,6 @@ bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     }
     return false;
 }
-
 
 /* Got the impression from normal lisp implementations */
 int SatChecker::stringToSymbol(const std::string &key) {
@@ -138,7 +138,6 @@ int SatChecker::transform_bool_rec(iter_t const& input) {
     iter_t root_node = input;
  beginning_of_function:
     iter_t iter = root_node->children.begin();
-
 
     if (root_node->value.id() == bool_grammar::symbolID) {
         iter_t inner_node = root_node->children.begin();
@@ -437,7 +436,7 @@ int SatChecker::AssignmentMap::formatModel(std::ostream &out, const Configuratio
     for (AssignmentMap::iterator it = begin(); it != end(); it++) {
         const std::string &name = (*it).first;
         const bool &valid = (*it).second;
-        if (!model->inConfigurationSpace(name))
+        if (model && !model->inConfigurationSpace(name))
             continue;
         out << name << "=" << (valid ? 1 : 0) << std::endl;;
         items ++;
@@ -451,6 +450,40 @@ int SatChecker::AssignmentMap::formatAll(std::ostream &out) {
         const bool &valid = (*it).second;
         out << name << "=" << (valid ? 1 : 0) << std::endl;;
     }
+    return size();
+}
+
+int SatChecker::AssignmentMap::formatCPP(std::ostream &out, const ConfigurationModel *model) {
+    static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+    static const boost::regex valid_regexp("^[_a-zA-Z].*$", boost::regex::perl);
+
+    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
+        const std::string &name = (*it).first;
+        // ignoring block variables
+        if (boost::regex_match(name, block_regexp))
+            continue;
+
+        // ignoring symbols that can be defined
+        if (boost::algorithm::ends_with(name, "."))
+            continue;
+
+        // ignoring invalid cpp flags
+        if (!boost::regex_match(name, valid_regexp))
+            continue;
+
+        // only in model space
+        if (model && !model->inConfigurationSpace(name))
+            continue;
+
+        const bool &on = (*it).second;
+
+        // only true symbols
+        if (!on)
+            continue;
+
+        out << " -D" << name << "=1";
+    }
+    out << std::endl;
     return size();
 }
 
