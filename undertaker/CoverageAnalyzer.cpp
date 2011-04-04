@@ -76,6 +76,7 @@ CoverageAnalyzer::blockCoverage(ConfigurationModel *model) {
                 bool new_solution = false;
                 SatChecker sc(block->getName() + " && " + base_formula);
 
+
                 // unsolvable, i.e. we have found some defect!
                 if (!sc())
                     continue;
@@ -83,20 +84,28 @@ CoverageAnalyzer::blockCoverage(ConfigurationModel *model) {
                 const SatChecker::AssignmentMap &assignments = sc.getAssignment();
                 SatChecker::AssignmentMap::const_iterator it;
                 for (it = assignments.begin(); it != assignments.end(); it++) {
+                    const std::string &name = (*it).first;
+                    const bool enabled = (*it).second;
                     static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+
+                    if (boost::regex_match(name, block_regexp)) {
+                        // if a block is enabled, and not already in
+                        // the block set, we enable it with this
+                        // configuration and get a new solution
+                        if (enabled && blocks_set.find(name) == blocks_set.end()) {
+                            blocks_set.insert(name);
+                            new_solution = true;
+                        }
+                        // No blocks in the assignment maps
+                        continue;
+                    }
 
                     /* If no model is given or the symbol is in the
                        model space we can push the assignment to the
                        current solution.
                     */
-                    if (!model || model->inConfigurationSpace((*it).first)) {
-                        current_solution.insert(std::make_pair<std::string,bool>((*it).first, (*it).second));
-                        continue;
-                    }
-
-                    if ((*it).second && boost::regex_match((*it).first, block_regexp)) {
-                        blocks_set.insert((*it).first);
-                        new_solution = true;
+                    if (!model || model->inConfigurationSpace(name)) {
+                        current_solution.insert(std::make_pair<std::string,bool>(name, enabled));
                     }
                 }
 
