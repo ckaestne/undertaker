@@ -86,6 +86,9 @@ struct StringJoiner : public std::deque<std::string> {
 };
 
 struct UniqueStringJoiner : public StringJoiner {
+    bool count (const value_type &x) {
+        return _unique_set.count(x);
+    }
     void push_back(const value_type &x) {
         /* Simulate an map when StringJoiner is unique */
         if (_unique_set.count(x) > 0) return;
