@@ -28,10 +28,24 @@ class CoverageAnalyzer {
  public:
     CoverageAnalyzer(CppFile *);
 
-    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *);
+    virtual std::list<SatChecker::AssignmentMap>
+        blockCoverage(ConfigurationModel *) = 0;
 
- private:
+protected:
+    std::string baseFileExpression(const ConfigurationModel *model);
     CppFile * file;
+};
+
+class SimpleCoverageAnalyzer : public CoverageAnalyzer {
+public:
+    SimpleCoverageAnalyzer(CppFile *f) : CoverageAnalyzer(f) {};
+    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *);
+};
+
+class MinimizeCoverageAnalyzer : public CoverageAnalyzer {
+public:
+    MinimizeCoverageAnalyzer(CppFile *f) : CoverageAnalyzer(f) {};
+    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *);
 };
 
 #endif /* _COVERAGEANALYZER_H_ */

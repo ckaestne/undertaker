@@ -39,6 +39,7 @@ enum CoverageOutputMode {
 
 enum CoverageOperationMode {
     COVERAGE_OP_SIMPLE,   // simple, fast
+    COVERAGE_OP_MINIMIZE, // hopefully minimal configuration set
 } coverageOperationMode = COVERAGE_OP_SIMPLE;
 
 void usage(std::ostream &out, const char *error) {
@@ -68,6 +69,7 @@ void usage(std::ostream &out, const char *error) {
     out << "      - all:     dump every assigned symbol (both items and code blocks)\n";
     out << "  -C: specify coverage algorithm\n";
     out << "      simple  - relative simple and fast algorithm (default)\n";
+    out << "      min     - slow but generates less configuration sets\n";
     out << "\nSpecifying Files:\n";
     out << "  You can specify one or many files (the format is according to the\n";
     out << "  job (-j) which should be done. If you specify - as file, undertaker\n";
@@ -102,8 +104,18 @@ void process_file_coverage(const char *filename) {
 
     ModelContainer *f = ModelContainer::getInstance();
     ConfigurationModel *model = f->lookupMainModel();
-    CoverageAnalyzer analyzer(&file);
-    solution = analyzer.blockCoverage(model);
+
+    SimpleCoverageAnalyzer simple_analyzer(&file);
+    MinimizeCoverageAnalyzer minimize_analyzer(&file);
+    CoverageAnalyzer *analyzer = 0;
+    if (coverageOperationMode == COVERAGE_OP_MINIMIZE)
+        analyzer = &minimize_analyzer;
+    else if (coverageOperationMode == COVERAGE_OP_SIMPLE)
+        analyzer = &simple_analyzer;
+    else
+        assert(false);
+
+    solution = analyzer->blockCoverage(model);
 
     if (coverageOutputMode == COVERAGE_MODE_STDOUT) {
         SatChecker::pprintAssignments(std::cout, solution, model, missingSet);
@@ -397,8 +409,13 @@ int main (int argc, char ** argv) {
                           << std::endl;
             break;
         case 'C':
-            // currently only the simple strategy is implemented
-            coverageOperationMode = COVERAGE_OP_SIMPLE;
+            if (0 == strcmp(optarg, "simple"))
+                coverageOperationMode = COVERAGE_OP_SIMPLE;
+            else if (0 == strcmp(optarg, "min"))
+                coverageOperationMode = COVERAGE_OP_MINIMIZE;
+            else
+                std::cerr << "WARNING, mode " << optarg << " is unknown, using 'simple' instead"
+                          << std::endl;
             break;
         case 't':
             threads = strtol(optarg, (char **)0, 10);
