@@ -1,6 +1,7 @@
 *~
 *.cmd
 *.o
+*.pyc
 *.gcda
 *.gcno
 .tmp_*
