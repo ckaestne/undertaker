@@ -39,6 +39,10 @@ enum CoverageOutputMode {
     COVERAGE_MODE_ALL,     // prints all items and blocks
 } coverageOutputMode;
 
+enum CoverageOperationMode {
+    COVERAGE_OP_SIMPLE,   // simple, fast
+} coverageOperationMode = COVERAGE_OP_SIMPLE;
+
 void usage(std::ostream &out, const char *error) {
     if (error)
         out << error << std::endl << std::endl;
@@ -64,6 +68,8 @@ void usage(std::ostream &out, const char *error) {
     out << "      - cpp: print on stdout cpp -D command line arguments\n";
     out << "      - model:   print all options which are in the configuration space\n";
     out << "      - all:     dump every assigned symbol (both items and code blocks)\n";
+    out << "  -C: specify coverage algorithm\n";
+    out << "      simple  - relative simple and fast algorithm (default)\n";
     out << "\nSpecifying Files:\n";
     out << "  You can specify one or many files (the format is according to the\n";
     out << "  job (-j) which should be done. If you specify - as file, undertaker\n";
@@ -386,7 +392,7 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:vh")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:C:vh")) != -1) {
         switch (opt) {
         case 'w':
             whitelist = strdup(optarg);
@@ -411,6 +417,10 @@ int main (int argc, char ** argv) {
             else
                 std::cerr << "WARNING, mode " << optarg << " is unknown, using 'kconfig' instead"
                           << std::endl;
+            break;
+        case 'C':
+            // currently only the simple strategy is implemented
+            coverageOperationMode = COVERAGE_OP_SIMPLE;
             break;
         case 't':
             threads = strtol(optarg, (char **)0, 10);
