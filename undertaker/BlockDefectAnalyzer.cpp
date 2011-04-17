@@ -22,6 +22,7 @@
 
 #include "StringJoiner.h"
 #include "BlockDefectAnalyzer.h"
+#include "SatChecker.h"
 #include "ModelContainer.h"
 
 
@@ -33,27 +34,67 @@ std::string BlockDefectAnalyzer::getBlockPrecondition(const ConfigurationModel *
     StringJoiner formula;
 
     /* Adding block and code constraints extraced from code sat stream */
-    formula.push_back(_block);
-    formula.push_back(_cs->getCodeConstraints());
+    const std::string code_formula  = _cb->getCodeConstraints();
+    formula.push_back(_cb->getName());
+    formula.push_back(code_formula);
 
 
     if (model) {
         /* Adding kconfig constraints and kconfig missing */
         std::set<std::string> missingSet;
-        formula.push_back(_cs->getKconfigConstraints(model, missingSet));
+        std::string kconfig_formula;
+        model->doIntersect(code_formula, _cb->getFile()->getChecker(), missingSet, kconfig_formula);
+        formula.push_back(kconfig_formula);
         if (model->isComplete())
             formula.push_back(ConfigurationModel::getMissingItemsConstraints(missingSet));
     }
 
-    return formula.join("\n&&\n");
+    return formula.join("\n&& ");
 }
 
-DeadBlockDefect::DeadBlockDefect(CodeSatStream *cs, const char *block)
+const BlockDefectAnalyzer *
+BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p_model) {
+    BlockDefectAnalyzer *defect = new DeadBlockDefect(block);
+
+    // If this is neither an Implementation, Configuration nor Referential *dead*,
+    // then destroy the analysis and retry with an Undead Analysis
+    if(!defect->isDefect(p_model)) {
+        delete defect;
+        defect = new UndeadBlockDefect(block);
+
+        // No defect found, block seems OK
+        if(!defect->isDefect(p_model)) {
+            delete defect;
+            return NULL;
+        }
+    }
+
+    assert(defect->defectType() != BlockDefectAnalyzer::None);
+
+    // (ATM) Implementation and Configuration defects do not require a crosscheck
+    if (!p_model || !defect->needsCrosscheck())
+        return defect;
+
+    ModelContainer *f = ModelContainer::getInstance();
+    for (ModelContainer::iterator i = f->begin(); i != f->end(); i++) {
+        const std::string &arch = (*i).first;
+        const ConfigurationModel *model = (*i).second;
+
+        if (!defect->isDefect(model)) {
+            defect->markOk(arch);
+            return defect;
+        }
+    }
+    defect->defectIsGlobal();
+    return defect;
+}
+
+
+DeadBlockDefect::DeadBlockDefect(ConditionalBlock *cb)
     :  BlockDefectAnalyzer(None), _needsCrosscheck(false),
        _arch(NULL) {
     this->_suffix = "dead";
-    this->_block = block;
-    this->_cs = cs;
+    this->_cb = cb;
 }
 
 bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
@@ -62,8 +103,9 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     if(!_arch)
         _arch = ModelContainer::lookupArch(model);
 
-    formula.push_back(_block);
-    formula.push_back(_cs->getCodeConstraints());
+    std::string code_formula = _cb->getCodeConstraints();
+    formula.push_back(_cb->getName());
+    formula.push_back(code_formula);
     SatChecker code_constraints(_formula = formula.join("\n&&\n"));
 
     if (!code_constraints()) {
@@ -74,7 +116,9 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
 
     if (model) {
         std::set<std::string> missingSet;
-        formula.push_back(_cs->getKconfigConstraints(model, missingSet));
+        std::string kconfig_formula = _cb->getCodeConstraints();
+        model->doIntersect(code_formula,  _cb->getFile()->getChecker(), missingSet, kconfig_formula);
+        formula.push_back(kconfig_formula);
         std::string formula_str = formula.join("\n&&\n");
         SatChecker kconfig_constraints(formula_str);
 
@@ -142,8 +186,8 @@ const std::string BlockDefectAnalyzer::defectTypeToString() const {
 bool DeadBlockDefect::writeReportToFile() const {
     StringJoiner fname_joiner;
 
-    fname_joiner.push_back(_cs->getFilename());
-    fname_joiner.push_back(_block);
+    fname_joiner.push_back(_cb->getFile()->getFilename());
+    fname_joiner.push_back(_cb->getName());
     if(_arch && (!_isGlobal || _defectType == Configuration))
         fname_joiner.push_back(_arch);
 
@@ -168,7 +212,8 @@ bool DeadBlockDefect::writeReportToFile() const {
         return false;
     } else {
         std::cout << "I: creating " << filename << std::endl;
-        out << "#" << _block << ":" << _cs->getLine(_block) << std::endl;
+        const Ziz::ConditionalBlock *block = _cb->ZizBlock();
+        out << "#" << _cb->getName() << ":" << block->Start() << ":" << block->End() << std::endl;
         out << SatChecker::pprinter(contents.c_str());
         out.close();
     }
@@ -176,22 +221,23 @@ bool DeadBlockDefect::writeReportToFile() const {
     return true;
 }
 
-UndeadBlockDefect::UndeadBlockDefect(CodeSatStream *cs, const char *block)
-    : DeadBlockDefect(cs, block) { this->_suffix = "undead"; }
+UndeadBlockDefect::UndeadBlockDefect(ConditionalBlock * cb)
+    : DeadBlockDefect(cb) { this->_suffix = "undead"; }
 
 bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;
-    const char *parent = _cs->getParent(_block);
+    const ConditionalBlock *parent = _cb->getParent();
 
-    // no parent -> impossible to be undead
-    if (!parent)
+    // no parent (or parent is file) -> impossible to be undead
+    if (!parent || parent == _cb->getFile()->topBlock())
         return false;
 
     if (!_arch)
         _arch = ModelContainer::lookupArch(model);
 
-    formula.push_back("( " + std::string(parent) + " && ! " + std::string(_block) + " )");
-    formula.push_back(_cs->getCodeConstraints());
+    std::string code_formula = _cb->getCodeConstraints();
+    formula.push_back("( " + parent->getName() + " && ! " + _cb->getName() + " )");
+    formula.push_back(code_formula);
     SatChecker code_constraints(_formula = formula.join("\n&&\n"));
 
     if (!code_constraints()) {
@@ -202,7 +248,9 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
 
     if (model) {
         std::set<std::string> missingSet;
-        formula.push_back(_cs->getKconfigConstraints(model, missingSet));
+        std::string kconfig_formula = _cb->getCodeConstraints();
+        model->doIntersect(code_formula,  _cb->getFile()->getChecker(), missingSet, kconfig_formula);
+        formula.push_back(kconfig_formula);
         std::string formula_str = formula.join("\n&&\n");
         SatChecker kconfig_constraints(formula_str);
 

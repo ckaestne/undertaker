@@ -18,15 +18,15 @@
  * check-output-start
 I: CPP Precondition for cpppc-complex.c
 ( B0 <-> CONFIG_A )
-&& ( B1 <->  ( B0 )  && CONFIG_B )
-&& ( B2 <->  ( B0 )  && CONFIG_C && ( ! (B1) )  )
-&& ( B3 <-> CONFIG_B && ( ! (B0) )  )
-&& ( B4 <-> CONFIG_C && ( ! (B3 || B0) )  )
-&& ( B5 <-> ( ! (B4 || B3 || B0) )  )
-&& ( B6 <->  ( B5 )  && CONFIG_D )
-&& ( B7 <->  ( B5 )  && CONFIG_A && ( ! (B6) )  )
-&& ( B8 <->  ( B7 )  && CONFIG_E )
-&& ( B9 <->  ( B5 )  && CONFIG_B && ( ! (B7 || B6) )  )
+&& ( B1 <-> B0 && CONFIG_B )
+&& ( B2 <-> B0 && CONFIG_C && ( ! (B1) ) )
+&& ( B3 <-> CONFIG_B && ( ! (B0) ) )
+&& ( B4 <-> CONFIG_C && ( ! (B3 || B0) ) )
+&& ( B5 <-> ( ! (B4 || B3 || B0) ) )
+&& ( B6 <-> B5 && CONFIG_D )
+&& ( B7 <-> B5 && CONFIG_A && ( ! (B6) ) )
+&& ( B8 <-> B7 && CONFIG_E )
+&& ( B9 <-> B5 && CONFIG_B && ( ! (B7 || B6) ) )
 && B00
  * check-output-end
  */

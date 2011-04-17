@@ -12,17 +12,15 @@
 
 #include "KconfigWhitelist.h"
 #include "ModelContainer.h"
-#include "CloudContainer.h"
-#include "CodeSatStream.h"
+#include "ConditionalBlock.h"
 #include "BlockDefectAnalyzer.h"
-
+#include "SatChecker.h"
+#include "CoverageAnalyzer.h"
 
 #define __cpp_str(x) #x
 #define _cpp_str(x) __cpp_str(x)
 
-typedef std::deque<BlockCloud> CloudList;
-typedef void (* process_file_cb_t) (const char *filename, bool batch_mode, bool loadModels);
-
+typedef void (* process_file_cb_t) (const char *filename);
 
 enum WorkMode {
     MODE_DEAD, // Detect dead and undead files
@@ -90,9 +88,9 @@ int rm_pattern(const char *pattern) {
     return nr;
 }
 
-void process_file_coverage(const char *filename, bool batch_mode, bool loadModels) {
-    CloudContainer s(filename);
-    if (!s.good()) {
+void process_file_coverage(const char *filename) {
+    CppFile file(filename);
+    if (!file.good()) {
         std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
@@ -100,19 +98,12 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
     std::list<SatChecker::AssignmentMap> solution;
     std::map<std::string,std::string> parents;
     MissingSet missingSet;
-    std::istringstream codesat(s.getConstraints());
-
-    ConfigurationModel *model = 0;
-    if (loadModels) {
-        ModelContainer *f = ModelContainer::getInstance();
-        model = f->lookupMainModel();
-    }
-
-    CodeSatStream analyzer(codesat, s, NULL, batch_mode, loadModels);
-    int i = 1;
 
 
-    solution = analyzer.blockCoverage(model, missingSet);
+    ModelContainer *f = ModelContainer::getInstance();
+    ConfigurationModel *model = f->lookupMainModel();
+    CoverageAnalyzer analyzer(&file);
+    solution = analyzer.blockCoverage(model);
 
     if (coverageOutputMode == COVERAGE_MODE_STDOUT) {
         SatChecker::pprintAssignments(std::cout, solution, model, missingSet);
@@ -121,7 +112,7 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
 
     std::cout << "I: "
               << filename << ","
-              << analyzer.Blocks().size()
+              << file.size()
               << ","
               << solution.size()
               << std::endl;
@@ -135,13 +126,13 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
     std::cout << "I: Removed " << r << " old configurations matching " << pattern
               << std::endl;
 
-
+    int config_count = 1;
     std::list<SatChecker::AssignmentMap>::iterator it;
     for (it = solution.begin(); it != solution.end(); it++) {
         static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
         SatChecker::AssignmentMap::iterator j;
         std::stringstream outfstream;
-        outfstream << filename << ".config" << i++;
+        outfstream << filename << ".config" << config_count++;
         std::ofstream outf;
 
         if (coverageOutputMode == COVERAGE_MODE_KCONFIG
@@ -162,7 +153,7 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
             (*it).formatKconfig(outf, missingSet);
             break;
         case COVERAGE_MODE_MODEL:
-            if (!loadModels) {
+            if (!model) {
                 std::cerr << "E: no model loaded but, model output mode specified" << std::endl;
                 exit(1);
             }
@@ -181,27 +172,22 @@ void process_file_coverage(const char *filename, bool batch_mode, bool loadModel
     }
 }
 
-void process_file_cpppc(const char *filename, bool batch_mode, bool loadModels) {
-    (void) batch_mode;
-    (void) loadModels;
-
-    CloudContainer s(filename);
+void process_file_cpppc(const char *filename) {
+    CppFile s(filename);
     if (!s.good()) {
         std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
     std::cout << "I: CPP Precondition for " << filename << std::endl;
     try {
-        std::cout << s.getConstraints() << std::endl;
+        std::cout << s.topBlock()->getCodeConstraints() << std::endl;
     } catch (std::runtime_error &e) {
         std::cerr << "E: failed: " << e.what() << std::endl;
         return;
     }
 }
 
-void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels) {
-    (void) batch_mode;
-
+void process_file_blockpc(const char *filename) {
     std::string fname = std::string(filename);
     std::string file, position;
     size_t colon_pos = fname.find_first_of(':');
@@ -212,103 +198,95 @@ void process_file_blockpc(const char *filename, bool batch_mode, bool loadModels
     file = fname.substr(0, colon_pos);
     position = fname.substr(colon_pos + 1);
 
-    CloudContainer cloud(file.c_str());
-    if (!cloud.good()) {
+    CppFile cpp(file.c_str());
+    if (!cpp.good()) {
         std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
-    std::istringstream cs(cloud.getConstraints());
-    std::string matched_block;
-    CodeSatStream *sat_stream = 0;
-    for (CloudList::iterator c = cloud.begin(); c != cloud.end(); c++) {
-        std::istringstream codesat(c->getConstraints());
-        CodeSatStream *analyzer = new CodeSatStream(codesat, cloud,
-                                                    &(*c), false, loadModels);
+    ConditionalBlock * block = cpp.getBlockAtPosition(filename);
 
-        std::string block = analyzer->positionToBlock(filename);
-        if (block.size() != 0) {
-            matched_block = block;
-            sat_stream = analyzer;
-            break;
-        }
-        delete analyzer;
-    }
-
-    if (matched_block.size() == 0) {
-        std::cout << "I: No block at " << filename << " was found." << std::endl;
-        return;
+    if (block == 0) {
+         std::cout << "I: No block at " << filename << " was found." << std::endl;
+         return;
     }
 
 
     ConfigurationModel *model = ModelContainer::lookupMainModel();
-    const BlockDefectAnalyzer *defect = sat_stream->analyzeBlock(matched_block.c_str(), model);
+    const BlockDefectAnalyzer *defect = 0;
+    try {
+        defect = BlockDefectAnalyzer::analyzeBlock(block, model);
+    } catch (SatCheckerError &e) {
+        std::cerr << "Couldn't process " << filename << ":" << block->getName() << ": "
+                  << e.what() << std::endl;
+    }
 
-    /* Get the Precondition */
-    DeadBlockDefect dead(sat_stream, matched_block.c_str());
+    // /* Get the Precondition */
+    DeadBlockDefect dead(block);
     std::string precondition = dead.getBlockPrecondition(model);
 
     std::string defect_string = "no";
     if (defect) {
-        defect_string = defect->getSuffix() + "/" + defect->defectTypeToString();
+         defect_string = defect->getSuffix() + "/" + defect->defectTypeToString();
     }
 
-    std::cout << "I: Block " << matched_block
+    std::cout << "I: Block " << block->getName()
               << " | Defect: " << defect_string
               << " | Global: " << (defect != 0 ? defect->isGlobal() : 0)<< std::endl;
 
     std::cout << precondition << std::endl;
 }
 
-void process_file_dead(const char *filename, bool batch_mode, bool loadModels) {
-    CloudContainer clouds(filename);
-    if (!clouds.good()) {
+void process_file_dead(const char *filename) {
+    CppFile file(filename);
+    if (!file.good()) {
         std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
-    std::string cloud_constrains(clouds.getConstraints());
+    ConfigurationModel *model = ModelContainer::lookupMainModel();
 
 
-    for (CloudList::iterator c = clouds.begin(); c != clouds.end(); c++) {
-        std::istringstream cloud((*c).getConstraints());
-        std::istringstream cs(cloud_constrains);
+    /* Iterate over all Blocks */
+    for (CppFile::iterator c = file.begin(); c != file.end(); c++) {
+        ConditionalBlock * block = *c;
 
-        // If we have no defines in the file we can surely use only
-        // the expression for a single block cloud and not the whole file
-        if (clouds.getDefinesMap().size() == 0) {
-            CodeSatStream analyzer(cloud, clouds, &(*c), batch_mode, loadModels);
-            analyzer.analyzeBlocks();
-        } else {
-            CodeSatStream analyzer(cs, clouds, &(*c), batch_mode, loadModels);
-            analyzer.analyzeBlocks();
+        try {
+            const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(block, model);
+            if (defect) {
+                defect->writeReportToFile();
+                delete defect;
+            }
+        } catch (SatCheckerError &e) {
+            std::cerr << "Couldn't process " << filename << ":" << block->getName() << ": "
+                      << e.what() << std::endl;
         }
 
     }
 }
 
-void process_file_interesting(const char *filename, bool batch_mode, bool loadModels) {
-    (void) batch_mode;
+void process_file_interesting(const char *filename) {
+    ConfigurationModel *model = ModelContainer::lookupMainModel();
 
-    if (!loadModels) {
+    if (!model) {
         std::cerr << "E: for finding interessting items a model must be loaded" << std::endl;
         return;
     }
 
-    ConfigurationModel *model = ModelContainer::lookupMainModel();
+
     assert(model != NULL); // there should always be a main model loaded
 
     std::set<std::string> initialItems;
     initialItems.insert(filename);
 
     /* Find all items that are related to the given item */
-    model->findSetOfInterestingItems(initialItems);
+    std::set<std::string> interesting = model->findSetOfInterestingItems(initialItems);
 
     /* remove the given item again */
-    initialItems.erase(filename);
+    interesting.erase(filename);
     std::cout << filename;
 
-    for(std::set<std::string>::const_iterator it = initialItems.begin(); it != initialItems.end(); ++it) {
+    for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); ++it) {
         if (model->find(*it) != model->end()) {
             /* Item is present in model */
             std::cout << " " << *it;
@@ -320,25 +298,25 @@ void process_file_interesting(const char *filename, bool batch_mode, bool loadMo
     std::cout << std::endl;
 }
 
-void process_file_symbolpc(const char *filename, bool batch_mode, bool loadModels) {
-    (void) batch_mode;
+void process_file_symbolpc(const char *filename) {
+    ConfigurationModel *model = ModelContainer::lookupMainModel();
 
-    if (!loadModels) {
+    if (!model) {
         std::cerr << "E: for symbolpc models must be loaded" << std::endl;
         return;
     }
 
-    ConfigurationModel *model = ModelContainer::lookupMainModel();
     assert(model != NULL); // there should always be a main model loaded
 
-    std::set<std::string> initialItems, missingItems;
-    initialItems.insert(filename);
+    std::set<std::string> missingItems;
 
     std::cout << "I: Symbol Precondition for `" << filename << "'" << std::endl;
 
 
     /* Find all items that are related to the given item */
-    int valid_items = model->doIntersect(initialItems, std::cout, missingItems);
+    std::string result;
+    int valid_items = model->doIntersect(std::string(filename), 0, missingItems, result);
+    std::cout << result << std::endl;
 
     if (missingItems.size() > 0) {
         /* given symbol is in the model */
@@ -509,8 +487,6 @@ int main (int argc, char ** argv) {
         }
     }
 
-    /* Are there any models loaded? */
-    bool loadModels = f->size() > 0;
     /* Specify main model, if models where loaded */
     if (f->size() == 1) {
         /* If there is only one model file loaded use this */
@@ -562,7 +538,7 @@ int main (int argc, char ** argv) {
                 }
             }
             if (line.size() > 0)
-                process_file(line.c_str(), false, f->size() > 0);
+                process_file(line.c_str());
         }
     } else if (threads > 1) {
         std::cout << workfiles.size() << " files will be analyzed by " << threads << " processes." << std::endl;
@@ -576,7 +552,7 @@ int main (int argc, char ** argv) {
                 int worked_on = 0;
                 for (unsigned int i = thread_number; i < workfiles.size(); i+= threads) {
                     /* calling the function pointer */
-                    process_file(workfiles[i].c_str(), true, loadModels);
+                    process_file(workfiles[i].c_str());
                     worked_on++;
                 }
                 std::cerr << "I: finished: " << worked_on << " files done (" << thread_number << ")" << std::endl;
@@ -599,7 +575,7 @@ int main (int argc, char ** argv) {
         /* Now forks do anything sequential */
         for (unsigned int i = 0; i < workfiles.size(); i++) {
             /* call process_file function pointer */
-            process_file(workfiles[i].c_str(), false, loadModels);
+            process_file(workfiles[i].c_str());
         }
     }
     return EXIT_SUCCESS;

@@ -10,8 +10,19 @@ filename = ""
 def call_undertaker(filename):
     """ Generates the presence conditions for `filename' in one line """
     cpppc = subprocess.Popen(['undertaker', '-j', 'cpppc', filename],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-    return ' '.join(cpppc.split('\n')[1:])
+                             stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    cpppc.stdin.close()
+    (stdout_got, stderr_got) = (cpppc.stdout.readlines(), cpppc.stderr.readlines())
+    cpppc.wait()
+
+    if 0 != cpppc.returncode or len(stderr_got) > 0:
+        print "STDOUT:", stdout_got
+        print "STDERR:", stderr_got
+        raise RuntimeError("calling limboole failed")
+
+    return ' '.join(stdout_got[1:])
 
 def call_limboole(selection, cpppc):
     """ returns True if (selection) && (cpppc) is satisfiable """
@@ -20,10 +31,23 @@ def call_limboole(selection, cpppc):
     if VERBOSITY == 2:
         print limboole_in
 
-    return not ' UNSATIS' in subprocess.Popen(['limboole', '-s'],
+    p = subprocess.Popen(['limboole', '-s'],
                                               stdin=subprocess.PIPE,
                                               stdout = subprocess.PIPE,
-                                              stderr = subprocess.PIPE).communicate(limboole_in)[0]
+                                              stderr = subprocess.PIPE)
+
+    p.stdin.write(limboole_in)
+    p.stdin.close()
+    (stdout_got, stderr_got) = (p.stdout.readlines(), p.stderr.readlines())
+    p.wait()
+
+    if 0 != p.returncode or len(stderr_got) > 0:
+        print "STDOUT:", stdout_got
+        print "STDERR:", stderr_got
+        raise RuntimeError("calling limboole failed")
+
+
+    return not ' UNSATIS' in stdout_got[0]
 
 def for_all_combinations(length, fn):
     """ applies `fn' to all combinations of a boolean string of length `length' """

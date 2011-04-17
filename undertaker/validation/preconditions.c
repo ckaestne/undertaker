@@ -23,10 +23,8 @@ No CPP Precond
  * check-output-start
 I: Block B8 | Defect: no | Global: 0
 B8
-&&
-( B6 <-> CONFIG_TOPLEVEL_C )
-&& ( B8 <->  ( B6 )  && CONFIG_LEVEL_C_B )
-&& ( B11 <-> ( ! (B6) )  )
-
+&& ( B6 <-> CONFIG_TOPLEVEL_C )
+&& ( B8 <-> B6 && CONFIG_LEVEL_C_B )
+&& B00
  * check-output-end
  */

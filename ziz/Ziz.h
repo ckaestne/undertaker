@@ -48,7 +48,8 @@ namespace Ziz {
 
 typedef enum {
     Code,
-    Conditional
+    Conditional,
+    DefineBlock,
 } block_type;
 
 typedef enum {
@@ -78,7 +79,6 @@ class Block {
         // only allow in derived classes
         Block(int i, int d, position_type s, BlockContainer* pbc)
             : _id(i), _depth(d), _start(s), _pParent(pbc) {}
-        virtual ~Block() {}
     private:
         Block(Block&);                        // disable copy c'tor
 
@@ -104,7 +104,6 @@ class Block {
 class BlockContainer : public std::vector<Block*> {
     protected:
         BlockContainer() {}   // only allow in derived classes
-        virtual ~BlockContainer() {}
     public:
         virtual container_type ContainerType()  const = 0;
 };
@@ -113,7 +112,6 @@ class CodeBlock : public Block {
     public:
         CodeBlock(int i, int d, position_type s, BlockContainer* pbc)
             : Block(i, d, s, pbc) {}
-        virtual ~CodeBlock() {}
     private:
         CodeBlock(CodeBlock&);   // disable copy c'tor
 
@@ -175,14 +173,23 @@ class ConditionalBlock : public Block, public BlockContainer {
         ConditionalBlock*       _p_prevSib;
 };
 
-struct Define {
-        Define(int id, std::string flag, position_type pos, ConditionalBlock* block, bool define)
-            : _id(id), _flag(flag), _position(pos), _block(block), _define(define) {}
-        int             _id;
-        std::string     _flag;
-        position_type   _position;
-        ConditionalBlock* _block;
-        bool            _define; // 1 define, 0 undef
+ struct Define : public Block {
+     Define (int id, int depth, position_type start, BlockContainer* pbc,
+             std::string flag, bool isDefine)
+         : Block(id, depth, start, pbc),
+         _flag(flag), _define(isDefine) { };
+
+    private:
+        Define(Define&);   // disable copy c'tor
+
+    public:
+     std::string getFlag() const { return _flag; }
+     bool isDefine() const { return _define; }
+
+     virtual block_type      BlockType()      const { return DefineBlock; }
+
+     std::string     _flag;
+     bool            _define; // 1 define, 0 undef
 };
 
 // key: the cpp identifier, value: list of "define" objects
@@ -192,7 +199,6 @@ class File : public BlockContainer {
     public:
 
         File() : _blocks(0), _defines(0) {}
-        ~File() {};
 
         virtual container_type ContainerType() const { return OuterBlock; }
 
@@ -200,7 +206,7 @@ class File : public BlockContainer {
                                                  BlockContainer*);
         ConditionalBlock* CreateConditionalBlock(int, position_type,
                                                  BlockContainer*, lexer_type&);
-        void CreateDefine(std::string flag, position_type pos, ConditionalBlock* block, bool define);
+        void CreateDefine(int, std::string flag, position_type pos, BlockContainer* block, bool define);
         Defines& getDefinesMap() { return _defines_map; }
 
 //    protected: FIXME

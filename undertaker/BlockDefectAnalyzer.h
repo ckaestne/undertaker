@@ -24,7 +24,8 @@
 #ifndef blockdefect_h__
 #define blockdefect_h__
 
-#include "CodeSatStream.h"
+#include "ConfigurationModel.h"
+#include "ConditionalBlock.h"
 
 /**
  * \brief Base Class of all Kind of Configuration Defects
@@ -67,12 +68,15 @@ struct BlockDefectAnalyzer {
     virtual int defectType() const { return _defectType; }
     virtual ~BlockDefectAnalyzer() {}
 
+
+    static const BlockDefectAnalyzer * analyzeBlock(ConditionalBlock *,
+                                                    ConfigurationModel *);
+
 protected:
     BlockDefectAnalyzer(int defecttype) : _defectType(defecttype), _isGlobal(false), _OKList() {}
     int _defectType;
     bool _isGlobal;
-    const char *_block;
-    CodeSatStream *_cs;
+    ConditionalBlock *_cb;
     const char *_suffix;
     std::list<std::string> _OKList; //!< List of architectures on which this is proved to be OK
 };
@@ -81,7 +85,7 @@ protected:
 class DeadBlockDefect : public BlockDefectAnalyzer {
 public:
     //! c'tor for Dead Block Defect Analysis
-    DeadBlockDefect(CodeSatStream *cs, const char *block);
+    DeadBlockDefect(ConditionalBlock *);
     virtual bool isDefect(const ConfigurationModel *model); //!< checks for a defect
     virtual bool isGlobal() const; //!< checks if the defect applies to all models
     virtual bool needsCrosscheck() const; //!< defect will be present on every model
@@ -97,7 +101,7 @@ protected:
 //! Checks a given block for "un-deselectable block" defects.
 class UndeadBlockDefect : public DeadBlockDefect {
 public:
-    UndeadBlockDefect(CodeSatStream *cs, const char *block);
+    UndeadBlockDefect(ConditionalBlock *);
     virtual bool isDefect(const ConfigurationModel *model);
 };
 

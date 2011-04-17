@@ -241,22 +241,17 @@ void Parser::HandleDefines(bool define, lexer_type& lexer)
 
     std::stringstream flag;
     flag << lexer->get_value();
-    position_type pos = _curPos;
-    ConditionalBlock* block = dynamic_cast<ConditionalBlock*> (_p_curBlockContainer);
-    int id = -1;
-    if (block != NULL) {
-        id = block->Id();
-    }
 
-    _p_file->CreateDefine(flag.str(), pos, block, define);
+    _p_file->CreateDefine(_condBlockStack.size(), flag.str(), _curPos,
+                          _p_curBlockContainer ? _p_curBlockContainer : _p_file,
+                          define);
 
     //this while just moves lexer to the next line; it takes macros spanning several lines into consideration
     while (boost::wave::token_id(*lexer) != boost::wave::T_NEWLINE) {
         if (boost::wave::token_id(*lexer) == boost::wave::T_CONTLINE) {
-	    lexer++; // the '//' character
-        }	
-
-        lexer++;    
+            lexer++; // the '//' character
+        }
+        lexer++;
     }
     _p_curCodeBlock->AppendContent(std::string("\n"));
 
@@ -402,10 +397,12 @@ File::CreateConditionalBlock(int depth, position_type startPos,
 }
 
 void
-File::CreateDefine(std::string flag, position_type pos, ConditionalBlock* block, bool define)
+File::CreateDefine(int depth, std::string flag, position_type pos, BlockContainer* block, bool define)
 {
-    Define* r =  new Define(_defines++,flag,pos,block,define);
+    Define* r =  new Define(_defines++, depth, pos, block,
+                            flag, define);
     _defines_map[flag].push_back(r);
+    block->push_back(r);
 }
 
 

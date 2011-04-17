@@ -15,13 +15,14 @@ LDFLAGS =
 # LDCOV = -coverage
 LDLIBS = -lstdc++ -lboost_system -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  -lpicosat -lboost_wave-mt $(LDCOV)
 
-PARSEROBJ = CloudContainer.o RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
-	    ModelContainer.o SatChecker.o CodeSatStream.o BlockDefectAnalyzer.o
+PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
+		    ModelContainer.o SatChecker.o BlockDefectAnalyzer.o  \
+			ConditionalBlock.o CoverageAnalyzer.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
 PROGS = undertaker
-TESTPROGS = test-SatChecker
+TESTPROGS = test-SatChecker test-ConditionalBlock
 
 all: ../ziz/libziz.a $(PROGS) $(TESTPROGS)
 
@@ -52,9 +53,9 @@ clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
 
 test-%: test-%.cpp libparser.a
-	$(CXX) $(CXXFLAGS) -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -g -O0 -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
 
-run-libcheck: test-SatChecker
+run-libcheck: $(TESTPROGS)
 	@for t in $^; do ./$$t; done
 
 # coverage analysis will create validation/sched.c.config*
@@ -67,7 +68,7 @@ run-coveragecheck: undertaker
 	md5sum validation/sched.c.config* | awk '// {print $$1}' | sort | uniq -c \
 		| awk '// { if ($$1 != 1) { print "duplicate solutions found" ; exit 1 } }' \
 		|| md5sum validation/sched.c.config* | sort
-	if grep -q ^CONFIG_IA64 validation/sched.c.config*; then echo "IA64 not selectable!"; false ; fi
+	if grep -q '^CONFIG_IA64=[^n]' validation/sched.c.config*; then echo "IA64 not selectable!"; false ; fi
 	if grep -q ^CONFIG_CHOICE validation/sched.c.config*; then echo "must not contain CONFIG_CHOICE*"; false ; fi
 
 check: $(PROGS) ../ziz/zizler

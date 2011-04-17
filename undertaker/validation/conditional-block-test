@@ -1,0 +1,17 @@
+#define A
+
+#ifndef A
+#define B
+#undef B 
+#endif
+
+#define X
+
+#ifdef B
+#  if X
+#define B
+    inner
+#  else
+    inner-else
+#  endif
+#endif

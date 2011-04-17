@@ -44,8 +44,9 @@ ConfigurationModel::ConfigurationModel(std::string name, std::ifstream &in, std:
         _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);
 }
 
-std::list<std::string> itemsOfString(const std::string &str) {
-    std::list<std::string> mylist;
+std::set<std::string>
+ConfigurationModel::itemsOfString(const std::string &str) {
+    std::set<std::string> result;
     std::string::const_iterator it = str.begin();
     std::string tmp = "";
     while (it != str.end()) {
@@ -63,7 +64,7 @@ std::list<std::string> itemsOfString(const std::string &str) {
         case 'n':
         case ' ':
             if (!tmp.empty()) {
-                mylist.push_back(tmp);
+                result.insert(tmp);
                 //std::cout << "    (itemsOfString) inserting " << tmp << "\n";
                 tmp = "";
             }
@@ -76,19 +77,20 @@ std::list<std::string> itemsOfString(const std::string &str) {
         }
     }
     if (!tmp.empty()) {
-        mylist.push_back(tmp);
+        result.insert(tmp);
     }
-    mylist.unique();
-    return mylist;
+    return result;
 }
 
-void ConfigurationModel::findSetOfInterestingItems(std::set<std::string> &initialItems) const {
-    std::list<std::string> listtmp;
+std::set<std::string>
+ConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initialItems) const {
+    std::set<std::string> item_set, result;
     std::stack<std::string> workingStack;
     std::string tmp;
     /* Initialize the working stack with the given elements */
     for(std::set<std::string>::iterator sit = initialItems.begin(); sit != initialItems.end(); sit++) {
         workingStack.push(*sit);
+        result.insert(*sit);
     }
 
     while (!workingStack.empty()) {
@@ -96,17 +98,19 @@ void ConfigurationModel::findSetOfInterestingItems(std::set<std::string> &initia
         workingStack.pop();
         if (item != NULL) {
             if (item->compare("") != 0) {
-                listtmp = itemsOfString(*item);
-                for(std::list<std::string>::iterator sit = listtmp.begin(); sit != listtmp.end(); sit++) {
+                item_set = itemsOfString(*item);
+                for(std::set<std::string>::iterator sit = item_set.begin(); sit != item_set.end(); sit++) {
                     /* Item already seen? continue */
-                    if (initialItems.find(*sit) == initialItems.end()) {
+                    if (result.count(*sit) == 0) {
                         workingStack.push(*sit);
-                        initialItems.insert(*sit);
+                        result.insert(*sit);
                     }
                 }
             }
         }
     }
+
+    return result;
 }
 
 std::string ConfigurationModel::getMissingItemsConstraints(std::set<std::string> &missing) {
@@ -125,15 +129,25 @@ std::string ConfigurationModel::getMissingItemsConstraints(std::set<std::string>
     return m.str();
 }
 
-int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &out,
-                                    std::set<std::string> &missing, const ConfigurationModel::Checker *c) const {
-     int valid_items = 0;
-     StringJoiner sj;
+int ConfigurationModel::doIntersect(const std::string exp,
+                                    const ConfigurationModel::Checker *c,
+                                    std::set<std::string> &missing,
+                                    std::string &intersected) const {
+    const std::set<std::string> start_items = itemsOfString(exp);
+    return doIntersect(start_items, c, missing, intersected);
+}
 
-    findSetOfInterestingItems(myset);
 
-    for(std::set<std::string>::const_iterator it = myset.begin(); it != myset.end(); it++) {
-        std::stringstream ss;
+int ConfigurationModel::doIntersect(const std::set<std::string> start_items,
+                                    const ConfigurationModel::Checker *c,
+                                    std::set<std::string> &missing,
+                                    std::string &intersected) const {
+    int valid_items = 0;
+    StringJoiner sj;
+
+    std::set<std::string> interesting = findSetOfInterestingItems(start_items);
+
+    for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); it++) {
         const std::string *item = getValue(*it);
 
         if (item != NULL) {
@@ -147,7 +161,7 @@ int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &o
                 continue;
 
             // iff we are given a checker for items, skip if it doesn't pass the test
-            if(c && ! (*c)(*it)) {
+            if (c && ! (*c)(*it)) {
                 continue;
             }
 
@@ -156,7 +170,7 @@ int ConfigurationModel::doIntersect(std::set<std::string> myset, std::ostream &o
                 missing.insert(*it);
         }
     }
-    out << sj.join("\n&&\n");
+    intersected = sj.join("\n&& ");
 
     return valid_items;
 }
