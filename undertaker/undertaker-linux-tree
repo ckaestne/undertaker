@@ -79,6 +79,10 @@ if [ -n "$COVERAGE" ]; then
 	    awk -F, '{ printf "%s %s\n", $3, $1 }' | \
 	    sort -n -r | \
 	    head -n 50 | tee coverage.stats
+
+    awk '/c$/ { print $2}' coverage.stats > coverage-worklist
+    time undertaker-calc-coverage coverage-worklist
+
 else 
     echo "Analyzing $(wc -l < worklist) files with $PROCESSORS threads."
     time undertaker -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"

@@ -1,0 +1,150 @@
+#!/usr/bin/env python
+
+import os
+import shutil
+import sys
+import glob
+import re
+from subprocess import *
+
+configs = ["allnoconfig", "allyesconfig", "allmodconfig", "defconfig"]
+
+def execute(command, echo=True):
+    """
+    executes 'command' in a shell
+
+    returns a tuple with 
+     1. the command's standard output as list of lines
+     2. the exitcode
+    """
+
+    if echo:
+        print "executing: %s" % command
+    p = Popen(command, stdout=PIPE, stderr=STDOUT, shell=True)
+    (stdout, stderr) = p.communicate()
+    return (stdout.rsplit('\n'), p.returncode)
+
+def switch_config(config):
+    "switches the current tree to the given config. throws an exception in case make fails"
+    (output, returncode) = execute("make %s" % config, echo=False)
+    if returncode != 0:
+        raise RuntimeError("Failed to switch to config %s" % config)
+    (out2, ret2) = execute("make silentoldconfig", echo=False)
+    if ret2 != 0:
+        raise RuntimeError("silentoldconfig failed while switching to config %s" % config)
+    return output
+
+def get_covered_lines(filename):
+    coverage_cmd = "make %s C=2 CHECK=sparse-coverage" % filename.replace(".c", ".o")
+    (sparse_coverage, returncode) = execute(coverage_cmd, echo=False)
+
+    lines = []
+    for line in sparse_coverage:
+        tokens = line.split(" ")
+        if tokens[0] != "" and tokens[0] in filename:
+            lines.append(int(tokens[1]))
+    return lines
+
+def default_configs(filenames, results):
+    for filename in filenames:
+        if not os.path.exists(filename):
+            print "%s does not exist, skipping" % filename
+            continue
+
+        if not filename in results:
+            results[filename] = {}
+        fd = open(filename)
+        results[filename]['total'] = len(fd.readlines())
+        fd.close()
+
+    for config in configs:
+        if not filename in results:
+            results[filename] = {}
+        results[filename][config] = -1 # initialize properly
+        print "Switching to configuration preset %s" % config
+        switch_config(config)
+        for filename in filenames:
+            if filename not in results.keys():
+                continue
+            lines = len(get_covered_lines(filename))
+            results[filename][config] = lines
+            print "%s: %s lines" % (filename, lines)
+    return results
+
+# e.g. taken from the makefiles
+extra_dependencies = {
+    './drivers/cpuidle/cpuidle.c': ["CONFIG_CPU_IDLE=y", "CONFIG_ARCH_HAS_DEFAULT_IDLE=y"],
+}
+
+def vamos_coverage(filename, results):
+    covered = set()
+    for config in configurations(filename):
+        print "Expanding configuration %s with satconf" % config
+        switch_config('allnoconfig')
+        shutil.copyfile(config, ".satconfig")
+
+        if filename in extra_dependencies.keys():
+            with open(".satconfig", "a") as s:
+                s.write("\n".join(extra_dependencies[filename]) + '\n')
+
+        arch = "x86"
+        m = re.search("arch/([^/]*)/", filename)
+        if m:
+            arch = m.group(1)
+        satconf_cmd = "env ARCH=" + arch + " KERNELVERSION=`git describe` satconf arch/" + arch + "/Kconfig"
+        (output, returncode) = execute(satconf_cmd, echo=True)
+        if returncode != 0:
+            print "Config %s failed to apply, skipping" % config
+            continue
+
+        (out2, ret2) = execute("make silentoldconfig", echo=False)
+        if ret2 != 0:
+            raise RuntimeError("silentoldconfig failed while switching to config %s" % config)
+
+        for line in get_covered_lines(filename):
+            covered.add(line)
+
+        print "Creating %s" % config + ".sparse"
+        # now run sparse on this configuration
+        coverage_cmd = "make %s C=2" % filename.replace(".c", ".o")
+        (sparse_output, returncode) = execute(coverage_cmd, echo=False)
+        fd = open(config + ".sparse", 'w')
+        fd.write('\n'.join(sparse_output))
+        fd.close()
+
+    if not filename in results:
+        results[filename] = {}
+    results[filename]['vamos'] = len(list(covered))
+    return results
+
+def configurations(filename):
+    return sorted(glob.glob(filename + ".config*"))
+
+if len(sys.argv) == 1:
+    print "Give a file of interessting files as argument"
+    sys.exit(-1)
+
+execute("undertaker -j coverage -m models/x86.model -b %s" % sys.argv[1], echo=True)
+
+fd = open(sys.argv[1])
+filenames = [x.strip() for x in fd.readlines()]
+fd.close()
+
+results = default_configs(filenames, {})
+for filename in filenames:
+    if not os.path.exists(filename):
+        continue
+
+    print "processing %s" % filename
+    results = vamos_coverage(filename, results)
+
+print "Format: filename, allnoconfig, allyesconfig, allmodconfig, defconfig, vamos, total"
+for filename in results.keys():
+    if not os.path.exists(filename):
+        continue
+    print "%s," % filename,
+    for key in configs + ['vamos', 'total']: 
+        print "%s," % results[filename][key],
+    print
+    
+print results
