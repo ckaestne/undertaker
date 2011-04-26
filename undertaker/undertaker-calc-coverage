@@ -79,27 +79,33 @@ extra_dependencies = {
 def vamos_coverage(filename, results):
     covered = set()
     for config in configurations(filename):
-        print "Expanding configuration %s with satconf" % config
+        print "Trying to expand configuration %s" % config
         switch_config('allnoconfig')
-        shutil.copyfile(config, ".satconfig")
+        with open('.config', 'a+') as oldconfigf:
+            with open(config) as configf:
+                oldconfigf.writelines(configf.readlines())
 
         if filename in extra_dependencies.keys():
-            with open(".satconfig", "a") as s:
+            with open(".config", "a+") as s:
                 s.write("\n".join(extra_dependencies[filename]) + '\n')
 
         arch = "x86"
         m = re.search("arch/([^/]*)/", filename)
         if m:
             arch = m.group(1)
-        satconf_cmd = "env ARCH=" + arch + " KERNELVERSION=`git describe` satconf arch/" + arch + "/Kconfig"
+        satconf_cmd = 'yes "" | make oldconfig ARCH="%s" KERNELVERSION=`git describe`' % arch
         (output, returncode) = execute(satconf_cmd, echo=True)
         if returncode != 0:
             print "Config %s failed to apply, skipping" % config
+            print "command used: " + satconf_cmd
+            print output
             continue
 
-        (out2, ret2) = execute("make silentoldconfig", echo=False)
+        (out2, ret2) = execute("yes "" | make silentoldconfig", echo=False)
         if ret2 != 0:
-            raise RuntimeError("silentoldconfig failed while switching to config %s" % config)
+            # with the satconfig approach, this always worked
+            #  raise RuntimeError("silentoldconfig failed while switching to config %s" % config)
+            print "W: silentoldconfig failed while switching to config %s, continueing anyway" % config
 
         for line in get_covered_lines(filename):
             covered.add(line)
