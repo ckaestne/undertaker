@@ -27,8 +27,12 @@ function debug() {
 }
 
 PATH="@LIBDIR@/undertaker:$PATH"
+PYTHONPATH="@LIBDIR@/python2.6/dist-packages"
+
+export PYTHONPATH
 
 debug "PATH=$PATH\n"
+debug "PYTHONPATH=$PYTHONPATH\n"
 
 if ! which dumpconf > /dev/null; then
     echo "No dumpconf binary found."
