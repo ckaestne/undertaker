@@ -44,6 +44,9 @@ class TranslatedModel(tools.UnicodeMixin):
         self.deps[symbol] = []
         self.defaultSelects[symbol] = []
 
+        if option.omnipresent():
+            self.always_on.append(option.symbol())
+
         if option.tristate():
             symbol_module = option.symbol_module()
             self.symbols.append(symbol_module)
