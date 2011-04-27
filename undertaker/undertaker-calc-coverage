@@ -80,15 +80,33 @@ def vamos_coverage(filename, results):
     covered = set()
     for config in configurations(filename):
         print "Trying to expand configuration %s" % config
+        # configuration 'config' is a partial configuration, i.e., it
+        # contains an imcomplete set of config options. The strategy
+        # here is to start with a default config ("allnoconfig"), and
+        # then filter out configs for which we have an entry in the
+        # partial selection. Finally, we verify and complete the
+        # "hacked" selection with "make oldconfig"
         switch_config('allnoconfig')
-        with open('.config', 'a+') as oldconfigf:
-            with open(config) as configf:
-                oldconfigf.writelines(configf.readlines())
 
-        if filename in extra_dependencies.keys():
-            with open(".config", "a+") as s:
-                s.write("\n".join(extra_dependencies[filename]) + '\n')
+        with open(config + '.config', 'w+') as newconfigf:
+            with open('.config', 'r') as oldconfigf:
+                with open(config) as configf:
+                    found_items = []
+                    for l in configf.readlines():
+                        if l.startswith('CONFIG_'):
+                            item = l.split('=')[0]
+                            found_items.append(item)
 
+                    for l in oldconfigf.readlines():
+                        item = l.split('=')[0]
+                        if item not in found_items:
+                            newconfigf.write(l + '\n')
+
+            if filename in extra_dependencies.keys():
+                newconfigf.write("\n".join(extra_dependencies[filename]))
+
+        # now replace the old .config with our 'expanded' one
+        shutil.copyfile(config + '.config', '.config')
         arch = "x86"
         m = re.search("arch/([^/]*)/", filename)
         if m:
@@ -132,9 +150,8 @@ if len(sys.argv) == 1:
 
 execute("undertaker -j coverage -m models/x86.model -b %s" % sys.argv[1], echo=True)
 
-fd = open(sys.argv[1])
-filenames = [x.strip() for x in fd.readlines()]
-fd.close()
+with open(sys.argv[1]) as f:
+    filenames = [x.strip() for x in f.readlines()]
 
 results = default_configs(filenames, {})
 for filename in filenames:
