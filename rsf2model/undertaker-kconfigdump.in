@@ -27,7 +27,7 @@ function debug() {
 }
 
 PATH="@LIBDIR@/undertaker:$PATH"
-PYTHONPATH="@LIBDIR@/python2.6/dist-packages"
+PYTHONPATH="@LIBDIR@/python2.6/site-packages"
 
 export PYTHONPATH
 
