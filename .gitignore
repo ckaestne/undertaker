@@ -10,3 +10,7 @@ cscope.files
 cscope.out
 .nfs*
 build
+/doc/undertaker-kconfigdump.1.gz
+/doc/undertaker-linux-tree.1.gz
+/doc/undertaker.1.gz
+/rsf2model/undertaker-kconfigdump
