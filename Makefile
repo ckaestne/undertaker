@@ -4,7 +4,6 @@ MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kco
 
 PREFIX ?= /usr/local
 LIBDIR ?= $(PREFIX)/lib
-PYTHONLIBDIR ?= $(LIBDIR)/python2.6/dist-packages
 MANDIR ?= $(PREFIX)/share/man
 
 VERSION=$(shell cat VERSION)
@@ -30,6 +29,7 @@ clean:
 	$(MAKE) -C undertaker clean
 	$(MAKE) -C ziz clean
 	$(MAKE) -C rsf2model clean
+	@python setup.py clean
 	@rm -f $(TEMPLATED)
 
 docs:
@@ -43,7 +43,6 @@ install: all $(TEMPLATED) $(MANPAGES)
 	@install -d -v $(DESTDIR)$(PREFIX)/bin
 
 	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker 
-	@install -d -v $(DESTDIR)$(PYTHONLIBDIR)/undertaker 
 	@install -d -v $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 	@install -d -v $(DESTDIR)$(MANDIR)/man1
 
@@ -59,13 +58,7 @@ install: all $(TEMPLATED) $(MANPAGES)
 
 	@install -v -m 0644 -t $(DESTDIR)$(MANDIR)/man1 $(MANPAGES)
 
-	@install -v -t $(DESTDIR)$(PYTHONLIBDIR)/undertaker \
-		rsf2model/undertaker/__init__.py \
-		rsf2model/undertaker/BoolRewriter.py \
-		rsf2model/undertaker/RsfReader.py \
-		rsf2model/undertaker/TranslatedModel.py \
-		rsf2model/undertaker/tools.py \
-
+	@python setup.py install --prefix=$(PREFIX)
 
 dist: clean
 	tar -czvf ../undertaker-$(VERSION).tar.gz . \
