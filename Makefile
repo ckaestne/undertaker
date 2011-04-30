@@ -53,6 +53,7 @@ install: all $(TEMPLATED) $(MANPAGES)
 	@install -v undertaker/undertaker $(DESTDIR)$(PREFIX)/bin
 	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(PREFIX)/bin
+	@install -v undertaker/undertaker-calc-coverage $(DESTDIR)$(PREFIX)/bin
 
 	@install -v -m 0644 contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 

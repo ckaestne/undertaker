@@ -33,33 +33,32 @@ class RsfReader:
 
         return "CONFIG_%s_MODULE" % name
 
-
-
     @tools.memoized
     def options(self):
         """Returns all configuration options"""
         # Collect all options
         tristate = {}
+        omnipresent = {}
         options = set()
         for item in self.database["Item"]:
-            if not item[1].lower() in ["boolean", "tristate"]:
+            if not item[1].lower() in ["boolean", "tristate", "integer"]:
                 continue
             if len(item) < 2:
                 continue
             options.add(item[0])
             tristate[item[0]] = item[1].lower() == "tristate"
+            omnipresent[item[0]] = item[1].lower() == "integer"
 
         # Map them to options
         result = {}
         for option_name in options:
-            result[option_name] = Option(self, option_name, tristate[option_name])
+            result[option_name] = Option(self, option_name, tristate[option_name], omnipresent[option_name])
 
         for item in self.database["Choice"]:
             if len(item) < 2: continue
             tristate = item[2] == "tristate"
             required = item[1] == "required"
             result[item[0]] = Choice(self, item[0], tristate = tristate, required = required)
-
 
         return result
 
@@ -99,10 +98,14 @@ class OptionNotTristate(Exception):
     pass
 
 class Option (tools.Repr):
-    def __init__(self, rsf, name, tristate = False):
+    def __init__(self, rsf, name, tristate = False, omnipresent = False):
         self.rsf = rsf
         self.name = name
         self._tristate = tristate
+        self._omnipresent = omnipresent
+
+    def omnipresent(self):
+        return self._omnipresent
 
     def tristate(self):
         return self._tristate
@@ -124,6 +127,7 @@ class Option (tools.Repr):
     def prompts(self):
         prompts = self.rsf.collect("HasPrompts")
         return int(prompts.get(self.name, ["-1"])[0])
+
     def dependency(self, eval_to_module = True):
         depends = self.rsf.depends()
         if not self.name in depends or len(depends[self.name]) == 0:

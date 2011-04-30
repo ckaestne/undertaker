@@ -1,0 +1,67 @@
+Item    SYSLOGD boolean
+HasPrompts      SYSLOGD 1
+Default         SYSLOGD "y"     "y"
+Item            FEATURE_ROTATE_LOGFILE  boolean
+Depends         FEATURE_ROTATE_LOGFILE  "SYSLOGD"
+HasPrompts      FEATURE_ROTATE_LOGFILE  1
+Default         FEATURE_ROTATE_LOGFILE  "y"     "SYSLOGD"
+Item            FEATURE_REMOTE_LOG      boolean
+Depends         FEATURE_REMOTE_LOG      "SYSLOGD"
+HasPrompts      FEATURE_REMOTE_LOG      1
+Default         FEATURE_REMOTE_LOG      "y"     "SYSLOGD"
+Item            FEATURE_SYSLOGD_DUP     boolean
+Depends         FEATURE_SYSLOGD_DUP     "SYSLOGD"
+HasPrompts      FEATURE_SYSLOGD_DUP     1
+Default         FEATURE_SYSLOGD_DUP     "y"     "SYSLOGD"
+Item            FEATURE_SYSLOGD_READ_BUFFER_SIZE        integer
+Depends         FEATURE_SYSLOGD_READ_BUFFER_SIZE        "SYSLOGD"
+HasPrompts      FEATURE_SYSLOGD_READ_BUFFER_SIZE        1
+Default         FEATURE_SYSLOGD_READ_BUFFER_SIZE        "256"   "SYSLOGD"
+Item            FEATURE_IPC_SYSLOG                      boolean
+Depends         FEATURE_IPC_SYSLOG                      "SYSLOGD"
+HasPrompts      FEATURE_IPC_SYSLOG                      1
+Default         FEATURE_IPC_SYSLOG                      "y"     "SYSLOGD"
+Item            FEATURE_IPC_SYSLOG_BUFFER_SIZE          integer
+Depends         FEATURE_IPC_SYSLOG_BUFFER_SIZE          "FEATURE_IPC_SYSLOG"
+HasPrompts      FEATURE_IPC_SYSLOG_BUFFER_SIZE          1
+Default         FEATURE_IPC_SYSLOG_BUFFER_SIZE          "16"    "FEATURE_IPC_SYSLOG"
+Item            LOGREAD                                 boolean
+Depends         LOGREAD                                 "FEATURE_IPC_SYSLOG"
+HasPrompts      LOGREAD                                 1
+Default         LOGREAD                                 "y"     "FEATURE_IPC_SYSLOG"
+Item            FEATURE_LOGREAD_REDUCED_LOCKING         boolean
+Depends         FEATURE_LOGREAD_REDUCED_LOCKING         "LOGREAD"
+HasPrompts      FEATURE_LOGREAD_REDUCED_LOCKING         1
+Default         FEATURE_LOGREAD_REDUCED_LOCKING         "y"     "LOGREAD"
+Item            KLOGD                                   boolean
+HasPrompts      KLOGD                                   1
+Default         KLOGD                                   "y"     "y"
+Item            FEATURE_KLOGD_KLOGCTL                   boolean
+Depends         FEATURE_KLOGD_KLOGCTL                   "KLOGD && PLATFORM_LINUX"
+HasPrompts      FEATURE_KLOGD_KLOGCTL                   1
+Default         FEATURE_KLOGD_KLOGCTL                   "y"     "KLOGD && PLATFORM_LINUX"
+Item            LOGGER                                  boolean
+HasPrompts      LOGGER                                  1
+Default         LOGGER                                  "y"     "y"
+ItemSelects     LOGGER                                  "FEATURE_SYSLOG"        "y"
+
+/*
+ * check-name: real world example from busybox
+ * check-output-start
+I: Items-Count: 12
+I: Format: <variable> [presence condition]
+UNDERTAKER_SET ALWAYS_ON "CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE" "CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE"
+CONFIG_FEATURE_IPC_SYSLOG "CONFIG_SYSLOGD"
+CONFIG_FEATURE_ROTATE_LOGFILE "CONFIG_SYSLOGD"
+CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE "CONFIG_FEATURE_IPC_SYSLOG"
+CONFIG_SYSLOGD
+CONFIG_LOGREAD "CONFIG_FEATURE_IPC_SYSLOG"
+CONFIG_FEATURE_REMOTE_LOG "CONFIG_SYSLOGD"
+CONFIG_FEATURE_KLOGD_KLOGCTL "(CONFIG_KLOGD && CONFIG_PLATFORM_LINUX)"
+CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING "CONFIG_LOGREAD"
+CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE "CONFIG_SYSLOGD"
+CONFIG_LOGGER
+CONFIG_KLOGD
+CONFIG_FEATURE_SYSLOGD_DUP "CONFIG_SYSLOGD"
+ * check-output-end
+ */

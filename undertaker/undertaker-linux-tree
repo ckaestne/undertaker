@@ -72,13 +72,22 @@ if [ -n "$COVERAGE" ]; then
     echo "Running coverage analysis"
     time undertaker -c -t "$PROCESSORS" -b undertaker-worklist \
         -m "$MODELS" -M "$DEFAULT_ARCH" 2>/dev/null | \
-  	    grep -v '^I:' |	grep -v '^Ignoring' | grep './' > coverage.txt
+  	    grep '^I: ./' > coverage.txt
+
+    if [ ! -s coverage.txt ]; then
+        echo "Coverage analysis failed!"
+        exit 1
+    fi
 
     echo "TOP 50 variable files (format: #possible solutions, filename)"
-    awk '/^S: / {print $2}' < coverage.txt | \
+    awk '/^I: / {print $2}' < coverage.txt | \
 	    awk -F, '{ printf "%s %s\n", $3, $1 }' | \
 	    sort -n -r | \
 	    head -n 50 | tee coverage.stats
+
+    awk '/c$/ { print $2}' coverage.stats > coverage-worklist
+    time undertaker-calc-coverage coverage-worklist
+
 else 
     echo "Analyzing $(wc -l < worklist) files with $PROCESSORS threads."
     time undertaker -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"
