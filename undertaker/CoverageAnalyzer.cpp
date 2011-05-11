@@ -24,20 +24,34 @@
 /* c'tor */
 CoverageAnalyzer::CoverageAnalyzer(CppFile *file) : file(file) {};
 
-std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model) {
+std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model,
+                                                 std::set<ConditionalBlock *> *blocks) {
     const StringList *always_on = NULL;
 
     if (model) {
         const std::string magic("ALWAYS_ON");
         always_on = model->getMetaValue(magic);
-        if (always_on) {
+        if (always_on && !blocks) {
             std::cout << "I: " << always_on->size() << " Items have been forcefully set" << std::endl;
         }
     }
 
     StringJoiner formula;
-    std::string code_formula = file->topBlock()->getCodeConstraints();
+    std::string code_formula;
+    if (!blocks)
+        code_formula = file->topBlock()->getCodeConstraints();
+    else {
+        UniqueStringJoiner expression;
+        for (std::set<ConditionalBlock *>::iterator i = blocks->begin();
+             i != blocks->end(); ++i) {
+            (*i)->getCodeConstraints(&expression);
+            expression.push_back((*i)->getName());
+        }
+        code_formula = expression.join(" && ");
+    }
+
     formula.push_back(code_formula);
+
     if (model) {
         std::set<std::string> missingSet;
         std::string kconfig_formula;
@@ -135,12 +149,35 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
     const std::string base_formula = baseFileExpression(model);
 
     try {
-        while (blocks_set.size() != file->size()) {
-            // blocks enabled with this configuration
-            UniqueStringJoiner configuration;
+        std::set<ConditionalBlock *> configuration;
 
+        // Initial Phase, we start the SAT Solver for the whole
+        // formula. Because it tries so maximize the enabled
+        // variables we get a configuration for many of the blocks as
+        // in the simple algorithm. For the all blocks not enabled
+        // there we do the minimizer algorithm
+        {
+            SatChecker initial(base_formula);
+            assert(initial());
+            const SatChecker::AssignmentMap &assignments = initial.getAssignment();
+            for (SatChecker::AssignmentMap::const_iterator it = assignments.begin(); it != assignments.end(); it++) {
+                if (it->second == false) continue; // Not enabled
+                for(CppFile::iterator i  = file->begin(); i != file->end(); ++i) {
+                    std::string block_name = (*i)->getName();
+                    if (block_name == it->first) {
+                        blocks_set.insert(block_name);
+                        configuration.insert(*i);
+                    }
+                }
+            }
+            goto dump_configuration;
+        }
+        // For the first round, configuration size will be non-zero at
+        // this point
+        while (blocks_set.size() != file->size()) {
             for(CppFile::iterator i  = file->begin(); i != file->end(); ++i) {
                 std::string block_name = (*i)->getName();
+                ConditionalBlock *actual_block = *i;
                 // Was already enabled in an other configuration
                 if (blocks_set.count(block_name) > 0) continue;
 
@@ -151,23 +188,23 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
                 // the else clause will surely not be in the
                 // configuration
                 {
-                    const ConditionalBlock *block = *i;
+                    ConditionalBlock *block = *i;
                     bool conflicting = false;
                     while (block && block != file->topBlock()) {
-                        if (configuration.count(block->getName()) > 0) {
+                        if (configuration.count(block) > 0) {
                             conflicting = true;
                             break;
                         }
                         if (block->isIfBlock()) break;
-                        block = block->getPrev();
+                        block = const_cast<ConditionalBlock *>(block->getPrev());
                     }
                     if (conflicting) continue;
                 }
-                std::string conf_exp;
-                if (configuration.size() > 0)
-                    conf_exp = " && " + configuration.join(" && ");
 
-                SatChecker check(block_name + conf_exp + " && " + base_formula);
+                configuration.insert(actual_block);
+                std::string expression = baseFileExpression(model, &configuration);
+                configuration.erase(actual_block);
+                SatChecker check(expression);
 
                 if (!check()) {
                     // Block couldn't be enabled
@@ -181,18 +218,30 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
                 } else {
                     // Block will be enabled with this configuration
                     blocks_set.insert(block_name);
-                    configuration.push_back(block_name);
+                    configuration.insert(actual_block);
+                    //std::cout << blocks_set.size() << "/" << file->size() << std::endl;
                 }
             }
-
+        dump_configuration:
             // This formula must be true, since it was checked in the
             // already
+            UniqueStringJoiner blocks;
+            for (std::set<ConditionalBlock *>::iterator i = configuration.begin();
+                 i != configuration.end(); ++i) {
+                blocks.push_back((*i)->getName());
+            }
+
             if (configuration.size() == 0) continue;
-            SatChecker assignment_sat(configuration.join(" && ") + " && " + base_formula);
+            SatChecker assignment_sat(blocks.join(" && ") + " && " + base_formula);
             assert(assignment_sat());
 
             const SatChecker::AssignmentMap &assignments = assignment_sat.getAssignment();
             ret.push_back(assignments);
+
+            // We have added an assignment, so we can clear the
+            // configuration-set for the next configuration
+            configuration.clear();
+            assert(configuration.size() == 0);
         }
     } catch (SatCheckerError &e) {
         std::cerr << "Couldn't process " << file->getFilename() << ": "

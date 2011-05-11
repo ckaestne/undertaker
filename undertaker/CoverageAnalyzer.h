@@ -32,7 +32,8 @@ class CoverageAnalyzer {
         blockCoverage(ConfigurationModel *) = 0;
 
 protected:
-    std::string baseFileExpression(const ConfigurationModel *model);
+    std::string baseFileExpression(const ConfigurationModel *model,
+                                   std::set<ConditionalBlock *> *blocks = 0);
     CppFile * file;
 };
 
