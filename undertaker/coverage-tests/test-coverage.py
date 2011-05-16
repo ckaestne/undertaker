@@ -33,7 +33,7 @@ class Main:
 
     def cpp_results(self, cpp_args):
         """ generating preprocessor result for specific cpp command line argument"""
-        flags = ['cpp'] + cpp_args.strip().split(" ")
+        flags = ['cpp'] + filter(lambda x: len(x) != 0, cpp_args.strip().split(" "))
         if VERBOSITY > 1:
             print flags
 
