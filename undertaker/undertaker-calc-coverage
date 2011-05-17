@@ -232,6 +232,7 @@ def vamos_coverage(filename, results):
 def configurations(filename):
     return sorted(glob.glob(filename + ".config*"))
 
+
 if len(sys.argv) == 1:
     print "Give a file of interessting files as argument"
     sys.exit(-1)
@@ -247,15 +248,18 @@ for filename in filenames:
         continue
 
     print "processing %s" % filename
-    results = vamos_coverage(filename, results)
+    vamos_coverage(filename, results)
 
 print "Format: filename, allnoconfig, allyesconfig, allmodconfig, defconfig, vamos, total"
 for filename in results.keys():
     if not os.path.exists(filename):
         continue
     print "%s," % filename,
-    for key in configs + ['vamos', 'total']: 
-        print "%s," % results[filename][key],
+    for key in configs + ['vamos', 'total']:
+        try:
+            print "%s," % results[filename][key],
+        except KeyError:
+            print "N/A,",
     print
     
 print results
