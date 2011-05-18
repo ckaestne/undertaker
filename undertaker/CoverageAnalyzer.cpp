@@ -248,6 +248,9 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
     } catch (SatCheckerError &e) {
         std::cerr << "Couldn't process " << file->getFilename() << ": "
                   << e.what() << std::endl;
+    } catch (std::bad_alloc &e) {
+        std::cerr << "Couldn't process " << file->getFilename() << ": "
+                  << e.what() << std::endl;
     }
     return ret;
 }
