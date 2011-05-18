@@ -5,6 +5,7 @@ import shutil
 import sys
 import glob
 import re
+import logging
 from subprocess import *
 
 configs = ["allnoconfig", "allyesconfig", "allmodconfig", "defconfig"]
@@ -27,7 +28,7 @@ def execute(command, echo=True):
     """
 
     if echo:
-        print "executing: %s" % command
+        logging.debug("executing: %s" % command)
     p = Popen(command, stdout=PIPE, stderr=STDOUT, shell=True)
     (stdout, stderr) = p.communicate()
     return (stdout.rsplit('\n'), p.returncode)
@@ -75,7 +76,7 @@ def call_sparse(filename):
     @return output of sparse
     """
 
-    print "Creating %s" % filename + ".sparse"
+    logging.debug("Creating %s" % filename + ".sparse")
 
     coverage_cmd = "make %s C=2" % filename.replace(".c", ".o")
     p = Popen(coverage_cmd, stdout=PIPE, stderr=STDOUT, shell=True)
@@ -97,7 +98,7 @@ def get_covered_lines(filename):
 def default_configs(filenames, results):
     for filename in filenames:
         if not os.path.exists(filename):
-            print "%s does not exist, skipping" % filename
+            logging.warning("%s does not exist, skipping" % filename)
             continue
 
         if not filename in results:
@@ -110,14 +111,14 @@ def default_configs(filenames, results):
         if not filename in results:
             results[filename] = {}
         results[filename][config] = -1 # initialize properly
-        print "Switching to configuration preset %s" % config
+        logging.info("Switching to configuration preset %s" % config)
         switch_config(config)
         for filename in filenames:
             if filename not in results.keys():
                 continue
             lines = len(get_covered_lines(filename))
             results[filename][config] = lines
-            print "%s: %s lines" % (filename, lines)
+            logging.info("%s: %s lines" % (filename, lines))
     return results
 
 # e.g. taken from the makefiles
@@ -137,10 +138,11 @@ def expand_by_filtering(config):
     @return the path to the expanded configuration
     """
 
+    logging.debug("Trying to expand configuration %s" % config)
+
     if not os.path.exists(config):
         raise RuntimeError("Partial configuration %s does not exist" % config)
 
-    print "Trying to expand configuration %s" % config
     switch_config('allnoconfig')
 
     with open(config + '.config', 'w+') as newconfigf:
@@ -157,8 +159,8 @@ def expand_by_filtering(config):
                     if item not in found_items:
                         newconfigf.write(l)
 
-            if filename in extra_dependencies.keys():
-                newconfigf.write("\n".join(extra_dependencies[filename]))
+#            if filename in extra_dependencies.keys():
+#                newconfigf.write("\n".join(extra_dependencies[filename]))
 
     return config + '.config'
 
@@ -191,24 +193,32 @@ def verify_config(partial_config):
 
 def vamos_coverage(filename, results):
     covered = set()
-    for config in configurations(filename):
+    found_configs = configurations(filename)
+    logging.info("found %d configurations for %s" % (len(found_configs), filename))
+
+    for c in found_configs:
+        logging.debug(c)
+
+    for config in found_configs:
         expanded_config = expand_by_filtering(config)
 
         try:
             switch_config_path(expanded_config)
         except ExpansionError as error:
-            print "Config %s failed to apply, skipping" % config
-            print error
+            logging.error("Config %s failed to apply, skipping" % config)
+            logging.error(error)
             continue
         except ExpansionSanityCheckError as error:
-            print "sanity check failed, but continuing anyways"
-            print error
+            logging.warning("sanity check failed, but continuing anyways")
+            logging.warning(error)
 
         value_errors = verify_config(config)
         if len(value_errors) > 0:
-            print "Failed to set %d items from partial config %s" % (len(value_errors), config)
+            logging.warning("Failed to set %d items from partial config %s" % (len(value_errors), config))
+            mismatches = list()
             for c in value_errors.keys():
-                print "%s != %s" % (c, value_errors[c]),
+                mismatches.append("%s != %s" % (c, value_errors[c]))
+            logging.warning("".join(mismatches))
 
         # writeback the expanded configuration
         shutil.copy('.config', config + '.config')
@@ -222,7 +232,7 @@ def vamos_coverage(filename, results):
                 out.write(output)
 
         except RuntimeError as error:
-            print error
+            logging.error(error)
 
     if not filename in results:
         results[filename] = {}
@@ -230,25 +240,58 @@ def vamos_coverage(filename, results):
     return results
 
 def configurations(filename):
-    return sorted(glob.glob(filename + ".config*"))
+    l = glob.glob(filename + ".config[0-9]")
+    l += (glob.glob(filename + ".config[0-9][0-9]"))
+    return sorted(l)
 
 
 def main():
-    if len(sys.argv) == 1:
-        print "Give a file of interessting files as argument"
-        sys.exit(-1)
+    from optparse import OptionParser
+
+    parser = OptionParser()
+    parser.add_option("-u", "--run-undertaker", dest="do_undertaker",
+                      action="store_true", default=False,
+                      help="run undertaker to generate partial configs (default: no)")
+    parser.add_option("-d", "--default-configs", dest="do_default_configs",
+                      action="store_true", default=False,
+                      help="also include default configs (allyesconfig, etc) for comparision")
+    parser.add_option('-v', '--verbose', dest='verbose', action='count',
+                      help="Increase verbosity (specify multiple times for more)")
+    (options, args) = parser.parse_args()
+
+    log_level = logging.WARNING # default
+    if options.verbose == 1:
+        log_level = logging.INFO
+    elif options.verbose >= 2:
+        log_level = logging.DEBUG
+
+    logging.basicConfig(level=log_level)
+
+    try:
+        if len(args) == 0:
+            logging.critical("please specify a worklist")
+            sys.exit(1)
+        with open(args[0]) as f:
+            filenames = [x.strip() for x in f.readlines()]
+    except IOError as error:
+        logging.critical("failed to open worklist: " + error.__str__())
+        sys.exit(1)
+
+    logging.debug("Worklist contains %d items" % len(filenames))
+
+    if (options.do_undertaker):
+        execute("undertaker -j coverage -m models/x86.model -b %s" % sys.argv[1], echo=True)
     
-    execute("undertaker -j coverage -m models/x86.model -b %s" % sys.argv[1], echo=True)
-    
-    with open(sys.argv[1]) as f:
-        filenames = [x.strip() for x in f.readlines()]
-    
-    results = default_configs(filenames, {})
+    results = {}
+
+    if (options.do_default_configs):
+        default_configs(filenames, results)
+
     for filename in filenames:
         if not os.path.exists(filename):
             continue
     
-        print "processing %s" % filename
+        logging.info("processing %s" % filename)
         vamos_coverage(filename, results)
     
     print "Format: filename, allnoconfig, allyesconfig, allmodconfig, defconfig, vamos, total"
