@@ -82,8 +82,9 @@ class TranslatedModel(tools.UnicodeMixin):
         if len(dependency) != 2:
             return
 
-        if type(option) == Choice or option.prompts() != 0 or option.tristate():
+        if type(option) == Choice or option.tristate(): # or option.prompts() != 0:
             return
+
         [state, cond] = dependency
         if state == "y" and cond == "y" \
                and option.prompts() == 0 \
@@ -125,7 +126,7 @@ class TranslatedModel(tools.UnicodeMixin):
             return
 
         # We only look on boolean selected options
-        if type(selected) == Choice or selected.tristate() or selected.prompts() > 0:
+        if type(selected) == Choice or selected.tristate():
             return
 
         expr = select[1]
