@@ -62,7 +62,11 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
     for (boost::filesystem::directory_iterator dir(model);
          dir != boost::filesystem::directory_iterator();
          ++dir) {
+#if !defined(BOOST_FILESYSTEM_VERSION) || BOOST_FILESYSTEM_VERSION == 2
         filenames.push_back(dir->path().filename());
+#else
+        filenames.push_back(dir->path().filename().string());
+#endif
     }
     filenames.sort();
 
