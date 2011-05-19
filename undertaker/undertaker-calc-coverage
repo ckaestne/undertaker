@@ -5,8 +5,28 @@ import shutil
 import sys
 import glob
 import re
+import shlex
 import logging
 from subprocess import *
+
+class ModelReader(dict):
+    def __init__(self, fd):
+
+        self.meta_info = dict()
+
+        for l in fd:
+            if l.startswith('I: '):
+                continue
+            if l.startswith('UNDERTAKER_SET'):
+                row = shlex.split(l)[1:]
+                if len(row) > 0:
+                    self.meta_info[row[0]] = row[1:]
+                continue
+            row = shlex.split(l)
+            if len(row) > 0:
+                self[row[0]] = row[1:]
+
+model = None
 
 configs = ["allnoconfig", "allyesconfig", "allmodconfig", "defconfig"]
 
@@ -185,6 +205,8 @@ def verify_config(partial_config):
             for l in configf:
                 if l.startswith('CONFIG_'):
                     (item, value) = l.split('=')
+                    if item in model.meta_info['ALWAYS_ON']:
+                        continue
                     if (item in items):
                         if (items[item] !=  value):
                             value_errors[item] = items[item]
@@ -257,6 +279,8 @@ def main():
                       help="also include default configs (allyesconfig, etc) for comparision")
     parser.add_option('-v', '--verbose', dest='verbose', action='count',
                       help="Increase verbosity (specify multiple times for more)")
+    parser.add_option('-m', '--model', dest='model', action='store',
+                      help="load the model")
     (options, args) = parser.parse_args()
 
     log_level = logging.WARNING # default
@@ -266,6 +290,13 @@ def main():
         log_level = logging.DEBUG
 
     logging.basicConfig(level=log_level)
+
+    if (os.path.exists(options.model)):
+        with open(options.model) as fd:
+            global model
+            model = ModelReader(fd)
+            logging.info("Loaded %d options from Model %s" % (len(model), options.model))
+            logging.info("%d items are always on" % len(model.meta_info['ALWAYS_ON']))
 
     try:
         if len(args) == 0:
