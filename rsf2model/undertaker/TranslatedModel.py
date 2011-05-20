@@ -82,7 +82,7 @@ class TranslatedModel(tools.UnicodeMixin):
         if len(dependency) != 2:
             return
 
-        if type(option) == Choice or option.tristate(): # or option.prompts() != 0:
+        if type(option) == Choice or option.tristate() or option.prompts() != 0:
             return
 
         [state, cond] = dependency
@@ -115,13 +115,21 @@ class TranslatedModel(tools.UnicodeMixin):
 
 
     def translate_select(self, option, select):
+        """
+        @param option the option that declares the 'select' verb
+        @param select: the option that is unconditionally slected (if option is selected
+
+        select is a tuple of (seleted, condition)
+        """
         if type(option) == Choice:
             return
 
         if len(select) != 2:
             return
 
-        selected = self.rsf.options().get(select[0], None)
+        (selected, expr) = select
+
+        selected = self.rsf.options().get(selected, None)
         if not selected:
             return
 
@@ -129,13 +137,15 @@ class TranslatedModel(tools.UnicodeMixin):
         if type(selected) == Choice or selected.tristate():
             return
 
-        expr = select[1]
         if expr == "y":
             # select foo if y
-            self.defaultSelects[selected.symbol()].append(option.symbol())
+            if selected.prompts() == 0:
+                self.defaultSelects[selected.symbol()].append(option.symbol())
             self.deps[option.symbol()].append(selected.symbol())
+
             if option.tristate():
-                self.defaultSelects[selected.symbol()].append(option.symbol_module())
+                if selected.prompts() == 0:
+                    self.defaultSelects[selected.symbol()].append(option.symbol_module())
                 self.deps[option.symbol_module()].append(selected.symbol())
         else:
             # select foo if expr
@@ -145,10 +155,14 @@ class TranslatedModel(tools.UnicodeMixin):
                 imply = selected.symbol()
             else:
                 imply = "((%s) -> %s)" %(expr, selected.symbol())
-            self.defaultSelects[selected.symbol()].append(option.symbol())
+
+            if selected.prompts() == 0:
+                self.defaultSelects[selected.symbol()].append(option.symbol())
+
             self.deps[option.symbol()].append(imply)
             if option.tristate():
-                self.defaultSelects[selected.symbol()].append(option.symbol_module())
+                if selected.prompts() == 0:
+                    self.defaultSelects[selected.symbol()].append(option.symbol_module())
                 self.deps[option.symbol_module()].append(imply)
 
 

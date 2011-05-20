@@ -9433,8 +9433,6 @@ I: found 23 rsf models
 I: loaded 0 items to whitelist
 I: Using x86 as primary model
 I: creating sched.c.B251.x86.missing.dead
-I: creating sched.c.B279.x86.kconfig.globally.dead
-I: creating sched.c.B281.x86.kconfig.globally.undead
 I: creating sched.c.B361.x86.missing.dead
 I: creating sched.c.B363.x86.missing.dead
 I: creating sched.c.B365.s390.kconfig.globally.dead
