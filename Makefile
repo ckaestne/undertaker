@@ -1,4 +1,4 @@
-PROGS = scripts/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model
+PROGS = scripts/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model ziz/zizler
 TEMPLATED = rsf2model/undertaker-kconfigdump
 MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz
 
@@ -15,6 +15,9 @@ scripts/kconfig/dumpconf: FORCE
 
 undertaker/undertaker: FORCE
 	$(MAKE) -C undertaker undertaker
+
+ziz/zizler: FORCE
+	$(MAKE) -C ziz zizler
 
 %: %.in
 	@echo "Template: $< -> $@"
@@ -54,6 +57,7 @@ install: all $(TEMPLATED) $(MANPAGES)
 	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/undertaker-calc-coverage $(DESTDIR)$(PREFIX)/bin
+	@install -v ziz/zizler $(DESTDIR)$(PREFIX)/bin
 
 	@install -v -m 0644 contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
