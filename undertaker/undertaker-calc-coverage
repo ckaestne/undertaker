@@ -205,7 +205,7 @@ def verify_config(partial_config):
             for l in configf:
                 if l.startswith('CONFIG_'):
                     (item, value) = l.split('=')
-                    if item in model.meta_info['ALWAYS_ON']:
+                    if model and item in model.meta_info['ALWAYS_ON']:
                         continue
                     if (item in items):
                         if (items[item] !=  value):
@@ -291,18 +291,20 @@ def main():
 
     logging.basicConfig(level=log_level)
 
-    if (os.path.exists(options.model)):
+    if options.model and os.path.exists(options.model):
         with open(options.model) as fd:
             global model
             model = ModelReader(fd)
             logging.info("Loaded %d options from Model %s" % (len(model), options.model))
             logging.info("%d items are always on" % len(model.meta_info['ALWAYS_ON']))
 
+    if len(args) == 0:
+        logging.critical("please specify a worklist")
+        sys.exit(1)
+
+    worklist = args[0]
     try:
-        if len(args) == 0:
-            logging.critical("please specify a worklist")
-            sys.exit(1)
-        with open(args[0]) as f:
+        with open(worklist) as f:
             filenames = [x.strip() for x in f.readlines()]
     except IOError as error:
         logging.critical("failed to open worklist: " + error.__str__())
@@ -311,7 +313,10 @@ def main():
     logging.debug("Worklist contains %d items" % len(filenames))
 
     if (options.do_undertaker):
-        execute("undertaker -j coverage -m models/x86.model -b %s" % sys.argv[1], echo=True)
+        model_param = ""
+        if (os.path.exists(options.model)):
+            model_param = "-m %s" % options.model
+        execute("undertaker -j coverage %s -C min -b %s" % (model_param, worklist), echo=True)
     
     results = {}
 
