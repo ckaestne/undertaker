@@ -28,7 +28,7 @@ class ModelReader(dict):
 
 model = None
 
-configs = ["allyesconfig"]
+std_configs = ["allyesconfig"]
 
 class ExpansionError(RuntimeError):
     """ Base class of all sort of Expansion errors """
@@ -124,7 +124,7 @@ def default_configs(filenames, results):
         if not filename in results:
             results[filename] = {}
 
-    for config in configs:
+    for config in std_configs:
         if not filename in results:
             results[filename] = {}
         results[filename][config] = -1 # initialize properly
@@ -219,6 +219,21 @@ def verify_config(partial_config):
 
     return value_errors
 
+def selected_items(partial_config):
+    """
+    counts how many items got selected by the given partial config
+    """
+    selected = 0 
+
+    with open(partial_config) as partial_configf:
+        for l in partial_configf:
+            if l.startswith('CONFIG_'):
+                (item, value) = l.split('=')
+                if value != 'n':
+                    selected += 1
+
+    return selected
+    
 
 def get_conditional_blocks(filename, selected_only=False):
     """
@@ -267,6 +282,7 @@ def vamos_coverage(filename, results):
 
     for config in found_configs:
         expanded_config = expand_by_copy(config)
+        results[filename][config] = {}
 
         try:
             switch_config_path(expanded_config)
@@ -280,11 +296,14 @@ def vamos_coverage(filename, results):
 
         value_errors = verify_config(config)
         if len(value_errors) > 0:
-            logging.warning("Failed to set %d items from partial config %s" % (len(value_errors), config))
+            logging.info("Failed to set %d items from partial config %s" % (len(value_errors), config))
             mismatches = list()
             for c in value_errors.keys():
                 mismatches.append("%s != %s" % (c, value_errors[c]))
             logging.info("".join(mismatches))
+
+        results[filename][config]['value_errors'] = value_errors
+        results[filename][config]['selected_items'] = selected_items(config)
 
         # writeback the expanded configuration
         shutil.copy('.config', config + '.config')
@@ -294,7 +313,7 @@ def vamos_coverage(filename, results):
         covered_blocks = set(get_conditional_blocks(filename, selected_only=True))
         covered |= covered_blocks
         logging.info("Config %s added %d additional blocks" % (config, len(covered) - old_len))
-        results[filename][config] = len(covered_blocks)
+        results[filename][config]['covered_blocks'] = covered_blocks
 
     results[filename]['vamos'] = len(covered)
     return results
@@ -319,6 +338,8 @@ def main():
                       help="Increase verbosity (specify multiple times for more)")
     parser.add_option('-m', '--model', dest='model', action='store',
                       help="load the model")
+    parser.add_option('-F', '--fast', dest='min_strategy', action='store_false', default=True,
+                      help="Use a faster (but maybe more naive) strategy for coverage analysis, (implies -u, default: no)")
     (options, args) = parser.parse_args()
 
     log_level = logging.WARNING # default
@@ -328,6 +349,8 @@ def main():
         log_level = logging.DEBUG
 
     logging.basicConfig(level=log_level)
+
+    if options.min_strategy: options.do_undertaker = True
 
     if options.model and os.path.exists(options.model):
         with open(options.model) as fd:
@@ -349,38 +372,54 @@ def main():
         sys.exit(1)
 
     logging.debug("Worklist contains %d items" % len(filenames))
-
+                      
     if (options.do_undertaker):
         model_param = ""
+        strategy = ""
+        if (options.min_strategy):
+            strategy = "-C min"
         if (os.path.exists(options.model)):
             model_param = "-m %s" % options.model
-        execute("undertaker -j coverage %s -C min -b %s" % (model_param, worklist), echo=True)
+        execute("undertaker -j coverage %s %s -b %s" % (model_param, strategy, worklist), echo=True)
     
     results = {}
 
-    if (options.do_default_configs):
-        default_configs(filenames, results)
 
     for filename in filenames:
         if not os.path.exists(filename):
             continue
-    
+
         logging.info("processing %s" % filename)
+
+        print "RESULT"
+        print "filename: %s" % filename
+        print "expanded: %s" % False # FIXME read from environment
+        print "kconfig: %s"  % (options.model is not None)
+        print "min_strategy: %s" % options.min_strategy
+
+        if (options.do_default_configs):
+            default_configs(filenames, results)
+            std_coverage = results[filename][std_configs[0]]
+        else:
+            std_coverage = 0
+
         vamos_coverage(filename, results)
+
+        print "total_blocks: %d" % results[filename]['total_blocks']
+        print "allyes_coverage: %d" % std_coverage
+
+        for config in results[filename].keys():
+            if config.startswith(filename):                
+                print "\nCONFIG"
+                print "config_path: %s" % config
+                print "item_mismatches: %d" % len(results[filename][config]['value_errors'])
+                print "selected_items: %d" % results[filename][config]['selected_items']
+                print "runtime: 0.0"
+                print "covered_blocks: %d" % len(results[filename][config]['covered_blocks'])
+            
     
-    print "Format: filename, allyesconfig, vamos, total"
-    for filename in results.keys():
-        if not os.path.exists(filename):
-            continue
-        print "%s," % filename,
-        for key in configs + ['vamos', 'total_blocks']:
-            try:
-                print "%s," % results[filename][key],
-            except KeyError:
-                print "N/A,",
-        print
+
         
-    logging.debug(results)
 
 if __name__ == "__main__":
     main()
