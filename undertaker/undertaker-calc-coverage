@@ -28,7 +28,7 @@ class ModelReader(dict):
 
 model = None
 
-configs = ["allnoconfig", "allyesconfig", "allmodconfig", "defconfig"]
+configs = ["allyesconfig"]
 
 class ExpansionError(RuntimeError):
     """ Base class of all sort of Expansion errors """
@@ -123,9 +123,6 @@ def default_configs(filenames, results):
 
         if not filename in results:
             results[filename] = {}
-        fd = open(filename)
-        results[filename]['total'] = len(fd.readlines())
-        fd.close()
 
     for config in configs:
         if not filename in results:
@@ -136,15 +133,24 @@ def default_configs(filenames, results):
         for filename in filenames:
             if filename not in results.keys():
                 continue
-            lines = len(get_covered_lines(filename))
-            results[filename][config] = lines
-            logging.info("%s: %s lines" % (filename, lines))
+            blocks = len(get_conditional_blocks(filename, selected_only=True))
+            results[filename][config] = blocks
     return results
 
 # e.g. taken from the makefiles
 extra_dependencies = {
     './drivers/cpuidle/cpuidle.c': ["CONFIG_CPU_IDLE=y", "CONFIG_ARCH_HAS_DEFAULT_IDLE=y"],
 }
+
+def expand_by_copy(config):
+    logging.debug("Trying to expand configuration %s" % config)
+
+    if not os.path.exists(config):
+        raise RuntimeError("Partial configuration %s does not exist" % config)
+
+    shutil.copy(config, config + '.config')
+    return config + '.config'
+
 
 def expand_by_filtering(config):
     """
@@ -213,16 +219,54 @@ def verify_config(partial_config):
 
     return value_errors
 
+
+def get_conditional_blocks(filename, selected_only=False):
+    """
+    Counts the conditional blocks in the given source file
+
+    The calculation is done using the 'zizler' binary from the system
+    path.  If the parameter 'actually_selected' is set, then the source
+    file is preprocessed with 'cpp' while using current configuration as
+    per 'include/generated/autoconf.h'
+
+    @return a non-empty list of blocks found in the source file
+    
+    """
+
+    if selected_only:
+        generated_config = 'include/generated/autoconf.h'
+        if not os.path.exists(generated_config):
+            raise RuntimeError("%s missing" % generated_config)
+
+        #md5sum = execute("md5sum %s" % generated_config)[0][0].split()[0]
+        #logging.debug("%s has checksum: %s" % ( generated_config, md5sum))
+
+        cmd = 'zizler -c "%s" | cpp -include %s | grep ^B' % (filename, generated_config)
+    else:
+        cmd = 'zizler -c "%s" | grep ^B' % filename
+    (blocks, rc) = execute(cmd)
+
+    blocks = filter(lambda x: len(x) != 0, blocks)
+    if rc != 0:
+        logging.error("'%s' failed" % cmd)
+    return blocks
+
+
 def vamos_coverage(filename, results):
     covered = set()
     found_configs = configurations(filename)
     logging.info("found %d configurations for %s" % (len(found_configs), filename))
 
+    if not filename in results:
+        results[filename] = {}
+
+    results[filename]['total_blocks'] = len(get_conditional_blocks(filename))
+
     for c in found_configs:
         logging.debug(c)
 
     for config in found_configs:
-        expanded_config = expand_by_filtering(config)
+        expanded_config = expand_by_copy(config)
 
         try:
             switch_config_path(expanded_config)
@@ -240,25 +284,19 @@ def vamos_coverage(filename, results):
             mismatches = list()
             for c in value_errors.keys():
                 mismatches.append("%s != %s" % (c, value_errors[c]))
-            logging.warning("".join(mismatches))
+            logging.info("".join(mismatches))
 
         # writeback the expanded configuration
         shutil.copy('.config', config + '.config')
-        
-        for line in get_covered_lines(filename):
-            covered.add(line)
 
-        try:
-            output = call_sparse(filename)
-            with open(config + '.sparse', 'w') as out:
-                out.write(output)
+        # now check what blocks are actually set
+        old_len = len(covered)
+        covered_blocks = set(get_conditional_blocks(filename, selected_only=True))
+        covered |= covered_blocks
+        logging.info("Config %s added %d additional blocks" % (config, len(covered) - old_len))
+        results[filename][config] = len(covered_blocks)
 
-        except RuntimeError as error:
-            logging.error(error)
-
-    if not filename in results:
-        results[filename] = {}
-    results[filename]['vamos'] = len(list(covered))
+    results[filename]['vamos'] = len(covered)
     return results
 
 def configurations(filename):
@@ -330,18 +368,19 @@ def main():
         logging.info("processing %s" % filename)
         vamos_coverage(filename, results)
     
-    print "Format: filename, allnoconfig, allyesconfig, allmodconfig, defconfig, vamos, total"
+    print "Format: filename, allyesconfig, vamos, total"
     for filename in results.keys():
         if not os.path.exists(filename):
             continue
         print "%s," % filename,
-        for key in configs + ['vamos', 'total']:
+        for key in configs + ['vamos', 'total_blocks']:
             try:
                 print "%s," % results[filename][key],
             except KeyError:
                 print "N/A,",
         print
         
-    print results
+    logging.debug(results)
 
-main()
+if __name__ == "__main__":
+    main()
