@@ -115,26 +115,15 @@ def get_covered_lines(filename):
             lines.append(int(tokens[1]))
     return lines
 
-def default_configs(filenames, results):
-    for filename in filenames:
-        if not os.path.exists(filename):
-            logging.warning("%s does not exist, skipping" % filename)
-            continue
+def default_configs(filename, results):
 
-        if not filename in results:
-            results[filename] = {}
+    if not filename in results:
+        results[filename] = {}
 
     for config in std_configs:
-        if not filename in results:
-            results[filename] = {}
-        results[filename][config] = -1 # initialize properly
         logging.info("Switching to configuration preset %s" % config)
         switch_config(config)
-        for filename in filenames:
-            if filename not in results.keys():
-                continue
-            blocks = len(get_conditional_blocks(filename, selected_only=True))
-            results[filename][config] = blocks
+        results[filename][config] = len(get_conditional_blocks(filename, selected_only=True))
     return results
 
 # e.g. taken from the makefiles
@@ -350,7 +339,7 @@ def main():
 
     logging.basicConfig(level=log_level)
 
-    if options.min_strategy: options.do_undertaker = True
+    if not options.min_strategy: options.do_undertaker = True
 
     if options.model and os.path.exists(options.model):
         with open(options.model) as fd:
@@ -384,10 +373,17 @@ def main():
     
     results = {}
 
-
     for filename in filenames:
         if not os.path.exists(filename):
-            continue
+            if filename.endswith('.pi'):
+                # we're working on partially preprocessed files, replace
+                # them here with the actual files
+                base = filename.rstrip('.pi')
+                logging.debug("working on %s instead of %s" % ( base + '.c', filename))
+                filename = base + '.c'
+            else:
+                logging.debug("%s does not exist, skipping" % filename)
+                continue
 
         logging.info("processing %s" % filename)
 
@@ -398,15 +394,14 @@ def main():
         print "min_strategy: %s" % options.min_strategy
 
         if (options.do_default_configs):
-            default_configs(filenames, results)
+            default_configs(filename, results)
             std_coverage = results[filename][std_configs[0]]
         else:
             std_coverage = 0
+        print "allyes_coverage: %d" % std_coverage
 
         vamos_coverage(filename, results)
-
         print "total_blocks: %d" % results[filename]['total_blocks']
-        print "allyes_coverage: %d" % std_coverage
 
         for config in results[filename].keys():
             if config.startswith(filename):                
@@ -416,10 +411,6 @@ def main():
                 print "selected_items: %d" % results[filename][config]['selected_items']
                 print "runtime: 0.0"
                 print "covered_blocks: %d" % len(results[filename][config]['covered_blocks'])
-            
-    
-
-        
 
 if __name__ == "__main__":
     main()
