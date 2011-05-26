@@ -83,9 +83,7 @@ find . -name '*dead' -ls > "$deadlist"
 echo "Found $(grep globally $deadlist | wc -l) globally dead blocks"
 
 
-undertaker-linux-tree -t ${PROCESSORS} -c >>"$report" 2>coverage-error-output.txt
-echo "TOP 15 variable implementation files (format: #possible solutions, filename)"
-grep '.c$' "${report}"
+undertaker-linux-tree -t ${PROCESSORS} -c  2>coverage-error-output.txt
 
 
 

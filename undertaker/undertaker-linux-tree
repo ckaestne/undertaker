@@ -70,7 +70,7 @@ find . -name '*dead' -exec rm -f {} +
 
 if [ -n "$COVERAGE" ]; then
     echo "Running coverage analysis"
-    time undertaker -c -t "$PROCESSORS" -b undertaker-worklist \
+    time undertaker -j coverage -C min -t "$PROCESSORS" -b undertaker-worklist \
         -m "$MODELS" -M "$DEFAULT_ARCH" 2>/dev/null | \
   	    grep '^I: ./' > coverage.txt
 
@@ -86,7 +86,8 @@ if [ -n "$COVERAGE" ]; then
 	    head -n 50 | tee coverage.stats
 
     awk '/c$/ { print $2}' coverage.stats > coverage-worklist
-    time undertaker-calc-coverage -u -d -v coverage-worklist
+    time undertaker-calc-coverage -m models/x86.model -d coverage-worklist 2>/dev/null >coverage.log
+    
 
 else 
     echo "Analyzing $(wc -l < worklist) files with $PROCESSORS threads."
