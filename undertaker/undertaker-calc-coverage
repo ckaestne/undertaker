@@ -38,6 +38,9 @@ class ExpansionSanityCheckError(ExpansionError):
     """ Internal kernel config sanity checks failed, like `make silentoldconfig` """
     pass
 
+class ZizlerError(RuntimeError):
+    pass
+
 def execute(command, echo=True):
     """
     executes 'command' in a shell
@@ -252,7 +255,7 @@ def get_conditional_blocks(filename, selected_only=False):
 
     blocks = filter(lambda x: len(x) != 0, blocks)
     if rc != 0:
-        logging.error("'%s' failed" % cmd)
+        raise ZizlerError("'%s' failed" % cmd)
     return blocks
 
 
@@ -387,30 +390,42 @@ def main():
 
         logging.info("processing %s" % filename)
 
-        print "RESULT"
+        print "\nRESULT"
         print "filename: %s" % filename
         print "expanded: %s" % False # FIXME read from environment
         print "kconfig: %s"  % (options.model is not None)
         print "min_strategy: %s" % options.min_strategy
 
-        if (options.do_default_configs):
-            default_configs(filename, results)
-            std_coverage = results[filename][std_configs[0]]
-        else:
-            std_coverage = 0
-        print "allyes_coverage: %d" % std_coverage
+        try:
+            if (options.do_default_configs):
+                default_configs(filename, results)
+                std_coverage = results[filename][std_configs[0]]
+            else:
+                std_coverage = 0
+            print "allyes_coverage: %d" % std_coverage
+    
+            vamos_coverage(filename, results)
+            print "total_blocks: %d" % results[filename]['total_blocks']
+            print "covered_blocks: %d" % results[filename]['vamos']
 
-        vamos_coverage(filename, results)
-        print "total_blocks: %d" % results[filename]['total_blocks']
+            for config in results[filename].keys():
+                if config.startswith(filename):                
+                    print "\nCONFIG"
+                    print "config_path: %s" % config
+                    try:
+                        print "item_mismatches: %d" % len(results[filename][config]['value_errors'])
+                        print "selected_items: %d" % results[filename][config]['selected_items']
+                        print "runtime: 0.0"
+                        print "covered_blocks: %d" % len(results[filename][config]['covered_blocks'])
+                    except KeyError:
+                        pass
 
-        for config in results[filename].keys():
-            if config.startswith(filename):                
-                print "\nCONFIG"
-                print "config_path: %s" % config
-                print "item_mismatches: %d" % len(results[filename][config]['value_errors'])
-                print "selected_items: %d" % results[filename][config]['selected_items']
-                print "runtime: 0.0"
-                print "covered_blocks: %d" % len(results[filename][config]['covered_blocks'])
-
+        except ZizlerError as error:
+            continue
+        except RuntimeError as error:
+            logging.error(error.__str__())
+            logging.error("Skipping file " + filename)
+            continue
+    
 if __name__ == "__main__":
     main()
