@@ -272,6 +272,8 @@ def vamos_coverage(filename, results):
     for c in found_configs:
         logging.debug(c)
 
+    results[filename]['fail_count'] = 0
+
     for config in found_configs:
         expanded_config = expand_by_copy(config)
         results[filename][config] = {}
@@ -280,6 +282,7 @@ def vamos_coverage(filename, results):
             switch_config_path(expanded_config)
         except ExpansionError as error:
             logging.error("Config %s failed to apply, skipping" % config)
+            results[filename]['fail_count'] = 1 + results[filename]['fail_count']
             logging.error(error)
             continue
         except ExpansionSanityCheckError as error:
@@ -407,6 +410,7 @@ def main():
             vamos_coverage(filename, results)
             print "total_blocks: %d" % results[filename]['total_blocks']
             print "covered_blocks: %d" % results[filename]['vamos']
+            print "expansion_errors: %d" % results[filename]['fail_count']
 
             for config in results[filename].keys():
                 if config.startswith(filename):                
