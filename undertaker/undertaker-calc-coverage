@@ -381,7 +381,7 @@ def main():
             if filename.endswith('.pi'):
                 # we're working on partially preprocessed files, replace
                 # them here with the actual files
-                base = filename.rstrip('.pi')
+                base = filename[:-3]
                 logging.debug("working on %s instead of %s" % ( base + '.c', filename))
                 filename = base + '.c'
             else:
