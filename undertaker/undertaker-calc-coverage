@@ -87,10 +87,11 @@ def switch_config_path(filename):
     if returncode != 0:
         raise ExpansionError("command used: " + satconf_cmd)
 
-    (out2, ret2) = execute("yes "" | make silentoldconfig", echo=False)
+    cmd = 'yes "" | make silentoldconfig ARCH="%s" KERNELVERSION=`git describe`' % arch
+    (out2, ret2) = execute(cmd, echo=False)
     if ret2 != 0:
         # with the satconfig approach, this always worked
-        raise ExpansionSanityCheckError("silentoldconfig failed while switching to config %s" % filename)
+        raise ExpansionSanityCheckError("silentoldconfig failed while switching to config %s (rc: %d)" % (filename, ret2))
 
 def call_sparse(filename):
     """
