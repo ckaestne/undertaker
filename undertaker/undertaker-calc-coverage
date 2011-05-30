@@ -192,23 +192,33 @@ def verify_config(partial_config):
     """
 
     value_errors = {}
+    # magic values induced by our models
+    config_whitelist = ('CONFIG_n', 'CONFIG_y', 'CONFIG_m')
 
     with open(partial_config) as partial_configf:
-        items = {}
         for l in partial_configf:
             if l.startswith('CONFIG_'):
                 (item, value) = l.split('=')
-                items[item] = value
+                if model and item in model.meta_info['ALWAYS_ON']:
+                    continue
+                if item in config_whitelist:
+                    continue
+                value_errors[item] = value.rstrip()
 
-        with open('.config') as configf:
-            for l in configf:
-                if l.startswith('CONFIG_'):
-                    (item, value) = l.split('=')
-                    if model and item in model.meta_info['ALWAYS_ON']:
-                        continue
-                    if (item in items):
-                        if (items[item] !=  value):
-                            value_errors[item] = items[item]
+    with open('.config') as configf:
+        found_items = {}
+        for l in configf:
+            if l.startswith('CONFIG_'):
+                (item, value) = l.split('=')
+                found_items[item] = value.rstrip()
+                if (item in value_errors):
+                    if (value_errors[item] == value.rstrip()):
+                        del value_errors[item]
+
+        for (item, value) in value_errors.items():
+            if value == 'n':
+                if not item in found_items:
+                    del value_errors[item]
 
     return value_errors
 
@@ -424,9 +434,10 @@ def main():
                     print "config_path: %s" % config
                     try:
                         print "item_mismatches: %d" % len(results[filename][config]['value_errors'])
-                        print "selected_items: %d" % results[filename][config]['selected_items']
+                        print "wrong_items: %s"     % ", ".join(results[filename][config]['value_errors'])
+                        print "selected_items: %d"  % results[filename][config]['selected_items']
                         print "runtime: 0.0"
-                        print "covered_blocks: %d" % len(results[filename][config]['covered_blocks'])
+                        print "covered_blocks: %d"  % len(results[filename][config]['covered_blocks'])
                     except KeyError:
                         pass
 
