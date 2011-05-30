@@ -268,7 +268,8 @@ def vamos_coverage(filename, results):
     if not filename in results:
         results[filename] = {}
 
-    results[filename]['total_blocks'] = len(get_conditional_blocks(filename))
+    total_blocks = set(get_conditional_blocks(filename))
+    results[filename]['total_blocks'] = len(total_blocks)
 
     for c in found_configs:
         logging.debug(c)
@@ -312,6 +313,8 @@ def vamos_coverage(filename, results):
         logging.info("Config %s added %d additional blocks" % (config, len(covered) - old_len))
         results[filename][config]['covered_blocks'] = covered_blocks
 
+
+    results[filename]['uncovered_blocks'] = ", ".join(total_blocks - covered)
     results[filename]['vamos'] = len(covered)
     return results
 
@@ -410,8 +413,9 @@ def main():
             print "allyes_coverage: %d" % std_coverage
     
             vamos_coverage(filename, results)
-            print "total_blocks: %d" % results[filename]['total_blocks']
-            print "covered_blocks: %d" % results[filename]['vamos']
+            print "total_blocks: %d"     % results[filename]['total_blocks']
+            print "covered_blocks: %d"   % results[filename]['vamos']
+            print "uncovered_blocks: %s" % results[filename]['uncovered_blocks']
             print "expansion_errors: %d" % results[filename]['fail_count']
 
             for config in results[filename].keys():
