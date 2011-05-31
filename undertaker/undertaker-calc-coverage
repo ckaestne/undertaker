@@ -259,12 +259,12 @@ def get_conditional_blocks(filename, selected_only=False):
         #md5sum = execute("md5sum %s" % generated_config)[0][0].split()[0]
         #logging.debug("%s has checksum: %s" % ( generated_config, md5sum))
 
-        cmd = 'zizler -c "%s" | cpp -include %s | grep ^B' % (filename, generated_config)
+        cmd = 'zizler -c "%s" | cpp -include %s' % (filename, generated_config)
     else:
-        cmd = 'zizler -c "%s" | grep ^B' % filename
+        cmd = 'zizler -c "%s"' % filename
     (blocks, rc) = execute(cmd)
 
-    blocks = filter(lambda x: len(x) != 0, blocks)
+    blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
     if rc != 0:
         raise ZizlerError("'%s' failed" % cmd)
     return blocks
