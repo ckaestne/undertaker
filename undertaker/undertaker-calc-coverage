@@ -83,7 +83,7 @@ def switch_config_path(filename):
         arch = m.group(1)
     satconf_cmd = 'yes "" | make oldconfig ARCH="%s" KERNELVERSION=`git describe`' % arch
 
-    (output, returncode) = execute(satconf_cmd, echo=True)
+    (output, returncode) = execute(satconf_cmd, echo=False)
     if returncode != 0:
         raise ExpansionError("command used: " + satconf_cmd)
 
@@ -211,6 +211,8 @@ def verify_config(partial_config):
             if l.startswith('CONFIG_'):
                 (item, value) = l.split('=')
                 found_items[item] = value.rstrip()
+                if model and item in model.meta_info['ALWAYS_ON']:
+                    continue
                 if (item in value_errors):
                     if (value_errors[item] == value.rstrip()):
                         del value_errors[item]
@@ -262,7 +264,7 @@ def get_conditional_blocks(filename, selected_only=False):
         cmd = 'zizler -c "%s" | cpp -include %s' % (filename, generated_config)
     else:
         cmd = 'zizler -c "%s"' % filename
-    (blocks, rc) = execute(cmd)
+    (blocks, rc) = execute(cmd, echo=False)
 
     blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
     if rc != 0:
@@ -308,7 +310,7 @@ def vamos_coverage(filename, results):
             mismatches = list()
             for c in value_errors.keys():
                 mismatches.append("%s != %s" % (c, value_errors[c]))
-            logging.info("".join(mismatches))
+            #logging.debug("".join(mismatches))
 
         results[filename][config]['value_errors'] = value_errors
         results[filename][config]['selected_items'] = selected_items(config)
@@ -397,7 +399,9 @@ def main():
         strategy = ""
         if (options.min_strategy):
             strategy = "-C min"
-        if (os.path.exists(options.model)):
+        if not options.model:
+            logging.info("Running without model")
+        else:
             model_param = "-m %s" % options.model
         execute("undertaker -j coverage %s %s -b %s" % (model_param, strategy, worklist), echo=True)
     
