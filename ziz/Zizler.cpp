@@ -23,9 +23,10 @@
 #include <cassert>
 #include <iostream>
 #include <sstream>
+#include <boost/regex.hpp>
 
 using namespace Ziz;
-
+static bool print_include = false;
 
 static Ziz::Defines defines;
 
@@ -173,10 +174,17 @@ std::ostream & operator*(std::ostream &stream, CodeBlock const &b)
     std::list<std::string> found;
     std::stringstream content (b.Content());
     std::string line;
+
+    boost::regex cpp_regexp(print_include
+                            ? "^[ \t]*#[ \t]*(define|undef|include)"
+                            : "^[ \t]*#[ \t]*(define|undef)",
+                            boost::regex::perl);
+
+
     while (getline (content, line)) {
-        if (line.find("#define") != std::string::npos
-            || line.find("#undef") != std::string::npos)
+        if (boost::regex_search(line, cpp_regexp)) {
             stream << line << std::endl;
+        }
     }
 
     return stream;
@@ -382,7 +390,7 @@ int main(int argc, char **argv)
 {
     if (argc < 2) {
         std::cerr << "Usage: " << std::string(argv[0])
-                  << " [-s|--short|-l|--long|-c|--convert] FILE [FILES]" << std::endl;
+                  << " [-s|--short|-l|--long|-c|--convert|-cI|--convert-include] FILE [FILES]" << std::endl;
         return 0;
     }
 
@@ -398,6 +406,10 @@ int main(int argc, char **argv)
     } else if (arg.compare("-c") == 0 || arg.compare("--convert") == 0) {
         fileArg++;
         mode = Convert;
+    } else if (arg.compare("-cI") == 0 || arg.compare("--convert-include") == 0) {
+        fileArg++;
+        mode = Convert;
+        print_include = true;
     }
 
 
