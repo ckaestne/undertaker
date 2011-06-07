@@ -27,6 +27,8 @@
 
 using namespace Ziz;
 static bool print_include = false;
+static bool remove_non_CONFIG_blocks = false;
+
 
 static Ziz::Defines defines;
 
@@ -129,14 +131,81 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
 }
 
 // + convert output (--convert mode)
+
+static bool block_has_CONFIG(ConditionalBlock const &b) {
+    std::stringstream ss;
+    ss << b.Header();
+    std::string header = ss.str();
+    return header.find("CONFIG_") != std::string::npos;
+}
+
+static int subtree_CONFIG_blocks(BlockContainer const &parent, Block const &b) {
+    int blocks = 0;
+    if (b.BlockType() == Code) {
+        return 0;
+    } else if (b.BlockType() == Conditional) {
+        ConditionalBlock const &cb = dynamic_cast<ConditionalBlock const &>(b);
+        if (block_has_CONFIG(cb))
+            return 1;
+
+        std::vector<Block*>::const_iterator it;
+        bool skip = true;
+
+        ConditionalBlock *ptr = (ConditionalBlock *) &b;
+
+        while(!(ptr->CondBlockType() == Ziz::If
+                || ptr->CondBlockType() == Ziz::Ifdef
+                || ptr->CondBlockType() == Ziz::Ifndef))
+            ptr = ptr->PrevSibling();
+
+        for (it = parent.begin(); it != parent.end(); ++it) {
+            if (*it == ptr)
+                skip = false;
+            if (skip == true)
+                continue;
+
+            if ((*it)->BlockType() != Conditional)
+                continue;
+
+            ConditionalBlock const &inner_block = dynamic_cast<ConditionalBlock const &>(**it);
+
+            // COPIED from undertaker/ConditionalBlock.cpp
+            if (*it != ptr) {
+                if (inner_block.CondBlockType() == Ziz::If
+                    || inner_block.CondBlockType() == Ziz::Ifdef
+                    || inner_block.CondBlockType() == Ziz::Ifndef)
+                    break;
+            }
+
+            if (block_has_CONFIG(inner_block))
+                return 1;
+        }
+
+        for (it = cb.begin(); it != cb.end(); ++it) {
+            blocks += subtree_CONFIG_blocks(cb, **it);
+            if (blocks > 0)
+                return blocks;
+        }
+    } else if (b.BlockType() == DefineBlock) {
+        return 0;
+    } else {
+        assert(false);      // this may not happen
+    }
+    return blocks;
+}
+
 std::ostream & operator*(std::ostream &stream, File const * p_f)
 {
     std::vector<Block*>::const_iterator it;
 
     assert(p_f != NULL);
     defines = p_f->_defines_map;
-    for (it = p_f->begin(); it != p_f->end(); ++it)
+    for (it = p_f->begin(); it != p_f->end(); ++it) {
+        if (remove_non_CONFIG_blocks
+            && subtree_CONFIG_blocks(*p_f, **it) == 0)
+            continue;
         stream * **it;
+    }
     stream << std::endl;
     return stream;
 }
@@ -162,8 +231,12 @@ std::ostream & operator*(std::ostream &stream, ConditionalBlock const &b)
     stream << b.Header();
     stream << "B" << b.Id() << std::endl;
     std::vector<Block*>::const_iterator it;
-    for (it = b.begin(); it != b.end(); ++it)
+    for (it = b.begin(); it != b.end(); ++it) {
+        if (remove_non_CONFIG_blocks
+            && subtree_CONFIG_blocks(b, **it) == 0)
+            continue;
         stream * **it;
+    }
     stream << b.Footer() << std::endl;
 
     return stream;
@@ -390,7 +463,7 @@ int main(int argc, char **argv)
 {
     if (argc < 2) {
         std::cerr << "Usage: " << std::string(argv[0])
-                  << " [-s|--short|-l|--long|-c|--convert|-cI|--convert-include] FILE [FILES]" << std::endl;
+                  << " [-s|--short|-l|--long|-c|--convert|-cI|--convert-include|-cC|--convert-configurable] FILE [FILES]" << std::endl;
         return 0;
     }
 
@@ -410,6 +483,10 @@ int main(int argc, char **argv)
         fileArg++;
         mode = Convert;
         print_include = true;
+    } else if (arg.compare("-cC") == 0 || arg.compare("--convert-configurable") == 0) {
+        fileArg++;
+        mode = Convert;
+        remove_non_CONFIG_blocks = true;
     }
 
 

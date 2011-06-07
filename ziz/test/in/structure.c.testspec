@@ -1,0 +1,2 @@
+check-name: Strip out subtrees without CONFIG_
+check-command: zizler -c $file
