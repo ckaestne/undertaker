@@ -142,7 +142,7 @@ static bool block_has_CONFIG(ConditionalBlock const &b) {
 static int subtree_CONFIG_blocks(BlockContainer const &parent, Block const &b) {
     int blocks = 0;
     if (b.BlockType() == Code) {
-        return 0;
+        return 1;
     } else if (b.BlockType() == Conditional) {
         ConditionalBlock const &cb = dynamic_cast<ConditionalBlock const &>(b);
         if (block_has_CONFIG(cb))
@@ -175,19 +175,26 @@ static int subtree_CONFIG_blocks(BlockContainer const &parent, Block const &b) {
                     || inner_block.CondBlockType() == Ziz::Ifdef
                     || inner_block.CondBlockType() == Ziz::Ifndef)
                     break;
+
             }
 
             if (block_has_CONFIG(inner_block))
                 return 1;
+
+            std::vector<Block*>::const_iterator iit;
+
+            for (iit = inner_block.begin(); iit != inner_block.end(); ++iit) {
+                if ((*iit)->BlockType() != Conditional)
+                    continue;
+                blocks += subtree_CONFIG_blocks(inner_block, **iit);
+                if (blocks > 0)
+                    return blocks;
+            }
         }
 
-        for (it = cb.begin(); it != cb.end(); ++it) {
-            blocks += subtree_CONFIG_blocks(cb, **it);
-            if (blocks > 0)
-                return blocks;
-        }
+
     } else if (b.BlockType() == DefineBlock) {
-        return 0;
+        return 1;
     } else {
         assert(false);      // this may not happen
     }
