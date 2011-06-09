@@ -345,6 +345,9 @@ def main():
                       help="run undertaker to generate partial configs (default: no)")
     parser.add_option("-d", "--default-configs", dest="do_default_configs",
                       action="store_true", default=False,
+                      help="Just do allyesconfig data")
+    parser.add_option("-D", "--only-default-configs", dest="do_only_default_configs",
+                      action="store_true", default=False,
                       help="also include default configs (allyesconfig, etc) for comparision")
     parser.add_option('-v', '--verbose', dest='verbose', action='count',
                       help="Increase verbosity (specify multiple times for more)")
@@ -393,7 +396,7 @@ def main():
         sys.exit(1)
 
     logging.debug("Worklist contains %d items" % len(filenames))
-                      
+
     if (options.do_undertaker):
         model_param = ""
         strategy = ""
@@ -406,6 +409,31 @@ def main():
         execute("undertaker -j coverage %s %s -b %s" % (model_param, strategy, worklist), echo=True)
     
     results = {}
+
+    if (options.do_only_default_configs):
+        for config in std_configs:
+            logging.info("Switching to configuration preset %s" % config)
+            switch_config(config)
+
+            for filename in filenames:
+                if not os.path.exists(filename):
+                    continue
+
+                if not filename in results:
+                    results[filename] = {}
+
+                total_blocks = set(get_conditional_blocks(filename))
+                results[filename]['total_blocks'] = len(total_blocks)
+
+                try:
+                    results[filename][config] = len(get_conditional_blocks(filename, selected_only=True))
+                except:
+                    results[filename][config] = 0
+                print "\nCOVERAGE"
+                print "filename: %s" % filename
+                print "config: %s" % config
+                print "coverage: %d" % results[filename][config]
+                print "total_blocks: %d" % results[filename]['total_blocks']
 
     for filename in filenames:
         if not os.path.exists(filename):
@@ -435,7 +463,7 @@ def main():
             else:
                 std_coverage = 0
             print "allyes_coverage: %d" % std_coverage
-    
+
             vamos_coverage(filename, results)
             print "total_blocks: %d"     % results[filename]['total_blocks']
             print "covered_blocks: %d"   % results[filename]['vamos']
