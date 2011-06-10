@@ -60,6 +60,8 @@ def switch_config(config):
     """
     switches the current tree to the given config. throws an exception in case make fails
     """
+    execute("find include -name autoconf.h -exec rm {} +", echo = True)
+
     (output, returncode) = execute("make %s" % config, echo=False)
     if returncode != 0:
         raise RuntimeError("Failed to switch to config %s" % config)
@@ -239,7 +241,7 @@ def selected_items(partial_config):
 
     return selected
     
-
+autoconf = None
 def get_conditional_blocks(filename, selected_only=False):
     """
     Counts the conditional blocks in the given source file
@@ -254,17 +256,25 @@ def get_conditional_blocks(filename, selected_only=False):
     """
 
     if selected_only:
-        generated_config = 'include/generated/autoconf.h'
-        if not os.path.exists(generated_config):
-            raise RuntimeError("%s missing" % generated_config)
+        global autoconf
+        if autoconf == None:
+            (autoconf, rc) = execute("find include | grep autoconf.h | sed 's/^/ -include /'", echo = True)
+            autoconf = filter(lambda x: len(x) > 0, autoconf)
+            if rc != 0 or len(autoconf) != 1:
+                logging.error("Not exactly one autoconf.h was found (%s)" % ", ".join(autoconf))
+                raise RuntimeError("Not exactly one autoconf.h was found")
+
+#        generated_config = 'include/generated/autoconf.h'
+#        if not os.path.exists(generated_config):
+#           raise RuntimeError("%s missing" % generated_config)
 
         #md5sum = execute("md5sum %s" % generated_config)[0][0].split()[0]
         #logging.debug("%s has checksum: %s" % ( generated_config, md5sum))
 
-        cmd = 'zizler -cC "%s" | cpp -include %s' % (filename, generated_config)
+        cmd = 'zizler -cC "%s" | cpp %s' % (filename, "".join(autoconf))
     else:
         cmd = 'zizler -cC "%s"' % filename
-    (blocks, rc) = execute(cmd, echo=False)
+    (blocks, rc) = execute(cmd, echo=True)
 
     blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
     if rc != 0:
