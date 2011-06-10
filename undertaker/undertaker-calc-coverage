@@ -242,6 +242,18 @@ def selected_items(partial_config):
     return selected
     
 autoconf = None
+def find_autoconf():
+    """ returns the path to the autoconf.h file in this linux tree
+    """
+    global autoconf
+    if autoconf == None:
+        (autoconf, rc) = execute("find include -name autoconf.h", echo = True)
+        autoconf = filter(lambda x: len(x) > 0, autoconf)
+        if rc != 0 or len(autoconf) != 1:
+            logging.error("Not exactly one autoconf.h was found (%s)" % ", ".join(autoconf))
+            raise RuntimeError("Not exactly one autoconf.h was found")
+    return autoconf[0]
+
 def get_conditional_blocks(filename, selected_only=False):
     """
     Counts the conditional blocks in the given source file
@@ -256,22 +268,7 @@ def get_conditional_blocks(filename, selected_only=False):
     """
 
     if selected_only:
-        global autoconf
-        if autoconf == None:
-            (autoconf, rc) = execute("find include | grep autoconf.h | sed 's/^/ -include /'", echo = True)
-            autoconf = filter(lambda x: len(x) > 0, autoconf)
-            if rc != 0 or len(autoconf) != 1:
-                logging.error("Not exactly one autoconf.h was found (%s)" % ", ".join(autoconf))
-                raise RuntimeError("Not exactly one autoconf.h was found")
-
-#        generated_config = 'include/generated/autoconf.h'
-#        if not os.path.exists(generated_config):
-#           raise RuntimeError("%s missing" % generated_config)
-
-        #md5sum = execute("md5sum %s" % generated_config)[0][0].split()[0]
-        #logging.debug("%s has checksum: %s" % ( generated_config, md5sum))
-
-        cmd = 'zizler -cC "%s" | cpp %s' % (filename, "".join(autoconf))
+        cmd = 'zizler -cC "%s" | cpp -include %s' % (filename, find_autoconf())
     else:
         cmd = 'zizler -cC "%s"' % filename
     (blocks, rc) = execute(cmd, echo=True)
@@ -280,6 +277,16 @@ def get_conditional_blocks(filename, selected_only=False):
     if rc != 0:
         logging.warning("zizler/cpp failed with exitcode: %d" % rc)
     return blocks
+
+
+def get_loc_coverage(filename):
+    """
+    Returns LOC of the given file taking the current configuration into accoutn
+    """
+
+    cmd = "grep -v -E '^\s*#\s*include' %s | cpp -include %s" % (filename, find_autoconf())
+    (lines, rc) = execute(cmd, echo=True)
+    return len(lines)
 
 
 def vamos_coverage(filename, results):
@@ -434,6 +441,7 @@ def main():
 
                 total_blocks = set(get_conditional_blocks(filename))
                 results[filename]['total_blocks'] = len(total_blocks)
+                results[filename]['loc'] = get_loc_coverage(filename)
 
                 try:
                     results[filename][config] = len(get_conditional_blocks(filename, selected_only=True))
@@ -444,6 +452,7 @@ def main():
                 print "config: %s" % config
                 print "coverage: %d" % results[filename][config]
                 print "total_blocks: %d" % results[filename]['total_blocks']
+                print "loc: %d" % results[filename]['loc']
 
     for filename in filenames:
         if not os.path.exists(filename):
