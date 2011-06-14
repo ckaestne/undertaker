@@ -247,6 +247,7 @@ def find_autoconf():
     """
     global autoconf
     if autoconf == None:
+        switch_config('allyesconfig')
         (autoconf, rc) = execute("find include -name autoconf.h", echo = True)
         autoconf = filter(lambda x: len(x) > 0, autoconf)
         if rc != 0 or len(autoconf) != 1:
