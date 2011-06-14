@@ -281,7 +281,7 @@ def get_conditional_blocks(filename, selected_only=False):
 
 def get_loc_coverage(filename):
     """
-    Returns LOC of the given file taking the current configuration into accoutn
+    Returns LOC of the given file taking the current configuration into account
     """
 
     cmd = "grep -v -E '^\s*#\s*include' %s | cpp -include %s" % (filename, find_autoconf())
@@ -474,6 +474,7 @@ def main():
         print "expanded_source: %s" % options.expanded_source
         print "kconfig: %s"  % (options.model is not None)
         print "min_strategy: %s" % (options.strategy == "minimal")
+        print "loc: %d" % get_loc_coverage(filename)
 
         try:
             if (options.do_default_configs):
