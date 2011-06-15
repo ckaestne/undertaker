@@ -298,9 +298,6 @@ def vamos_coverage(filename, results):
     if not filename in results:
         results[filename] = {}
 
-    total_blocks = set(get_conditional_blocks(filename))
-    results[filename]['total_blocks'] = len(total_blocks)
-
     for c in found_configs:
         logging.debug(c)
 
@@ -344,6 +341,7 @@ def vamos_coverage(filename, results):
         results[filename][config]['covered_blocks'] = covered_blocks
 
 
+    total_blocks = results[filename]['total_blocks']
     results[filename]['uncovered_blocks'] = ", ".join(total_blocks - covered)
     results[filename]['vamos'] = len(covered)
     return results
@@ -361,12 +359,9 @@ def main():
     parser.add_option("-u", "--run-undertaker", dest="do_undertaker",
                       action="store_true", default=False,
                       help="run undertaker to generate partial configs (default: no)")
-    parser.add_option("-d", "--default-configs", dest="do_default_configs",
+    parser.add_option("-s", "--skip-configs", dest="skip_configs",
                       action="store_true", default=False,
-                      help="Just do allyesconfig data")
-    parser.add_option("-D", "--only-default-configs", dest="do_only_default_configs",
-                      action="store_true", default=False,
-                      help="also include default configs (allyesconfig, etc) for comparision")
+                      help="Skip analyzing configurations (defaut: use existing configs)")
     parser.add_option('-v', '--verbose', dest='verbose', action='count',
                       help="Increase verbosity (specify multiple times for more)")
     parser.add_option('-m', '--model', dest='model', action='store',
@@ -428,33 +423,6 @@ def main():
     
     results = {}
 
-    if (options.do_only_default_configs):
-        for config in std_configs:
-            logging.info("Switching to configuration preset %s" % config)
-            switch_config(config)
-
-            for filename in filenames:
-                if not os.path.exists(filename):
-                    continue
-
-                if not filename in results:
-                    results[filename] = {}
-
-                total_blocks = set(get_conditional_blocks(filename))
-                results[filename]['total_blocks'] = len(total_blocks)
-                results[filename]['loc'] = get_loc_coverage(filename)
-
-                try:
-                    results[filename][config] = len(get_conditional_blocks(filename, selected_only=True))
-                except:
-                    results[filename][config] = 0
-                print "\nCOVERAGE"
-                print "filename: %s" % filename
-                print "config: %s" % config
-                print "coverage: %d" % results[filename][config]
-                print "total_blocks: %d" % results[filename]['total_blocks']
-                print "loc: %d" % results[filename]['loc']
-
     for filename in filenames:
         if not os.path.exists(filename):
             if filename.endswith('.pi'):
@@ -469,6 +437,9 @@ def main():
 
         logging.info("processing %s" % filename)
 
+        default_configs(filename, results)
+        results[filename]['total_blocks'] = set(get_conditional_blocks(filename))
+
         print "\nRESULT"
         print "filename: %s" % filename
         print "expanded: %s" % options.expanded_config
@@ -476,17 +447,17 @@ def main():
         print "kconfig: %s"  % (options.model is not None)
         print "min_strategy: %s" % (options.strategy == "minimal")
         print "loc: %d" % get_loc_coverage(filename)
+        print "total_blocks: %d"     % len(results[filename]['total_blocks'])
+        print "allyes_coverage: %d" % results[filename]['allyesconfig']
 
         try:
-            if (options.do_default_configs):
-                default_configs(filename, results)
-                std_coverage = results[filename][std_configs[0]]
-            else:
-                std_coverage = 0
-            print "allyes_coverage: %d" % std_coverage
+            if options.skip_configs:
+                continue
+
+            if len(results[filename]['total_blocks']) == 0:
+                continue
 
             vamos_coverage(filename, results)
-            print "total_blocks: %d"     % results[filename]['total_blocks']
             print "covered_blocks: %d"   % results[filename]['vamos']
             print "uncovered_blocks: %s" % results[filename]['uncovered_blocks']
             print "expansion_errors: %d" % results[filename]['fail_count']
