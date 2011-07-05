@@ -212,8 +212,10 @@ bool DeadBlockDefect::writeReportToFile() const {
         return false;
     } else {
         std::cout << "I: creating " << filename << std::endl;
-        const Ziz::ConditionalBlock *block = _cb->ZizBlock();
-        out << "#" << _cb->getName() << ":" << block->Start() << ":" << block->End() << std::endl;
+        out << "#" << _cb->getName() << ":" 
+            << _cb->filename() << ":" << _cb->lineStart() << ":" << _cb->colStart() << ":"
+            << _cb->filename() << ":" << _cb->lineEnd() << ":" << _cb->colEnd() << ":"
+            << std::endl;
         out << SatChecker::pprinter(contents.c_str());
         out.close();
     }

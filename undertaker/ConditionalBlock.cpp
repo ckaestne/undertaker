@@ -127,26 +127,17 @@ static int lineFromPosition(std::string line) {
     return i;
 }
 
-static int lineFromPosition(position_type line) {
-    std::stringstream ss;
-    ss << line;
-    return lineFromPosition(ss.str());
-}
-
-
 ConditionalBlock *
 CppFile::getBlockAtPosition(const std::string &position) {
-    int line = lineFromPosition(position);
+    unsigned int line = lineFromPosition(position);
 
     ConditionalBlock *block = 0;
     int block_length = -1;
 
     // Iterate over all block
     for(iterator i = begin(); i != end(); ++i) {
-        const Ziz::ConditionalBlock * ziz_block = (*i)->ZizBlock();
-
-        int begin = lineFromPosition(ziz_block->Start());
-        int last = lineFromPosition(ziz_block->End());
+        unsigned int begin = (*i)->lineStart();
+        unsigned int last  = (*i)->lineEnd();
 
         if (last < begin) continue;
         /* Found a short block, using this one */
@@ -270,7 +261,7 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                  for ( std::map<std::string, CppDefine *>::iterator def = cpp_file->getDefines()->begin();
                        def != cpp_file->getDefines()->end(); ++def) {
                      CppDefine *define = (*def).second;
-                     if (define->containsDefinedSymbol((*i)->ZizBlock()->ExpressionStr())) {
+                     if (define->containsDefinedSymbol((*i)->ExpressionStr())) {
                          define->getConstraints(and_clause, visited);
                      }
                  }

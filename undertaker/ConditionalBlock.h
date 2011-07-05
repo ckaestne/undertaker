@@ -95,7 +95,16 @@ class ConditionalBlock : public std::list<ConditionalBlock *> {
 
     ~ConditionalBlock() { delete _cb; delete cached_code_expression; }
 
-    const Ziz::ConditionalBlock *ZizBlock() const { return _cb; }
+    /// @{
+    //! location related accessors
+    const char *filename()   const { return _cb->Start().get_file().c_str(); }
+    unsigned int lineStart() const { return _cb->Start().get_line(); }
+    unsigned int colStart()  const { return _cb->Start().get_column(); }
+    unsigned int lineEnd()   const { return _cb->End().get_line(); }
+    unsigned int colEnd()    const { return _cb->End().get_column(); }
+    /// @}
+
+    std::string ExpressionStr() const { return _cb->ExpressionStr(); }
 
     //! \return enclosing block or 0 if == cpp_file->topBlock()
     const ConditionalBlock * getParent() const { return _parent; }
