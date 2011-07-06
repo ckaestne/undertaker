@@ -25,11 +25,13 @@
 #include "ConfigurationModel.h"
 #include "Ziz.h"
 
-
 class ConditionalBlock;
 class CppDefine;
 
-class CppFile : public std::list<ConditionalBlock *> {
+
+typedef std::list<ConditionalBlock *> CondBlockList;
+
+class CppFile : public CondBlockList {
  public:
     //! \param filename file with cpp expressions to parse
     CppFile(const char *filename);
@@ -87,7 +89,7 @@ class CppFile : public std::list<ConditionalBlock *> {
     const CppFile::ItemChecker checker;
 };
 
-class ConditionalBlock : public std::list<ConditionalBlock *> {
+class ConditionalBlock : public CondBlockList {
  public:
     ConditionalBlock(CppFile *file, ConditionalBlock *parent,
                      ConditionalBlock *prev,
@@ -115,7 +117,6 @@ class ConditionalBlock : public std::list<ConditionalBlock *> {
     std::string ifdefExpression() { return _exp; };
 
     const std::string getName() const;
-    std::string getConstraintsHelper(UniqueStringJoiner *and_clause = 0);
     std::string getCodeConstraints(UniqueStringJoiner *and_clause = 0,
                                   std::set<ConditionalBlock *> *visited = 0);
 
@@ -123,7 +124,9 @@ class ConditionalBlock : public std::list<ConditionalBlock *> {
 
     CppFile * getFile() { return cpp_file; }
 
+    std::string getConstraintsHelper(UniqueStringJoiner *and_clause = 0);
  private:
+
     CppFile * cpp_file;
     const Ziz::ConditionalBlock * _cb;
     const ConditionalBlock *_parent, *_prev;
@@ -136,9 +139,8 @@ class ConditionalBlock : public std::list<ConditionalBlock *> {
 
 class CppDefine {
 public:
-    CppDefine(ConditionalBlock *parent, Ziz::Define *ziz_define);
+    CppDefine(ConditionalBlock *parent, bool define, const std::string &id);
 
-    void newDefine(ConditionalBlock *parent, Ziz::Define *ziz_define);
 
     std::string replaceDefinedSymbol(const std::string &exp);
 
@@ -146,7 +148,11 @@ public:
                                   std::set<ConditionalBlock *> *visited = 0);
     bool containsDefinedSymbol(const std::string &exp);
 
+    friend class CppFile;
 private:
+
+    void newDefine(ConditionalBlock *parent, bool define);
+
     std::set<std::string> isUndef;
     std::string actual_symbol; // The defined symbol will be replaced
                                // by this

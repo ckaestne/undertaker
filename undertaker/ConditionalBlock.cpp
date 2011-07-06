@@ -42,7 +42,7 @@ CppFile::CppFile(const char *filename) : filename(filename), top_block(0), check
     delete file;
 }
 
-CppFile::~CppFile() {
+CppFile::~CppFile(){
     /* Delete the toplevel block */
 
     delete topBlock();
@@ -89,9 +89,9 @@ ConditionalBlock * CppFile::doZizWrap(ConditionalBlock *parent,
             std::map<std::string, CppDefine *>::iterator i = define_map.find(define->getFlag());
             if (i == define_map.end()) {
                 // First Define for this item, that every occured
-                define_map[define->getFlag()] = new CppDefine(block, define);
+                define_map[define->getFlag()] = new CppDefine(block, define->isDefine(), define->getFlag());
             } else {
-                (*i).second->newDefine(block, define);
+                (*i).second->newDefine(block, define->isDefine());
             }
 
             block->addDefine(define_map[define->getFlag()]);
@@ -162,7 +162,7 @@ ConditionalBlock::ConditionalBlock(CppFile *file,
 
     if (parent)  { // Not the toplevel block
         // extract expression
-        _exp = _cb->ExpressionStr();
+        _exp = this->ExpressionStr();
         if (_cb->CondBlockType() == Ziz::Ifndef)
             _exp = "! " + _exp;
 
@@ -299,26 +299,22 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
     return join ? and_clause->join("\n&& ") : "";
 }
 
-CppDefine::CppDefine(ConditionalBlock *defined_in, Ziz::Define *ziz_define) 
-    : actual_symbol(ziz_define->getFlag()), defined_symbol(ziz_define->getFlag()) {
-    newDefine(defined_in, ziz_define);
+CppDefine::CppDefine(ConditionalBlock *defined_in, bool define, const std::string &id) 
+    : actual_symbol(id), defined_symbol(id) {
+    newDefine(defined_in, define);
 }
 
 void
-CppDefine::newDefine(ConditionalBlock *parent, Ziz::Define *ziz_define) {
+CppDefine::newDefine(ConditionalBlock *parent, bool define) {
     const char *rewriteToken = ".";
-
     std::string new_symbol = actual_symbol + rewriteToken;
-
-    //    std::cout << parent->getName() << " " << ziz_define->getFlag() << " " << ziz_define->isDefine() << std::endl;
-
     UniqueStringJoiner oldDefineBlocks;
 
     /* Was also defined here */
     defined_in.push_back(parent);
 
     // If actual define is an undef insert it into the undef map
-    if (ziz_define->isDefine() == false) {
+    if (!define) {
         isUndef.insert(parent->getName());
     }
 
@@ -341,7 +337,7 @@ CppDefine::newDefine(ConditionalBlock *parent, Ziz::Define *ziz_define) {
     }
 
     // If actual Block is selected, we select or deselect the flag
-    std::string right_side = (ziz_define->isDefine() ? "" : "!") + new_symbol;
+    std::string right_side = (define ? "" : "!") + new_symbol;
 
     defineExpressions.push_back("(" + parent->getName() + " -> " + right_side + ")");
 
