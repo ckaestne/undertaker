@@ -15,19 +15,22 @@ LDFLAGS =
 # LDCOV = -coverage
 LDLIBS = -lstdc++ -lboost_system -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  -lpicosat -lboost_wave-mt $(LDCOV)
 
-PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
-		    ModelContainer.o SatChecker.o BlockDefectAnalyzer.o  \
-			ConditionalBlock.o CoverageAnalyzer.o ZizConditionalBlock.o
+PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o\
+		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
+		ConditionalBlock.o CoverageAnalyzer.o ZizConditionalBlock.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
-PROGS = undertaker
+PROGS = undertaker predator
 TESTPROGS = test-SatChecker test-ConditionalBlock
 
 all: ../ziz/libziz.a $(PROGS) $(TESTPROGS)
 
 undertaker: ../ziz/libziz.a libparser.a
 KconfigIntersect: libparser.a
+
+predator: predator.o PreTreeVisitor.o
+	$(CXX) $^ -lPuma -o $@
 
 # we require FORCE here because we don't want to duplicate all
 # dependencies from libziz' Makefiles
