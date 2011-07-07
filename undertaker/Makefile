@@ -17,7 +17,7 @@ LDLIBS = -lstdc++ -lboost_system -lboost_regex -lboost_filesystem libparser.a ..
 
 PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
 		    ModelContainer.o SatChecker.o BlockDefectAnalyzer.o  \
-			ConditionalBlock.o CoverageAnalyzer.o
+			ConditionalBlock.o CoverageAnalyzer.o ZizConditionalBlock.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 

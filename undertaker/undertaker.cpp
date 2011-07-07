@@ -16,6 +16,7 @@
 #include "BlockDefectAnalyzer.h"
 #include "SatChecker.h"
 #include "CoverageAnalyzer.h"
+#include <errno.h>
 
 #define __cpp_str(x) #x
 #define _cpp_str(x) __cpp_str(x)

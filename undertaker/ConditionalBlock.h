@@ -23,7 +23,6 @@
 #include <boost/regex.hpp>
 #include "StringJoiner.h"
 #include "ConfigurationModel.h"
-#include "Ziz.h"
 
 class ConditionalBlock;
 class CppDefine;
@@ -42,7 +41,7 @@ class CppFile : public CondBlockList {
 
     /**
      * The top block of an parsed file is an artificial block, which
-     * doesn't represent an concrete Ziz::ConditionalBlock, but the
+     * doesn't represent an concrete block, but the
      * whole file.
      * \return top block
     */
@@ -75,12 +74,7 @@ class CppFile : public CondBlockList {
 
     const ItemChecker *getChecker() const { return &checker;}
 
- private:
-    ConditionalBlock* doZizWrap(ConditionalBlock *parent,
-                                ConditionalBlock *prev,
-                                Ziz::BlockContainer *container);
-
-    void handleDefine(ConditionalBlock *parent, Ziz::Define *define);
+    friend class ZizConditionalBlock;
 
  private:
     std::string filename;
@@ -89,52 +83,62 @@ class CppFile : public CondBlockList {
     const CppFile::ItemChecker checker;
 };
 
+
 class ConditionalBlock : public CondBlockList {
  public:
-    ConditionalBlock(CppFile *file, ConditionalBlock *parent,
-                     ConditionalBlock *prev,
-                     Ziz::ConditionalBlock *cb);
-
-    ~ConditionalBlock() { delete _cb; delete cached_code_expression; }
-
-    /// @{
     //! location related accessors
-    const char *filename()   const { return _cb->Start().get_file().c_str(); }
-    unsigned int lineStart() const { return _cb->Start().get_line(); }
-    unsigned int colStart()  const { return _cb->Start().get_column(); }
-    unsigned int lineEnd()   const { return _cb->End().get_line(); }
-    unsigned int colEnd()    const { return _cb->End().get_column(); }
+    virtual const char *filename()   const = 0;
+    virtual unsigned int lineStart() const = 0;
+    virtual unsigned int colStart()  const = 0;
+    virtual unsigned int lineEnd()   const = 0;
+    virtual unsigned int colEnd()    const = 0;
     /// @}
 
-    std::string ExpressionStr() const { return _cb->ExpressionStr(); }
+    //! \return original untouched expression
+    virtual std::string ExpressionStr() const = 0;
+    virtual bool isIfBlock() const            = 0; //!< is if or ifdef block
+    virtual bool isIfndefine() const          = 0; //!< is ifndef
+    virtual const std::string getName() const = 0; //<! unique identifier for block
+
+    /* None virtual functions follow */
+
+    ConditionalBlock(CppFile *file,
+                     ConditionalBlock *parent,
+                     ConditionalBlock *prev)
+        : cpp_file(file), _parent(parent), _prev(prev),
+          cached_code_expression(0) {}
+
+    //! Has to be called after constructing a ConditionalBlock
+    void lateConstructor();
+
+    virtual ~ConditionalBlock() { delete cached_code_expression; };
+
 
     //! \return enclosing block or 0 if == cpp_file->topBlock()
     const ConditionalBlock * getParent() const { return _parent; }
     //! \return previous block on current level or 0 if first block on level
     const ConditionalBlock * getPrev() const { return _prev; }
+    //! \return associated file
+    CppFile * getFile() { return cpp_file; }
 
-    bool isIfBlock() const; //!< is if or ifdef block
+    //! \return rewritten (define) macro expression
     std::string ifdefExpression() { return _exp; };
 
-    const std::string getName() const;
     std::string getCodeConstraints(UniqueStringJoiner *and_clause = 0,
                                   std::set<ConditionalBlock *> *visited = 0);
 
     void addDefine(CppDefine* define) { _defines.push_back(define); }
 
-    CppFile * getFile() { return cpp_file; }
-
     std::string getConstraintsHelper(UniqueStringJoiner *and_clause = 0);
- private:
 
+protected:
     CppFile * cpp_file;
-    const Ziz::ConditionalBlock * _cb;
     const ConditionalBlock *_parent, *_prev;
-    std::string _exp;
-
-    std::string *cached_code_expression;
-
     std::list<CppDefine *> _defines;
+
+private:
+    std::string _exp;
+    std::string *cached_code_expression;
 };
 
 class CppDefine {
@@ -149,6 +153,7 @@ public:
     bool containsDefinedSymbol(const std::string &exp);
 
     friend class CppFile;
+    friend class ZizConditionalBlock;
 private:
 
     void newDefine(ConditionalBlock *parent, bool define);

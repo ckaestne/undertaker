@@ -18,28 +18,14 @@
  */
 
 
-#include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 #include "StringJoiner.h"
 #include "ConditionalBlock.h"
+#include "ZizConditionalBlock.h"
+
 
 CppFile::CppFile(const char *filename) : filename(filename), top_block(0), checker(this) {
-    Ziz::Parser parser;
-    Ziz::File *file;
-
-    try {
-        file = parser.Parse(filename);
-    } catch(Ziz::ZizException& e) {
-        std::cerr << "caught ZizException: " << e.what() << std::endl;
-        return;
-    } catch(...) {
-        std::cerr << "Failed to parse '" << filename << "'" <<std::endl;
-        return;
-    }
-
-    top_block = doZizWrap(0, 0, file);
-
-    delete file;
+    top_block = ZizConditionalBlock::parse(filename, this);
 }
 
 CppFile::~CppFile(){
@@ -51,7 +37,7 @@ CppFile::~CppFile(){
         delete (*i);
     }
     // Remove also all defines
-    
+
     for (std::map<std::string, CppDefine *>::iterator i = getDefines()->begin(); 
          i != getDefines()->end(); ++i) {
         delete (*i).second;
@@ -61,55 +47,6 @@ CppFile::~CppFile(){
 bool CppFile::ItemChecker::operator()(const std::string &item) const {
     std::map<std::string, CppDefine*> *defines =  file->getDefines();
     return defines->find(item.substr(0, item.find('.'))) == defines->end();
-}
-
-ConditionalBlock * CppFile::doZizWrap(ConditionalBlock *parent,
-                                      ConditionalBlock *prev,
-                                      Ziz::BlockContainer *container) {
-    Ziz::ConditionalBlock * cond = 0;
-    // Only the top level block isn't a ConditionalBlock
-    if (container->ContainerType() == Ziz::InnerBlock)
-        cond = dynamic_cast<Ziz::ConditionalBlock *>(container);
-
-    ConditionalBlock * block = new ConditionalBlock(this, parent, prev, cond);
-
-    if (cond) // We are an inner block, so add the block to the list
-        push_back(block);
-
-    Ziz::BlockContainer::iterator i;
-    ConditionalBlock * new_prev = 0;
-    for (i = container->begin(); i != container->end(); i++) {
-        Ziz::ConditionalBlock *cb = dynamic_cast<Ziz::ConditionalBlock*>(*i);
-        Ziz::Define *define = dynamic_cast<Ziz::Define*>(*i);
-
-        /* It is important to put the define rewriting at exactly this
-           point, so the defines are handled in the right order */
-
-        if (define)  {
-            std::map<std::string, CppDefine *>::iterator i = define_map.find(define->getFlag());
-            if (i == define_map.end()) {
-                // First Define for this item, that every occured
-                define_map[define->getFlag()] = new CppDefine(block, define->isDefine(), define->getFlag());
-            } else {
-                (*i).second->newDefine(block, define->isDefine());
-            }
-
-            block->addDefine(define_map[define->getFlag()]);
-            /* Remove define because it's never used anymore */
-            delete define;
-            continue;
-        } else if (cb) { // Condtional block
-            /* Go recurive into the block tree and add it the generated
-               block */
-            new_prev = doZizWrap(block, new_prev, cb);
-            block->push_back( new_prev );
-        } else {
-            /* Must be a code block, we simply free those */
-            delete *i;
-        }
-    }
-
-    return block;
 }
 
 static int lineFromPosition(std::string line) {
@@ -129,15 +66,15 @@ static int lineFromPosition(std::string line) {
 
 ConditionalBlock *
 CppFile::getBlockAtPosition(const std::string &position) {
-    unsigned int line = lineFromPosition(position);
+    int line = lineFromPosition(position);
 
     ConditionalBlock *block = 0;
     int block_length = -1;
 
     // Iterate over all block
     for(iterator i = begin(); i != end(); ++i) {
-        unsigned int begin = (*i)->lineStart();
-        unsigned int last  = (*i)->lineEnd();
+        int begin = (*i)->lineStart();
+        int last  = (*i)->lineEnd();
 
         if (last < begin) continue;
         /* Found a short block, using this one */
@@ -153,17 +90,11 @@ CppFile::getBlockAtPosition(const std::string &position) {
 }
 
 
-ConditionalBlock::ConditionalBlock(CppFile *file,
-                                   ConditionalBlock *parent,
-                                   ConditionalBlock *prev,
-                                   Ziz::ConditionalBlock *cb)
-    : cpp_file(file), _cb(cb), _parent(parent), _prev(prev),
-      cached_code_expression(0) {
-
-    if (parent)  { // Not the toplevel block
+void ConditionalBlock::lateConstructor() {
+    if (_parent)  { // Not the toplevel block
         // extract expression
-        _exp = this->ExpressionStr();
-        if (_cb->CondBlockType() == Ziz::Ifndef)
+        _exp = ExpressionStr();
+        if (isIfndefine())
             _exp = "! " + _exp;
 
         std::string::size_type pos = std::string::npos;
@@ -171,33 +102,15 @@ ConditionalBlock::ConditionalBlock(CppFile *file,
             _exp.erase(pos,7);
 
         /* Define Rewriting */
-        for ( std::map<std::string, CppDefine *>::iterator i = file->getDefines()->begin();
-              i != file->getDefines()->end(); ++i) {
+        for ( std::map<std::string, CppDefine *>::iterator i = cpp_file->getDefines()->begin();
+              i != cpp_file->getDefines()->end(); ++i) {
             _exp = (*i).second->replaceDefinedSymbol(_exp);
         }
     }
 }
 
-const std::string ConditionalBlock::getName() const {
-    if (!_cb) return "B00"; // top level block, represents file
-
-    return "B" + boost::lexical_cast<std::string>(_cb->Id());
-}
-
-
-bool ConditionalBlock::isIfBlock() const {
-    if (!_cb) return true; // the top_level block is an implicit ifdef
-                           // block
-
-    if (_cb->CondBlockType() == Ziz::If
-        || _cb->CondBlockType() == Ziz::Ifdef
-        || _cb->CondBlockType() == Ziz::Ifndef)
-        return true;
-    return false;
-}
-
 std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_clause) {
-    if (!_cb) return "B00"; // top_level block, represents file
+    if (!_parent) return "B00"; // top_level block, represents file
 
     UniqueStringJoiner sj; // on our stack
     bool join = false;
@@ -235,7 +148,8 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
 }
 
 
-std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause, std::set<ConditionalBlock *> *visited) {
+std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
+                                                 std::set<ConditionalBlock *> *visited) {
     UniqueStringJoiner sj; // on our stack
     bool join = false;
     if (!and_clause) {
@@ -253,7 +167,7 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
         // Mark our node as visited
         visited->insert(this);
 
-        if (!_cb) { // Toplevel block
+        if (!_parent) { // Toplevel block
             // Add expressions for all blocks
             for (CppFile::iterator i = cpp_file->begin(); i != cpp_file->end(); ++i) {
                 (*i)->getConstraintsHelper(and_clause);
@@ -284,7 +198,7 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
             for ( std::map<std::string, CppDefine *>::iterator i = cpp_file->getDefines()->begin();
                   i != cpp_file->getDefines()->end(); ++i) {
                 CppDefine *define = (*i).second;
-                if (define->containsDefinedSymbol(_cb->ExpressionStr())) {
+                if (define->containsDefinedSymbol(ExpressionStr())) {
                     define->getConstraints(and_clause, visited);
                 }
             }
@@ -299,7 +213,7 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
     return join ? and_clause->join("\n&& ") : "";
 }
 
-CppDefine::CppDefine(ConditionalBlock *defined_in, bool define, const std::string &id) 
+CppDefine::CppDefine(ConditionalBlock *defined_in, bool define, const std::string &id)
     : actual_symbol(id), defined_symbol(id) {
     newDefine(defined_in, define);
 }
