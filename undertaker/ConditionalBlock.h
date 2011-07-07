@@ -74,8 +74,6 @@ class CppFile : public CondBlockList {
 
     const ItemChecker *getChecker() const { return &checker;}
 
-    friend class ZizConditionalBlock;
-
  private:
     std::string filename;
     ConditionalBlock *top_block;
@@ -144,7 +142,7 @@ private:
 class CppDefine {
 public:
     CppDefine(ConditionalBlock *parent, bool define, const std::string &id);
-
+    void newDefine(ConditionalBlock *parent, bool define);
 
     std::string replaceDefinedSymbol(const std::string &exp);
 
@@ -152,12 +150,7 @@ public:
                                   std::set<ConditionalBlock *> *visited = 0);
     bool containsDefinedSymbol(const std::string &exp);
 
-    friend class CppFile;
-    friend class ZizConditionalBlock;
 private:
-
-    void newDefine(ConditionalBlock *parent, bool define);
-
     std::set<std::string> isUndef;
     std::string actual_symbol; // The defined symbol will be replaced
                                // by this

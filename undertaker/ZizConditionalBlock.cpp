@@ -54,7 +54,6 @@ ConditionalBlock * ZizConditionalBlock::doZizWrap(CppFile *file,
         cond = dynamic_cast<Ziz::ConditionalBlock *>(container);
 
     ConditionalBlock * block = new ZizConditionalBlock(file, parent, prev, cond);
-    block->lateConstructor();
 
     if (cond) // We are an inner block, so add the block to the list
         file->push_back(block);
@@ -69,15 +68,15 @@ ConditionalBlock * ZizConditionalBlock::doZizWrap(CppFile *file,
            point, so the defines are handled in the right order */
 
         if (define)  {
-            std::map<std::string, CppDefine *>::iterator i = file->define_map.find(define->getFlag());
-            if (i == file->define_map.end()) {
+            std::map<std::string, CppDefine *>::iterator i = file->getDefines()->find(define->getFlag());
+            if (i == file->getDefines()->end()) {
                 // First Define for this item, that every occured
-                file->define_map[define->getFlag()] = new CppDefine(block, define->isDefine(), define->getFlag());
+                (*file->getDefines())[define->getFlag()] = new CppDefine(block, define->isDefine(), define->getFlag());
             } else {
                 (*i).second->newDefine(block, define->isDefine());
             }
 
-            block->addDefine(file->define_map[define->getFlag()]);
+            block->addDefine((*file->getDefines())[define->getFlag()]);
             /* Remove define because it's never used anymore */
             delete define;
             continue;

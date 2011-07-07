@@ -34,7 +34,9 @@ class ZizConditionalBlock : public ConditionalBlock {
     ZizConditionalBlock(CppFile *file, ConditionalBlock *parent,
                         ConditionalBlock *prev,
                         Ziz::ConditionalBlock *cb) :
-        ConditionalBlock(file, parent, prev), _cb(cb) {};
+        ConditionalBlock(file, parent, prev), _cb(cb) {
+        lateConstructor();
+    };
 
     ~ZizConditionalBlock() { delete _cb; }
 
