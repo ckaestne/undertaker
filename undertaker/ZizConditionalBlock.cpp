@@ -81,7 +81,7 @@ ConditionalBlock * ZizConditionalBlock::doZizWrap(CppFile *file,
             delete define;
             continue;
         } else if (cb) { // Condtional block
-            /* Go recurive into the block tree and add it the generated
+            /* Go recursive into the block tree and add it the generated
                block */
             new_prev = doZizWrap(file, block, new_prev, cb);
             block->push_back( new_prev );
