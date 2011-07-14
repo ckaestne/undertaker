@@ -8,16 +8,16 @@ NODEPS:=clean clean-check
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
 VERSION ?= git
-CFLAGS = -Wall -Wextra -O2 -I../ziz -DVERSION=$(VERSION) $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 -I../ziz -DVERSION=$(VERSION) $(DEBUG) -DUSE_PUMA
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
 # LDCOV = -coverage
-LDLIBS = -lstdc++ -lboost_system -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  -lpicosat -lboost_wave-mt $(LDCOV)
+LDLIBS = -lstdc++ -lboost_system -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  -lpicosat -lboost_wave-mt -lPuma $(LDCOV)
 
 PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
-		ConditionalBlock.o CoverageAnalyzer.o ZizConditionalBlock.o
+		ConditionalBlock.o CoverageAnalyzer.o ZizConditionalBlock.o PumaConditionalBlock.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 

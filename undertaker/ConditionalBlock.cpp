@@ -17,15 +17,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include <boost/regex.hpp>
 #include "StringJoiner.h"
 #include "ConditionalBlock.h"
-#include "ZizConditionalBlock.h"
 
+#if USE_PUMA
+#include "PumaConditionalBlock.h"
+typedef PumaConditionalBlock ConditionalBlockImpl;
+#else
+#include "ZizConditionalBlock.h"
+typedef ZizConditionalBlock ConditionalBlockImpl;
+#endif
 
 CppFile::CppFile(const char *filename) : filename(filename), top_block(0), checker(this) {
-    top_block = ZizConditionalBlock::parse(filename, this);
+    top_block = ConditionalBlockImpl::parse(filename, this);
 }
 
 CppFile::~CppFile(){
