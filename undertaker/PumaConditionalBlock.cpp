@@ -58,7 +58,7 @@ restart:
 const std::string PumaConditionalBlock::getName() const {
     std::stringstream ss;
     if (!_parent) return "B00"; // top level block, represents file
-    ss << "B" + _number;
+    ss << "B" <<  _number;
     return ss.str();
 }
 
@@ -89,18 +89,6 @@ ConditionalBlock *PumaConditionalBlock::parse(const char *filename,
 
 using namespace Puma;
 
-void PumaConditionalBlockBuilder::iterateNodes (PreTree *node) {
-    PreSonIterator i(node);
-
-    for (i.first(); !i.isDone(); i.next())
-        i.currentItem()->accept(*this);
-}
-
-ConditionalBlock *PumaConditionalBlockBuilder::parse(CppFile *file, Puma::PreTree *tree) {
-    _file = file;
-    tree->accept(*this);
-    return _parent;
-}
 // Build a string from a subtree of the preprocessor syntax tree.
 char* buildString (const PreTree* node)
 {
@@ -133,52 +121,115 @@ char* buildString (const PreTree* node)
     return result;
 }
 
-void PumaConditionalBlockBuilder::visitPreProgram_Pre (PreProgram *node) {
-    assert (!_parent);
-    _prev = 0;
-    _parent = new PumaConditionalBlock(_file, NULL, NULL);
-    _parent->_isIfBlock = true;
-    _parent->_start = node->startToken();
-    _parent->_end   = node->endToken();
+std::string PumaConditionalBlock::ExpressionStr() const {
+    assert(_parent);
+    PreTree *node;
+
+    if ((node = dynamic_cast<PreIfDirective *>(_current_node)))
+        return std::string(buildString(node->son(1)));
+
+    if ((node = dynamic_cast<PreIfdefDirective *>(_current_node)))
+        return std::string(node->son(1)->startToken()->text());
+
+    if ((node = dynamic_cast<PreElifDirective *>(_current_node)))
+        return std::string(buildString(node->son(1)));
+
+    return "??";
 }
 
+
+void PumaConditionalBlockBuilder::iterateNodes (PreTree *node) {
+    PreSonIterator i(node);
+
+    for (i.first(); !i.isDone(); i.next())
+        i.currentItem()->accept(*this);
+}
+
+ConditionalBlock *PumaConditionalBlockBuilder::parse(CppFile *file, Puma::PreTree *tree) {
+    _file = file;
+    _current = NULL;
+    tree->accept(*this);
+    return _current;
+}
+
+void PumaConditionalBlockBuilder::visitPreProgram_Pre (PreProgram *node) {
+    std::cerr << "visitPreProgram_Pre called" << std::endl;
+    assert (!_current);
+    _prev = 0;
+    _current = new PumaConditionalBlock(_file, NULL, NULL, node);
+    _current->_isIfBlock = true;
+    _current->_start = node->startToken();
+    _current->_end   = node->endToken();
+    _file->push_back(_current);
+}
+
+#if 0
 void PumaConditionalBlockBuilder::visitPreConditionalGroup_Pre (PreConditionalGroup *node) {
-    _prev   = NULL;
-    _parent = new PumaConditionalBlock(_file, _parent, _prev);
-    _parent->_start = node->startToken();
-    _parent->_end = node->endToken();
+    std::cerr << "visitPreConditionalGroup_Pre called" << std::endl;
+    _current = new PumaConditionalBlock(_file, _current, _prev, node);
+    _file->push_back(_current);
+    _prev = _current;
+    _current->_start = node->startToken();
+    _current->_end = node->endToken();
 }
 
 void PumaConditionalBlockBuilder::visitPreConditionalGroup_Post (PreConditionalGroup *node) {
-    _prev   = NULL;
-    _parent->_end = node->endToken();
-    _parent = (PumaConditionalBlock *)_parent->getParent();
+    std::cerr << "visitPreConditionalGroup_Post called" << std::endl;
+    _current->_end = node->endToken();
+    _current = (PumaConditionalBlock *)_current->getParent();
+    _prev = _current;
 }
+#endif
 
 void PumaConditionalBlockBuilder::visitPreIfDirective_Pre (PreIfDirective *node) {
-    _prev->_isIfBlock = true;
-    _prev->_expr = std::string(buildString(node->son(1)));
-    _parent->_end = node->startToken()->unit()->prev(node->startToken());
+    std::cerr << "visitPreIfDirective_Pre called" << std::endl;
+
+    _current = new PumaConditionalBlock(_file, _current, NULL, node);
+    _file->push_back(_current);
+    _prev = _current;
+    _current->_start = node->startToken();
+    _current->_end = node->endToken();
+    _current->_isIfBlock = true;
 }
 
 void PumaConditionalBlockBuilder::visitPreIfdefDirective_Pre (PreIfdefDirective *node) {
-    _prev->_isIfBlock = true;
-    _prev->_expr = std::string(buildString(node->son(1)));
+    std::cerr << "visitPreIfdefDirective_Pre called" << std::endl;
+    _current = new PumaConditionalBlock(_file, _current, NULL, node);
+    _file->push_back(_current);
+    _prev = _current;
+    _current->_start = node->startToken();
+    _current->_end = node->endToken();
+    _current->_isIfBlock = true;
 }
 
 void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirective *node) {
-    _prev->_isIfBlock = true;
-    _prev->_isIfndefine = true;
-    _prev->_expr = std::string(buildString(node->son(1)));
-    _parent->_end = node->startToken()->unit()->prev(node->startToken());
+    std::cerr << "visitPreIfndefDirective_Pre called" << std::endl;
+    _current = new PumaConditionalBlock(_file, _current, NULL, node);
+    _file->push_back(_current);
+    _prev = _current;
+    _current->_start = node->startToken();
+    _current->_end = node->endToken();
+    _current->_isIfBlock = true;
+    _current->_isIfndefine = true;
 }
 
 void PumaConditionalBlockBuilder::visitPreElifDirective_Pre (PreElifDirective *node) {
-    _prev->_end = node->startToken()->unit()->prev(node->startToken());    
-    _prev = new PumaConditionalBlock(_file, _parent, _prev);
+    std::cerr << "visitPreElifDirective_Pre called" << std::endl;
+    //_current->_end = node->startToken()->unit()->prev(node->startToken());    
+    _prev = new PumaConditionalBlock(_file, (PumaConditionalBlock*)_current->getParent(), _current, node);
+    _file->push_back(_prev);
 }
 
 void PumaConditionalBlockBuilder::visitPreElseDirective_Pre (PreElseDirective *node) {
-    _prev->_end = node->startToken()->unit()->prev(node->startToken());    
-    _prev = new PumaConditionalBlock(_file, _parent, _prev);
+    std::cerr << "visitPreElseDirective_Pre called" << std::endl;
+    _current->_end = node->startToken()->unit()->prev(node->startToken());    
+    _prev = new PumaConditionalBlock(_file, _current, _prev, node);
+    _current->_current_node = node;
+}
+
+void PumaConditionalBlockBuilder::visitPreEndifDirective_Pre (PreEndifDirective *node) {
+    std::cerr << "visitPreEndifDirective_Pre called" << std::endl;
+    _current->_end = node->endToken();
+    _current = (PumaConditionalBlock *)_current->getParent();
+    _prev = NULL;;
 }

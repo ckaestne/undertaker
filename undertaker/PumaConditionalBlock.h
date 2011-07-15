@@ -33,18 +33,20 @@ class PumaConditionalBlock : public ConditionalBlock {
     unsigned long _number;
     Puma::Token *_start, *_end;
 
-    std::string _expr;
+    Puma::PreTree *_current_node;
+    
     bool _isIfBlock, _isIfndefine;
     
 
 public:
     PumaConditionalBlock(CppFile *file,
                          ConditionalBlock *parent,
-                         ConditionalBlock *prev) :
-        ConditionalBlock(file, parent, prev),
+                         ConditionalBlock *prev,
+                         Puma::PreTree *node) :
+        ConditionalBlock(file, parent, prev), _current_node(node),
         _isIfBlock(false), _isIfndefine(false) {
         lateConstructor();
-        _number = numNodes++;
+        _number = numNodes++ -1;
     };
 
     virtual ~PumaConditionalBlock() {}
@@ -58,7 +60,7 @@ public:
     /// @}
 
     //! \return original untouched expression
-    virtual std::string ExpressionStr() const { return _expr; }
+    virtual std::string ExpressionStr() const;
     virtual bool isIfBlock() const { return _isIfBlock; }
     virtual bool isIfndefine() const { return _isIfndefine; }
     virtual const std::string getName() const;
@@ -73,19 +75,20 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
 protected:
     long _depth;  // recursion depth
     void iterateNodes (Puma::PreTree *);
-    PumaConditionalBlock *_parent, *_prev;
+    PumaConditionalBlock *_current, *_prev;
     CppFile *_file;
 public:
     ConditionalBlock *parse (CppFile *file, Puma::PreTree *tree);
 
     void visitPreProgram_Pre (Puma::PreProgram *);
-    void visitPreConditionalGroup_Pre (Puma::PreConditionalGroup *);
-    void visitPreConditionalGroup_Post (Puma::PreConditionalGroup *);
+    // void visitPreConditionalGroup_Pre (Puma::PreConditionalGroup *);
+    // void visitPreConditionalGroup_Post (Puma::PreConditionalGroup *);
     void visitPreIfDirective_Pre (Puma::PreIfDirective *);
     void visitPreIfdefDirective_Pre (Puma::PreIfdefDirective *);
     void visitPreIfndefDirective_Pre (Puma::PreIfndefDirective *);
     void visitPreElifDirective_Pre (Puma::PreElifDirective *);
     void visitPreElseDirective_Pre (Puma::PreElseDirective *);
+    void visitPreEndifDirective_Pre (Puma::PreEndifDirective *);
 };
 
 #endif
