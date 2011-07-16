@@ -23,10 +23,19 @@
 
 #include <Puma/PreTree.h>
 #include <Puma/PreVisitor.h>
+#include <Puma/PreprocessorParser.h>
+#include <Puma/CCParser.h>
+#include <Puma/CParser.h>
+#include <Puma/CProject.h>
+
+#include <stack>
 
 #include "StringJoiner.h"
 #include "ConfigurationModel.h"
 #include "ConditionalBlock.h"
+
+// forward decl.
+class PumaConditionalBlockBuilder;
 
 class PumaConditionalBlock : public ConditionalBlock {
     static unsigned long numNodes;
@@ -36,15 +45,17 @@ class PumaConditionalBlock : public ConditionalBlock {
     Puma::PreTree *_current_node;
     
     bool _isIfBlock, _isIfndefine;
+    PumaConditionalBlockBuilder &_builder;
     
 
 public:
     PumaConditionalBlock(CppFile *file,
                          ConditionalBlock *parent,
                          ConditionalBlock *prev,
-                         Puma::PreTree *node) :
+                         Puma::PreTree *node,
+                         PumaConditionalBlockBuilder &builder) :
         ConditionalBlock(file, parent, prev), _current_node(node),
-        _isIfBlock(false), _isIfndefine(false) {
+        _isIfBlock(false), _isIfndefine(false), _builder(builder) {
         lateConstructor();
         _number = numNodes++ -1;
     };
@@ -72,17 +83,27 @@ public:
 };
 
 class PumaConditionalBlockBuilder : public Puma::PreVisitor {
-protected:
+
     long _depth;  // recursion depth
     void iterateNodes (Puma::PreTree *);
-    PumaConditionalBlock *_current, *_prev;
+    // Stack of open conditional blocks. Pushed to when entering #ifdef
+    // (and similar) blocks, popped from when leaving them.
+    std::stack<PumaConditionalBlock*> _condBlockStack;
+    PumaConditionalBlock* _current;
     CppFile *_file;
+    Puma::PreprocessorParser *_cpp;
+    Puma::ErrorStream _err;
+    Puma::CProject _project;
+    Puma::CParser _parser;
+
 public:
-    ConditionalBlock *parse (CppFile *file, Puma::PreTree *tree);
+    PumaConditionalBlockBuilder();
+    ~PumaConditionalBlockBuilder();
+    ConditionalBlock *parse (const char *filename, CppFile *cpp_file);
+    Puma::PreprocessorParser *cpp_parser() { return _cpp; }
 
     void visitPreProgram_Pre (Puma::PreProgram *);
-    // void visitPreConditionalGroup_Pre (Puma::PreConditionalGroup *);
-    // void visitPreConditionalGroup_Post (Puma::PreConditionalGroup *);
+    void visitPreProgram_Post (Puma::PreProgram *);
     void visitPreIfDirective_Pre (Puma::PreIfDirective *);
     void visitPreIfdefDirective_Pre (Puma::PreIfdefDirective *);
     void visitPreIfndefDirective_Pre (Puma::PreIfndefDirective *);
