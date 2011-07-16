@@ -182,7 +182,6 @@ void PumaConditionalBlockBuilder::visitPreProgram_Pre (PreProgram *node) {
     _current->_isIfBlock = true;
     _current->_start = node->startToken();
     _current->_end   = node->endToken();
-    _file->push_back(_current);
     _condBlockStack.push(_current);
 }
 
