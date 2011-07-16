@@ -85,6 +85,12 @@ char* buildString (const PreTree* node)
         }
     }
 
+    // eat trailing whitespace
+    string::size_type i = str.length();
+    while (str[i-1] == ' ' || str[i-1] == '\t')
+        --i;
+    str.erase(i);
+
     // Create the return string buffer.
     ptr = result = new char[str.size() + 5];
 
