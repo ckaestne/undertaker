@@ -203,6 +203,7 @@ void PumaConditionalBlockBuilder::visitPreIfDirective_Pre (PreIfDirective *node)
     _current = new PumaConditionalBlock(_file, parent, NULL, node, *this);
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
+    _file->push_back(_condBlockStack.top());
 }
 
 void PumaConditionalBlockBuilder::visitPreIfdefDirective_Pre (PreIfdefDirective *node) {
@@ -212,6 +213,7 @@ void PumaConditionalBlockBuilder::visitPreIfdefDirective_Pre (PreIfdefDirective 
     _current = new PumaConditionalBlock(_file, parent, NULL, node, *this);
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
+    _file->push_back(_condBlockStack.top());
 }
 
 void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirective *node) {
@@ -222,6 +224,7 @@ void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirectiv
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
     _current->_isIfndefine = true;
+    _file->push_back(_condBlockStack.top());
 }
 
 void PumaConditionalBlockBuilder::visitPreElifDirective_Pre (PreElifDirective *node) {
@@ -231,10 +234,10 @@ void PumaConditionalBlockBuilder::visitPreElifDirective_Pre (PreElifDirective *n
     assert(_file);
 
     PumaConditionalBlock *prev = _condBlockStack.top();
-    _file->push_back(prev);
     _condBlockStack.pop();
     PumaConditionalBlock *parent = _condBlockStack.top();
     _current = new PumaConditionalBlock(_file, parent, prev, node, *this);
+    _file->push_back(_current);
     _condBlockStack.push(_current);
 }
 
@@ -245,10 +248,10 @@ void PumaConditionalBlockBuilder::visitPreElseDirective_Pre (PreElseDirective *n
     assert(_file);
 
     PumaConditionalBlock *prev = _condBlockStack.top();
-    _file->push_back(prev);
     _condBlockStack.pop();
     PumaConditionalBlock *parent = _condBlockStack.top();
     _current = new PumaConditionalBlock(_file, parent, prev, node, *this);
+    _file->push_back(_current);
     _condBlockStack.push(_current);
 
 }
@@ -256,7 +259,6 @@ void PumaConditionalBlockBuilder::visitPreElseDirective_Pre (PreElseDirective *n
 void PumaConditionalBlockBuilder::visitPreEndifDirective_Pre (PreEndifDirective *node) {
     TRACECALL
 
-    _file->push_back(_condBlockStack.top());
     _condBlockStack.pop();
     _current = _condBlockStack.top();
 }
