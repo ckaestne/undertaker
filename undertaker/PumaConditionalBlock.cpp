@@ -37,7 +37,12 @@ Puma::Unit *cut_includes(Puma::Unit *unit) {
 
 restart:
     for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
-        if (s->type() == TOK_PRE_INCLUDE) {
+        switch(s->type()) {
+        case TOK_PRE_ASSERT:
+        case TOK_PRE_ERROR:
+        case TOK_PRE_INCLUDE:
+        case TOK_PRE_INCLUDE_NEXT:
+        case TOK_PRE_WARNING:
             e = s;
             do {
                 e = unit->next(e);
