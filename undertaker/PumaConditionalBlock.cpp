@@ -70,7 +70,7 @@ using namespace Puma;
 // Build a string from a subtree of the preprocessor syntax tree.
 char* buildString (const PreTree* node)
 {
-    if (! node) return (char*) 0;
+    assert(node);
 
     char *result, *ptr;
     string str;
@@ -102,33 +102,41 @@ char* buildString (const PreTree* node)
     // Finish return buffer.
     *ptr = '\0';
 
+    assert(result);
     return result;
 }
 
 std::string PumaConditionalBlock::ExpressionStr() const {
     assert(_parent);
-    PreTree *node;
-    const char *expr = 0;
+    const PreTree *node;
 
-    if ((node = dynamic_cast<PreIfDirective *>(_current_node)))
-        expr = buildString(node->son(1));
+    assert(_current_node);
 
-    if ((node = dynamic_cast<PreIfdefDirective *>(_current_node)))
-        expr = node->son(1)->startToken()->text();
+   if (_expressionStr_cache)
+      return std::string(_expressionStr_cache);
 
-    if ((node = dynamic_cast<PreElifDirective *>(_current_node)))
-        expr = buildString(node->son(1));
-
-    if ((node = dynamic_cast<PreElseDirective *>(_current_node)))
-        expr = "";
-
-    
-    if (expr) {
-        PreMacroExpander expander(_builder.cpp_parser());
-        return expander.expandMacros(expr);
-    }
+    if ((node = dynamic_cast<const PreIfDirective *>(_current_node)))
+        _expressionStr_cache = buildString(node->son(1));
     else
-        return "??";
+    if ((node = dynamic_cast<const PreIfdefDirective *>(_current_node)))
+        _expressionStr_cache = strdup(node->son(1)->startToken()->text());
+    else
+    if ((node = dynamic_cast<const PreIfndefDirective *>(_current_node)))
+        _expressionStr_cache = strdup(node->son(1)->startToken()->text());
+    else
+    if ((node = dynamic_cast<const PreElifDirective *>(_current_node)))
+        _expressionStr_cache = buildString(node->son(1));
+    else
+    if ((node = dynamic_cast<const PreElseDirective *>(_current_node)))
+        _expressionStr_cache = (char *)"";
+
+    if (_expressionStr_cache) {
+        PreMacroExpander expander(_builder.cpp_parser());
+        return expander.expandMacros(_expressionStr_cache);
+    }
+    else {
+        return std::string("?? ") + typeid(node).name();
+    }
 }
 
 
@@ -174,13 +182,18 @@ PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
 
 #if 0
 #define TRACECALL \
-    std::cerr << __PRETTY_FUNCTION__ << " called " << std::endl;
+    std::cerr << __PRETTY_FUNCTION__ << " called " << std::endl
 #else
 #define TRACECALL
 #endif
 
+// @todo move this somwhere else
+#ifndef __unused
+#define __unused __attribute__((unused))
+#endif
+
 void PumaConditionalBlockBuilder::visitPreProgram_Pre (PreProgram *node) {
-    TRACECALL
+    TRACECALL;
 
     assert (!_current);
 
@@ -191,13 +204,13 @@ void PumaConditionalBlockBuilder::visitPreProgram_Pre (PreProgram *node) {
     _condBlockStack.push(_current);
 }
 
-void PumaConditionalBlockBuilder::visitPreProgram_Post (PreProgram *node) {
-    TRACECALL
+void PumaConditionalBlockBuilder::visitPreProgram_Post (__unused PreProgram *node ) {
+    TRACECALL;
     _condBlockStack.pop();
 }
 
 void PumaConditionalBlockBuilder::visitPreIfDirective_Pre (PreIfDirective *node) {
-    TRACECALL
+    TRACECALL;
 
     PumaConditionalBlock *parent = _condBlockStack.top();
     _current = new PumaConditionalBlock(_file, parent, NULL, node, *this);
@@ -207,7 +220,7 @@ void PumaConditionalBlockBuilder::visitPreIfDirective_Pre (PreIfDirective *node)
 }
 
 void PumaConditionalBlockBuilder::visitPreIfdefDirective_Pre (PreIfdefDirective *node) {
-    TRACECALL
+    TRACECALL;
 
     PumaConditionalBlock *parent = _condBlockStack.top();
     _current = new PumaConditionalBlock(_file, parent, NULL, node, *this);
@@ -217,7 +230,7 @@ void PumaConditionalBlockBuilder::visitPreIfdefDirective_Pre (PreIfdefDirective 
 }
 
 void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirective *node) {
-    TRACECALL
+    TRACECALL;
 
     PumaConditionalBlock *parent = _condBlockStack.top();
     _current = new PumaConditionalBlock(_file, parent, NULL, node, *this);
@@ -228,7 +241,7 @@ void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirectiv
 }
 
 void PumaConditionalBlockBuilder::visitPreElifDirective_Pre (PreElifDirective *node) {
-    TRACECALL
+    TRACECALL;
 
     assert(_current);
     assert(_file);
@@ -242,7 +255,7 @@ void PumaConditionalBlockBuilder::visitPreElifDirective_Pre (PreElifDirective *n
 }
 
 void PumaConditionalBlockBuilder::visitPreElseDirective_Pre (PreElseDirective *node) {
-    TRACECALL
+    TRACECALL;
 
     assert(_current);
     assert(_file);
@@ -256,9 +269,34 @@ void PumaConditionalBlockBuilder::visitPreElseDirective_Pre (PreElseDirective *n
 
 }
 
-void PumaConditionalBlockBuilder::visitPreEndifDirective_Pre (PreEndifDirective *node) {
-    TRACECALL
+void PumaConditionalBlockBuilder::visitPreEndifDirective_Pre (__unused PreEndifDirective *node) {
+    TRACECALL;
 
     _condBlockStack.pop();
     _current = _condBlockStack.top();
+}
+
+void PumaConditionalBlockBuilder::visitDefineHelper(PreTreeComposite *node, bool define) {
+    const std::string definedFlag = node->son(1)->startToken()->text();
+    PumaConditionalBlock &block = *_condBlockStack.top();
+    
+    CppFile::DefineMap &map = *_file->getDefines();
+    CppFile::DefineMap::iterator i = map.find(definedFlag);
+    if (i == map.end())
+        // First define for this item
+        map[definedFlag] = new CppDefine(&block, define, definedFlag);
+    else
+        (*i).second->newDefine(&block, define);
+
+    block.addDefine(map[definedFlag]);
+}
+
+void PumaConditionalBlockBuilder::visitPreDefineConstantDirective_Pre (Puma::PreDefineConstantDirective *node){
+    TRACECALL;
+    visitDefineHelper(node, true);
+}
+
+void PumaConditionalBlockBuilder::visitPreUndefDirective_Pre (Puma::PreUndefDirective *node){
+    TRACECALL;
+    visitDefineHelper(node, false);
 }

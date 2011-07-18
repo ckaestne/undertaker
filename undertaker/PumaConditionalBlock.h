@@ -24,6 +24,7 @@
 #include <Puma/PreTree.h>
 #include <Puma/PreVisitor.h>
 #include <Puma/PreprocessorParser.h>
+#include <Puma/PreTreeNodes.h>
 #include <Puma/CCParser.h>
 #include <Puma/CParser.h>
 #include <Puma/CProject.h>
@@ -42,22 +43,26 @@ class PumaConditionalBlock : public ConditionalBlock {
     unsigned long _number;
     Puma::Token *_start, *_end;
 
-    Puma::PreTree *_current_node;
+    const Puma::PreTree *_current_node;
     
     bool _isIfBlock, _isIfndefine;
     PumaConditionalBlockBuilder &_builder;
+    // For some reason, getting the expression string fails on
+    // subsequent calls. We therefore cache the first result.
+    mutable char *_expressionStr_cache;
     
 
 public:
     PumaConditionalBlock(CppFile *file,
                          ConditionalBlock *parent,
                          ConditionalBlock *prev,
-                         Puma::PreTree *node,
+                         const Puma::PreTree *node,
                          PumaConditionalBlockBuilder &builder) :
         ConditionalBlock(file, parent, prev), _current_node(node),
-        _isIfBlock(false), _isIfndefine(false), _builder(builder) {
-        lateConstructor();
+        _isIfBlock(false), _isIfndefine(false), _builder(builder),
+        _expressionStr_cache(NULL) {
         _number = numNodes++ -1;
+        lateConstructor();
     };
 
     virtual ~PumaConditionalBlock() {}
@@ -96,6 +101,8 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     Puma::CProject _project;
     Puma::CParser _parser;
 
+    void visitDefineHelper(Puma::PreTreeComposite *node, bool define);
+
 public:
     PumaConditionalBlockBuilder();
     ~PumaConditionalBlockBuilder();
@@ -110,6 +117,8 @@ public:
     void visitPreElifDirective_Pre (Puma::PreElifDirective *);
     void visitPreElseDirective_Pre (Puma::PreElseDirective *);
     void visitPreEndifDirective_Pre (Puma::PreEndifDirective *);
+    void visitPreDefineConstantDirective_Pre (Puma::PreDefineConstantDirective *);
+    void visitPreUndefDirective_Pre (Puma::PreUndefDirective *);
 };
 
 #endif
