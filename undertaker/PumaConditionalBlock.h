@@ -39,7 +39,6 @@
 class PumaConditionalBlockBuilder;
 
 class PumaConditionalBlock : public ConditionalBlock {
-    static unsigned long numNodes;
     unsigned long _number;
     Puma::Token *_start, *_end;
 
@@ -53,15 +52,13 @@ class PumaConditionalBlock : public ConditionalBlock {
     
 
 public:
-    PumaConditionalBlock(CppFile *file,
-                         ConditionalBlock *parent,
-                         ConditionalBlock *prev,
-                         const Puma::PreTree *node,
+    PumaConditionalBlock(CppFile *file, ConditionalBlock *parent, ConditionalBlock *prev,
+                         const Puma::PreTree *node, const unsigned long nodeNum,
                          PumaConditionalBlockBuilder &builder) :
-        ConditionalBlock(file, parent, prev), _current_node(node),
+        ConditionalBlock(file, parent, prev),
+        _number(nodeNum), _start(0), _end(0),_current_node(node),
         _isIfBlock(false), _isIfndefine(false), _builder(builder),
         _expressionStr_cache(NULL) {
-        _number = numNodes++ -1;
         lateConstructor();
     };
 
@@ -89,7 +86,7 @@ public:
 
 class PumaConditionalBlockBuilder : public Puma::PreVisitor {
 
-    long _depth;  // recursion depth
+    unsigned long _nodeNum;
     void iterateNodes (Puma::PreTree *);
     // Stack of open conditional blocks. Pushed to when entering #ifdef
     // (and similar) blocks, popped from when leaving them.

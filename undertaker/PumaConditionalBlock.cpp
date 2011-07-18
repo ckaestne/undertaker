@@ -30,8 +30,6 @@
 #include <Puma/PreprocessorParser.h>
 #include <Puma/PreSonIterator.h>
 
-unsigned long PumaConditionalBlock::numNodes;
-
 /// \brief cuts out all \#include statements
 Puma::Unit *cut_includes(Puma::Unit *unit) {
     Puma::ManipCommander mc;
@@ -196,8 +194,8 @@ void PumaConditionalBlockBuilder::visitPreProgram_Pre (PreProgram *node) {
     TRACECALL;
 
     assert (!_current);
-
-    _current = new PumaConditionalBlock(_file, NULL, NULL, node, *this);
+    _nodeNum = 0;
+    _current = new PumaConditionalBlock(_file, NULL, NULL, node, 0, *this);
     _current->_isIfBlock = true;
     _current->_start = node->startToken();
     _current->_end   = node->endToken();
@@ -213,7 +211,7 @@ void PumaConditionalBlockBuilder::visitPreIfDirective_Pre (PreIfDirective *node)
     TRACECALL;
 
     PumaConditionalBlock *parent = _condBlockStack.top();
-    _current = new PumaConditionalBlock(_file, parent, NULL, node, *this);
+    _current = new PumaConditionalBlock(_file, parent, NULL, node, _nodeNum++, *this);
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
     _file->push_back(_condBlockStack.top());
@@ -223,7 +221,7 @@ void PumaConditionalBlockBuilder::visitPreIfdefDirective_Pre (PreIfdefDirective 
     TRACECALL;
 
     PumaConditionalBlock *parent = _condBlockStack.top();
-    _current = new PumaConditionalBlock(_file, parent, NULL, node, *this);
+    _current = new PumaConditionalBlock(_file, parent, NULL, node, _nodeNum++, *this);
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
     _file->push_back(_condBlockStack.top());
@@ -233,7 +231,7 @@ void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirectiv
     TRACECALL;
 
     PumaConditionalBlock *parent = _condBlockStack.top();
-    _current = new PumaConditionalBlock(_file, parent, NULL, node, *this);
+    _current = new PumaConditionalBlock(_file, parent, NULL, node, _nodeNum++, *this);
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
     _current->_isIfndefine = true;
@@ -249,7 +247,7 @@ void PumaConditionalBlockBuilder::visitPreElifDirective_Pre (PreElifDirective *n
     PumaConditionalBlock *prev = _condBlockStack.top();
     _condBlockStack.pop();
     PumaConditionalBlock *parent = _condBlockStack.top();
-    _current = new PumaConditionalBlock(_file, parent, prev, node, *this);
+    _current = new PumaConditionalBlock(_file, parent, prev, node, _nodeNum++, *this);
     _file->push_back(_current);
     _condBlockStack.push(_current);
 }
@@ -263,7 +261,7 @@ void PumaConditionalBlockBuilder::visitPreElseDirective_Pre (PreElseDirective *n
     PumaConditionalBlock *prev = _condBlockStack.top();
     _condBlockStack.pop();
     PumaConditionalBlock *parent = _condBlockStack.top();
-    _current = new PumaConditionalBlock(_file, parent, prev, node, *this);
+    _current = new PumaConditionalBlock(_file, parent, prev, node, _nodeNum++, *this);
     _file->push_back(_current);
     _condBlockStack.push(_current);
 
