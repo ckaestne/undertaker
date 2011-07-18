@@ -1,0 +1,50 @@
+Contents of PreTreeVisitor
+
+00fcb550   Program	### 1 0 from: '#undef' to: '\n'
+00f880c0     DirectiveGroups	### 5 0 from: '#undef' to: '\n'
+00fca3f0       UndefDirective	### 3 0 from: '#undef' to: '\n'
+00fba330         Token '#undef'	### 0 0
+00fca3b0         Token 'X'	### 0 0
+00fca3d0         Token '\n'	### 0 0
+00fca690       DefineConstantDir	### 3 0 from: '#define' to: '\n'
+00fca4c0         Token '#define'	### 0 0
+00fca500         Token 'BUFFER'	### 0 0
+00fca600         TokenList	### 2 0
+00fca560           TokenListPart	### 2 0
+00fca520             Token ' '	### 0 0
+00fca540             Token '1000'	### 0 0
+00fca5e0           Token '\n'	### 0 0
+00fcaa00       DefineConstantDir	### 3 0 from: '#define' to: '\n'
+00fca780         Token '#define'	### 0 0
+00fca8d0         Token 'macro'	### 0 0
+00fca970         TokenList	### 2 0
+00fca750           TokenListPart	### 2 0
+00fca8f0             Token ' '	### 0 0
+00fca910             Token '1000'	### 0 0
+00fca950           Token '\n'	### 0 0
+00fcb0e0       ConditionalGroup	### 3 0 from: '#ifdef' to: '\n'
+00fcaac0         IfdefDirective	### 3 1 from: '#ifdef' to: '	\n'
+00fcad20           => Value 'false'	### 0 0
+00fcaaf0           Token '#ifdef'	### 0 0
+00fcac40           Token 'CONFIG_A'	### 0 0
+00fcac60           Token '	\n'	### 0 0
+00fcad90         DirectiveGroups	### 1 0 from: '#define' to: '\n'
+00fcaf40           DefineConstantDir	### 2 0 from: '#define' to: '\n'
+00fcad70             Token '#define'	### 0 0
+00fcaeb0             TokenList	### 2 0
+00fcae30               TokenListPart	### 1 0
+00fcadf0                 Token 'CONFIG_C'	### 0 0
+00fcae10               Token '\n'	### 0 0
+00fcb030         EndifDirective	### 2 0 from: '#endif' to: '\n'
+00fcafd0           Token '#endif'	### 0 0
+00fcb010           Token '\n'	### 0 0
+00f3a510       ConditionalGroup	### 3 0 from: '#ifdef' to: '\n'
+00fcb1e0         IfdefDirective	### 3 1 from: '#ifdef' to: '\n'
+00fcb2e0           => Value 'false'	### 0 0
+00fcb0c0           Token '#ifdef'	### 0 0
+00fca4e0           Token 'CONFIG_C'	### 0 0
+00fcb1c0           Token '\n'	### 0 0
+00fcb350         DirectiveGroups	### 0 0
+00fcb3d0         EndifDirective	### 2 0 from: '#endif' to: '\n'
+00fcb330           Token '#endif'	### 0 0
+00fcb3b0           Token '\n'	### 0 0
