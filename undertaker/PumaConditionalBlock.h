@@ -44,7 +44,7 @@ class PumaConditionalBlock : public ConditionalBlock {
 
     const Puma::PreTree *_current_node;
     
-    bool _isIfBlock, _isIfndefine;
+    bool _isIfBlock;
     PumaConditionalBlockBuilder &_builder;
     // For some reason, getting the expression string fails on
     // subsequent calls. We therefore cache the first result.
@@ -57,7 +57,7 @@ public:
                          PumaConditionalBlockBuilder &builder) :
         ConditionalBlock(file, parent, prev),
         _number(nodeNum), _start(0), _end(0),_current_node(node),
-        _isIfBlock(false), _isIfndefine(false), _builder(builder),
+        _isIfBlock(false), _builder(builder),
         _expressionStr_cache(NULL) {
         lateConstructor();
     };
@@ -75,7 +75,7 @@ public:
     //! \return original untouched expression
     virtual std::string ExpressionStr() const;
     virtual bool isIfBlock() const { return _isIfBlock; }
-    virtual bool isIfndefine() const { return _isIfndefine; }
+    virtual bool isIfndefine() const;
     virtual const std::string getName() const;
 
 

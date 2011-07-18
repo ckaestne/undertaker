@@ -142,6 +142,12 @@ std::string PumaConditionalBlock::ExpressionStr() const {
     }
 }
 
+bool PumaConditionalBlock::isIfndefine() const {
+    if (dynamic_cast<const PreIfndefDirective *>(_current_node) != 0)
+        return true;
+    else
+        return false;
+}
 
 void PumaConditionalBlockBuilder::iterateNodes (PreTree *node) {
     PreSonIterator i(node);
@@ -239,7 +245,6 @@ void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirectiv
     _current = new PumaConditionalBlock(_file, parent, NULL, node, _nodeNum++, *this);
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
-    _current->_isIfndefine = true;
     _file->push_back(_condBlockStack.top());
 }
 
