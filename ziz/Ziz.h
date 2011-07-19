@@ -198,7 +198,7 @@ typedef std::map<std::string,std::list<Define*> > Defines;
 class File : public BlockContainer {
     public:
 
-        File() : _blocks(0), _defines(0) {}
+        File() : _blocks(0), _cond_blocks(0),_defines(0) {}
 
         virtual container_type ContainerType() const { return OuterBlock; }
 
@@ -215,6 +215,7 @@ class File : public BlockContainer {
 
     private:
         int _blocks;
+        int _cond_blocks;
         int _defines;
 };
 
