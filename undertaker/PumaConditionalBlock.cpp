@@ -191,7 +191,10 @@ PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
 
 #if 0
 #define TRACECALL \
-    std::cerr << __PRETTY_FUNCTION__ << " called " << std::endl
+    std::cerr << __PRETTY_FUNCTION__ << ": " \
+              << "Start: " << node->startToken()->location().line() << ", "       \
+              << "End: " << node->endToken()->location().line() \
+              << std::endl
 #else
 #define TRACECALL
 #endif
