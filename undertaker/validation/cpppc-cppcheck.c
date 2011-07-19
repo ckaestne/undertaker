@@ -22,8 +22,8 @@ int main(void) {
  * check-output-start
 I: CPP Precondition for cpppc-cppcheck.c
 ( B0 <-> FOO )
-&& ( B2 <-> B0 && BAR. )
-&& ( B4 <-> B0 && ( ! (B2) ) )
+&& ( B1 <-> B0 && BAR. )
+&& ( B2 <-> B0 && ( ! (B1) ) )
 && ((BAR  && !(B0)) -> BAR.)
 && ((BAR. && !(B0)) -> BAR )
 && (B0 -> BAR.)

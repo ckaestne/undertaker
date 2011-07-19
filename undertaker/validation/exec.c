@@ -2122,10 +2122,10 @@ I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
 I: Using x86 as primary model
-I: creating exec.c.B3.x86.missing.dead
-I: creating exec.c.B11.x86.missing.dead
-I: creating exec.c.B13.x86.missing.undead
-I: creating exec.c.B16.x86.missing.dead
-I: creating exec.c.B18.x86.missing.undead
+I: creating exec.c.B1.x86.missing.dead
+I: creating exec.c.B4.x86.missing.dead
+I: creating exec.c.B5.x86.missing.undead
+I: creating exec.c.B6.x86.missing.dead
+I: creating exec.c.B7.x86.missing.undead
  * check-output-end
  */

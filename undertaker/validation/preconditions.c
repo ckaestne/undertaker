@@ -21,10 +21,10 @@ No CPP Precond
  * check-name: calculate block preconditions without model
  * check-command: undertaker -j blockpc $file:12
  * check-output-start
-I: Block B8 | Defect: no | Global: 0
-B8
-&& ( B6 <-> CONFIG_TOPLEVEL_C )
-&& ( B8 <-> B6 && CONFIG_LEVEL_C_B )
+I: Block B3 | Defect: no | Global: 0
+B3
+&& ( B2 <-> CONFIG_TOPLEVEL_C )
+&& ( B3 <-> B2 && CONFIG_LEVEL_C_B )
 && B00
  * check-output-end
  */

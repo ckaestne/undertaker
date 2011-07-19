@@ -22,6 +22,6 @@ I: CPP Precondition for cpppc-def-undef.c
 && ((X.  && !(B0)) -> X..)
 && ((X.. && !(B0)) -> X. )
 && B00
-&& ( B2 <-> B0 && X.. )
+&& ( B1 <-> B0 && X.. )
  * check-output-end
  */

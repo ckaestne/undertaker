@@ -17,6 +17,6 @@ int main(void) {
  * check-name: multicloud
  * check-command: undertaker $file
  * check-output-start
-I: creating multicloud-dead.c.B4.code.globally.dead
+I: creating multicloud-dead.c.B1.code.globally.dead
  * check-output-end
  */
