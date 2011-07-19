@@ -1,5 +1,5 @@
 
-#define ON
+#define ON 1
 
 #if ON && A > 23
 
