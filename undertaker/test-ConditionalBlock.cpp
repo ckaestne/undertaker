@@ -54,7 +54,7 @@ START_TEST(cond_parse_test)
     fail_unless(block_b->getParent() == file.topBlock());
 
     fail_unless(block_a->getPrev() == 0);
-    fail_unless(block_b->getPrev() == block_a);
+    fail_unless(block_b->getPrev() == 0);
 
     fail_unless(block_ifdef->size() == 0);
     fail_unless(block_elsif->size() == 0);

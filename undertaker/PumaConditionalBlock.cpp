@@ -230,6 +230,7 @@ void PumaConditionalBlockBuilder::visitPreIfDirective_Pre (PreIfDirective *node)
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
     _file->push_back(_condBlockStack.top());
+    parent->push_back(_current);
 }
 
 void PumaConditionalBlockBuilder::visitPreIfdefDirective_Pre (PreIfdefDirective *node) {
@@ -241,6 +242,7 @@ void PumaConditionalBlockBuilder::visitPreIfdefDirective_Pre (PreIfdefDirective 
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
     _file->push_back(_condBlockStack.top());
+    parent->push_back(_current);
 }
 
 void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirective *node) {
@@ -252,6 +254,7 @@ void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirectiv
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
     _file->push_back(_condBlockStack.top());
+    parent->push_back(_current);
 }
 
 void PumaConditionalBlockBuilder::visitPreElifDirective_Pre (PreElifDirective *node) {
@@ -268,6 +271,7 @@ void PumaConditionalBlockBuilder::visitPreElifDirective_Pre (PreElifDirective *n
     _current->_start = node->startToken();
     _file->push_back(_current);
     _condBlockStack.push(_current);
+    parent->push_back(_current);
 }
 
 void PumaConditionalBlockBuilder::visitPreElseDirective_Pre (PreElseDirective *node) {
@@ -284,7 +288,7 @@ void PumaConditionalBlockBuilder::visitPreElseDirective_Pre (PreElseDirective *n
     _current->_start = node->startToken();
     _file->push_back(_current);
     _condBlockStack.push(_current);
-
+    parent->push_back(_current);
 }
 
 void PumaConditionalBlockBuilder::visitPreEndifDirective_Pre (__unused PreEndifDirective *node) {
