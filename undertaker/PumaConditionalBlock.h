@@ -65,7 +65,7 @@ public:
     virtual ~PumaConditionalBlock() {}
 
     //! location related accessors
-    virtual const char *filename()   const { return _start->location().filename().name(); };
+    virtual const char *filename()   const { return cpp_file->getFilename().c_str(); };
     virtual unsigned int lineStart() const { return _start->location().line();   };
     virtual unsigned int colStart()  const { return _start->location().column(); };
     virtual unsigned int lineEnd()   const { return _end  ->location().line();   };
