@@ -301,6 +301,12 @@ void PumaConditionalBlockBuilder::visitPreEndifDirective_Pre (__unused PreEndifD
 
 void PumaConditionalBlockBuilder::visitDefineHelper(PreTreeComposite *node, bool define) {
     const std::string definedFlag = node->son(1)->startToken()->text();
+    const Puma::DString &definedDFlag = node->son(1)->startToken()->dtext();
+
+    /* Don't handle function macros */
+    if (cpp_parser()->macroManager()->getMacro(definedDFlag) != 0)
+        return;
+
     PumaConditionalBlock &block = *_condBlockStack.top();
     
     CppFile::DefineMap &map = *_file->getDefines();
@@ -322,4 +328,34 @@ void PumaConditionalBlockBuilder::visitPreDefineConstantDirective_Pre (Puma::Pre
 void PumaConditionalBlockBuilder::visitPreUndefDirective_Pre (Puma::PreUndefDirective *node){
     TRACECALL;
     visitDefineHelper(node, false);
+
+    const Puma::DString &definedFlag = node->son(1)->startToken()->dtext();
+    cpp_parser()->macroManager()->removeMacro(definedFlag);
+}
+
+void PumaConditionalBlockBuilder::visitPreDefineFunctionDirective_Pre (Puma::PreDefineFunctionDirective * node){
+    const Puma::DString &definedFlag = node->son(1)->startToken()->dtext();
+
+    if (!_current->getParent()) { // Handle only toplevel defines
+        if (node->sons() == 6) { // With parameter list
+            char *expansion = buildString(node->son(5));
+
+            Puma::PreMacro * macro = new PreMacro(node->son(1)->startToken()->dtext(),
+                                                  node->son(3), expansion);
+            delete[] expansion;
+            cpp_parser()->macroManager ()->addMacro (macro);
+
+        } else if (node->sons() == 5) { // Without parameter list
+            char *expansion = buildString(node->son(4));
+
+            Puma::PreMacro * macro = new PreMacro(node->son(1)->startToken()->dtext(),
+                                                  (PreTree *) 0, expansion);
+            delete[] expansion;
+            cpp_parser()->macroManager ()->addMacro (macro);
+        }
+    } else {
+        /* If an macro is defined in an block we can't expand them for
+           sure anymore TODO Evaluate*/
+        cpp_parser()->macroManager()->removeMacro(definedFlag);
+    }
 }

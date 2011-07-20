@@ -115,6 +115,7 @@ public:
     void visitPreElseDirective_Pre (Puma::PreElseDirective *);
     void visitPreEndifDirective_Pre (Puma::PreEndifDirective *);
     void visitPreDefineConstantDirective_Pre (Puma::PreDefineConstantDirective *);
+    void visitPreDefineFunctionDirective_Pre (Puma::PreDefineFunctionDirective *);
     void visitPreUndefDirective_Pre (Puma::PreUndefDirective *);
 };
 
