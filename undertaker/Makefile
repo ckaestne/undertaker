@@ -32,11 +32,6 @@ KconfigIntersect: libparser.a
 predator: predator.o PredatorVisitor.o
 	$(CXX) $^ -lPuma -o $@
 
-# we require FORCE here because we don't want to duplicate all
-# dependencies from libziz' Makefiles
-../ziz/zizler ../ziz/libziz.a: FORCE
-	$(MAKE) -C ../ziz zizler
-
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
 
@@ -73,7 +68,7 @@ run-coveragecheck: undertaker
 	if grep -q '^CONFIG_IA64=[^n]' validation/sched.c.config*; then echo "IA64 not selectable!"; false ; fi
 	if grep -q ^CONFIG_CHOICE validation/sched.c.config*; then echo "must not contain CONFIG_CHOICE*"; false ; fi
 
-check: $(PROGS) ../ziz/zizler
+check: $(PROGS)
 	@$(MAKE) -s clean-check
 	@$(MAKE) run-coveragecheck
 	@$(MAKE) -C kconfig-dumps all
@@ -97,7 +92,6 @@ docs:
 	doxygen
 
 run-lcov:
-	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage" -C ../ziz zizler libziz.a
 	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage"
 	rm -rf coverage-html ; mkdir coverage-html
 	lcov --directory $(CURDIR) --zerocounters
