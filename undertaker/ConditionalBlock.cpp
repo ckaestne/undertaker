@@ -21,13 +21,8 @@
 #include "StringJoiner.h"
 #include "ConditionalBlock.h"
 
-#if USE_PUMA
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
-#else
-#include "ZizConditionalBlock.h"
-typedef ZizConditionalBlock ConditionalBlockImpl;
-#endif
 
 CppFile::CppFile(const char *filename) : filename(filename), top_block(0), checker(this) {
     top_block = ConditionalBlockImpl::parse(filename, this);
