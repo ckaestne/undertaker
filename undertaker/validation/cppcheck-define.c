@@ -20,7 +20,7 @@ int main(void) {
  * check-name: http://sourceforge.net/apps/trac/cppcheck/ticket/1467
  * check-command: undertaker $file
  * check-output-start
-I: creating cppcheck-define.c.B2.code.globally.undead
-I: creating cppcheck-define.c.B4.code.globally.dead
+I: creating cppcheck-define.c.B1.code.globally.undead
+I: creating cppcheck-define.c.B2.code.globally.dead
  * check-output-end
  */

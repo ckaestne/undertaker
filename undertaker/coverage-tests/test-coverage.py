@@ -66,10 +66,10 @@ class Main:
 
 
     def main(self):
-        p = subprocess.Popen(['zizler', '-c', filename], stdout=subprocess.PIPE)
+        p = subprocess.Popen(['predator', '-c', filename], stdout=subprocess.PIPE)
         self.content = p.communicate()[0]
         if p.returncode != 0:
-            raise RuntimeError("Error while running zizler")
+            raise RuntimeError("Error while running predator")
 
         continue_with_next = False
 

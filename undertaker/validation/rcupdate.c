@@ -307,7 +307,7 @@ I: loaded rsf model for xtensa
 I: found 23 rsf models
 I: loaded 0 items to whitelist
 I: Using x86 as primary model
-I: creating rcupdate.c.B12.x86.kconfig.globally.dead
-I: creating rcupdate.c.B14.x86.kconfig.globally.undead
+I: creating rcupdate.c.B4.x86.kconfig.globally.dead
+I: creating rcupdate.c.B5.x86.kconfig.globally.undead
  * check-output-end
  */

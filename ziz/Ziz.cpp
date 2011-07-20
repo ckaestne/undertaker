@@ -365,7 +365,7 @@ File::CreateConditionalBlock(int depth, position_type startPos,
 
     // create the ConditionalBlock
     ConditionalBlock* pCurBlock =
-        new ConditionalBlock(_blocks++, depth, startPos, *lexer, pbc);
+        new ConditionalBlock(_cond_blocks++, depth, startPos, *lexer, pbc);
 
     // store the very first token (#if, #else, ...) in the header, but not in
     // the expression token vector

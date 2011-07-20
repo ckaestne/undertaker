@@ -1,4 +1,4 @@
-PROGS = scripts/kconfig/dumpconf undertaker/undertaker rsf2model/rsf2model ziz/zizler
+PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator rsf2model/rsf2model ziz/zizler
 TEMPLATED = rsf2model/undertaker-kconfigdump
 MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz
 
@@ -54,6 +54,7 @@ install: all $(TEMPLATED) $(MANPAGES)
 	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(LIBDIR)/undertaker
 
 	@install -v undertaker/undertaker $(DESTDIR)$(PREFIX)/bin
+	@install -v undertaker/predator $(DESTDIR)$(PREFIX)/bin
 	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(PREFIX)/bin
 	@install -v undertaker/undertaker-calc-coverage $(DESTDIR)$(PREFIX)/bin

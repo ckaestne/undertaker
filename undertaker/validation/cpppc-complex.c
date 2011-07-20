@@ -9,7 +9,7 @@
 # elif CONFIG_A		//7
 #  ifdef CONFIG_E	//8
 #  endif
-# else CONFIG_B		//9
+# elif CONFIG_B		//9
 # endif
 #endif
 /*

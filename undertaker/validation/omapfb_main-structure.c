@@ -68,9 +68,9 @@ I: creating omapfb_main-structure.c.B5.x86.missing.dead
 I: creating omapfb_main-structure.c.B6.x86.missing.dead
 I: creating omapfb_main-structure.c.B7.x86.missing.dead
 I: creating omapfb_main-structure.c.B8.x86.missing.dead
+I: creating omapfb_main-structure.c.B10.x86.missing.dead
 I: creating omapfb_main-structure.c.B11.x86.missing.dead
-I: creating omapfb_main-structure.c.B12.x86.missing.dead
+I: creating omapfb_main-structure.c.B13.x86.missing.dead
 I: creating omapfb_main-structure.c.B14.x86.missing.dead
-I: creating omapfb_main-structure.c.B15.x86.missing.dead
  * check-output-end
  */

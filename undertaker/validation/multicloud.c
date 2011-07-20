@@ -23,6 +23,6 @@
  * check-name: multicloud
  * check-command: undertaker $file
  * check-output-start
-I: creating multicloud.c.B10.code.globally.dead
+I: creating multicloud.c.B4.code.globally.dead
  * check-output-end
  */

@@ -8,32 +8,29 @@ NODEPS:=clean clean-check
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
 VERSION ?= git
-CFLAGS = -Wall -Wextra -O2 -I../ziz -DVERSION=$(VERSION) $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 -DVERSION=$(VERSION) $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
 # LDCOV = -coverage
-LDLIBS = -lstdc++ -lboost_system -lboost_regex -lboost_filesystem libparser.a ../ziz/libziz.a  -lpicosat -lboost_wave-mt $(LDCOV)
+LDLIBS = -lstdc++ -lboost_system -lboost_regex -lboost_filesystem libparser.a -lpicosat -lboost_wave-mt -lPuma $(LDCOV)
 
-PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o	\
-		    ModelContainer.o SatChecker.o BlockDefectAnalyzer.o  \
-			ConditionalBlock.o CoverageAnalyzer.o ZizConditionalBlock.o
+PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o\
+		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
+		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
-PROGS = undertaker
+PROGS = undertaker predator
 TESTPROGS = test-SatChecker test-ConditionalBlock
 
-all: ../ziz/libziz.a $(PROGS) $(TESTPROGS)
+all: $(PROGS) $(TESTPROGS)
 
-undertaker: ../ziz/libziz.a libparser.a
+undertaker: libparser.a
 KconfigIntersect: libparser.a
 
-# we require FORCE here because we don't want to duplicate all
-# dependencies from libziz' Makefiles
-../ziz/zizler ../ziz/libziz.a: FORCE
-	$(MAKE) -C ../ziz libziz.a
-	$(MAKE) -C ../ziz zizler
+predator: predator.o PredatorVisitor.o
+	$(CXX) $^ -lPuma -o $@
 
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
@@ -71,7 +68,7 @@ run-coveragecheck: undertaker
 	if grep -q '^CONFIG_IA64=[^n]' validation/sched.c.config*; then echo "IA64 not selectable!"; false ; fi
 	if grep -q ^CONFIG_CHOICE validation/sched.c.config*; then echo "must not contain CONFIG_CHOICE*"; false ; fi
 
-check: $(PROGS) ../ziz/zizler
+check: $(PROGS)
 	@$(MAKE) -s clean-check
 	@$(MAKE) run-coveragecheck
 	@$(MAKE) -C kconfig-dumps all
@@ -95,7 +92,6 @@ docs:
 	doxygen
 
 run-lcov:
-	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage" -C ../ziz zizler libziz.a
 	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage"
 	rm -rf coverage-html ; mkdir coverage-html
 	lcov --directory $(CURDIR) --zerocounters

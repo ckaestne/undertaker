@@ -38,7 +38,7 @@ class ExpansionSanityCheckError(ExpansionError):
     """ Internal kernel config sanity checks failed, like `make silentoldconfig` """
     pass
 
-class ZizlerError(RuntimeError):
+class PredatorError(RuntimeError):
     pass
 
 def execute(command, echo=True):
@@ -259,7 +259,7 @@ def get_conditional_blocks(filename, selected_only=False):
     """
     Counts the conditional blocks in the given source file
 
-    The calculation is done using the 'zizler' binary from the system
+    The calculation is done using the 'predator' binary from the system
     path.  If the parameter 'actually_selected' is set, then the source
     file is preprocessed with 'cpp' while using current configuration as
     per 'include/generated/autoconf.h'
@@ -269,14 +269,14 @@ def get_conditional_blocks(filename, selected_only=False):
     """
 
     if selected_only:
-        cmd = 'zizler -cC "%s" | cpp -include %s' % (filename, find_autoconf())
+        cmd = 'predator -cC "%s" | cpp -include %s' % (filename, find_autoconf())
     else:
-        cmd = 'zizler -cC "%s"' % filename
+        cmd = 'predator -cC "%s"' % filename
     (blocks, rc) = execute(cmd, echo=True)
 
     blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
     if rc != 0:
-        logging.warning("zizler/cpp failed with exitcode: %d" % rc)
+        logging.warning("predator/cpp failed with exitcode: %d" % rc)
     return blocks
 
 
@@ -475,7 +475,7 @@ def main():
                     except KeyError:
                         pass
 
-        except ZizlerError as error:
+        except PredatorError as error:
             continue
         except RuntimeError as error:
             logging.error(error.__str__())

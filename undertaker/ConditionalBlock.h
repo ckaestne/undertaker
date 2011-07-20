@@ -48,10 +48,11 @@ class CppFile : public CondBlockList {
     ConditionalBlock *topBlock() const { return top_block; };
 
 
+    typedef std::map<std::string, CppDefine*> DefineMap;
     /**
      * \return map with defined symbol to define object
      */
-    std::map<std::string, CppDefine*> * getDefines() { return &define_map; };
+    DefineMap* getDefines() { return &define_map; };
 
     //! \return filename given in the constructor
     std::string getFilename() const { return filename; };

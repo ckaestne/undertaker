@@ -54,7 +54,7 @@ START_TEST(cond_parse_test)
     fail_unless(block_b->getParent() == file.topBlock());
 
     fail_unless(block_a->getPrev() == 0);
-    fail_unless(block_b->getPrev() == block_a);
+    fail_unless(block_b->getPrev() == 0);
 
     fail_unless(block_ifdef->size() == 0);
     fail_unless(block_elsif->size() == 0);
@@ -70,16 +70,16 @@ START_TEST(cond_getConstraints) {
                      "B00");
 
     ck_assert_str_eq(block_a->getConstraintsHelper().c_str(),
-                     "( B1 <-> ! A. )");
+                     "( B0 <-> ! A. )");
 
     ck_assert_str_eq(block_b->getConstraintsHelper().c_str(),
-                     "( B4 <-> B.. )");
+                     "( B1 <-> B.. )");
 
     ck_assert_str_eq(block_ifdef->getConstraintsHelper().c_str(),
-                     "( B5 <-> B4 && X. )");
+                     "( B2 <-> B1 && X. )");
 
     ck_assert_str_eq(block_elsif->getConstraintsHelper().c_str(),
-                      "( B7 <-> B4 && ( ! (B5) ) )");
+                      "( B3 <-> B1 && ( ! (B2) ) )");
 
 } END_TEST;
 

@@ -4,7 +4,7 @@ passed=0
 total=0
 
 for f in *.c; do
-  if ! PATH=...:../../ziz:/usr/local/bin:$PATH ./test-defines.py -v0 $f; then
+  if ! PATH=..:../../ziz:/usr/local/bin:$PATH ./test-defines.py -v0 $f; then
     echo "FAILED $f";
   else
     echo "PASSED $f"
