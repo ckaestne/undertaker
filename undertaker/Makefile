@@ -29,7 +29,7 @@ all: $(PROGS) $(TESTPROGS)
 undertaker: libparser.a
 KconfigIntersect: libparser.a
 
-predator: predator.o PreTreeVisitor.o
+predator: predator.o PredatorVisitor.o
 	$(CXX) $^ -lPuma -o $@
 
 # we require FORCE here because we don't want to duplicate all

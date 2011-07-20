@@ -1,5 +1,5 @@
 /*
- *   (feline) predator - haunts variability points
+ *   (feline) predator - normalizes cpp statements in a source file
  *
  * Copyright (C) 2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
@@ -17,29 +17,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <Puma/CCParser.h>
 #include <Puma/CParser.h>
 #include <Puma/CProject.h>
 #include <Puma/CTranslationUnit.h>
 #include <Puma/PreTree.h>
-#include <Puma/Unit.h>
 #include <Puma/ManipCommander.h>
 #include <Puma/PreParser.h>
-#include <Puma/Token.h>
-#include <Puma/PreprocessorParser.h>
 
-#include "PreTreeVisitor.h"
-
-#ifdef FOO
-#endif
-
-
-void usage(const char *msg, bool fail=true) {
-    std::cout << "predator <file>" << std::endl;
-    std::cout << msg << std::endl;
-    if (fail)
-        exit(EXIT_FAILURE);
-}
+#include "PredatorVisitor.h"
 
 /// \brief cuts out all \#include statements
 Puma::Unit *cut_includes(Puma::Unit *unit) {
@@ -48,7 +33,12 @@ Puma::Unit *cut_includes(Puma::Unit *unit) {
 
 restart:
     for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
-        if (s->type() == TOK_PRE_INCLUDE) {
+        switch(s->type()) {
+        case TOK_PRE_ASSERT:
+        case TOK_PRE_ERROR:
+        case TOK_PRE_INCLUDE:
+        case TOK_PRE_INCLUDE_NEXT:
+        case TOK_PRE_WARNING:
             e = s;
             do {
                 e = unit->next(e);
@@ -61,6 +51,12 @@ restart:
     return unit;
 }
 
+void usage(const char *msg, bool fail=true) {
+    std::cout << "predator <file>" << std::endl;
+    std::cout << msg << std::endl;
+    if (fail)
+        exit(EXIT_FAILURE);
+}
 
 int main(int argc, char **argv) {
     // See manual or Config.cc in the Puma sources for Puma command line arguments
@@ -83,13 +79,8 @@ int main(int argc, char **argv) {
     Puma::PreTree *ptree = file->cpp_tree();
     assert(ptree);
 
-//    Puma::PreprocessorParser cpp(&err, &project.unitManager(), &file->local_units(), std::cerr);
-//    cpp.silentMode();
-//    PreMacroExpander expander(cpp);
-    
-    
-    Puma::PreTreeVisitor preprinter;
-    ptree->accept(preprinter);
+    PredatorVisitor predator(err);
+    ptree->accept(predator);
     delete file;
     return 0;
 }
