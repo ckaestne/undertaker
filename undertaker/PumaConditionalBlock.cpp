@@ -389,6 +389,80 @@ void PumaConditionalBlockBuilder::addIncludePath(const char *path){
     _includePaths.push_back(path);
 }
 
+// Remove an possible include guard, this was copied from libPuma::PreFileIncluder
+static Puma::Unit * removeIncludeGuard(Unit *unit) {
+    Puma::ManipCommander mc;
+
+    Token *guard = 0, *ifndef, *end_define, *endif;
+    Token *tok = (Token*)unit->first ();
+    // skip comments and whitespace
+    while (tok && (tok->is_whitespace () || tok->is_comment ()))
+        tok = (Token*)unit->next (tok);
+    // the next token has to be #ifndef
+    if (!(tok && tok->is_preprocessor () && tok->type () == TOK_PRE_IFNDEF))
+        return unit;
+    ifndef = tok;
+    tok = (Token*)unit->next (tok);
+    // now whitespace
+    if (!(tok && tok->is_whitespace ()))
+        return unit;
+    tok = (Token*)unit->next (tok);
+    // the next has be an identifier => the name of the guard macro
+    if (!(tok && tok->is_identifier ()))
+        return unit;
+    guard = tok;
+    tok = (Token*)unit->next (tok);
+    // skip comments and whitespace
+    while (tok && (tok->is_whitespace () || tok->is_comment ()))
+        tok = (Token*)unit->next (tok);
+    // the next token has to be #define
+    if (!(tok && tok->is_preprocessor () && tok->type () == TOK_PRE_DEFINE))
+        return unit;
+    tok = (Token*)unit->next (tok);
+    // now whitespace
+    if (!(tok && tok->is_whitespace ()))
+        return unit;
+    tok = (Token*)unit->next (tok);
+    // the next has be an identifier => the name of the guard macro
+    if (!(tok && tok->is_identifier ()))
+        return unit;
+    // check if the identifier is our guard variable
+    if (strcmp (tok->text (), guard->text ()) != 0)
+        return unit;
+    tok = (Token*)unit->next (tok);
+    end_define = tok;
+    // find the corresponding #endif
+    int level = 1;
+    while (tok) {
+        if (tok->is_preprocessor ()) {
+            if (tok->type () == TOK_PRE_IF || tok->type () == TOK_PRE_IFDEF ||
+                tok->type () == TOK_PRE_IFNDEF)
+                level++;
+            else if (tok->type () == TOK_PRE_ENDIF) {
+                endif = tok;
+                level--;
+                if (level == 0)
+                    break;
+            }
+        }
+        tok = (Token*)unit->next (tok);
+    }
+    if (level > 0)
+        return unit;
+    tok = (Token*)unit->next (tok);
+    // skip comments and whitespace
+    while (tok && (tok->is_whitespace () || tok->is_comment ()))
+        tok = (Token*)unit->next (tok);
+    // here we should have reached the end of the unit!
+    if (tok)
+        return unit;
+
+    mc.kill(ifndef, end_define);
+    mc.kill(endif, unit->last());
+    mc.commit();
+    return unit;
+}
+
 Puma::Unit * PumaConditionalBlockBuilder::resolve_includes(Puma::Unit *unit) {
     Puma::PreFileIncluder includer(*_cpp);
     Puma::ManipCommander mc;
@@ -415,6 +489,7 @@ restart:
             if (file && already_seen.count(file) == 0) {
                 /* Paste the included file only, if we haven't it seen
                    until then */
+                file = removeIncludeGuard(file);
                 mc.paste_before(s, file);
                 already_seen.insert(file);
             }
@@ -423,7 +498,6 @@ restart:
             goto restart;
         }
     }
-
     return unit;
 }
 
