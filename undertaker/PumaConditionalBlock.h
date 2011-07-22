@@ -100,11 +100,14 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     Puma::ErrorStream _err;
     Puma::CProject _project;
     Puma::CParser _parser;
-    Puma::Config *_config;
 
     static std::list<std::string> _includePaths;
 
     void visitDefineHelper(Puma::PreTreeComposite *node, bool define);
+    Puma::Unit *resolve_includes(Puma::Unit *);
+    void reset_MacroManager(Puma::Unit *unit);
+
+
 public:
     PumaConditionalBlockBuilder();
     ~PumaConditionalBlockBuilder();

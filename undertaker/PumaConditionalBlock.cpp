@@ -27,10 +27,13 @@
 #include <Puma/ManipCommander.h>
 #include <Puma/PreParser.h>
 #include <Puma/Token.h>
+#include <Puma/TokenStream.h>
 #include <Puma/PreTreeNodes.h>
 #include <Puma/PreprocessorParser.h>
 #include <Puma/PreFileIncluder.h>
 #include <Puma/PreSonIterator.h>
+
+#include <set>
 
 /// \brief cuts out all bad CPP statements
 Puma::Unit * remove_cpp_statements(Puma::Unit *unit) {
@@ -122,22 +125,20 @@ std::string PumaConditionalBlock::ExpressionStr() const {
 
     if ((node = dynamic_cast<const PreIfDirective *>(_current_node)))
         _expressionStr_cache = buildString(node->son(1));
-    else
-    if ((node = dynamic_cast<const PreIfdefDirective *>(_current_node)))
+    else if ((node = dynamic_cast<const PreIfdefDirective *>(_current_node)))
         _expressionStr_cache = strdup(node->son(1)->startToken()->text());
-    else
-    if ((node = dynamic_cast<const PreIfndefDirective *>(_current_node)))
+    else if ((node = dynamic_cast<const PreIfndefDirective *>(_current_node))) {
         _expressionStr_cache = strdup(node->son(1)->startToken()->text());
-    else
-    if ((node = dynamic_cast<const PreElifDirective *>(_current_node)))
+    } else if ((node = dynamic_cast<const PreElifDirective *>(_current_node)))
         _expressionStr_cache = buildString(node->son(1));
-    else
-    if ((node = dynamic_cast<const PreElseDirective *>(_current_node)))
+    else if ((node = dynamic_cast<const PreElseDirective *>(_current_node)))
         _expressionStr_cache = (char *)"";
+
 
     if (_expressionStr_cache) {
         PreMacroExpander expander(_builder.cpp_parser());
-        return expander.expandMacros(_expressionStr_cache);
+        _expressionStr_cache = expander.expandMacros(_expressionStr_cache);
+        return _expressionStr_cache;
     }
     else {
         return std::string("?? ") + typeid(node).name();
@@ -168,15 +169,34 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
 
     unit = remove_cpp_statements(unit);
 
-    Puma::CTranslationUnit *file = _parser.parse(*unit, _project, 2); // cpp tree only!
+    CTranslationUnit *tu = new CTranslationUnit (*unit, _project);
 
-    Puma::PreTree *ptree = file->cpp_tree();
+    // prepare C preprocessor
+    TokenStream stream;           // linearize tokens from several files
+    stream.push (unit);
+    _project.unitManager ().init ();
+
+    _cpp = new PreprocessorParser(&_err, &_project.unitManager(), &tu->local_units(), std::cerr);
+    _cpp->macroManager ()->init (unit->name ());
+    _cpp->stream (&stream);
+    _cpp->configure (_project.config ());
+
+    /* Resolve all #include statements, must be done after _cpp
+       initialization */
+    unit = resolve_includes(unit);
+    stream.reset();
+    stream.push(unit);
+
+    _cpp->silentMode ();
+    _cpp->parse ();
+    /* After parsing we have to reset the macro manager */
+    reset_MacroManager(unit);
+
+    Puma::PreTree *ptree = _cpp->syntaxTree();
     if (!ptree) {
         std::cerr << "Failed to create cpp tree from file : " << filename << std::endl;
         return NULL;
     }
-
-    _cpp = new PreprocessorParser(&_err, &_project.unitManager(), &file->local_units(), std::cerr);
 
     _file = cpp_file;
     _current = NULL;
@@ -186,17 +206,7 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
 
 
 PumaConditionalBlockBuilder::PumaConditionalBlockBuilder()
-    : _cpp(0), null_stream("/dev/null"), _err(null_stream), _project(_err, 0, NULL), _parser() {
-    // Add all configured include paths must be added to the Puma::CProject
-
-    _config = new Puma::Config(_err);
-
-    for (std::list<std::string>::const_iterator i = _includePaths.begin();
-         i != _includePaths.end(); ++i) {
-        _config->Add("-I", (*i).c_str());
-    }
-    _project.config().Join(*_config);
-}
+    : _cpp(0), null_stream("/dev/null"), _err(null_stream), _project(_err, 0, NULL), _parser() { }
 
 PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
     delete _cpp;
@@ -377,4 +387,56 @@ std::list<std::string> PumaConditionalBlockBuilder::_includePaths;
 
 void PumaConditionalBlockBuilder::addIncludePath(const char *path){
     _includePaths.push_back(path);
+}
+
+Puma::Unit * PumaConditionalBlockBuilder::resolve_includes(Puma::Unit *unit) {
+    Puma::PreFileIncluder includer(*_cpp);
+    Puma::ManipCommander mc;
+    Puma::Token *s, *e;
+    std::string include;
+    std::set<Puma::Unit *> already_seen;
+
+    for (std::list<std::string>::const_iterator i = _includePaths.begin();
+         i != _includePaths.end(); ++i) {
+        includer.addIncludePath((*i).c_str());
+    }
+
+restart:
+    for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
+        if (s->type() == TOK_PRE_INCLUDE) {
+            e = s;
+            include.clear();
+            do {
+                e = unit->next(e);
+                include += e->text();
+            } while (unit->next(e) && unit->next(e)->text()[0] != '\n');
+
+            Puma::Unit *file = includer.includeFile(include.c_str());
+            if (file && already_seen.count(file) == 0) {
+                /* Paste the included file only, if we haven't it seen
+                   until then */
+                mc.paste_before(s, file);
+                already_seen.insert(file);
+            }
+            mc.kill(s, e);
+            mc.commit();
+            goto restart;
+        }
+    }
+
+    return unit;
+}
+
+void PumaConditionalBlockBuilder::reset_MacroManager(Puma::Unit *unit) {
+    Puma::Token *s, *e;
+
+    for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
+        if (s->type() == TOK_PRE_DEFINE) {
+            e = s;
+            do {
+                e = unit->next(e);
+            } while (e->is_whitespace());
+            cpp_parser()->macroManager()->removeMacro(e->dtext());
+        }
+    }
 }
