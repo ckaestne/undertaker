@@ -30,6 +30,8 @@
 #include <Puma/CProject.h>
 
 #include <stack>
+#include <list>
+#include <ostream>
 
 #include "StringJoiner.h"
 #include "ConfigurationModel.h"
@@ -94,12 +96,15 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     PumaConditionalBlock* _current;
     CppFile *_file;
     Puma::PreprocessorParser *_cpp;
+    std::ofstream null_stream;
     Puma::ErrorStream _err;
     Puma::CProject _project;
     Puma::CParser _parser;
+    Puma::Config *_config;
+
+    static std::list<std::string> _includePaths;
 
     void visitDefineHelper(Puma::PreTreeComposite *node, bool define);
-
 public:
     PumaConditionalBlockBuilder();
     ~PumaConditionalBlockBuilder();
@@ -117,6 +122,8 @@ public:
     void visitPreDefineConstantDirective_Pre (Puma::PreDefineConstantDirective *);
     void visitPreDefineFunctionDirective_Pre (Puma::PreDefineFunctionDirective *);
     void visitPreUndefDirective_Pre (Puma::PreUndefDirective *);
+
+    static void addIncludePath(const char *);
 };
 
 #endif

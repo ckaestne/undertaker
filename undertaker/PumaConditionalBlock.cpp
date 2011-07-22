@@ -23,15 +23,17 @@
 
 #include <Puma/CTranslationUnit.h>
 #include <Puma/Unit.h>
+#include <Puma/UnitManager.h>
 #include <Puma/ManipCommander.h>
 #include <Puma/PreParser.h>
 #include <Puma/Token.h>
 #include <Puma/PreTreeNodes.h>
 #include <Puma/PreprocessorParser.h>
+#include <Puma/PreFileIncluder.h>
 #include <Puma/PreSonIterator.h>
 
-/// \brief cuts out all \#include statements
-Puma::Unit *cut_includes(Puma::Unit *unit) {
+/// \brief cuts out all bad CPP statements
+Puma::Unit * remove_cpp_statements(Puma::Unit *unit) {
     Puma::ManipCommander mc;
     Puma::Token *s, *e;
 
@@ -40,7 +42,7 @@ restart:
         switch(s->type()) {
         case TOK_PRE_ASSERT:
         case TOK_PRE_ERROR:
-        case TOK_PRE_INCLUDE:
+            //        case TOK_PRE_INCLUDE:
         case TOK_PRE_INCLUDE_NEXT:
         case TOK_PRE_WARNING:
             e = s;
@@ -164,7 +166,8 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
         return NULL;
     }
 
-    unit = cut_includes(unit);
+    unit = remove_cpp_statements(unit);
+
     Puma::CTranslationUnit *file = _parser.parse(*unit, _project, 2); // cpp tree only!
 
     Puma::PreTree *ptree = file->cpp_tree();
@@ -183,7 +186,17 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
 
 
 PumaConditionalBlockBuilder::PumaConditionalBlockBuilder()
-    : _cpp(0), _err(), _project(_err, 0, NULL), _parser() {}
+    : _cpp(0), null_stream("/dev/null"), _err(null_stream), _project(_err, 0, NULL), _parser() {
+    // Add all configured include paths must be added to the Puma::CProject
+
+    _config = new Puma::Config(_err);
+
+    for (std::list<std::string>::const_iterator i = _includePaths.begin();
+         i != _includePaths.end(); ++i) {
+        _config->Add("-I", (*i).c_str());
+    }
+    _project.config().Join(*_config);
+}
 
 PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
     delete _cpp;
@@ -358,4 +371,10 @@ void PumaConditionalBlockBuilder::visitPreDefineFunctionDirective_Pre (Puma::Pre
            sure anymore TODO Evaluate*/
         cpp_parser()->macroManager()->removeMacro(definedFlag);
     }
+}
+
+std::list<std::string> PumaConditionalBlockBuilder::_includePaths;
+
+void PumaConditionalBlockBuilder::addIncludePath(const char *path){
+    _includePaths.push_back(path);
 }

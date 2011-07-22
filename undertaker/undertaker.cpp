@@ -12,6 +12,7 @@
 
 #include "KconfigWhitelist.h"
 #include "ModelContainer.h"
+#include "PumaConditionalBlock.h"
 #include "ConditionalBlock.h"
 #include "BlockDefectAnalyzer.h"
 #include "SatChecker.h"
@@ -54,6 +55,7 @@ void usage(std::ostream &out, const char *error) {
     out << "  -w  specify a whitelist\n";
     out << "  -b  specify a worklist (batch mode)\n";
     out << "  -t  specify count of parallel processes\n";
+    out << "  -I  add an include path for #include directives\n";
     out << "  -j  specify the jobs which should be done\n";
     out << "      - dead: dead/undead file analysis (default)\n";
     out << "      - coverage: coverage file analysis\n";
@@ -383,7 +385,7 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:C:vh")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:C:I:vh")) != -1) {
         switch (opt) {
         case 'w':
             whitelist = strdup(optarg);
@@ -446,6 +448,9 @@ int main (int argc, char ** argv) {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
             }
+            break;
+        case 'I':
+            PumaConditionalBlockBuilder::addIncludePath(optarg);
             break;
         case 'h':
             usage(std::cout, NULL);
