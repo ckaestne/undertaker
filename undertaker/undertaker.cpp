@@ -9,6 +9,7 @@
 #include <glob.h>
 
 #include <boost/regex.hpp>
+#include <boost/thread.hpp>
 
 #include "KconfigWhitelist.h"
 #include "ModelContainer.h"
@@ -252,7 +253,7 @@ void process_file_blockpc(const char *filename) {
     std::cout << precondition << std::endl;
 }
 
-void process_file_dead(const char *filename) {
+void process_file_dead_helper(const char *filename) {
     CppFile file(filename);
     if (!file.good()) {
         std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
@@ -276,9 +277,17 @@ void process_file_dead(const char *filename) {
             std::cerr << "Couldn't process " << filename << ":" << block->getName() << ": "
                       << e.what() << std::endl;
         }
-
     }
 }
+
+void process_file_dead(const char *filename) {
+    boost::thread t(process_file_dead_helper, filename);
+
+    if (!t.timed_join(boost::posix_time::seconds(300)))
+        std::cerr << "E: timeout passed while processing " << filename
+                  << std::endl;
+}
+
 
 void process_file_interesting(const char *filename) {
     ConfigurationModel *model = ModelContainer::lookupMainModel();
