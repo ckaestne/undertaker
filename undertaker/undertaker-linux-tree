@@ -71,7 +71,7 @@ find . -name '*dead' -exec rm -f {} +
 if [ -n "$COVERAGE" ]; then
     echo "Running coverage analysis"
     time undertaker -j coverage -C min -t "$PROCESSORS" -b undertaker-worklist \
-        -m "$MODELS" -M "$DEFAULT_ARCH" 2>/dev/null | \
+        -m "$MODELS" -M "$DEFAULT_ARCH" 2>&1 | \
   	    grep '^I: ./' > coverage.txt
 
     if [ ! -s coverage.txt ]; then
