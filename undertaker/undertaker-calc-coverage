@@ -269,9 +269,9 @@ def get_conditional_blocks(filename, selected_only=False):
     """
 
     if selected_only:
-        cmd = 'predator -cC "%s" | cpp -include %s' % (filename, find_autoconf())
+        cmd = 'predator "%s" | cpp -include %s' % (filename, find_autoconf())
     else:
-        cmd = 'predator -cC "%s"' % filename
+        cmd = 'predator "%s"' % filename
     (blocks, rc) = execute(cmd, echo=True)
 
     blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
