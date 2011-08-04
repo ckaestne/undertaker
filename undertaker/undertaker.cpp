@@ -94,7 +94,7 @@ int rm_pattern(const char *pattern) {
     return nr;
 }
 
-void process_file_coverage(const char *filename) {
+void process_file_coverage_helper(const char *filename) {
     CppFile file(filename);
     if (!file.good()) {
         std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
@@ -186,6 +186,14 @@ void process_file_coverage(const char *filename) {
         }
         outf.close();
     }
+}
+
+void process_file_coverage (const char *filename) {
+    boost::thread t(process_file_coverage_helper, filename);
+
+    if (!t.timed_join(boost::posix_time::seconds(300)))
+        std::cerr << "E: timeout passed while processing " << filename
+                  << std::endl;
 }
 
 void process_file_cpppc(const char *filename) {
