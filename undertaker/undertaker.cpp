@@ -364,7 +364,7 @@ int main (int argc, char ** argv) {
     char *worklist = NULL;
     char *whitelist = NULL;
 
-    int threads = 1;
+    long threads = 1;
     std::list<std::string> models;
     std::string main_model = "x86";
     /* Default is dead/undead analysis */
