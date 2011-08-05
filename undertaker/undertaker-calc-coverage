@@ -356,9 +356,6 @@ def main():
     from optparse import OptionParser
 
     parser = OptionParser()
-    parser.add_option("-u", "--run-undertaker", dest="do_undertaker",
-                      action="store_true", default=False,
-                      help="run undertaker to generate partial configs (default: no)")
     parser.add_option("-s", "--skip-configs", dest="skip_configs",
                       action="store_true", default=False,
                       help="Skip analyzing configurations (defaut: use existing configs)")
@@ -387,8 +384,6 @@ def main():
 
     logging.basicConfig(level=log_level)
 
-    if not options.min_strategy: options.do_undertaker = True
-
     if options.model and os.path.exists(options.model):
         with open(options.model) as fd:
             global model
@@ -410,17 +405,6 @@ def main():
 
     logging.debug("Worklist contains %d items" % len(filenames))
 
-    if (options.do_undertaker):
-        model_param = ""
-        strategy = ""
-        if (options.min_strategy):
-            strategy = "-C min"
-        if not options.model:
-            logging.info("Running without model")
-        else:
-            model_param = "-m %s" % options.model
-        execute("undertaker -j coverage %s %s -b %s" % (model_param, strategy, worklist), echo=True)
-    
     results = {}
 
     for filename in filenames:
