@@ -377,6 +377,51 @@ process_file_cb_t parse_job_argument(const char *arg) {
     return NULL;
 }
 
+void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument = 0, bool print_stats = false) {
+    static struct {
+        int ok, failed, signaled;
+    } process_stats;
+
+    static std::map<pid_t, const char *> arguments;
+    static int running_processes = 0;
+
+    if (new_pid) {
+        running_processes ++;
+        if (argument)
+            arguments[new_pid] = argument;
+    }
+
+    while (running_processes >= threads) {
+        int state;
+        pid_t pid = waitpid(-1, &state, 0);
+        if (pid == -1) break;
+
+        if (WIFEXITED(state)) {
+            if (WEXITSTATUS(state) == 0) {
+                process_stats.ok ++;
+                arguments.erase(pid);
+            } else {
+                process_stats.failed ++;
+                std::cout << "E: Process (" << arguments[pid] << ") failed with exitcode " << WEXITSTATUS(state) << std::endl;
+            }
+        } else if (WIFSIGNALED(state)) {
+            process_stats.signaled++;
+            std::cout << "E: Process (" << arguments[pid] << ") failed with signal " << WTERMSIG(state) << std::endl;
+        } else {
+            continue;
+        }
+        running_processes --;
+    }
+
+    if (print_stats) {
+        /* Shutdown phase */
+        std::cout << "I: Sucessful processed:  " << process_stats.ok << std::endl;
+        std::cout << "I: Failed with exitcode: " << process_stats.failed << std::endl;
+        std::cout << "I: Failed with signal:   " << process_stats.signaled << std::endl;
+        for (std::map<pid_t, const char *>::const_iterator it = arguments.begin() ; it != arguments.end(); it++ )
+            std::cout << "I: Failed file: " << (*it).second << endl;
+    }
+}
 
 
 int main (int argc, char ** argv) {
@@ -580,43 +625,23 @@ int main (int argc, char ** argv) {
             if (line.size() > 0)
                 process_file(line.c_str());
         }
-    } else if (threads > 1) {
-        std::cout << workfiles.size() << " files will be analyzed by " << threads << " processes." << std::endl;
-
-        std::vector<int> forks;
-        /* Starting the threads */
-        for (int thread_number = 0; thread_number < threads; thread_number++) {
+    } else {
+        for (unsigned int i = 0; i < workfiles.size(); i++) {
             pid_t pid = fork();
             if (pid == 0) { /* child */
-                std::cout << "Fork " << thread_number << " started." << std::endl;
-                int worked_on = 0;
-                for (unsigned int i = thread_number; i < workfiles.size(); i+= threads) {
-                    /* calling the function pointer */
-                    process_file(workfiles[i].c_str());
-                    worked_on++;
-                }
-                std::cerr << "I: finished: " << worked_on << " files done (" << thread_number << ")" << std::endl;
-                break;
+                /* calling the function pointer */
+                process_file(workfiles[i].c_str());
+                exit(EXIT_SUCCESS);
             } else if (pid < 0) {
                 std::cerr << "E: forking failed. Exiting." << std::endl;
                 exit(EXIT_FAILURE);
             } else { /* Father process */
-                forks.push_back(pid);
+                wait_for_forked_child(pid, threads, workfiles[i].c_str());
+
             }
         }
-
-        /* Waiting for the childs to terminate */
-        std::vector<int>::iterator iter;
-        for (iter = forks.begin(); iter != forks.end(); iter++) {
-            int state;
-            waitpid(*iter, &state, 0);
-        }
-    } else {
-        /* Now forks do anything sequential */
-        for (unsigned int i = 0; i < workfiles.size(); i++) {
-            /* call process_file function pointer */
-            process_file(workfiles[i].c_str());
-        }
+        /* Wait unitl fork count reaches zero */
+        wait_for_forked_child(0, 0, 0, threads > 1);
     }
     return EXIT_SUCCESS;
 }
