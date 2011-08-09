@@ -36,6 +36,7 @@
 // Forward declaration for configuration model, becasue the boost
 // namespace seems to break, when we include ConfigurationModel
 class ConfigurationModel;
+class CppFile;
 typedef std::set<std::string> MissingSet;
 
 using namespace BOOST_SPIRIT_CLASSIC_NS;
@@ -171,6 +172,15 @@ public:
          */
         int formatCPP(std::ostream &out, const ConfigurationModel *model);
 
+        /**
+         * \brief pipe all activated blocks into command
+         *
+         * \param out an output stream on which the solution shall be
+         *     printed and the output of the command is redirected to
+         * \param CPP file which is basis for the analysis
+         * \param command which should be spawned
+         */
+        int formatExec(std::ostream &out, const CppFile &, const char *);
     };
 
     /**

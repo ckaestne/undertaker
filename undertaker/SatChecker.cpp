@@ -20,12 +20,16 @@
  */
 
 
+#include <Puma/CParser.h>
+#include <Puma/TokenStream.h>
 #include <boost/regex.hpp>
 #include <boost/spirit/include/classic.hpp>
 #include <boost/spirit/include/classic_core.hpp>
 #include <boost/spirit/include/classic_parse_tree.hpp>
 #include <boost/spirit/include/classic_tree_to_xml.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <pstreams/pstream.h>
+
 #include <iostream>
 #include <string>
 #include <map>
@@ -35,6 +39,7 @@
 
 #include "ConfigurationModel.h"
 #include "SatChecker-grammar.t"
+#include "PumaConditionalBlock.h"
 
 bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     SatChecker c(sat.c_str());
@@ -489,6 +494,71 @@ int SatChecker::AssignmentMap::formatCPP(std::ostream &out, const ConfigurationM
         out << " -D" << name << "=1";
     }
     out << std::endl;
+    return size();
+}
+
+int SatChecker::AssignmentMap::formatExec(std::ostream &out, const CppFile &file, const char *cmd) {
+    std::map<Puma::Token *, bool> flag_map;
+    Puma::Token *next;
+    Puma::TokenStream stream;
+
+    PumaConditionalBlock *top = (PumaConditionalBlock *) file.topBlock();
+    Puma::Unit *unit = top->pumaStartToken()->unit();
+
+    flag_map[top->pumaStartToken()] = true;
+    flag_map[top->pumaEndToken()] = false;
+
+    for (CppFile::const_iterator it = file.begin(); it != file.end(); ++it) {
+        PumaConditionalBlock *block = (PumaConditionalBlock *) (*it);
+        if ((*this)[block->getName()] == true) {
+            // Block is enabled in this assignment
+            next = block->pumaStartToken();
+            flag_map[next] = false;
+            do {
+                next = unit->next(next);
+            } while (next->text()[0] != '\n');
+            flag_map[next] = true;
+
+            next = block->pumaEndToken();
+            flag_map[next] = false;
+            do { next = unit->next(next); } while (next->text()[0] != '\n');
+            flag_map[next] = true;
+        } else {
+            // Block is disabled in this assignment
+            next = block->pumaStartToken();
+            flag_map[next] = false;
+            do {
+                next = unit->next(next);
+            } while (next->text()[0] != '\n');
+            flag_map[next] = false;
+            next = block->pumaEndToken();
+            do {
+                next = unit->next(next);
+            } while (next->text()[0] != '\n');
+            flag_map[next] = true;
+        }
+    }
+
+    /* Initialize token stream with the Puma::Unit */
+    stream.push(unit);
+
+    /* Ignore all broken pipes */
+    sigignore(SIGPIPE);
+
+    redi::opstream cmd_process(cmd);
+
+    bool print_flag = true;
+    out << "I: Calling: " << cmd << std::endl;
+    while ((next = stream.next())) {
+        if (flag_map.find(next) != flag_map.end())
+            print_flag = flag_map[next];
+        //std::cout<< print_flag << " " << next << " " <<
+        //  next->text() << std::endl;
+        if (print_flag)
+            cmd_process << next->text();
+    }
+    cmd_process.close();
+
     return size();
 }
 

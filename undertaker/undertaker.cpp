@@ -40,6 +40,7 @@ enum CoverageOutputMode {
     COVERAGE_MODE_STDOUT,  // prints out on stdout generated configurations
     COVERAGE_MODE_MODEL,   // prints all configuration space itms, no blocks
     COVERAGE_MODE_CPP,     // prints all cpp items as cpp cmd-line arguments
+    COVERAGE_MODE_EXEC,    // pipe file for every configuration to cmd
     COVERAGE_MODE_ALL,     // prints all items and blocks
 } coverageOutputMode;
 
@@ -47,6 +48,8 @@ enum CoverageOperationMode {
     COVERAGE_OP_SIMPLE,   // simple, fast
     COVERAGE_OP_MINIMIZE, // hopefully minimal configuration set
 } coverageOperationMode = COVERAGE_OP_SIMPLE;
+
+static char *coverage_exec_cmd = "cat";
 
 void usage(std::ostream &out, const char *error) {
     if (error)
@@ -183,6 +186,9 @@ void process_file_coverage_helper(const char *filename) {
             break;
         case COVERAGE_MODE_CPP:
             (*it).formatCPP(std::cout, model);
+            break;
+        case COVERAGE_MODE_EXEC:
+            (*it).formatExec(std::cout, file, coverage_exec_cmd);
             break;
         default:
             assert(false);
@@ -473,6 +479,11 @@ int main (int argc, char ** argv) {
                 coverageOutputMode = COVERAGE_MODE_CPP;
             else if (0 == strcmp(optarg, "all"))
                 coverageOutputMode = COVERAGE_MODE_ALL;
+            else if (0 == strncmp(optarg, "exec", 4)) {
+                coverageOutputMode = COVERAGE_MODE_EXEC;
+                if (optarg[4] == ':')
+                    coverage_exec_cmd = &optarg[5];
+            }
             else
                 std::cerr << "WARNING, mode " << optarg << " is unknown, using 'kconfig' instead"
                           << std::endl;
