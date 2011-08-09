@@ -160,8 +160,7 @@ void PumaConditionalBlockBuilder::iterateNodes (PreTree *node) {
 }
 
 ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFile *cpp_file) {
-
-    Puma::Unit *unit = _project.scanFile(filename);
+    Puma::Unit *unit = _project->scanFile(filename);
     if (!unit) {
         std::cerr << "Failed to parse: " << filename << std::endl;
         return NULL;
@@ -169,17 +168,17 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
 
     unit = remove_cpp_statements(unit);
 
-    CTranslationUnit *tu = new CTranslationUnit (*unit, _project);
+    CTranslationUnit *tu = new CTranslationUnit (*unit, *_project);
 
     // prepare C preprocessor
     TokenStream stream;           // linearize tokens from several files
     stream.push (unit);
-    _project.unitManager ().init ();
+    _project->unitManager ().init ();
 
-    _cpp = new PreprocessorParser(&_err, &_project.unitManager(), &tu->local_units(), std::cerr);
+    _cpp = new PreprocessorParser(&_err, &_project->unitManager(), &tu->local_units(), std::cerr);
     _cpp->macroManager ()->init (unit->name ());
     _cpp->stream (&stream);
-    _cpp->configure (_project.config ());
+    _cpp->configure (_project->config ());
 
     /* Resolve all #include statements, must be done after _cpp
        initialization */
@@ -201,12 +200,20 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
     _file = cpp_file;
     _current = NULL;
     ptree->accept(*this);
+    /* Copy the Puma::CProject to the shared_ptr instances of all
+       blocks within the file */
+    boost::shared_ptr<Puma::CProject> sh_project(_project);
+    for (CppFile::iterator it = _file->begin(); it != _file->end(); ++it) {
+        ((PumaConditionalBlock *)(*it))->_project = sh_project ;
+    }
     return _current;
 }
 
 
 PumaConditionalBlockBuilder::PumaConditionalBlockBuilder()
-    : _cpp(0), null_stream("/dev/null"), _err(null_stream), _project(_err, 0, NULL), _parser() { }
+    : _cpp(0), null_stream("/dev/null"), _err(null_stream), _parser() {
+    _project = new Puma::CProject(_err, 0, NULL);
+}
 
 PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
     delete _cpp;

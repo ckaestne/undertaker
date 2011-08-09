@@ -21,6 +21,8 @@
 #ifndef _PUMA_CONDITIONAL_BLOCK_H
 #define _PUMA_CONDITIONAL_BLOCK_H
 
+#include <boost/shared_ptr.hpp>
+
 #include <Puma/PreTree.h>
 #include <Puma/PreVisitor.h>
 #include <Puma/PreprocessorParser.h>
@@ -51,16 +53,17 @@ class PumaConditionalBlock : public ConditionalBlock {
     // For some reason, getting the expression string fails on
     // subsequent calls. We therefore cache the first result.
     mutable char *_expressionStr_cache;
-    
+
+    boost::shared_ptr<Puma::CProject> _project;
 
 public:
     PumaConditionalBlock(CppFile *file, ConditionalBlock *parent, ConditionalBlock *prev,
                          const Puma::PreTree *node, const unsigned long nodeNum,
                          PumaConditionalBlockBuilder &builder) :
         ConditionalBlock(file, parent, prev),
-        _number(nodeNum), _start(0), _end(0),_current_node(node),
+        _number(nodeNum), _start(0), _end(0), _current_node(node),
         _isIfBlock(false), _builder(builder),
-        _expressionStr_cache(NULL) {
+            _expressionStr_cache(NULL) {
         lateConstructor();
     };
 
@@ -73,6 +76,10 @@ public:
     virtual unsigned int lineEnd()   const { return _end  ->location().line();   };
     virtual unsigned int colEnd()    const { return _end  ->location().column(); };
     /// @}
+
+    Puma::Token *pumaStartToken() const { return _start; };
+    Puma::Token *pumaEndToken() const { return _end; };
+
 
     //! \return original untouched expression
     virtual std::string ExpressionStr() const;
@@ -98,7 +105,7 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     Puma::PreprocessorParser *_cpp;
     std::ofstream null_stream;
     Puma::ErrorStream _err;
-    Puma::CProject _project;
+    Puma::CProject *_project;
     Puma::CParser _parser;
 
     static std::list<std::string> _includePaths;
