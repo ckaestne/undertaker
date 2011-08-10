@@ -82,7 +82,7 @@ public:
 
 
     //! \return original untouched expression
-    virtual std::string ExpressionStr() const;
+    virtual const char * ExpressionStr() const;
     virtual bool isIfBlock() const { return _isIfBlock; }
     virtual bool isIfndefine() const;
     virtual const std::string getName() const;

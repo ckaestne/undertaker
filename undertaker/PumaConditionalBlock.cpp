@@ -38,9 +38,8 @@
 /// \brief cuts out all bad CPP statements
 Puma::Unit * remove_cpp_statements(Puma::Unit *unit) {
     Puma::ManipCommander mc;
-    Puma::Token *s, *e;
+    Puma::Token *s, *e, *prev;
 
-restart:
     for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
         switch(s->type()) {
         case TOK_PRE_ASSERT:
@@ -48,13 +47,14 @@ restart:
             //        case TOK_PRE_INCLUDE:
         case TOK_PRE_INCLUDE_NEXT:
         case TOK_PRE_WARNING:
+            prev = unit->prev(s);
             e = s;
             do {
                 e = unit->next(e);
             } while (e->text()[0] != '\n');
             mc.kill(s, e);
             mc.commit();
-            goto restart;
+            s = prev ? prev : unit->first();
         }
     }
     return unit;
@@ -114,14 +114,14 @@ char* buildString (const PreTree* node)
     return result;
 }
 
-std::string PumaConditionalBlock::ExpressionStr() const {
+const char * PumaConditionalBlock::ExpressionStr() const {
     assert(_parent);
     const PreTree *node;
 
     assert(_current_node);
 
    if (_expressionStr_cache)
-      return std::string(_expressionStr_cache);
+      return _expressionStr_cache;
 
     if ((node = dynamic_cast<const PreIfDirective *>(_current_node)))
         _expressionStr_cache = buildString(node->son(1));
@@ -141,7 +141,7 @@ std::string PumaConditionalBlock::ExpressionStr() const {
         return _expressionStr_cache;
     }
     else {
-        return std::string("?? ") + typeid(node).name();
+        return "??";
     }
 }
 
@@ -482,7 +482,6 @@ Puma::Unit * PumaConditionalBlockBuilder::resolve_includes(Puma::Unit *unit) {
         includer.addIncludePath((*i).c_str());
     }
 
-restart:
     for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
         if (s->type() == TOK_PRE_INCLUDE) {
             e = s;
@@ -493,6 +492,7 @@ restart:
             } while (unit->next(e) && unit->next(e)->text()[0] != '\n');
 
             Puma::Unit *file = includer.includeFile(include.c_str());
+            Puma::Token *before = unit->prev(s);
             if (file && already_seen.count(file) == 0) {
                 /* Paste the included file only, if we haven't it seen
                    until then */
@@ -502,7 +502,8 @@ restart:
             }
             mc.kill(s, e);
             mc.commit();
-            goto restart;
+            /* Jump before the included file */
+            s = before ? before : unit->first();
         }
     }
     return unit;
