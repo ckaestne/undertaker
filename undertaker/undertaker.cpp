@@ -202,7 +202,7 @@ void process_file_coverage_helper(const char *filename) {
             enabled_blocks++;
     }
 
-    float ratio = 1.0 * enabled_blocks / file.size();
+    float ratio = 100.0 * enabled_blocks / file.size();
 
     std::cout << "I: "
               << filename << ", "
