@@ -75,6 +75,7 @@ void usage(std::ostream &out, const char *error) {
     out << "      - kconfig: generated partial kconfig configuration (default)\n";
     out << "      - stdout: print on stdout the found configurations\n";
     out << "      - cpp: print on stdout cpp -D command line arguments\n";
+    out << "      - exec: pipe file for every configuration to cmd\n";
     out << "      - model:   print all options which are in the configuration space\n";
     out << "      - all:     dump every assigned symbol (both items and code blocks)\n";
     out << "  -C: specify coverage algorithm\n";
