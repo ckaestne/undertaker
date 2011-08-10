@@ -50,7 +50,7 @@ enum CoverageOperationMode {
     COVERAGE_OP_MINIMIZE, // hopefully minimal configuration set
 } coverageOperationMode = COVERAGE_OP_SIMPLE;
 
-static char *coverage_exec_cmd = "cat";
+static const char *coverage_exec_cmd = "cat";
 
 void usage(std::ostream &out, const char *error) {
     if (error)
