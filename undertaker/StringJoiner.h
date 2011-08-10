@@ -86,26 +86,37 @@ struct StringJoiner : public std::deque<std::string> {
 };
 
 struct UniqueStringJoiner : public StringJoiner {
+    UniqueStringJoiner() : StringJoiner(), uniqueFlag(true) {};
+
     bool count (const value_type &x) {
         return _unique_set.count(x);
     }
     void push_back(const value_type &x) {
-        /* Simulate an map when StringJoiner is unique */
-        if (_unique_set.count(x) > 0) return;
-        _unique_set.insert(x);
+        if (uniqueFlag) {
+            /* Simulate an map when StringJoiner is unique */
+            if (_unique_set.count(x) > 0) return;
+            _unique_set.insert(x);
+        }
 
         StringJoiner::push_back(x);
     }
 
     void push_front(const value_type &x) {
-        /* Simulate an map when StringJoiner is unique */
-        if (_unique_set.count(x) > 0) return;
-        _unique_set.insert(x);
+        if (uniqueFlag) {
+            /* Simulate an map when StringJoiner is unique */
+            if (_unique_set.count(x) > 0) return;
+            _unique_set.insert(x);
+        }
 
         StringJoiner::push_front(x);
     }
 
+    void disableUniqueness() {
+        uniqueFlag = false;
+    }
+
  private:
+    bool uniqueFlag;
     std::set<std::string> _unique_set;;
 };
 
