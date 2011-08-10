@@ -358,7 +358,7 @@ def main():
     parser = OptionParser()
     parser.add_option("-s", "--skip-configs", dest="skip_configs",
                       action="store_true", default=False,
-                      help="Skip analyzing configurations (defaut: use existing configs)")
+                      help="Skip analyzing configurations (defaut: only general, config agnostic analysis)")
     parser.add_option('-v', '--verbose', dest='verbose', action='count',
                       help="Increase verbosity (specify multiple times for more)")
     parser.add_option('-m', '--model', dest='model', action='store',
