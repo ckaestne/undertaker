@@ -168,17 +168,25 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
         visited->insert(this);
 
         if (!_parent) { // Toplevel block
+            if (join == true) {
+                /* When we are the toplevel call we ensure, that no
+                element is added more than once to the and_clause,
+                therefore we can disable the unique attribute within
+                the StringJoiner to improve performance */
+                and_clause->disableUniqueness();
+            }
+
             // Add expressions for all blocks
             for (CppFile::iterator i = cpp_file->begin(); i != cpp_file->end(); ++i) {
-                (*i)->getConstraintsHelper(and_clause);
-                 /* Get all used defines */
-                 for ( std::map<std::string, CppDefine *>::iterator def = cpp_file->getDefines()->begin();
-                       def != cpp_file->getDefines()->end(); ++def) {
-                     CppDefine *define = (*def).second;
-                     if (define->containsDefinedSymbol((*i)->ExpressionStr())) {
-                         define->getConstraints(and_clause, visited);
-                     }
-                 }
+                ConditionalBlock *block = (*i);
+                block->getConstraintsHelper(and_clause);
+
+            }
+            /* Get all used defines */
+            for (std::map<std::string, CppDefine *>::const_iterator def = cpp_file->getDefines()->begin();
+                  def != cpp_file->getDefines()->end(); ++def) {
+                const CppDefine *define = (*def).second;
+                define->getConstraintsHelper(and_clause);
             }
             and_clause->push_back("B00");
         } else {
@@ -285,6 +293,9 @@ CppDefine::replaceDefinedSymbol(const std::string &exp) {
     boost::match_results<std::string::iterator> what;
     boost::match_flag_type flags = boost::match_default;
 
+    if (!strstr(exp.c_str(), defined_symbol.c_str()))
+        return exp;
+
     while ( boost::regex_search(copy.begin(), copy.end(), what, replaceRegex, flags)) {
         copy.replace(what[2].first, what[2].second, actual_symbol);
     }
@@ -293,7 +304,17 @@ CppDefine::replaceDefinedSymbol(const std::string &exp) {
 
 bool
 CppDefine::containsDefinedSymbol(const std::string &exp) {
+    if (!strstr(exp.c_str(), defined_symbol.c_str()))
+        return false;
     return boost::regex_search(exp, replaceRegex);
+}
+
+
+void
+CppDefine::getConstraintsHelper(UniqueStringJoiner *and_clause) const {
+    for (std::list<std::string>::const_iterator i  = defineExpressions.begin(); i != defineExpressions.end(); ++i) {
+        and_clause->push_back(*i);
+    }
 }
 
 
@@ -310,9 +331,7 @@ CppDefine::getConstraints(UniqueStringJoiner *and_clause, std::set<ConditionalBl
     if (!visited)
         visited = &vs;
 
-    for (std::list<std::string>::iterator i  = defineExpressions.begin(); i != defineExpressions.end(); ++i) {
-        and_clause->push_back(*i);
-    }
+    getConstraintsHelper(and_clause);
 
     for (std::deque <ConditionalBlock *>::iterator i = defined_in.begin(); i != defined_in.end(); i++) {
         // Not yet visited and not the toplevel block

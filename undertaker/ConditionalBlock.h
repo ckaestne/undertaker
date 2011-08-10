@@ -94,7 +94,7 @@ class ConditionalBlock : public CondBlockList {
     /// @}
 
     //! \return original untouched expression
-    virtual std::string ExpressionStr() const = 0;
+    virtual const char * ExpressionStr() const = 0;
     virtual bool isIfBlock() const            = 0; //!< is if or ifdef block
     virtual bool isIfndefine() const          = 0; //!< is ifndef
     virtual const std::string getName() const = 0; //<! unique identifier for block
@@ -129,6 +129,7 @@ class ConditionalBlock : public CondBlockList {
     void addDefine(CppDefine* define) { _defines.push_back(define); }
 
     std::string getConstraintsHelper(UniqueStringJoiner *and_clause = 0);
+    const std::list<CppDefine *> &getDefines() const { return _defines; };
 
 protected:
     CppFile * cpp_file;
@@ -149,6 +150,9 @@ public:
 
     std::string getConstraints(UniqueStringJoiner *and_clause = 0,
                                   std::set<ConditionalBlock *> *visited = 0);
+
+    void getConstraintsHelper(UniqueStringJoiner *and_clause) const;
+
     bool containsDefinedSymbol(const std::string &exp);
 
 private:
