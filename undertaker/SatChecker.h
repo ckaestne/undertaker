@@ -126,6 +126,16 @@ public:
         }
 
         /**
+         * \brief collect enabled blocks
+         *
+         * The idea of this method is to set all blocks that are enabled
+         * in a bitvector. Hereby, the position of each bit in the
+         * vector represents the block number. 1 represents a selected
+         * block. Bits are only set and never unset.
+         */
+        void setEnabledBlocks(std::vector<bool> &blocks);
+
+        /**
          * \brief format solutions (kconfig specific)
          *
          * This method filters out comparators and block variables from the

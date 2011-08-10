@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
+#include <vector>
 #include <malloc.h>
 #include <time.h>
 #include <unistd.h>
@@ -133,13 +134,6 @@ void process_file_coverage_helper(const char *filename) {
         return;
     }
 
-    std::cout << "I: "
-              << filename << ","
-              << file.size()
-              << ","
-              << solution.size()
-              << std::endl;
-
     std::cout << "I: Entries in missingSet: " << missingSet.size() << std::endl;
 
     std::string pattern(filename);
@@ -150,6 +144,8 @@ void process_file_coverage_helper(const char *filename) {
               << std::endl;
 
     int config_count = 1;
+    std::vector<bool> blocks(file.size(), false); // bitvector
+
     std::list<SatChecker::AssignmentMap>::iterator it;
     for (it = solution.begin(); it != solution.end(); it++) {
         static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
@@ -157,6 +153,8 @@ void process_file_coverage_helper(const char *filename) {
         std::stringstream outfstream;
         outfstream << filename << ".config" << config_count++;
         std::ofstream outf;
+
+        (*it).setEnabledBlocks(blocks);
 
         if (coverageOutputMode == COVERAGE_MODE_KCONFIG
             || coverageOutputMode == COVERAGE_MODE_MODEL
@@ -196,6 +194,21 @@ void process_file_coverage_helper(const char *filename) {
         }
         outf.close();
     }
+
+    // statistics
+    int enabled_blocks = 0;
+    for (std::vector<bool>::iterator b = blocks.begin(); b != blocks.end(); b++) {
+        if (*b)
+            enabled_blocks++;
+    }
+
+    float ratio = 1.0 * enabled_blocks / file.size();
+
+    std::cout << "I: "
+              << filename << ", "
+              << "Found Solutions: " << solution.size() << ", " // #found solutions
+              << "Coverage: " << enabled_blocks << "/" << file.size() << " blocks enabled "
+              << "(" << ratio <<  "%)" << std::endl;
 }
 
 void process_file_coverage (const char *filename) {

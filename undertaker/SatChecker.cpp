@@ -23,6 +23,7 @@
 #include <Puma/CParser.h>
 #include <Puma/TokenStream.h>
 #include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/spirit/include/classic.hpp>
 #include <boost/spirit/include/classic_core.hpp>
 #include <boost/spirit/include/classic_parse_tree.hpp>
@@ -367,6 +368,21 @@ std::string SatChecker::pprint() {
         debug_flags = old_debug_flags;
     }
     return _sat + "\n\n" + debug_parser + "\n";
+}
+
+void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
+    static const boost::regex block_regexp("^B(\\d+)$", boost::regex::perl);
+    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
+        const std::string &name = (*it).first;
+        const bool &valid = (*it).second;
+        boost::match_results<std::string::const_iterator> what;
+
+        if (!valid || !boost::regex_match(name, what, block_regexp))
+            continue;
+
+        int blockno = boost::lexical_cast<int>(what[1]);
+        blocks[blockno] = true;
+    }
 }
 
 int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet &missingSet) {
