@@ -83,6 +83,7 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
     const std::string base_formula = baseFileExpression(model);
 
     try {
+        BaseExpressionSatChecker sc(base_formula.c_str());
         for(CppFile::iterator i  = file->begin(); i != file->end(); ++i) {
             ConditionalBlock *block = *i;
 
@@ -91,11 +92,11 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
             if (blocks_set.find(block->getName()) == blocks_set.end()) {
                 /* does the new contributes to the set of configurations? */
                 bool new_solution = false;
-                SatChecker sc(block->getName() + " && " + base_formula);
-
 
                 // unsolvable, i.e. we have found some defect!
-                if (!sc())
+                std::set<std::string> dummy;
+                dummy.insert(block->getName());
+                if (!sc(dummy))
                     continue;
 
                 const SatChecker::AssignmentMap &assignments = sc.getAssignment();
@@ -148,34 +149,34 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
 
 
     try {
-        std::set<ConditionalBlock *> configuration;
+        std::set<std::string> configuration;
 
         // Initial Phase, we start the SAT Solver for the whole
         // formula. Because it tries so maximize the enabled
         // variables we get a configuration for many of the blocks as
         // in the simple algorithm. For the all blocks not enabled
         // there we do the minimizer algorithm
-        {
-            const std::string base_formula = baseFileExpression(model);
-            SatChecker initial(base_formula);
-            if(initial()) {
-                const SatChecker::AssignmentMap &assignments = initial.getAssignment();
-                for (SatChecker::AssignmentMap::const_iterator it = assignments.begin(); it != assignments.end(); it++) {
-                    if (it->second == false) continue; // Not enabled
-                    for(CppFile::iterator i  = file->begin(); i != file->end(); ++i) {
-                        std::string block_name = (*i)->getName();
-                        if (block_name == it->first) {
-                            blocks_set.insert(block_name);
-                            configuration.insert(*i);
-                        }
-                    }
+        const std::string base_formula = baseFileExpression(model);
+        BaseExpressionSatChecker sc(base_formula.c_str());
+
+        if(sc(configuration)) { // Configuration is an empty list here
+            const SatChecker::AssignmentMap &assignments = sc.getAssignment();
+            for (SatChecker::AssignmentMap::const_iterator it = assignments.begin(); it != assignments.end(); it++) {
+                if (it->second == false) continue; // Not enabled
+                const std::string &block_name = it->first;
+                static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+
+                if (boost::regex_match(block_name, block_regexp) && block_name != "B00") {
+                    configuration.insert(block_name);
+                    blocks_set.insert(block_name);
                 }
-                goto dump_configuration;
             }
+            goto dump_configuration;
         }
+
         // For the first round, configuration size will be non-zero at
         // this point
-        while (blocks_set.size() != file->size()) {
+        while (blocks_set.size() < file->size()) {
             for(CppFile::iterator i  = file->begin(); i != file->end(); ++i) {
                 std::string block_name = (*i)->getName();
                 ConditionalBlock *actual_block = *i;
@@ -192,7 +193,7 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
                     ConditionalBlock *block = *i;
                     bool conflicting = false;
                     while (block && block != file->topBlock()) {
-                        if (configuration.count(block) > 0) {
+                        if (configuration.count(block->getName()) > 0) {
                             conflicting = true;
                             break;
                         }
@@ -202,42 +203,31 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
                     if (conflicting) continue;
                 }
 
-                configuration.insert(actual_block);
-                std::string expression = baseFileExpression(model, &configuration);
-                configuration.erase(actual_block);
-                SatChecker check(expression);
+                configuration.insert(actual_block->getName());
 
-                if (!check()) {
+                if (!sc(configuration)) {
                     // Block couldn't be enabled
-                    if (configuration.size() == 0) {
+                    if (configuration.size() == 1) {
                         // dead block; just ignore it
-                        blocks_set.insert(block_name);
+                        blocks_set.insert(actual_block->getName());
+                        configuration.clear();
                     }
+                    configuration.erase(actual_block->getName());
                     // Block cannot be enabled with current
                     // <configuration> block set
                     continue;
                 } else {
                     // Block will be enabled with this configuration
                     blocks_set.insert(block_name);
-                    configuration.insert(actual_block);
-                    //std::cout << blocks_set.size() << "/" << file->size() << std::endl;
                 }
             }
         dump_configuration:
-            // This formula must be true, since it was checked in the
-            // already
-            UniqueStringJoiner blocks;
-            for (std::set<ConditionalBlock *>::iterator i = configuration.begin();
-                 i != configuration.end(); ++i) {
-                blocks.push_back((*i)->getName());
-            }
-
             if (configuration.size() == 0) continue;
-            std::string expression = baseFileExpression(model, &configuration);
-            SatChecker assignment_sat(blocks.join(" && ") + " && " + expression);
-            assert(assignment_sat());
 
-            const SatChecker::AssignmentMap &assignments = assignment_sat.getAssignment();
+            assert(sc(configuration));
+
+            const SatChecker::AssignmentMap &assignments = sc.getAssignment();
+
             ret.push_back(assignments);
 
             // We have added an assignment, so we can clear the
