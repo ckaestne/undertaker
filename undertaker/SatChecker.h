@@ -68,7 +68,7 @@ public:
 
     SatChecker(const char *sat, int debug = 0);
     SatChecker(const std::string sat, int debug = 0);
-    ~SatChecker();
+    virtual ~SatChecker() {};
 
     /**
      * Checks the given string with an sat solver
@@ -76,7 +76,7 @@ public:
      * @returns true, if satisfiable, false otherwise
      * @throws if syntax error
      */
-    bool operator()() throw (SatCheckerError);
+    virtual bool operator()() throw (SatCheckerError);
 
     static bool check(const std::string &sat) throw (SatCheckerError);
     const char *c_str() { return _sat.c_str(); }
@@ -211,7 +211,7 @@ public:
 
 
 
-private:
+protected:
     std::map<std::string, int> symbolTable;
     AssignmentMap assignmentTable;
     int debug_flags;
@@ -231,8 +231,8 @@ private:
     int orClause(int A_clause, int B_clause);
 
     int transform_bool_rec(iter_t const& input);
-    void fillSatChecker(std::string expression) throw (SatCheckerError);
-    void fillSatChecker(tree_parse_info<>& info);
+    int fillSatChecker(std::string expression) throw (SatCheckerError);
+    int fillSatChecker(tree_parse_info<>& info);
 
     // Debugging stuff
     void _debug_parser(std::string d = "", bool newblock = true) {
@@ -251,5 +251,16 @@ private:
         }
     }
     enum state {no, yes, module};
+};
+
+class BaseExpressionSatChecker : public SatChecker {
+public:
+    BaseExpressionSatChecker(const char *base_expression, int debug = 0);
+
+    virtual ~BaseExpressionSatChecker() {};
+    virtual bool operator()(const std::set<std::string> &assumeSymbols) throw (SatCheckerError);
+
+protected:
+    int base_clause;
 };
 #endif

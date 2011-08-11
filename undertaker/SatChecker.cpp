@@ -293,13 +293,13 @@ int SatChecker::transform_bool_rec(iter_t const& input) {
     }
 }
 
-void SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
+int SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
     static bool_grammar e;
     tree_parse_info<> info = pt_parse(expression.c_str(), e,
                                       space_p | ch_p("\n") | ch_p("\r"));
 
     if (info.full) {
-        fillSatChecker(info);
+        return fillSatChecker(info);
     } else {
         /* Enable this line to get the position where the parser dies
         std::cout << std::string(expression.begin(), expression.begin()
@@ -310,11 +310,12 @@ void SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) 
     }
 }
 
-void SatChecker::fillSatChecker(tree_parse_info<>& info) {
+int SatChecker::fillSatChecker(tree_parse_info<>& info) {
     iter_t expression = info.trees.begin()->children.begin();
     int top_clause = transform_bool_rec(expression);
     /* This adds the last clause */
     Picosat::picosat_assume(top_clause);
+    return top_clause;
 }
 
 SatChecker::SatChecker(const char *sat, int debug)
@@ -322,8 +323,6 @@ SatChecker::SatChecker(const char *sat, int debug)
 
 SatChecker::SatChecker(const std::string sat, int debug)
   : debug_flags(debug), _sat(std::string(sat)) { }
-
-SatChecker::~SatChecker() { }
 
 bool SatChecker::operator()() throw (SatCheckerError) {
     /* Clear the debug parser, if we are called multiple times */
@@ -650,3 +649,53 @@ void SatChecker::pprintAssignments(std::ostream& out,
         }
     }
 }
+
+// -----------------
+// BaseExpressionSatChecker
+// ----------------
+
+bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSymbols) throw (SatCheckerError) {
+    try {
+        /* Assume the top and clause */
+        Picosat::picosat_assume(base_clause);
+
+        /* Assume additional all given symbols */
+        for (std::set<std::string>::const_iterator it = assumeSymbols.begin();
+             it != assumeSymbols.end(); it++) {
+            Picosat::picosat_assume(stringToSymbol((*it).c_str()));
+        }
+
+        // try to enable as many features as possible
+        Picosat::picosat_set_global_default_phase(1);
+
+        int res = Picosat::picosat_sat(-1);
+
+        if (res == PICOSAT_SATISFIABLE) {
+            /* Let's get the assigment out of picosat, because we have to
+               reset the sat solver afterwards */
+            assignmentTable.clear();
+            std::map<std::string, int>::const_iterator it;
+            for (it = symbolTable.begin(); it != symbolTable.end(); ++it) {
+                bool selected = Picosat::picosat_deref(it->second) == 1;
+                assignmentTable.insert(std::make_pair(it->first, selected));
+            }
+        }
+
+        if (res == PICOSAT_UNSATISFIABLE) {
+            return false;
+        }
+        return true;
+    } catch (std::bad_alloc &exception) {
+        throw SatCheckerError("SatChecker: out of memory");
+    }
+    return false;
+}
+
+BaseExpressionSatChecker::BaseExpressionSatChecker(const char *base_expression, int debug)
+    : SatChecker(base_expression, debug) {
+    Picosat::picosat_init();
+    base_clause = fillSatChecker(base_expression);
+}
+
+
+
