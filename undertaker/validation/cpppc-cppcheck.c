@@ -24,8 +24,7 @@ I: CPP Precondition for cpppc-cppcheck.c
 ( B0 <-> FOO )
 && ( B1 <-> B0 && BAR. )
 && ( B2 <-> B0 && ( ! (B1) ) )
-&& ((BAR  && !(B0)) -> BAR.)
-&& ((BAR. && !(B0)) -> BAR )
+&& (!B0 -> (BAR <-> BAR.))
 && (B0 -> BAR.)
 && B00
  * check-output-end

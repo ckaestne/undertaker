@@ -230,7 +230,6 @@ void
 CppDefine::newDefine(ConditionalBlock *parent, bool define) {
     const char *rewriteToken = ".";
     std::string new_symbol = actual_symbol + rewriteToken;
-    UniqueStringJoiner oldDefineBlocks;
 
     /* Was also defined here */
     defined_in.push_back(parent);
@@ -240,42 +239,14 @@ CppDefine::newDefine(ConditionalBlock *parent, bool define) {
         isUndef.insert(parent->getName());
     }
 
-
-    for (std::deque <ConditionalBlock *>::reverse_iterator i = defined_in.rbegin(); i != defined_in.rend(); i++) {
-        if (oldDefineBlocks.size() > 0) {
-            std::string notPredecessors = oldDefineBlocks.join(" || ");
-
-            std::string right_side = (isUndef.count((*i)->getName()) > 0 ? "!" : "") + new_symbol;
-
-            defineExpressions.push_back("(( " + (*i)->getName() + " && !(" + notPredecessors + ")) -> " + right_side + ")");
-        }
-
-        oldDefineBlocks.push_front((*i)->getName());
-    }
-
-    if (oldDefineBlocks.size() == 0) {
-        // This is the first define for this symbol
-        oldDefineBlocks.push_back("B00");
-    }
-
     // If actual Block is selected, we select or deselect the flag
     std::string right_side = (define ? "" : "!") + new_symbol;
 
+    // Block defined -> new_symbol is active
     defineExpressions.push_back("(" + parent->getName() + " -> " + right_side + ")");
 
-    //  (( B. && !(B5 || B0) ) -> B.. )
-    std::string oldDefines = oldDefineBlocks.join(" || ");
-    defineExpressions.push_back("((" + actual_symbol + "  && !(" + oldDefines + ")) -> "
-                                + new_symbol + ")");
-    //  (( B.. && !(B5 || B0) ) -> B. )
-    defineExpressions.push_back("((" + new_symbol + " && !(" + oldDefines + ")) -> "
-                                + actual_symbol + " )");
-
-    // for (std::list<std::string>::iterator i  = defineExpressions.begin(); i != defineExpressions.end(); ++i) {
-    //     std::cout << *i << std::endl;
-    // }
-    // std::cout << "----" << std::endl;
-
+    // !block defined -> old symbol == new_symbol
+    defineExpressions.push_back("(!" + parent->getName() + " -> (" + actual_symbol + " <-> " + new_symbol + "))");
 
     /* B --> B. */
     actual_symbol = new_symbol;
