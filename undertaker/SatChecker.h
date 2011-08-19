@@ -91,9 +91,6 @@ public:
     /** pretty prints the saved expression */
     std::string pprint();
 
-    /** returns the runtime of the last run */
-    clock_t runtime() { return _runtime; }
-
     enum Debug { DEBUG_NONE = 0,
                  DEBUG_PARSER = 1,
                  DEBUG_CNF = 2 };
@@ -211,6 +208,8 @@ public:
 
 
 
+    int countClauses() { return _clauses; };
+
 protected:
     std::map<std::string, int> symbolTable;
     AssignmentMap assignmentTable;
@@ -220,7 +219,7 @@ protected:
     std::string debug_cnf;
 
     const std::string _sat;
-    clock_t _runtime;
+    int _clauses;
 
     int stringToSymbol(const std::string &key);
     int newSymbol(void);
