@@ -35,6 +35,14 @@
 
 #include <set>
 
+static inline Puma::Token *
+puma_token_next_newline(Puma::Token *e, Puma::Unit *unit) {
+    do {
+        e = unit->next(e);
+    } while (e && e->text()[0] != '\n' && !strchr(e->text(), '\n'));
+    return e;
+}
+
 /// \brief cuts out all bad CPP statements
 Puma::Unit * remove_cpp_statements(Puma::Unit *unit) {
     Puma::ManipCommander mc;
@@ -48,11 +56,8 @@ Puma::Unit * remove_cpp_statements(Puma::Unit *unit) {
         case TOK_PRE_INCLUDE_NEXT:
         case TOK_PRE_WARNING:
             prev = unit->prev(s);
-            e = s;
-            do {
-                e = unit->next(e);
-            } while (e->text()[0] != '\n');
-            mc.kill(s, e);
+            e = puma_token_next_newline(s, unit);
+             mc.kill(s, e);
             mc.commit();
             s = prev ? prev : unit->first();
         }
@@ -482,7 +487,7 @@ Puma::Unit * PumaConditionalBlockBuilder::resolve_includes(Puma::Unit *unit) {
         includer.addIncludePath((*i).c_str());
     }
 
-    for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
+    for (s = unit->first(); s != unit->last() && s; s = unit->next(s)) {
         if (s->type() == TOK_PRE_INCLUDE) {
             e = s;
             include.clear();
