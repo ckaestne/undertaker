@@ -13,7 +13,7 @@ all: zizler
 Zizler.o: Zizler.cpp $(HEADERS)
 
 zizler: Zizler.o libziz.a
-	$(LDXX) -o $@ $(LDLIBS) $^
+	$(LDXX) -o $@ $^ $(LDLIBS)
 
 $(ZIZOBJ): $(HEADERS)
 libziz.a: $(ZIZOBJ) $(HEADERS)
