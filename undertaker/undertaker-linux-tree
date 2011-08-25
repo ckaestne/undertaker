@@ -90,7 +90,7 @@ if [ -n "$COVERAGE" ]; then
     
 
 else 
-    echo "Analyzing $(wc -l < worklist) files with $PROCESSORS threads."
+    echo "Analyzing $(wc -l < undertaker-worklist) files with $PROCESSORS threads."
     time undertaker -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"
     printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
 fi
