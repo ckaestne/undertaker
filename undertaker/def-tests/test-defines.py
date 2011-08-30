@@ -9,7 +9,7 @@ filename = ""
 
 def call_undertaker(filename):
     """ Generates the presence conditions for `filename' in one line """
-    cpppc = subprocess.Popen(['undertaker', '-j', 'cpppc', filename],
+    cpppc = subprocess.Popen(['undertaker', '-q', '-j', 'cpppc', filename],
                              stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
@@ -20,7 +20,7 @@ def call_undertaker(filename):
     if 0 != cpppc.returncode or len(stderr_got) > 0:
         print "STDOUT:", stdout_got
         print "STDERR:", stderr_got
-        raise RuntimeError("calling limboole failed")
+        raise RuntimeError("calling undertaker in cppppc mode on '%s' failed" % filename)
 
     return ' '.join(stdout_got[1:])
 
@@ -44,7 +44,7 @@ def call_limboole(selection, cpppc):
     if 0 != p.returncode or len(stderr_got) > 0:
         print "STDOUT:", stdout_got
         print "STDERR:", stderr_got
-        raise RuntimeError("calling limboole failed")
+        raise RuntimeError("calling limboole on '%s' failed" % limboole_in)
 
 
     return not ' UNSATIS' in stdout_got[0]

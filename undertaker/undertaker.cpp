@@ -16,6 +16,7 @@
 #include "BlockDefectAnalyzer.h"
 #include "SatChecker.h"
 #include "CoverageAnalyzer.h"
+#include "../version.h"
 
 #define __cpp_str(x) #x
 #define _cpp_str(x) __cpp_str(x)
@@ -361,6 +362,7 @@ process_file_cb_t parse_job_argument(const char *arg) {
 
 int main (int argc, char ** argv) {
     int opt;
+    bool quiet(false);
     char *worklist = NULL;
     char *whitelist = NULL;
 
@@ -382,7 +384,7 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:C:vh")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:C:vhq")) != -1) {
         switch (opt) {
         case 'w':
             whitelist = strdup(optarg);
@@ -447,17 +449,23 @@ int main (int argc, char ** argv) {
             }
             break;
         case 'h':
+            std::cout << "undertaker " << version << std::endl;
             usage(std::cout, NULL);
             exit(0);
             break;
         case 'v':
-            std::cout << "undertaker " << _cpp_str(VERSION) << std::endl;
+            std::cout << "undertaker " << version << std::endl;
             exit(0);
             break;
+        case 'q':
+            quiet = true;
         default:
             break;
         }
     }
+
+    if (!quiet)
+        std::cout << "undertaker " << version << std::endl;
 
     if (!worklist && optind >= argc) {
         usage(std::cout, "please specify a file to scan or a worklist");

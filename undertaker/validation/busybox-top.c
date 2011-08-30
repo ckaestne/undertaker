@@ -72,7 +72,7 @@
 
 /*
  * check-name: coverage analysis for busybox top
- * check-command: undertaker -j coverage -O stdout -m  busybox-top.model $file | grep -v '^ENABLE'
+ * check-command: undertaker -q -j coverage -O stdout -m  busybox-top.model $file | grep -v '^ENABLE'
  * check-output-start
 I: Set configuration space regex to '^(ENABLE_|CONFIG_)[^ ]*$'
 I: loaded rsf model for busybox-top.model

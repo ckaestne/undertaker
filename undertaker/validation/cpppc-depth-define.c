@@ -22,7 +22,7 @@
 #endif
 /*
  * check-name: Defines with the same depth and a cond block in between
- * check-command: undertaker -j cpppc $file
+ * check-command: undertaker -q -j cpppc $file
  * check-output-start
 I: CPP Precondition for cpppc-depth-define.c
 ( B0 <-> C )

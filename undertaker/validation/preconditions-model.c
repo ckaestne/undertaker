@@ -19,7 +19,7 @@ OUT OF C
 No CPP Precond
 /*
  * check-name: calculate block preconditions with model
- * check-command: undertaker -j blockpc -m preconditions.model $file:12
+ * check-command: undertaker -q -j blockpc -m preconditions.model $file:12
  * check-output-start
 I: loaded rsf model for preconditions
 I: Using preconditions as primary model

@@ -7,8 +7,7 @@ NODEPS:=clean clean-check
 # DEBUG = -g3 -DDEBUG
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
-VERSION ?= git
-CFLAGS = -Wall -Wextra -O2 -I../ziz -DVERSION=$(VERSION) $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 -I../ziz $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
@@ -34,6 +33,11 @@ KconfigIntersect: libparser.a
 ../ziz/zizler ../ziz/libziz.a: FORCE
 	$(MAKE) -C ../ziz libziz.a
 	$(MAKE) -C ../ziz zizler
+
+../version.h: FORCE
+	$(MAKE) -C .. version.h
+
+undertaker.d: ../version.h
 
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)

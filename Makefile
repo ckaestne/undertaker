@@ -14,6 +14,9 @@ endif
 
 all: $(PROGS)
 
+version.h: generate-version.sh
+	./$<
+
 scripts/kconfig/dumpconf: FORCE
 	$(MAKE) -f Makefile.kbuild dumpconf
 

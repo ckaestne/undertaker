@@ -19,7 +19,7 @@ OUT OF C
 No CPP Precond
 /*
  * check-name: calculate block preconditions without model
- * check-command: undertaker -j blockpc $file:12
+ * check-command: undertaker -q -j blockpc $file:12
  * check-output-start
 I: Block B8 | Defect: no | Global: 0
 B8

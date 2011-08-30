@@ -9,7 +9,7 @@ filename = ""
 
 def call_undertaker(filename, mode = "simple"):
     """ Generates the presence conditions for `filename' in one line """
-    cpppc = subprocess.Popen(['undertaker', '-j', 'coverage', '-O', 'cpp',
+    cpppc = subprocess.Popen(['undertaker', '-q', '-j', 'coverage', '-O', 'cpp',
                               '-C', mode, filename],
                              stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE,

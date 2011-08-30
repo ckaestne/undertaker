@@ -6,7 +6,7 @@
 #endif
 /*
  * check-name: Basic Example, 3 nested blocks
- * check-command: undertaker -j cpppc $file
+ * check-command: undertaker -q -j cpppc $file
  * check-output-start
 I: CPP Precondition for cpppc-nested-blocks.c
 ( B0 <-> CONFIG_A )

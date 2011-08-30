@@ -279,7 +279,7 @@ EXPORT_SYMBOL_GPL(rcuhead_debug_descr);
 
 /*
  * check-name: Full text of kernel/rcupdate.c.c from Linux v2.6.37-rc1-542-g0143832
- * check-command: undertaker -j dead -m models -w /dev/null $file
+ * check-command: undertaker -q -j dead -m models -w /dev/null $file
  * check-output-start
 I: loaded rsf model for alpha
 I: loaded rsf model for arm
