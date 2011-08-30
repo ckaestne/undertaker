@@ -8,6 +8,10 @@ MANDIR ?= $(PREFIX)/share/man
 
 VERSION=$(shell cat VERSION)
 
+ifneq(,$(DESTDIR))
+SETUP_PY_EXTRA_ARG = --root=$(DESTDIR)
+endif
+
 all: $(PROGS)
 
 scripts/kconfig/dumpconf: FORCE
@@ -63,7 +67,7 @@ install: all $(TEMPLATED) $(MANPAGES)
 
 	@install -v -m 0644 -t $(DESTDIR)$(MANDIR)/man1 $(MANPAGES)
 
-	@python setup.py install --prefix=$(PREFIX)
+	@python setup.py install --prefix=$(PREFIX) $(SETUP_PY_EXTRA_ARG)
 
 dist: clean
 	tar -czvf ../undertaker-$(VERSION).tar.gz . \
