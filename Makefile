@@ -8,7 +8,7 @@ MANDIR ?= $(PREFIX)/share/man
 
 VERSION=$(shell cat VERSION)
 
-ifneq(,$(DESTDIR))
+ifneq (,$(DESTDIR))
 SETUP_PY_EXTRA_ARG = --root=$(DESTDIR)
 endif
 
