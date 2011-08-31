@@ -7,14 +7,13 @@ NODEPS:=clean clean-check
 # DEBUG = -g3 -DDEBUG
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
-VERSION ?= git
-CFLAGS = -Wall -Wextra -O2 -DVERSION=$(VERSION) $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
 # LDCOV = -coverage
 BOOST_LIBS = -lboost_system -lboost_regex -lboost_filesystem -lboost_thread
-LDLIBS = -lstdc++ $(BOOST_LIBS) libparser.a -lpicosat -lboost_wave-mt -lPuma $(LDCOV)
+LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) -lpicosat -lboost_wave-mt -lPuma $(LDCOV)
 
 PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
@@ -32,6 +31,11 @@ KconfigIntersect: libparser.a
 
 predator: predator.o PredatorVisitor.o
 	$(CXX) $^ -lPuma -o $@
+
+../version.h: FORCE
+	$(MAKE) -C .. version.h
+
+undertaker.d: ../version.h
 
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)

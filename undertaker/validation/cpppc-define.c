@@ -9,7 +9,7 @@
 #endif
 /*
  * check-name: Complex Conditions
- * check-command: undertaker -j cpppc $file
+ * check-command: undertaker -q -j cpppc $file
  * check-output-start
 I: CPP Precondition for cpppc-define.c
 ( B0 <-> CONFIG_A )

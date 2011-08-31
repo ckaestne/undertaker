@@ -13,14 +13,14 @@ all: zizler
 Zizler.o: Zizler.cpp $(HEADERS)
 
 zizler: Zizler.o libziz.a
-	$(LDXX) -o $@ $(LDLIBS) $^
+	$(LDXX) -o $@ $^ $(LDLIBS)
 
 $(ZIZOBJ): $(HEADERS)
 libziz.a: $(ZIZOBJ) $(HEADERS)
 	ar r $@ $(ZIZOBJ)
 
 clean: clean-check
-	rm -rf *.o *.a
+	rm -rf *.o *.a zizzler
 
 clean-check:
 	rm -rf test/out

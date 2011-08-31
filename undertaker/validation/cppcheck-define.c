@@ -18,7 +18,7 @@ int main(void) {
 
 /*
  * check-name: http://sourceforge.net/apps/trac/cppcheck/ticket/1467
- * check-command: undertaker $file
+ * check-command: undertaker -q $file
  * check-output-start
 I: creating cppcheck-define.c.B1.code.globally.undead
 I: creating cppcheck-define.c.B2.code.globally.dead
