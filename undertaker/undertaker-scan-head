@@ -66,6 +66,7 @@ cd "$GIT_DIRECTORY"
 mkdir -p "$resultdir"
 
 echo "Running on Linux Version $(git describe || echo '(no git)')"
+echo "Using $(undertaker -v)"
 git clean -fxq
 git reset --hard
 git pull
