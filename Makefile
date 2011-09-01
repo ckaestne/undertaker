@@ -23,6 +23,9 @@ scripts/kconfig/dumpconf: FORCE
 undertaker/undertaker: FORCE
 	$(MAKE) -C undertaker undertaker
 
+undertaker/predator: FORCE
+	$(MAKE) -C undertaker predator
+
 ziz/zizler: FORCE
 	$(MAKE) -C ziz zizler
 
