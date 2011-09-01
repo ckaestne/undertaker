@@ -28,11 +28,9 @@ all: $(PROGS) $(TESTPROGS)
 
 undertaker: libparser.a
 KconfigIntersect: libparser.a
+predator: libparser.a predator.o PredatorVisitor.o
 
-predator: predator.o PredatorVisitor.o
-	$(CXX) $^ -lPuma -o $@
-
-../version.h: FORCE
+../version.h:
 	$(MAKE) -C .. version.h
 
 undertaker.d: ../version.h
@@ -97,7 +95,7 @@ docs:
 	doxygen
 
 run-lcov:
-	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage"
+	$(MAKE) -B DEBUG="-g -O0 -fprofile-arcs -ftest-coverage" LDCOV="-coverage -lgcov"
 	rm -rf coverage-html ; mkdir coverage-html
 	lcov --directory $(CURDIR) --zerocounters
 	-$(MAKE) check
