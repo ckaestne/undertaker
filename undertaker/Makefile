@@ -99,7 +99,8 @@ run-lcov:
 	rm -rf coverage-html ; mkdir coverage-html
 	lcov --directory $(CURDIR) --zerocounters
 	-$(MAKE) check
-	lcov --directory $(CURDIR) --capture --output-file coverage-html/undertaker.info
+	lcov --directory $(CURDIR) --capture --output-file coverage-html/undertaker.info.in
+	lcov -e coverage-html/undertaker.info.in "$(CURDIR)*" --output-file coverage-html/undertaker.info
 	genhtml -o coverage-html coverage-html/undertaker.info
 
 FORCE:
