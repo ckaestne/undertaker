@@ -69,7 +69,17 @@ echo "Running on Linux Version $(git describe || echo '(no git)')"
 echo "Using $(undertaker -v)"
 git clean -fxq
 git reset --hard
-git pull
+
+if ! git pull; then
+    echo "temporarily fetching sources from github"
+    git config remote.origin.url git://github.com/torvalds/linux.git
+    if ! git pull; then
+        echo "failed to update kernel sources, continuing anyways"
+    fi
+    git config remote.origin.url "$giturl"
+    echo "restoring configuration to fetch Linux from $giturl"
+fi
+
 
 version="$(git describe || date +%Y-%m-%d-%H:%M)"
 report="${resultdir}/${version}-report.txt"
