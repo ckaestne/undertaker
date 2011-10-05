@@ -46,8 +46,29 @@ def call_limboole(selection, cpppc):
         print "STDERR:", stderr_got
         raise RuntimeError("calling limboole on '%s' failed" % limboole_in)
 
-
     return not ' UNSATIS' in stdout_got[0]
+
+
+def get_limboole_version():
+    """ calls limboole and returns the version number. """
+
+    try:
+        p = subprocess.Popen(['limboole', '--version'],
+                             stdout = subprocess.PIPE,
+                             stderr = subprocess.PIPE)
+    except OSError:
+        raise RuntimeError("calling limboole failed")
+
+    (stdout_got, stderr_got) = (p.stdout.readlines(), p.stderr.readlines())
+    p.wait()
+
+    if 0 != p.returncode or len(stderr_got) > 0:
+        print "STDOUT:", stdout_got
+        print "STDERR:", stderr_got
+        raise RuntimeError("calling limboole failed")
+
+    return stdout_got[0]
+
 
 def for_all_combinations(length, fn):
     """ applies `fn' to all combinations of a boolean string of length `length' """
@@ -179,6 +200,12 @@ def usage():
 if __name__ == '__main__':
     opts, args = getopt.getopt(sys.argv[1:], "hv:")
 
+    try:
+        limboole_version = get_limboole_version()
+    except RuntimeError:
+        print "Could not execute limboole, check that it is available"
+        sys.exit(1)
+
     for opt,arg in opts:
         if opt in ('-v', '--verbose'):
             VERBOSITY=int(arg)
@@ -197,6 +224,9 @@ if __name__ == '__main__':
         print "(only) expecting filename as argument"
         usage()
         sys.exit(1)
+
+    if VERBOSITY > 1:
+        print "Using limboole version: " + limboole_version
 
     filename = args[0]
 
