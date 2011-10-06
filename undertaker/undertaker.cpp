@@ -143,6 +143,12 @@ void process_file_coverage_helper(const char *filename) {
     std::cout << "I: Removed " << r << " old configurations matching " << pattern
               << std::endl;
 
+    if (0 == file.size()) {
+        std::cout << "I: "
+                  << filename << "does not contain any conditional block" << std::endl;
+        return;
+    }
+
     int config_count = 1;
     std::vector<bool> blocks(file.size(), false); // bitvector
 
