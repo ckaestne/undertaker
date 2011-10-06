@@ -95,7 +95,7 @@ void conf_set_all_new_symbols(enum conf_def_mode mode);
 /* confdata.c and expr.c */
 static inline void xfwrite(const void *str, size_t len, size_t count, FILE *out)
 {
-	if (fwrite(str, len, count, out) < count)
+	if (len > 0 && fwrite(str, len, count, out) < count)
 		fprintf(stderr, "\nError in writing or end of file.\n");
 }
 
