@@ -16,6 +16,7 @@ Default X86_ON  "y" "y"
  * check-output-start
 I: Items-Count: 4
 I: Format: <variable> [presence condition]
+UNDERTAKER_SET SCHEMA_VERSION 1.1
 UNDERTAKER_SET ALWAYS_ON "CONFIG_X86_ON"
 CONFIG_X86_32 "(!CONFIG_64BIT)"
 CONFIG_X86_64 "(CONFIG_64BIT)"

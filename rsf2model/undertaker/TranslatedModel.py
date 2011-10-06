@@ -170,6 +170,8 @@ class TranslatedModel(tools.UnicodeMixin):
         result = u""
         result += u"I: Items-Count: %d\n" % len(self.symbols)
         result += u"I: Format: <variable> [presence condition]\n"
+        result += "UNDERTAKER_SET SCHEMA_VERSION 1.1\n"
+
         if len(self.always_on) > 0:
             result += "UNDERTAKER_SET ALWAYS_ON " + (" ".join(map(lambda x: '"' + x + '"', self.always_on))) + "\n"
 

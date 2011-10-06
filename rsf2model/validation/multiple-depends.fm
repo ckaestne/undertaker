@@ -6,6 +6,7 @@ Depends FB "B"
  * check-output-start
 I: Items-Count: 1
 I: Format: <variable> [presence condition]
+UNDERTAKER_SET SCHEMA_VERSION 1.1
 CONFIG_FB "(CONFIG_A && CONFIG_B)"
  * check-output-end
  */
