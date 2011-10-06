@@ -7,4 +7,5 @@ docs
 coverage-html
 kconfig-dumps/models
 test-*
+!test-*.cpp
 predator

@@ -35,7 +35,7 @@
 
 std::list<std::string> itemsOfString(const std::string &str);
 
-class ConfigurationModel : public RsfReader {
+class ConfigurationModel {
 public:
 
     struct Checker {
@@ -43,7 +43,19 @@ public:
         virtual bool operator()(const std::string &item) const = 0;
     };
 
-    ConfigurationModel(std::string name, std::ifstream &in, std::ostream &log);
+    //! Loads the configuration model from file
+    /*!
+     * \param name the architecture
+     * \param in   istream of the model file as produced by rsf2model.
+                   Will be deleted upon object destruction.
+     * \param rsf  istream of the rsf file. used for type information of symbol files
+                   Will be deleted upon object destruction.
+     * \param log  error stream for diagnostics
+     */
+    ConfigurationModel(std::string name, std::istream *in, std::istream *rsf);
+
+    //! destructor
+    ~ConfigurationModel();
 
     int doIntersect(const std::string exp,
                     const ConfigurationModel::Checker *c,
@@ -62,14 +74,35 @@ public:
     static std::string getMissingItemsConstraints(std::set<std::string> &missing);
     std::string getName() const { return _name; }
 
-    // ! checks if a given item should be in the model space
+    //! checks if a given item should be in the model space
     bool inConfigurationSpace(const std::string &symbol) const;
 
-    // ! checks if we can assume that the configuration space is complete
+    //! checks if we can assume that the configuration space is complete
     bool isComplete() const;
+
+    //@{
+    //! checks the type of a given symbol.
+    //! @return false if not found
+    bool isBoolean(const std::string&) const;
+    bool isTristate(const std::string&) const;
+    //@}
+
+    RsfReader::iterator find(const RsfReader::key_type &x) const { return _model->find(x); }
+    RsfReader::iterator begin() const { return _model->begin(); }
+    RsfReader::iterator end()   const { return _model->end(); }
+
+    const StringList *getMetaValue(const std::string &key) const {
+        return _model->getMetaValue(key);
+    }
+
+
 private:
     std::string _name;
     boost::regex _inConfigurationSpace_regexp;
+    std::istream *_model_stream;
+    std::istream *_rsf_stream;
+    RsfReader *_model;
+    ItemRsfReader *_rsf;
 };
 
 #endif

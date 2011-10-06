@@ -10,6 +10,7 @@ build_models: $(MODELS)
 
 models/%.model: kconfig-%.rsf
 	@mkdir -p models
+	@cp -lv $< models/$*.rsf
 	$(RSF2MODEL) $< > $@
 
 

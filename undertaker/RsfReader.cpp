@@ -27,8 +27,8 @@
 
 #include "RsfReader.h"
 
-RsfReader::RsfReader(std::ifstream &f, std::ostream &log, std::string metaflag)
-    : std::map<key_type, mapped_type>(), log(log), metaflag(metaflag) {
+RsfReader::RsfReader(std::istream &f, std::string metaflag)
+    : std::map<key_type, mapped_type>(), metaflag(metaflag) {
     this->read_rsf(f);
 }
 
@@ -65,15 +65,16 @@ StringList RsfReader::parse(const std::string& line) {
     return result;
 }
 
-void RsfReader::read_rsf(std::ifstream &rsf_file) {
+size_t RsfReader::read_rsf(std::istream &rsf_file) {
+    std::string line;
 
     /* Read all lines, and store it into the key value store */
-    while (rsf_file.good()) {
-        std::string line;
-        getline (rsf_file, line);
+    while (std::getline(rsf_file, line)) {
         StringList columns = parse(line);
+
         if (columns.size() == 0)
             continue;
+
         std::string key = columns.front();
         columns.pop_front();
         // Check if the current line is an metainformation line
@@ -91,15 +92,13 @@ void RsfReader::read_rsf(std::ifstream &rsf_file) {
         }
     }
 
-    log << "I: " << " inserted " << this->size()
-        << " items" << std::endl;
-
-    rsf_file.close();
+    return this->size();
 }
 
 const std::string *RsfReader::getValue(const std::string &key) const {
     static std::string null_string("");
     const_iterator i = find(key);
+
     if (i == end())
         return NULL;
     if (i->second.size() == 0)
@@ -110,8 +109,37 @@ const std::string *RsfReader::getValue(const std::string &key) const {
 
 const StringList *RsfReader::getMetaValue(const std::string &key) const {
     static std::string null_string("");
+
     std::map<std::string, StringList>::const_iterator i = meta_information.find(key);
     if (i == meta_information.end())
         return NULL;
     return &((*i).second);
+}
+
+ItemRsfReader::ItemRsfReader(std::istream &f) : RsfReader() {
+    read_rsf(f);
+}
+
+size_t ItemRsfReader::read_rsf(std::istream &rsf_file) {
+    std::string line;
+
+    /* Read all lines, and store it into the key value store */
+    while (std::getline(rsf_file, line)) {
+        StringList columns = parse(line);
+
+        if (columns.size() == 0)
+            continue;
+
+        std::string key = columns.front();
+        columns.pop_front();
+
+        // Skip lines that do not start with 'Item'
+        if (0 != key.compare("Item"))
+            continue;
+
+        key = columns.front(); columns.pop_front();
+        insert(make_pair(key, columns));
+    }
+
+    return this->size();
 }

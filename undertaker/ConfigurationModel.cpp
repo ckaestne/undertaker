@@ -33,19 +33,31 @@
 #include <stack>
 
 
-ConfigurationModel::ConfigurationModel(std::string name, std::ifstream &in, std::ostream &log)
-    : RsfReader(in, log, "UNDERTAKER_SET"), _name(name) {
-    const StringList *configuration_space_regex = getMetaValue("CONFIGURATION_SPACE_REGEX");
+ConfigurationModel::ConfigurationModel(std::string name, std::istream *in, std::istream *rsf)
+    :  _name(name), _model_stream(in), _rsf_stream(rsf) {
+    const StringList *configuration_space_regex;
+
+    _model = new RsfReader(*_model_stream, "UNDERTAKER_SET");
+    _rsf   = new ItemRsfReader(*_rsf_stream);
+
+    configuration_space_regex = _model->getMetaValue("CONFIGURATION_SPACE_REGEX");
 
     if (configuration_space_regex != NULL && configuration_space_regex->size() > 0) {
         std::cout << "I: Set configuration space regex to '" << configuration_space_regex->front() << "'" << std::endl;
         _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
     } else
         _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);
+
 }
 
-std::set<std::string>
-ConfigurationModel::itemsOfString(const std::string &str) {
+ConfigurationModel::~ConfigurationModel() {
+    delete _model;
+    delete _rsf;
+    delete _rsf_stream;
+    delete _model_stream;
+}
+
+std::set<std::string> ConfigurationModel::itemsOfString(const std::string &str) {
     std::set<std::string> result;
     std::string::const_iterator it = str.begin();
     std::string tmp = "";
@@ -94,7 +106,7 @@ ConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initi
     }
 
     while (!workingStack.empty()) {
-        const std::string *item = getValue(workingStack.top());
+        const std::string *item = _model->getValue(workingStack.top());
         workingStack.pop();
         if (item != NULL) {
             if (item->compare("") != 0) {
@@ -148,7 +160,7 @@ int ConfigurationModel::doIntersect(const std::set<std::string> start_items,
     std::set<std::string> interesting = findSetOfInterestingItems(start_items);
 
     for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); it++) {
-        const std::string *item = getValue(*it);
+        const std::string *item = _model->getValue(*it);
 
         if (item != NULL) {
             valid_items++;
@@ -182,9 +194,26 @@ bool ConfigurationModel::inConfigurationSpace(const std::string &symbol) const {
 }
 
 bool ConfigurationModel::isComplete() const {
-    const StringList *configuration_space_complete = getMetaValue("CONFIGURATION_SPACE_INCOMPLETE");
+    const StringList *configuration_space_complete = _model->getMetaValue("CONFIGURATION_SPACE_INCOMPLETE");
     // Reverse logic at this point to ensure Legacy models for kconfig
     // to work
     return !(configuration_space_complete != NULL);
 }
 
+bool ConfigurationModel::isBoolean(const std::string &item) const {
+    const std::string *value = _rsf->getValue(item);
+
+    if (value && 0 == value->compare("boolean"))
+        return true;
+
+    return false;
+}
+
+bool ConfigurationModel::isTristate(const std::string &item) const {
+    const std::string *value = _rsf->getValue(item);
+
+    if (value && 0 == value->compare("tristate"))
+        return true;
+
+    return false;
+}

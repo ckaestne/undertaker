@@ -99,23 +99,38 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
     }
 }
 
+// parameter filename will look like: 'models/x86.model', string like 'x86'
 ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std::string arch) {
     ConfigurationModel *db;
+
     /* Was already loaded */
     if ((db = lookupModel(arch.c_str()))) {
         std::cout << "I: A model for " << arch << " was already loaded" << std::endl;
         return db;
     }
 
-    std::ifstream rsf_file(filename.c_str());
-    static std::ofstream devnull("/dev/null");
-
-    if (!rsf_file.good()) {
-        std::cerr << "could not open file for reading: "
-                  << filename << std::endl;
+    std::ifstream *model = new std::ifstream(filename.c_str());
+    if (!model->good()) {
+        std::cerr << "could not open file for reading: " << filename << std::endl;
+        delete model;
         return NULL;
     }
-    db = new ConfigurationModel(arch, rsf_file, devnull);
+
+//    std::cerr << "I: debug: loaded file " << filename << std::endl;
+
+    std::string::size_type i = filename.find(".model");
+    if (i == std::string::npos)
+        return NULL;
+    
+    filename.erase(i); filename.append(".rsf");
+    std::ifstream *rsf = new std::ifstream(filename.c_str());
+    if (!rsf->good()) {
+        std::cout << "W: could not open file for reading: "      << filename << std::endl;
+        std::cout << "W: checking the type of symbols will fail" << std::endl;
+        rsf = new std::ifstream("/dev/null");
+    }
+
+    db = new ConfigurationModel(arch, model, rsf);
 
     this->insert(std::make_pair(arch,db));
 

@@ -22,7 +22,7 @@ PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o\
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
 PROGS = undertaker predator
-TESTPROGS = test-SatChecker test-ConditionalBlock
+TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel
 
 all: $(PROGS) $(TESTPROGS)
 
