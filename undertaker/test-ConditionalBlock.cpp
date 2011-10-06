@@ -30,7 +30,7 @@
 
 
 
-CppFile file("validation/conditional-block-test");
+CppFile *file;
 
 ConditionalBlock *block_a, *block_b, *block_ifdef, *block_elsif;
 
@@ -38,20 +38,20 @@ START_TEST(cond_parse_test)
 {
 
 
-    fail_unless(file.good());
-    fail_unless(file.size() == 4);
+    fail_unless(file->good());
+    fail_unless(file->size() == 4);
 
     // two top level blocks
-    fail_unless(file.topBlock()->size() == 2);
+    fail_unless(file->topBlock()->size() == 2);
 
 
     fail_unless(block_a->size() == 0); // Block a has no children
     fail_unless(block_b->size() == 2); // Block b has two children (if+else)
 
     // Parents
-    fail_unless(file.topBlock()->getParent() == 0);
-    fail_unless(block_a->getParent() == file.topBlock());
-    fail_unless(block_b->getParent() == file.topBlock());
+    fail_unless(file->topBlock()->getParent() == 0);
+    fail_unless(block_a->getParent() == file->topBlock());
+    fail_unless(block_b->getParent() == file->topBlock());
 
     fail_unless(block_a->getPrev() == 0);
     fail_unless(block_b->getPrev() == 0);
@@ -66,7 +66,7 @@ START_TEST(cond_parse_test)
 END_TEST;
 
 START_TEST(cond_getConstraints) {
-    ck_assert_str_eq(file.topBlock()->getConstraintsHelper().c_str(),
+    ck_assert_str_eq(file->topBlock()->getConstraintsHelper().c_str(),
                      "B00");
 
     ck_assert_str_eq(block_a->getConstraintsHelper().c_str(),
@@ -85,7 +85,7 @@ START_TEST(cond_getConstraints) {
 
 Suite *
 cond_block_suite(void) {
-    ConditionalBlock::iterator i = file.topBlock()->begin();
+    ConditionalBlock::iterator i = file->topBlock()->begin();
     block_a = *i;
     i++;
     block_b = *i;
@@ -115,11 +115,13 @@ int main(int argc, char **argv) {
         std::cout << f.topBlock()->getCodeConstraints() << std::endl;
     }
 
+    file = new CppFile("validation/conditional-block-test");
     Suite *s = cond_block_suite();
     SRunner *sr = srunner_create(s);
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
+    delete file;
 
     return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
