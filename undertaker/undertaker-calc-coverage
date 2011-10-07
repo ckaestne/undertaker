@@ -84,8 +84,7 @@ def switch_config_path(filename):
     if m:
         arch = m.group(1)
     satconf_cmd = 'yes "" | make oldconfig ARCH="%s" KERNELVERSION=`git describe`' % arch
-
-    (output, returncode) = execute(satconf_cmd, echo=False)
+    (output, returncode) = execute(satconf_cmd, echo=True)
     if returncode != 0:
         raise ExpansionError("command used: " + satconf_cmd)
 
@@ -144,6 +143,24 @@ def expand_by_copy(config):
         raise RuntimeError("Partial configuration %s does not exist" % config)
 
     shutil.copy(config, config + '.config')
+    return config + '.config'
+
+def expand_with_defconfig(config):
+
+    logging.debug("Trying to expand configuration %s" % config)
+
+    if not os.path.exists(config):
+        raise RuntimeError("Partial configuration %s does not exist" % config)
+
+    arch = "x86"
+    m = re.search("arch/([^/]*)/", config)
+    if m:
+        arch = m.group(1)
+    cmd = 'yes "" | make KCONFIG_ALLCONFIG="%s" alldefconfig ARCH="%s" KERNELVERSION=`git describe`' % (config, arch)
+    (output, returncode) = execute(cmd, echo=True)
+    if returncode != 0:
+        raise ExpansionError("command used: " + satconf_cmd)
+
     return config + '.config'
 
 
@@ -304,7 +321,7 @@ def vamos_coverage(filename, results):
     results[filename]['fail_count'] = 0
 
     for config in found_configs:
-        expanded_config = expand_by_copy(config)
+        expanded_config = expand_with_defconfig(config)
         results[filename][config] = {}
 
         try:
