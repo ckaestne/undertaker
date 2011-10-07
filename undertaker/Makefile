@@ -56,7 +56,7 @@ test-%: test-%.cpp libparser.a
 	$(CXX) $(CXXFLAGS) -g -O0 -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
 
 run-libcheck: $(TESTPROGS)
-	@for t in $^; do ./$$t; done
+	@for t in $^; do echo "Executing test $$t"; ./$$t || exit 1; done
 
 # coverage analysis will create validation/sched.c.config*
 run-coveragecheck: undertaker
