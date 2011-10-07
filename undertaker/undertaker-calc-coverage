@@ -101,13 +101,41 @@ def call_sparse(filename):
     @return output of sparse
     """
 
-    logging.debug("Creating %s" % filename + ".sparse")
+    arch = "x86"
+    m = re.search("arch/([^/]*)/", filename)
+    if m:
+        arch = m.group(1)
 
-    coverage_cmd = "make %s C=2" % filename.replace(".c", ".o")
+    coverage_cmd = 'ARCH="%s" make %s C=2' % (arch, filename.replace(".c", ".o"))
     p = Popen(coverage_cmd, stdout=PIPE, stderr=STDOUT, shell=True)
     (stdout, dummy) = p.communicate()
 
     return stdout
+
+
+def run_sparse_on_config(filename, config):
+    """
+    the output of sparse is redirected to 'filename.configN.sparse'
+
+    @return The number of sparse errors found.
+    """
+
+    sparse_output = call_sparse(filename)
+    outfn = config + '.sparse'
+
+    logging.debug("Creating " + outfn)
+    with open (outfn, 'w') as f:
+        f.write(sparse_output)
+
+    warnings = 0
+    errors = 0
+    for line in sparse_output.rsplit('\n'):
+        if ' warning: ' in line:
+            warnings = warnings + 1
+        if ' error: ' in line:
+            errors = errors + 1
+
+    return (warnings, errors)
 
 def get_covered_lines(filename):
     coverage_cmd = "make %s C=2 CHECK=sparse-coverage" % filename.replace(".c", ".o")
@@ -159,7 +187,9 @@ def expand_with_defconfig(config):
     cmd = 'yes "" | make KCONFIG_ALLCONFIG="%s" alldefconfig ARCH="%s" KERNELVERSION=`git describe`' % (config, arch)
     (output, returncode) = execute(cmd, echo=True)
     if returncode != 0:
-        raise ExpansionError("command used: " + satconf_cmd)
+        raise ExpansionError("command used: " + cmd)
+
+    shutil.copy('.config', config + '.config')
 
     return config + '.config'
 
@@ -307,7 +337,7 @@ def get_loc_coverage(filename):
     return len(lines)
 
 
-def vamos_coverage(filename, results):
+def vamos_coverage(filename, results, options):
     covered = set()
     found_configs = configurations(filename)
     logging.info("found %d configurations for %s" % (len(found_configs), filename))
@@ -347,6 +377,11 @@ def vamos_coverage(filename, results):
         results[filename][config]['value_errors'] = value_errors
         results[filename][config]['selected_items'] = selected_items(config)
 
+        if options.run_sparse:
+            (warnings, errors) = run_sparse_on_config(filename, config)
+            results[filename][config]['sparse_warnings'] = warnings
+            results[filename][config]['sparse_errors']   = errors
+
         # writeback the expanded configuration
         shutil.copy('.config', config + '.config')
 
@@ -381,7 +416,7 @@ def main():
     parser.add_option('-m', '--model', dest='model', action='store',
                       help="load the model and configuration was generated with model")
     parser.add_option('-F', '--fast', dest='min_strategy', action='store_false', default=True,
-                      help="Use a faster (but maybe more naive) strategy for coverage analysis, (implies -u, default: no)")
+                      help="Use a faster (but maybe more naive) strategy for coverage analysis, (default: no)")
 
     parser.add_option("", '--strategy', dest='strategy', action='store', type="choice",
                       choices=["simple", "minimal"], default="minimal",
@@ -390,6 +425,8 @@ def main():
                       help="Configuration was generated on expanded source file. This will only effect the direct output")
     parser.add_option("", '--expanded-source', dest='expanded_source', action='store_true', default=False,
                       help="Configuration is tested on expaned source file. This will only effect the direct output")
+    parser.add_option("", '--run-sparse', dest='run_sparse', action='store_true', default=False,
+                      help="call sparse on each configuration")
 
     (options, args) = parser.parse_args()
 
@@ -458,7 +495,7 @@ def main():
             if len(results[filename]['total_blocks']) == 0:
                 continue
 
-            vamos_coverage(filename, results)
+            vamos_coverage(filename, results, options)
             print "covered_blocks: %d"   % results[filename]['vamos']
             print "uncovered_blocks: %s" % results[filename]['uncovered_blocks']
             print "expansion_errors: %d" % results[filename]['fail_count']
@@ -475,6 +512,10 @@ def main():
                         print "covered_blocks: %d"  % len(results[filename][config]['covered_blocks'])
                     except KeyError:
                         pass
+
+                    if options.run_sparse:
+                        print "sparse_warnings: %d" % results[filename][config]['sparse_warnings']
+                        print "sparse_errors: %d"   % results[filename][config]['sparse_errors']
 
         except PredatorError as error:
             continue
