@@ -61,15 +61,15 @@ run-libcheck: $(TESTPROGS)
 # coverage analysis will create validation/sched.c.config*
 run-coveragecheck: undertaker
 	@$(MAKE) -C kconfig-dumps all
-	./undertaker -c -m kconfig-dumps/models/x86.model validation/sched.c
-	# we expect between 25 and 30 solutions
+	./undertaker -j coverage -m kconfig-dumps/models validation/sched.c
+#	we expect between 5 and 30 solutions
 	test `find validation -name 'sched.c.config*' | wc -l` -gt 5
 	test `find validation -name 'sched.c.config*' | wc -l` -lt 30
 	md5sum validation/sched.c.config* | awk '// {print $$1}' | sort | uniq -c \
 		| awk '// { if ($$1 != 1) { print "duplicate solutions found" ; exit 1 } }' \
 		|| md5sum validation/sched.c.config* | sort
-	if grep -q '^CONFIG_IA64=[^n]' validation/sched.c.config*; then echo "IA64 not selectable!"; false ; fi
-	if grep -q ^CONFIG_CHOICE validation/sched.c.config*; then echo "must not contain CONFIG_CHOICE*"; false ; fi
+	if grep -q '^CONFIG_IA64' validation/sched.c.config*; then echo "IA64 must not present!"; false ; fi
+	if grep -q '^CONFIG_CHOICE' validation/sched.c.config*; then echo "must not contain CONFIG_CHOICE*"; false ; fi
 
 check: $(PROGS)
 	@$(MAKE) -s clean-check

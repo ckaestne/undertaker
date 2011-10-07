@@ -38,6 +38,7 @@
 #include "SatChecker.h"
 #include "KconfigWhitelist.h"
 
+#include "ModelContainer.h"
 #include "ConfigurationModel.h"
 #include "SatChecker-grammar.t"
 #include "PumaConditionalBlock.h"
@@ -409,26 +410,44 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
             other_variables[what[0]] = valid ? yes : no;
             continue;
         } else if (boost::regex_match(name, what, item_regexp)) {
-            const std::string &name = what[1];
+            ConfigurationModel *model = ModelContainer::lookupMainModel();
+            const std::string &item_name = what[1];
+
             if (missingSet.find(what[0]) != missingSet.end()) {
                 std::cout << "Ignoring 'missing' item " << what[0] << std::endl;
 
-                other_variables[what[0]] = valid ? yes : no;
+                other_variables[what[1]] = valid ? yes : no;
                 continue;
             }
 
             // ignore entries if already set (e.g., by the module variant).
-            if (selection.find(name) == selection.end())
-                selection[name] = valid ? yes : no;
+            if (selection.find(item_name) == selection.end())
+                selection[item_name] = valid ? yes : no;
+
+            // skip item if it is neither a 'boolean' nor a tristate one
+            if (!boost::regex_match(name, module_regexp) && model &&
+                !model->isBoolean(item_name) && !model->isTristate(item_name)) {
+                std::cout << "Ignoring 'non-boolean' item " << what[0] << std::endl;
+
+                other_variables[what[1]] = valid ? yes : no;
+                continue;
+            }
+
+
         } else if (boost::regex_match(name, block_regexp))
             // ignore block variables
             continue;
         else
             other_variables[name] = valid ? yes : no;
     }
+
     for (SelectionType::iterator s = selection.begin(); s != selection.end(); s++) {
         const std::string &item = (*s).first;
         const int &state = (*s).second;
+
+        if (other_variables.find(item) != other_variables.end())
+            continue;
+
         out << "CONFIG_" << item << "=";
         if (state == no)
             out << "n";
