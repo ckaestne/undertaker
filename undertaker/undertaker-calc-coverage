@@ -188,10 +188,12 @@ def expand_with_defconfig(config):
     (output, returncode) = execute(cmd, echo=True)
     if returncode != 0:
         raise ExpansionError("command used: " + cmd)
-
     shutil.copy('.config', config + '.config')
 
-    return config + '.config'
+    expanded_config = config + '.config'
+    shutil.copy('.config', expanded_config)
+
+    return expanded_config
 
 
 def expand_by_filtering(config):
@@ -366,13 +368,17 @@ def vamos_coverage(filename, results, options):
             logging.warning("sanity check failed, but continuing anyways")
             logging.warning(error)
 
-        value_errors = verify_config(config)
-        if len(value_errors) > 0:
-            logging.info("Failed to set %d items from partial config %s" % (len(value_errors), config))
-            mismatches = list()
-            for c in value_errors.keys():
-                mismatches.append("%s != %s" % (c, value_errors[c]))
-            #logging.debug("".join(mismatches))
+        value_errors = "#error"
+        try:
+            value_errors = verify_config(config)
+            if len(value_errors) > 0:
+                logging.info("Failed to set %d items from partial config %s" % (len(value_errors), config))
+                mismatches = list()
+                for c in value_errors.keys():
+                    mismatches.append("%s != %s" % (c, value_errors[c]))
+                logging.debug("".join(mismatches))
+        except ValueError:
+            logging.warning("Failure to analyze partial config expansion, continuing anyways")
 
         results[filename][config]['value_errors'] = value_errors
         results[filename][config]['selected_items'] = selected_items(config)
