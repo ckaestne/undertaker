@@ -84,6 +84,7 @@ void SatChecker::addClause(int *clause) {
     for (int *x = clause; *x; x++)
         Picosat::picosat_add(*x);
     Picosat::picosat_add(0);
+    _clauses ++;
 }
 
 int SatChecker::notClause(int inner_clause) {
@@ -320,10 +321,10 @@ int SatChecker::fillSatChecker(tree_parse_info<>& info) {
 }
 
 SatChecker::SatChecker(const char *sat, int debug)
-  : debug_flags(debug), _sat(std::string(sat)) { }
+    : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
 
 SatChecker::SatChecker(const std::string sat, int debug)
-  : debug_flags(debug), _sat(std::string(sat)) { }
+    : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
 
 bool SatChecker::operator()() throw (SatCheckerError) {
     /* Clear the debug parser, if we are called multiple times */
