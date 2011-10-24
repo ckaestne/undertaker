@@ -391,7 +391,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
     SelectionType selection, other_variables;
 
     for (AssignmentMap::iterator it = begin(); it != end(); it++) {
-        static const boost::regex item_regexp("^CONFIG_(.*)$", boost::regex::perl);
+        static const boost::regex item_regexp("^CONFIG_(.*[^.])$", boost::regex::perl);
         static const boost::regex module_regexp("^CONFIG_(.*)_MODULE$", boost::regex::perl);
         static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
         static const boost::regex choice_regexp("^CONFIG_CHOICE_.*$", boost::regex::perl);
