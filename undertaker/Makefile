@@ -59,7 +59,7 @@ run-libcheck: $(TESTPROGS)
 	@for t in $^; do echo "Executing test $$t"; ./$$t || exit 1; done
 
 # coverage analysis will create validation/sched.c.config*
-run-coveragecheck: undertaker
+run-coveragecheck: undertaker predator
 	@$(MAKE) -C kconfig-dumps all
 	./undertaker -j coverage -m kconfig-dumps/models validation/sched.c
 #	we expect between 5 and 30 solutions
