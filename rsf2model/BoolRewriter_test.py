@@ -1,8 +1,8 @@
 import unittest as t
 import StringIO
-from undertaker import RsfReader
-from undertaker.BoolRewriter import BoolParser as BP
-from undertaker.BoolRewriter import BoolRewriter as BR
+from vamos.rsf2model import RsfReader
+from vamos.rsf2model.BoolRewriter import BoolParser as BP
+from vamos.rsf2model.BoolRewriter import BoolRewriter as BR
 
 
 

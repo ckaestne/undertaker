@@ -1,6 +1,6 @@
 import unittest as t
 import StringIO
-from undertaker import RsfReader
+from vamos.rsf2model import RsfReader
 
 
 class TestRsfReader(t.TestCase):
