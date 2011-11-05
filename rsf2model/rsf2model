@@ -2,8 +2,8 @@
 
 import sys
 import os
-from undertaker import RsfReader
-from undertaker import TranslatedModel
+from vamos.rsf2model import RsfReader
+from vamos.rsf2model import TranslatedModel
 
 if __name__ == '__main__':
     fd = sys.stdin

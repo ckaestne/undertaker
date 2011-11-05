@@ -4,9 +4,10 @@ from distutils.core import setup
 with open('VERSION') as f:
     version = f.read().rstrip('\n')
 
-setup (name='undertaker',
+setup (name='vamos',
        version=version,
-       package_dir={'undertaker' : 'rsf2model/undertaker'},
-       packages=['undertaker'],
+       package_dir={'vamos.rsf2model' : 'rsf2model/vamos/rsf2model',
+	            'vamos' : 'rsf2model/vamos/',},
+       packages=['vamos.rsf2model', 'vamos'],
        scripts=['rsf2model/rsf2model'],
        )
