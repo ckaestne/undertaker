@@ -583,14 +583,18 @@ int SatChecker::AssignmentMap::formatExec(std::ostream &out, const CppFile &file
     redi::opstream cmd_process(cmd);
 
     bool print_flag = true;
+    bool after_newline = true;
     out << "I: Calling: " << cmd << std::endl;
     while ((next = stream.next())) {
         if (flag_map.find(next) != flag_map.end())
             print_flag = flag_map[next];
-        //std::cout<< print_flag << " " << next << " " <<
-        //  next->text() << std::endl;
-        if (print_flag)
-            cmd_process << next->text();
+
+        if (!print_flag && after_newline)
+            cmd_process << "//";
+
+        cmd_process << next->text();
+
+    after_newline = strchr(next->text(), '\n') != NULL;
     }
     cmd_process.close();
 
@@ -716,6 +720,3 @@ BaseExpressionSatChecker::BaseExpressionSatChecker(const char *base_expression, 
     Picosat::picosat_init();
     base_clause = fillSatChecker(base_expression);
 }
-
-
-
