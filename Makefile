@@ -1,5 +1,4 @@
 PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator rsf2model/rsf2model ziz/zizler
-TEMPLATED = rsf2model/undertaker-kconfigdump
 MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz
 
 PREFIX ?= /usr/local
@@ -29,11 +28,6 @@ undertaker/predator: FORCE
 ziz/zizler: FORCE
 	$(MAKE) -C ziz zizler
 
-%: %.in
-	@echo "Template: $< -> $@"
-	@sed "s#@LIBDIR@#${LIBDIR}#g" < $< > $@
-	@chmod --reference="$<" $@
-
 %.1.gz: %.1
 	gzip < $< > $@
 
@@ -43,7 +37,6 @@ clean:
 	$(MAKE) -C ziz clean
 	$(MAKE) -C rsf2model clean
 	@python setup.py clean
-	@rm -f $(TEMPLATED)
 
 docs:
 	$(MAKE) -C undertaker docs
@@ -52,7 +45,7 @@ check:
 	$(MAKE) -C undertaker $@
 	$(MAKE) -C rsf2model $@
 
-install: all $(TEMPLATED) $(MANPAGES)
+install: all $(MANPAGES)
 	@install -d -v $(DESTDIR)$(PREFIX)/bin
 
 	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker 
@@ -61,6 +54,7 @@ install: all $(TEMPLATED) $(MANPAGES)
 
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(LIBDIR)/undertaker
 	@install -v rsf2model/rsf2model $(DESTDIR)$(LIBDIR)/undertaker
+	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(LIBDIR)/undertaker
 	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(LIBDIR)/undertaker
 
 	@install -v undertaker/undertaker $(DESTDIR)$(PREFIX)/bin

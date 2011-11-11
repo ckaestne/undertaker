@@ -26,13 +26,15 @@ function debug() {
     fi
 }
 
-PATH="@LIBDIR@/undertaker:$PATH"
-PYTHONPATH="@LIBDIR@/python2.6/site-packages"
+function find_undertaker_basepath () {
+    # ensure to follow symbolic links
+    local undertaker_path=$(readlink -f `which undertaker`)
+    local b=$(dirname $undertaker_path)
+    echo "${b}/.."
+}
 
-export PYTHONPATH
-
+PATH="`find_undertaker_basepath`/lib/undertaker:$PATH"
 debug "PATH=$PATH\n"
-debug "PYTHONPATH=$PYTHONPATH\n"
 
 if ! which dumpconf > /dev/null; then
     echo "No dumpconf binary found."
@@ -70,24 +72,28 @@ function do_convert() {
     ARCH=$1
     UPCASE_ARCH=$(echo $ARCH | tr 'a-z' 'A-Z')
     echo "Calculating model for $ARCH"
-    
+
   # special case for user mode linux
+  # Note that upstream commit 5c48b108ecbf6505d929e64d50dace13ac2bdf34 renamed
+  # arch/{um/Kconfig.x86 => x86/um/Kconfig}
     SUBARCH=$ARCH
     KCONFIG=Kconfig
     if [ x"$ARCH" = x"um" ]; then
         SUBARCH=x86
         KCONFIG=Kconfig.x86
     fi
-    
+
+    test -f arch/$ARCH/$KCONFIG || return 0
+
   # dumpconf, remove all the comments because they will confuse rsf2model
     SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | grep -v '^#' > "$MODELS/$ARCH.rsf"
-    
-  # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by 
+
+  # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by
   # a rule that no other architecture can be selected at the same
   # time. E.g. X86 -> !ARM && !S390
 
     rsf2model "$MODELS/$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
-  
+
   # Add CONFIG_$i -> !CONFIG_* for every architecture
     echo $ARCHS | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | \
         sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \

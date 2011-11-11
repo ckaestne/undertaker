@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 #
-# This script is indented to be used in automatic cronjobs for
+# This script is intended to be used in automatic cronjobs for
 # scanning the linux git tree for dead blocks and do coverage analysis
 # on it.
 #
@@ -13,8 +13,8 @@ function usage() {
     echo " -d   directory the linux tree will be cloned to"
     echo " -t   undertaker processes to be run"
     echo "      default: _NPROCESSORS_ONLN"
-    echo " -c   commit to be used"
-    echo "      default: HEAD"
+    echo " -c   commit (revspec) to be used"
+    echo "      default: master (but can also be a tag like refs/tags/v3.0)"
     exit 2
 }
 
@@ -38,7 +38,7 @@ shift $(( OPTIND - 1 ))
 OPTIND=1
 
 PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
-COMMIT=${COMMIT:-HEAD}
+COMMIT=${COMMIT:-master}
 
 if [ -z "$GIT_DIRECTORY" ]; then
     echo "Error: No directory for the linux tree was given."
@@ -65,21 +65,21 @@ resultdir="$GIT_DIRECTORY"/results
 cd "$GIT_DIRECTORY"
 mkdir -p "$resultdir"
 
+if ! git fetch -q "$giturl" "$COMMIT"; then
+    echo "Repository on kernel.org failed, fetching sources from github instead"
+    if ! git fetch -q git://github.com/torvalds/linux.git "$COMMIT"; then
+        echo "Failed to update the kernel sources, but continuing anyways"
+    fi
+fi
+
+if ! git reset --hard FETCH_HEAD; then
+    echo "Failed to set requested revision, aborting"
+    exit 1
+fi
+
 echo "Running on Linux Version $(git describe || echo '(no git)')"
 echo "Using $(undertaker -v)"
 git clean -fxq
-git reset --hard
-
-if ! git pull; then
-    echo "temporarily fetching sources from github"
-    git config remote.origin.url git://github.com/torvalds/linux.git
-    if ! git pull; then
-        echo "failed to update kernel sources, continuing anyways"
-    fi
-    git config remote.origin.url "$giturl"
-    echo "restoring configuration to fetch Linux from $giturl"
-fi
-
 
 version="$(git describe || date +%Y-%m-%d-%H:%M)"
 report="${resultdir}/${version}-report.txt"
@@ -87,14 +87,14 @@ deadlist="${resultdir}/${version}-deads.txt"
 
 echo "Scanning version ${version}, logging to ${report}"
 
-undertaker-kconfigdump  > "$report" 2> dump-rsf-error-output.txt
+undertaker-kconfigdump  > "$report"
 
 undertaker-linux-tree -t ${PROCESSORS}    >>"$report" 2>undertaker-error-output.txt
 find . -name '*dead' -ls > "$deadlist"
 echo "Found $(grep globally $deadlist | wc -l) globally dead blocks"
 
 
-undertaker-linux-tree -t ${PROCESSORS} -c  2>coverage-error-output.txt
+undertaker-linux-tree -t ${PROCESSORS} -c
 
 
 
