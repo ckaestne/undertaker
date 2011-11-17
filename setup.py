@@ -6,8 +6,12 @@ with open('VERSION') as f:
 
 setup (name='vamos',
        version=version,
-       package_dir={'vamos.rsf2model' : 'rsf2model/vamos/rsf2model',
-	            'vamos' : 'rsf2model/vamos/',},
-       packages=['vamos.rsf2model', 'vamos'],
-       scripts=['rsf2model/rsf2model'],
+       package_dir={'vamos' : 'python/vamos/',
+                    'vamos.rsf2model' : 'python/vamos/rsf2model',
+                    },
+       packages=['vamos',
+                 'vamos.rsf2model',
+                 ],
+       scripts=['python/rsf2model',
+                ],
        )

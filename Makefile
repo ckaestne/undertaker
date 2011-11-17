@@ -1,4 +1,4 @@
-PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator rsf2model/rsf2model ziz/zizler
+PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator python/rsf2model ziz/zizler
 MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz
 
 PREFIX ?= /usr/local
@@ -36,7 +36,7 @@ clean:
 	$(MAKE) -f Makefile.kbuild clean
 	$(MAKE) -C undertaker clean
 	$(MAKE) -C ziz clean
-	$(MAKE) -C rsf2model clean
+	$(MAKE) -C python clean
 	@python setup.py clean
 
 docs:
@@ -44,23 +44,24 @@ docs:
 
 check:
 	$(MAKE) -C undertaker $@
-	$(MAKE) -C rsf2model $@
+	$(MAKE) -C python $@
 
 install: all $(MANPAGES)
 	@install -d -v $(DESTDIR)$(BINDIR)
-
 	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker 
 	@install -d -v $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 	@install -d -v $(DESTDIR)$(MANDIR)/man1
 
+	@install -v python/undertaker-calc-coverage $(DESTDIR)$(BINDIR)
+	@install -v python/undertaker-kconfigdump $(DESTDIR)$(BINDIR)
+
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(LIBDIR)/undertaker
 
-	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(BINDIR)
 	@install -v undertaker/predator $(DESTDIR)$(BINDIR)
 	@install -v undertaker/undertaker $(DESTDIR)$(BINDIR)
-	@install -v undertaker/undertaker-calc-coverage $(DESTDIR)$(BINDIR)
 	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(BINDIR)
 	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(BINDIR)
+
 	@install -v ziz/zizler $(DESTDIR)$(BINDIR)
 
 	@install -v -m 0644 contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker

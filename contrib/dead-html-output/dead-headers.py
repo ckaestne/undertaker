@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import fnmatch
 import os
@@ -17,7 +17,7 @@ for parent, dirnames, filenames in os.walk('.'):
       header = fd.readline().split(":")
       linecount = [header[2], header[5]]
       fd.close()
-      
+
       path = filename.split("/")
       root = result
       for item in range(1, len(path) - 1):

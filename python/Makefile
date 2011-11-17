@@ -1,4 +1,4 @@
-all: 
+all:
 
 check: all
 	@$(MAKE) -s clean-check

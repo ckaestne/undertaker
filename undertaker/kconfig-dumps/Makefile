@@ -1,4 +1,4 @@
-RSF2MODEL=../../rsf2model/rsf2model
+RSF2MODEL=../../python/rsf2model
 RSF_FILES=$(shell echo kconfig-*)
 MODELS=$(patsubst kconfig-%.rsf,models/%.model,$(RSF_FILES))
 
