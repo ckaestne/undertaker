@@ -2,6 +2,7 @@ PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator rsf2m
 MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz
 
 PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
 LIBDIR ?= $(PREFIX)/lib
 MANDIR ?= $(PREFIX)/share/man
 
@@ -46,23 +47,21 @@ check:
 	$(MAKE) -C rsf2model $@
 
 install: all $(MANPAGES)
-	@install -d -v $(DESTDIR)$(PREFIX)/bin
+	@install -d -v $(DESTDIR)$(BINDIR)
 
 	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker 
 	@install -d -v $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 	@install -d -v $(DESTDIR)$(MANDIR)/man1
 
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(LIBDIR)/undertaker
-	@install -v rsf2model/rsf2model $(DESTDIR)$(LIBDIR)/undertaker
-	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(LIBDIR)/undertaker
-	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(LIBDIR)/undertaker
 
-	@install -v undertaker/undertaker $(DESTDIR)$(PREFIX)/bin
-	@install -v undertaker/predator $(DESTDIR)$(PREFIX)/bin
-	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(PREFIX)/bin
-	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(PREFIX)/bin
-	@install -v undertaker/undertaker-calc-coverage $(DESTDIR)$(PREFIX)/bin
-	@install -v ziz/zizler $(DESTDIR)$(PREFIX)/bin
+	@install -v rsf2model/undertaker-kconfigdump $(DESTDIR)$(BINDIR)
+	@install -v undertaker/predator $(DESTDIR)$(BINDIR)
+	@install -v undertaker/undertaker $(DESTDIR)$(BINDIR)
+	@install -v undertaker/undertaker-calc-coverage $(DESTDIR)$(BINDIR)
+	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(BINDIR)
+	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(BINDIR)
+	@install -v ziz/zizler $(DESTDIR)$(BINDIR)
 
 	@install -v -m 0644 contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
