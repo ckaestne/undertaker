@@ -1,0 +1,36 @@
+/*
+ * check-name: find interesting items for symbol
+ * check-command: undertaker -q -j interesting -m ../kconfig-dumps/models/x86.model CONFIG_SND_HDA_INTEL
+ * check-output-start
+I: Using x86 as primary model
+I: loaded rsf model for x86
+
+CONFIG_64BIT=y
+CONFIG_ARCH_SUPPORTS_MSI=y
+CONFIG_FUTEX=y
+CONFIG_HAS_IOMEM=y
+CONFIG_I2C=m
+CONFIG_INPUT=m
+CONFIG_MODULES=y
+CONFIG_PCI=y
+CONFIG_RT_MUTEXES=y
+CONFIG_SMP=y
+CONFIG_SND=m
+CONFIG_SND_AC97_CODEC=m
+CONFIG_SND_CA0106=m
+CONFIG_SND_HDA_INTEL=m
+CONFIG_SND_ICE1724=m
+CONFIG_SND_PCI=y
+CONFIG_SND_POWERMAC=m
+CONFIG_SND_PPC=y
+CONFIG_SND_VMASTER=y
+CONFIG_SOUND=m
+CONFIG_X86_32=y
+CONFIG_X86_32_NON_STANDARD=y
+CONFIG_X86_64=y
+CONFIG_X86_EXTENDED_PLATFORM=y
+CONFIG_X86_IO_APIC=y
+CONFIG_X86_LOCAL_APIC=y
+CONFIG_X86_UP_APIC=y
+ * check-output-end
+ */

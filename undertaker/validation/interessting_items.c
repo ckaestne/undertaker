@@ -4,6 +4,9 @@
  * check-output-start
 I: loaded rsf model for preconditions
 I: Using preconditions as primary model
-CONFIG_LEVEL_C_B !CONFIG_I_DONT_GIVE_A_BLOODY_HELL_PRECONDITION CONFIG_NOT_MISSING CONFIG_TOPLEVEL_C
+
+CONFIG_LEVEL_C_B=y
+CONFIG_NOT_MISSING=m
+CONFIG_TOPLEVEL_C=y
  * check-output-end
  */

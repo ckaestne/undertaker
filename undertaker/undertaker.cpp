@@ -91,7 +91,7 @@ void usage(std::ostream &out, const char *error) {
     out << "      - cpppc: CPP Preconditions for whole file\n";
     out << "      - blockpc: Block precondition (format: <file>:<line>:<column>)\n";
     out << "      - symbolpc: Symbol precondition (format <symbol>)\n";
-    out << "      - interesting: Find all interesting items for a symbol (format <symbol>)\n";
+    out << "      - interesting: Find related items (format is kconfig-selection like)\n";
     out << "\nCoverage Options:\n";
     out << "  -O: specify the output mode of generated configurations\n";
     out << "      - kconfig: generated partial kconfig configuration (default)\n";
@@ -347,41 +347,75 @@ void process_file_dead(const char *filename) {
 }
 
 
-void process_file_interesting(const char *filename) {
+void process_file_interesting(const char *itemname) {
     ConfigurationModel *model = ModelContainer::lookupMainModel();
+    std::map<std::string, int> selection;
+    static const boost::regex module_regexp("([\\w_]+)_MODULE$", boost::regex::perl);
+    boost::smatch what;
+
+    enum TRISTATE {
+        ENABLED,
+        MODULE,
+        DISABLED
+    };
 
     if (!model) {
-        std::cerr << "E: for finding interessting items a model must be loaded" << std::endl;
+        std::cerr << "E: for finding interesting items a model must be loaded" << std::endl;
         return;
     }
 
-
-    assert(model != NULL); // there should always be a main model loaded
-
-    std::set<std::string> initialItems;
-    initialItems.insert(filename);
+    assert(model != NULL); // some main model must be loaded
 
     /* Find all items that are related to the given item */
+    std::set<std::string> initialItems;
+    initialItems.insert(itemname);
     std::set<std::string> interesting = model->findSetOfInterestingItems(initialItems);
-
-    /* remove the given item again */
-    interesting.erase(filename);
-    std::cout << filename;
+    interesting.erase(itemname);
+    selection[itemname] = ENABLED;
 
     for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); ++it) {
         if (model->find(*it) != model->end()) {
             /* Item is present in model */
-            std::cout << " " << *it;
+            if (boost::regex_match(*it, what, module_regexp)) {
+                assert(what[0].matched > 0);
+                std::string feature_name = what[1];
+                selection[feature_name] = MODULE;
+            } else {
+                /* ignore if the item is already set to module */
+                if (selection.find(*it) != selection.end() &&
+                    selection[*it] == MODULE) {
+                    continue;
+                } else {
+                    selection[*it] = ENABLED;
+                }
+            }
         } else {
             /* Item is missing in this model */
-            std::cout << " !" << *it;
+            if (!boost::regex_match(*it, what, module_regexp)) {
+                std::string feature_name = what[1];
+                selection[feature_name] = DISABLED;
+            } else {
+                selection[*it] = DISABLED;
+            }
         }
     }
-    std::cout << std::endl;
+
+    for (std::map<std::string, int>::iterator i = selection.begin(); i != selection.end(); ++i ) {
+        if ((*i).first.size() == 0) continue;
+        std::cout << (*i).first << "=";
+        switch ((*i).second) {
+        case ENABLED:  cout << "y\n"; break;
+        case MODULE:   cout << "m\n"; break;
+        case DISABLED: cout << "n\n"; break;
+        default: continue;
+        }
+    }
+    std::cout << std::endl; // flush
 }
 
 void process_file_symbolpc(const char *filename) {
     ConfigurationModel *model = ModelContainer::lookupMainModel();
+    std::set<std::string> missingItems;
 
     if (!model) {
         std::cerr << "E: for symbolpc models must be loaded" << std::endl;
@@ -390,10 +424,7 @@ void process_file_symbolpc(const char *filename) {
 
     assert(model != NULL); // there should always be a main model loaded
 
-    std::set<std::string> missingItems;
-
     std::cout << "I: Symbol Precondition for `" << filename << "'" << std::endl;
-
 
     /* Find all items that are related to the given item */
     std::string result;
