@@ -1,3 +1,22 @@
+/*
+ *   undertaker - analyze preprocessor blocks in code
+ *
+ * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "PreTreeVisitor.h"
 
 #include "Puma/ErrorStream.h"
@@ -25,7 +44,7 @@ void PreTreeVisitor::prologue (PreTree* memaddr)
     _depth++;
     *_os << hex << setfill('0') << setw(8)
          << (unsigned long) memaddr << " " << dec;
-    for (int i = 0; i < _depth; i++) 
+    for (int i = 0; i < _depth; i++)
         *_os << "  ";
  }
 
@@ -50,7 +69,7 @@ void PreTreeVisitor::mainPart (PreTree* node)
     if ((token = node->startToken ())) {
         const Puma::Location &l = token->location();
 
-        *_os << " from: '"; 
+        *_os << " from: '";
         if (token->type () == TOK_PRE_NEWLINE)
             *_os << "\\n";
         else
@@ -119,14 +138,14 @@ void PreTreeVisitor::iterateNodes (PreTree* node)
 
 
 void PreTreeVisitor::visitPreTreeToken (PreTreeToken* node)
- {     
+ {
     //prologue (node);
     // *_os << "Token '";
     // if (node->token ()->type () == TOK_PRE_NEWLINE)
     //     *_os << "\\n";
     // else
     //     printWithoutNewlines (node->token ()->text ());
-    // *_os << "'\t### " << node->sons () << " " << node->daughters () << endl; 
+    // *_os << "'\t### " << node->sons () << " " << node->daughters () << endl;
     //_depth--;
  }
 
@@ -171,7 +190,7 @@ void PreTreeVisitor::visitPreProgram_Pre (PreProgram* node)
 
 void PreTreeVisitor::visitPreProgram_Post (PreProgram* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
 
@@ -184,7 +203,7 @@ void PreTreeVisitor::visitPreDirectiveGroups_Pre (PreDirectiveGroups* node)
 
 void PreTreeVisitor::visitPreDirectiveGroups_Post (PreDirectiveGroups* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
 
@@ -199,13 +218,13 @@ void PreTreeVisitor::visitPreConditionalGroup_Post (PreConditionalGroup* node)
  {
     *_os << hex << setfill('0') << setw(8)
          << (unsigned long) node << " " << dec;
-    for (int i = 0; i < _depth; i++) 
+    for (int i = 0; i < _depth; i++)
         *_os << "  ";
     *_os << "ConditionalGroupEnd" << std::endl;
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreElsePart_Pre (PreElsePart* node)
  {
     prologue (node);
@@ -215,10 +234,10 @@ void PreTreeVisitor::visitPreElsePart_Pre (PreElsePart* node)
 
 void PreTreeVisitor::visitPreElsePart_Post (PreElsePart* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreElifPart_Pre (PreElifPart* node)
  {
     prologue (node);
@@ -228,10 +247,10 @@ void PreTreeVisitor::visitPreElifPart_Pre (PreElifPart* node)
 
 void PreTreeVisitor::visitPreElifPart_Post (PreElifPart* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreIfDirective_Pre (PreIfDirective* node)
  {
     prologue (node);
@@ -242,10 +261,10 @@ void PreTreeVisitor::visitPreIfDirective_Pre (PreIfDirective* node)
 
 void PreTreeVisitor::visitPreIfDirective_Post (PreIfDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreIfdefDirective_Pre (PreIfdefDirective* node)
  {
     prologue (node);
@@ -256,10 +275,10 @@ void PreTreeVisitor::visitPreIfdefDirective_Pre (PreIfdefDirective* node)
 
 void PreTreeVisitor::visitPreIfdefDirective_Post (PreIfdefDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreIfndefDirective_Pre (PreIfndefDirective* node)
  {
     prologue (node);
@@ -269,10 +288,10 @@ void PreTreeVisitor::visitPreIfndefDirective_Pre (PreIfndefDirective* node)
 
 void PreTreeVisitor::visitPreIfndefDirective_Post (PreIfndefDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreElifDirective_Pre (PreElifDirective* node)
  {
     prologue (node);
@@ -283,10 +302,10 @@ void PreTreeVisitor::visitPreElifDirective_Pre (PreElifDirective* node)
 
 void PreTreeVisitor::visitPreElifDirective_Post (PreElifDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreElseDirective_Pre (PreElseDirective* node)
  {
     prologue (node);
@@ -297,10 +316,10 @@ void PreTreeVisitor::visitPreElseDirective_Pre (PreElseDirective* node)
 
 void PreTreeVisitor::visitPreElseDirective_Post (PreElseDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreEndifDirective_Pre (PreEndifDirective* node)
  {
     prologue (node);
@@ -311,10 +330,10 @@ void PreTreeVisitor::visitPreEndifDirective_Pre (PreEndifDirective* node)
 
 void PreTreeVisitor::visitPreEndifDirective_Post (PreEndifDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreIncludeDirective_Pre (PreIncludeDirective* node)
  {
     prologue (node);
@@ -324,10 +343,10 @@ void PreTreeVisitor::visitPreIncludeDirective_Pre (PreIncludeDirective* node)
 
 void PreTreeVisitor::visitPreIncludeDirective_Post (PreIncludeDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreAssertDirective_Pre (PreAssertDirective* node)
  {
     prologue (node);
@@ -337,10 +356,10 @@ void PreTreeVisitor::visitPreAssertDirective_Pre (PreAssertDirective* node)
 
 void PreTreeVisitor::visitPreAssertDirective_Post (PreAssertDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreUnassertDirective_Pre (PreUnassertDirective* node)
  {
     prologue (node);
@@ -350,10 +369,10 @@ void PreTreeVisitor::visitPreUnassertDirective_Pre (PreUnassertDirective* node)
 
 void PreTreeVisitor::visitPreUnassertDirective_Post (PreUnassertDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreDefineFunctionDirective_Pre (PreDefineFunctionDirective* node)
  {
     prologue (node);
@@ -363,9 +382,9 @@ void PreTreeVisitor::visitPreDefineFunctionDirective_Pre (PreDefineFunctionDirec
 
 void PreTreeVisitor::visitPreDefineFunctionDirective_Post (PreDefineFunctionDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
-        
+
 void PreTreeVisitor::visitPreDefineConstantDirective_Pre (PreDefineConstantDirective* node)
  {
     prologue (node);
@@ -376,10 +395,10 @@ void PreTreeVisitor::visitPreDefineConstantDirective_Pre (PreDefineConstantDirec
 
 void PreTreeVisitor::visitPreDefineConstantDirective_Post (PreDefineConstantDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreUndefDirective_Pre (PreUndefDirective* node)
  {
     prologue (node);
@@ -389,10 +408,10 @@ void PreTreeVisitor::visitPreUndefDirective_Pre (PreUndefDirective* node)
 
 void PreTreeVisitor::visitPreUndefDirective_Post (PreUndefDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreWarningDirective_Pre (PreWarningDirective* node)
  {
     prologue (node);
@@ -402,10 +421,10 @@ void PreTreeVisitor::visitPreWarningDirective_Pre (PreWarningDirective* node)
 
 void PreTreeVisitor::visitPreWarningDirective_Post (PreWarningDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreErrorDirective_Pre (PreErrorDirective* node)
  {
     prologue (node);
@@ -415,10 +434,10 @@ void PreTreeVisitor::visitPreErrorDirective_Pre (PreErrorDirective* node)
 
 void PreTreeVisitor::visitPreErrorDirective_Post (PreErrorDirective* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
-        
+
 void PreTreeVisitor::visitPreIdentifierList_Pre (PreIdentifierList* node)
  {
     prologue (node);
@@ -428,7 +447,7 @@ void PreTreeVisitor::visitPreIdentifierList_Pre (PreIdentifierList* node)
 
 void PreTreeVisitor::visitPreIdentifierList_Post (PreIdentifierList* node)
  {
-    epilogue (node);        
+    epilogue (node);
  }
 
 
@@ -436,12 +455,12 @@ void PreTreeVisitor::visitPreTokenList_Pre (PreTokenList* node)
  {
     // prologue (node);
     // *_os << "TokenList";
-    // *_os << "\t### " << node->sons () << " " << node->daughters () << endl; 
+    // *_os << "\t### " << node->sons () << " " << node->daughters () << endl;
  }
 
 void PreTreeVisitor::visitPreTokenList_Post (PreTokenList* node)
  {
-    // _depth--;        
+    // _depth--;
  }
 
 
@@ -449,7 +468,7 @@ void PreTreeVisitor::visitPreTokenListPart_Pre (PreTokenListPart* node)
  {
     // prologue (node);
     // *_os << "TokenListPart";
-    // *_os << "\t### " << node->sons () << " " << node->daughters () << endl; 
+    // *_os << "\t### " << node->sons () << " " << node->daughters () << endl;
  }
 
 void PreTreeVisitor::visitPreTokenListPart_Post (PreTokenListPart* node)
