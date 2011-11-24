@@ -1,9 +1,15 @@
+PYTHONFILES=rsf2model undertaker-calc-coverage $(wildcard vamos/*/*.py) $(wildcard vamos/*.py)
+
 all:
 
+pylint:
+	-pylint --rcfile pylint.rc $(PYTHONFILES)
+
 check: all
-	@$(MAKE) -s clean-check
+	$(MAKE) -s clean-check
 	@for test in *_test.py; do python "$$test"; done
 	cd validation && ./test-suite
+	$(MAKE) -s pylint
 
 clean: clean-check
 
@@ -19,4 +25,4 @@ clean-check:
                      \) -delete
 
 FORCE:
-.PHONY: all clean clean-check FORCE
+.PHONY: all clean clean-check pylint FORCE

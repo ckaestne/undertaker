@@ -17,13 +17,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import tools
 import ast
 import re
+from vamos.rsf2model import tools
 
-class BoolParserException:
+
+class BoolParserException(Exception):
     def __init__(self, value):
-        self.value = value
+        Exception.__init__(self, value)
+
     def __unicode__(self):
         return "ERROR: " + self.value
     __repr__ = __unicode__
@@ -34,7 +36,10 @@ class BoolParser (ast.NodeTransformer):
     NOT = "not"
     EQUAL = "=="
     NEQUAL = "!="
+
     def __init__(self, bool_expr):
+        ast.NodeTransformer.__init__(self)
+
         try:
             expr = bool_expr.replace("&&", " and ").replace("||", "or")
             expr = re.sub("!(?=[^=])", " not ", expr)
@@ -51,8 +56,9 @@ class BoolParser (ast.NodeTransformer):
             raise BoolParserException("No valid boolean expression")
         self.tree = self.tree.body[0]
 
-    def new_node(self, type, childs):
-        return [type] + childs
+    @staticmethod
+    def new_node(node_type, childs):
+        return [node_type] + childs
 
     def visit_Expr(self, node):
         return self.visit(node.value)
@@ -82,7 +88,8 @@ class BoolParser (ast.NodeTransformer):
                     return self.new_node(self.NEQUAL, [left, right])
         raise BoolParserException("Unkown compare operation")
 
-    def visit_Name(self, node):
+    @staticmethod
+    def visit_Name(node):
         if node.id.startswith("VAMOS_MAGIC_"):
             return node.id[len("VAMOS_MAGIC_"):]
         return node.id
@@ -99,19 +106,24 @@ class BoolParser (ast.NodeTransformer):
 
 class BoolRewriterException(Exception):
     def __init__(self, value):
+        Exception.__init__(self)
         self.value = value
+
     def __unicode__(self):
         return "ERROR: " + self.value
     __repr__ = __unicode__
 
 def tree_change(func, tree):
-    """Calls func on every subtree and replaces it with the result if not None, otherwise we need to go deeper"""
+    """
+    Calls func on every subtree and replaces it with the result if
+    not None, otherwise we need to go deeper
+    """
+
     if not type(tree) in (list, tuple) or len(tree) < 1:
         return tree
     a = func(tree)
     if a != None:
         return a
-    ret = [tree[0]]
     i = 1
 
     while i < len(tree):
@@ -127,6 +139,7 @@ class BoolRewriter(tools.UnicodeMixin):
     ELEMENT = "in"
 
     def __init__(self, rsf, expr, eval_to_module = True):
+        tools.UnicodeMixin.__init__(self)
         self.expr = BoolParser(expr).to_bool()
         if type(self.expr) == str or self.expr[0] == BoolParser.NOT:
             self.expr = [BoolParser.AND, self.expr]
@@ -218,60 +231,65 @@ class BoolRewriter(tools.UnicodeMixin):
 
         if tree[0] in [BoolParser.NOT, BoolParser.AND, BoolParser.OR]:
             return [tree[0]] + map(to_symbol, tree[1:])
-        if tree[0] == BoolParser.EQUAL:
-            left = tree[1]
-            right = tree[2]
-            left_y = self.rsf.symbol(left)
-            left_m = self.rsf.symbol_module(left)
-            right_y = self.rsf.symbol(right)
-            right_m = self.rsf.symbol_module(right)
+        elif tree[0] == BoolParser.EQUAL:
+            return self.__rewrite_symbol_equal(tree)
+        elif tree[0] == BoolParser.NEQUAL:
+            return self.__rewrite_symbol_nequal(tree)
 
-            if left.lower() in ["y", "n", "m"]:
-                right, left = left, right
-            if left.lower() in ["y", "n", "m"]:
-                raise BoolRewriterException("compare literal with literal")
-            if right == "y":
-                return left_y
-            elif right == "m":
-                return left_m
-            elif right == "n":
-                return [BoolParser.AND,
-                        [BoolParser.NOT, left_m],
-                        [BoolParser.NOT, left_y]]
-            else:
-                # Symbol == Symbol
-                return [BoolParser.OR,
-                        [BoolParser.AND, left_y, right_y], # Either both y
-                        [BoolParser.AND, left_m, right_m], # Or both
-                        [BoolParser.AND, # Or everything disabled
-                         [BoolParser.NOT, left_y], [BoolParser.NOT, right_y],
-                         [BoolParser.NOT, left_m], [BoolParser.NOT, right_m]]]
+    def __rewrite_symbol_equal(self,tree):
+        left = tree[1]
+        right = tree[2]
+        left_y = self.rsf.symbol(left)
+        left_m = self.rsf.symbol_module(left)
+        right_y = self.rsf.symbol(right)
+        right_m = self.rsf.symbol_module(right)
+
+        if left.lower() in ["y", "n", "m"]:
+            right, left = left, right
+        if left.lower() in ["y", "n", "m"]:
+            raise BoolRewriterException("compare literal with literal")
+        if right == "y":
+            return left_y
+        elif right == "m":
+            return left_m
+        elif right == "n":
+            return [BoolParser.AND,
+                    [BoolParser.NOT, left_m],
+                    [BoolParser.NOT, left_y]]
+        else:
+            # Symbol == Symbol
+            return [BoolParser.OR,
+                    [BoolParser.AND, left_y, right_y], # Either both y
+                    [BoolParser.AND, left_m, right_m], # Or both
+                    [BoolParser.AND, # Or everything disabled
+                     [BoolParser.NOT, left_y], [BoolParser.NOT, right_y],
+                     [BoolParser.NOT, left_m], [BoolParser.NOT, right_m]]]
 
 
-        if tree[0] == BoolParser.NEQUAL:
-            left = tree[1]
-            right = tree[2]
-            left_y = self.rsf.symbol(left)
-            left_m = self.rsf.symbol_module(left)
-            right_y = self.rsf.symbol(right)
-            right_m = self.rsf.symbol_module(right)
+    def __rewrite_symbol_nequal(self,tree):
+        left = tree[1]
+        right = tree[2]
+        left_y = self.rsf.symbol(left)
+        left_m = self.rsf.symbol_module(left)
+        right_y = self.rsf.symbol(right)
+        right_m = self.rsf.symbol_module(right)
 
-            if left.lower() in ["y", "n", "m"]:
-                right, left = left, right
-            if left.lower() in ["y", "n", "m"]:
-                raise BoolRewriterException("compare literal with literal")
-            if right == "y":
-                return [BoolParser.NOT, left_y]
-            elif right == "m":
-                return [BoolParser.NOT, left_m]
-            elif right == "n":
-                return [BoolParser.OR, left_m, left_y]
-            else:
-                return [BoolParser.OR,
-                        [BoolParser.AND, left_y, [BoolParser.NOT, right_y]],
-                        [BoolParser.AND, left_m, [BoolParser.NOT, right_m]],
-                        [BoolParser.AND, [BoolParser.NOT, left_y], right_y],
-                        [BoolParser.AND, [BoolParser.NOT, left_m], right_m]]
+        if left.lower() in ["y", "n", "m"]:
+            right, left = left, right
+        if left.lower() in ["y", "n", "m"]:
+            raise BoolRewriterException("compare literal with literal")
+        if right == "y":
+            return [BoolParser.NOT, left_y]
+        elif right == "m":
+            return [BoolParser.NOT, left_m]
+        elif right == "n":
+            return [BoolParser.OR, left_m, left_y]
+        else:
+            return [BoolParser.OR,
+                    [BoolParser.AND, left_y, [BoolParser.NOT, right_y]],
+                    [BoolParser.AND, left_m, [BoolParser.NOT, right_m]],
+                    [BoolParser.AND, [BoolParser.NOT, left_y], right_y],
+                    [BoolParser.AND, [BoolParser.NOT, left_m], right_m]]
 
 
     def dump(self):

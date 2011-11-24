@@ -17,9 +17,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import tools
 import shlex
-import BoolRewriter
+from vamos.rsf2model import BoolRewriter
+from vamos.rsf2model import tools
 
 class RsfReader:
     def __init__(self, fd):
@@ -34,19 +34,21 @@ class RsfReader:
         for line in fd.readlines():
             try:
                 row = shlex.split(line)
-            except:
+            except ValueError:
                 print "Couldn't parse %s" % line
                 continue
             if len(row) > 1 and row[0] in keys:
                 self.database[row[0]].append(row[1:])
 
-    def symbol(self, name):
+    @staticmethod
+    def symbol(name):
         if " " in name:
             raise OptionInvalid()
 
         return "CONFIG_%s" % name
 
-    def symbol_module(self, name):
+    @staticmethod
+    def symbol_module(name):
         if " " in name:
             raise OptionInvalid()
 
@@ -118,6 +120,7 @@ class OptionNotTristate(Exception):
 
 class Option (tools.Repr):
     def __init__(self, rsf, name, tristate = False, omnipresent = False):
+        tools.Repr.__init__(self)
         self.rsf = rsf
         self.name = name
         self._tristate = tristate

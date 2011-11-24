@@ -27,10 +27,12 @@ import glob
 import re
 import shlex
 import logging
-from subprocess import *
+from subprocess import Popen, STDOUT, PIPE
+from optparse import OptionParser
 
 class ModelReader(dict):
     def __init__(self, fd):
+        dict.__init__(self, fd)
 
         self.meta_info = dict()
 
@@ -65,13 +67,13 @@ def switch_config(config):
     """
     switches the current tree to the given config. throws an exception in case make fails
     """
-    execute("find include -name autoconf.h -exec rm {} +", echo = True)
+    execute("find include -name autoconf.h -exec rm {} +", echo=True)
 
     (output, returncode) = execute("make %s" % config, echo=False)
     if returncode != 0:
         raise RuntimeError("Failed to switch to config %s" % config)
-    (out2, ret2) = execute("make silentoldconfig", echo=False)
-    if ret2 != 0:
+    (_, returncode2) = execute("make silentoldconfig", echo=False)
+    if returncode2 != 0:
         raise RuntimeError("silentoldconfig failed while switching to config %s" % config)
     return output
 
@@ -89,15 +91,17 @@ def switch_config_path(filename):
     if m:
         arch = m.group(1)
     satconf_cmd = 'yes "" | make oldconfig ARCH="%s" KERNELVERSION=`git describe`' % arch
-    (output, returncode) = execute(satconf_cmd, echo=True)
+    (_, returncode) = execute(satconf_cmd, echo=True)
     if returncode != 0:
         raise ExpansionError("command used: " + satconf_cmd)
 
     cmd = 'yes "" | make silentoldconfig ARCH="%s" KERNELVERSION=`git describe`' % arch
-    (out2, ret2) = execute(cmd, echo=False)
+    (_, ret2) = execute(cmd, echo=False)
     if ret2 != 0:
         # with the satconfig approach, this always worked
-        raise ExpansionSanityCheckError("silentoldconfig failed while switching to config %s (rc: %d)" % (filename, ret2))
+        msg ="silentoldconfig failed while switching to config %s (rc: %d)" \
+            % (filename, ret2)
+        raise ExpansionSanityCheckError(msg)
 
 def call_sparse(filename):
     """
@@ -134,7 +138,7 @@ def run_sparse_on_config(filename, config):
 
     warnings = 0
     errors = 0
-    for line in sparse_output.rsplit('\n'):
+    for line in sparse_output.__str__().rsplit('\n'):
         if ' warning: ' in line:
             warnings = warnings + 1
         if ' error: ' in line:
@@ -145,6 +149,9 @@ def run_sparse_on_config(filename, config):
 def get_covered_lines(filename):
     coverage_cmd = "make %s C=2 CHECK=sparse-coverage" % filename.replace(".c", ".o")
     (sparse_coverage, returncode) = execute(coverage_cmd, echo=False)
+
+    if returncode != 0:
+        raise RuntimeError("sparse-coverage failed")
 
     lines = []
     for line in sparse_coverage:
@@ -159,7 +166,7 @@ def default_configs(filename, results):
         results[filename] = {}
 
     for config in std_configs:
-        logging.info("Switching to configuration preset %s" % config)
+        logging.info("Switching to configuration preset " + config)
         switch_config(config)
         results[filename][config] = len(get_conditional_blocks(filename, selected_only=True))
     return results
@@ -170,7 +177,7 @@ extra_dependencies = {
 }
 
 def expand_by_copy(config):
-    logging.debug("Trying to expand configuration %s" % config)
+    logging.debug("Trying to expand configuration " + config)
 
     if not os.path.exists(config):
         raise RuntimeError("Partial configuration %s does not exist" % config)
@@ -188,7 +195,7 @@ def expand_with_defconfig(config):
     @return the path to the expanded configuration
     """
 
-    logging.debug("Trying to expand configuration %s" % config)
+    logging.debug("Trying to expand configuration " + config)
 
     if not os.path.exists(config):
         raise RuntimeError("Partial configuration %s does not exist" % config)
@@ -198,7 +205,7 @@ def expand_with_defconfig(config):
     if m:
         arch = m.group(1)
     cmd = 'yes "" | make KCONFIG_ALLCONFIG="%s" alldefconfig ARCH="%s" KERNELVERSION=`git describe`' % (config, arch)
-    (output, returncode) = execute(cmd, echo=True)
+    (_, returncode) = execute(cmd, echo=True)
     if returncode != 0:
         raise ExpansionError("command used: " + cmd)
     shutil.copy('.config', config + '.config')
@@ -221,7 +228,7 @@ def expand_by_filtering(config):
     @return the path to the expanded configuration
     """
 
-    logging.debug("Trying to expand configuration %s" % config)
+    logging.debug("Trying to expand configuration " + config)
 
     if not os.path.exists(config):
         raise RuntimeError("Partial configuration %s does not exist" % config)
@@ -296,9 +303,12 @@ def selected_items(partial_config):
 
     with open(partial_config) as partial_configf:
         for l in partial_configf:
+            # a configuration either starts with a comment '^#'
+            # or looks like:
+            # CONFIG_FOO=y
             if l.startswith('CONFIG_'):
-                (item, value) = l.split('=')
-                if value != 'n':
+                items = l.split('=')
+                if items[1] != 'n':
                     selected += 1
 
     return selected
@@ -313,7 +323,8 @@ def find_autoconf():
         (autoconf, rc) = execute("find include -name autoconf.h", echo = True)
         autoconf = filter(lambda x: len(x) > 0, autoconf)
         if rc != 0 or len(autoconf) != 1:
-            logging.error("Not exactly one autoconf.h was found (%s)" % ", ".join(autoconf))
+            logging.error("Not exactly one autoconf.h was found (%s)",
+                          ", ".join(autoconf))
             raise RuntimeError("Not exactly one autoconf.h was found")
     return autoconf[0]
 
@@ -338,7 +349,7 @@ def get_conditional_blocks(filename, selected_only=False):
 
     blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
     if rc != 0:
-        logging.warning("predator/cpp failed with exitcode: %d" % rc)
+        logging.warning("predator/cpp failed with exitcode: %d", rc)
     return blocks
 
 
@@ -349,13 +360,16 @@ def get_loc_coverage(filename):
 
     cmd = "grep -v -E '^\s*#\s*include' %s | cpp -include %s" % (filename, find_autoconf())
     (lines, rc) = execute(cmd, echo=True)
+    if rc != 0:
+        raise RuntimeError("Calculating loc coverage failed, rc: %d" % rc)
     return len(lines)
 
 
 def vamos_coverage(filename, results, options):
     covered = set()
     found_configs = configurations(filename)
-    logging.info("found %d configurations for %s" % (len(found_configs), filename))
+    logging.info("found %d configurations for %s",
+                 len(found_configs), filename)
 
     if not filename in results:
         results[filename] = {}
@@ -370,21 +384,22 @@ def vamos_coverage(filename, results, options):
 
         try:
             expand_with_defconfig(config)
-        except ExpansionError as error:
-            logging.error("Config %s failed to apply, skipping" % config)
-            results[filename]['fail_count'] = 1 + results[filename]['fail_count']
-            logging.error(error)
-            continue
         except ExpansionSanityCheckError as error:
             results[filename]['fail_count'] = 1 + results[filename]['fail_count']
             logging.warning("sanity check failed, but continuing anyways")
             logging.warning(error)
+        except ExpansionError as error:
+            logging.error("Config %s failed to apply, skipping", config)
+            results[filename]['fail_count'] = 1 + results[filename]['fail_count']
+            logging.error(error)
+            continue
 
         value_errors = "#error"
         try:
             value_errors = verify_config(config)
             if len(value_errors) > 0:
-                logging.info("Failed to set %d items from partial config %s" % (len(value_errors), config))
+                logging.info("Failed to set %d items from partial config %s",
+                             len(value_errors), config)
                 mismatches = list()
                 for c in value_errors.keys():
                     mismatches.append("%s != %s" % (c, value_errors[c]))
@@ -407,7 +422,8 @@ def vamos_coverage(filename, results, options):
         old_len = len(covered)
         covered_blocks = set(get_conditional_blocks(filename, selected_only=True))
         covered |= covered_blocks
-        logging.info("Config %s added %d additional blocks" % (config, len(covered) - old_len))
+        logging.info("Config %s added %d additional blocks",
+                     config, len(covered) - old_len)
         results[filename][config]['covered_blocks'] = covered_blocks
 
 
@@ -422,9 +438,7 @@ def configurations(filename):
     return sorted(l)
 
 
-def main():
-    from optparse import OptionParser
-
+def parse_options():
     parser = OptionParser()
     parser.add_option("-s", "--skip-configs", dest="skip_configs",
                       action="store_true", default=False,
@@ -453,8 +467,8 @@ def main():
         with open(options.model) as fd:
             global model
             model = ModelReader(fd)
-            logging.info("Loaded %d options from Model %s" % (len(model), options.model))
-            logging.info("%d items are always on" % len(model.meta_info['ALWAYS_ON']))
+            logging.info("Loaded %d options from Model %s", (len(model), options.model))
+            logging.info("%d items are always on", len(model.meta_info['ALWAYS_ON']))
 
     if len(args) == 0:
         logging.critical("please specify a worklist")
@@ -468,8 +482,10 @@ def main():
         logging.critical("failed to open worklist: " + error.__str__())
         sys.exit(1)
 
-    logging.debug("Worklist contains %d items" % len(filenames))
+    logging.debug("Worklist contains %d items", len(filenames))
+    return parser.parse_args()
 
+def do_work(filenames, options):
     results = {}
 
     for filename in filenames:
@@ -478,13 +494,14 @@ def main():
                 # we're working on partially preprocessed files, replace
                 # them here with the actual files
                 base = filename[:-3]
-                logging.debug("working on %s instead of %s" % ( base + '.c', filename))
+                logging.debug("working on %s instead of %s",
+                              base + '.c', filename)
                 filename = base + '.c'
             else:
-                logging.debug("%s does not exist, skipping" % filename)
+                logging.debug("%s does not exist, skipping", filename)
                 continue
 
-        logging.info("processing %s" % filename)
+        logging.info("processing %s", filename)
 
         default_configs(filename, results)
         results[filename]['total_blocks'] = set(get_conditional_blocks(filename))
@@ -534,6 +551,35 @@ def main():
             logging.error(error.__str__())
             logging.error("Skipping file " + filename)
             continue
+    
+def main():
+    (options, args) = parse_options()
+    setup_logging(options.verbose)
+
+    if options.model and os.path.exists(options.model):
+        with open(options.model) as fd:
+            global model
+            model = ModelReader(fd)
+            logging.info("Loaded %d options from Model %s",
+                         len(model), options.model)
+            logging.info("%d items are always on",
+                         len(model.meta_info['ALWAYS_ON']))
+
+    if len(args) == 0:
+        logging.critical("please specify a worklist")
+        sys.exit(1)
+
+    worklist = args[0]
+    try:
+        with open(worklist) as f:
+            filenames = [x.strip() for x in f.readlines()]
+    except IOError as error:
+        logging.critical("failed to open worklist: " + error.__str__())
+        sys.exit(1)
+
+    logging.debug("Worklist contains %d items", len(filenames))
+
+    do_work(worklist, filenames)
 
 if __name__ == "__main__":
     main()

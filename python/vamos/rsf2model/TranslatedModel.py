@@ -17,13 +17,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
-import tools
-from RsfReader import RsfReader, Choice
-import BoolRewriter
+from vamos.rsf2model import tools
+from vamos.rsf2model.RsfReader import Choice
+from vamos.rsf2model import BoolRewriter
 
 class TranslatedModel(tools.UnicodeMixin):
     def __init__(self, rsf):
+        tools.UnicodeMixin.__init__(self)
+
         self.symbols = []
         self.deps = {}
         self.defaultSelects = {}
@@ -31,9 +32,12 @@ class TranslatedModel(tools.UnicodeMixin):
         self.always_on = []
 
         self.rsf = rsf
-        for (name, option) in self.rsf.options().items():
+        for t in self.rsf.options().items():
+            option = t[1]
             self.translate_option(option)
-        for (name, option) in self.rsf.options().items():
+
+        for t in self.rsf.options().items():
+            option = t[1]
             if type(option) == Choice:
                 self.translate_choice(option)
 
