@@ -18,6 +18,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from vamos.tools import execute, setup_logging
+
 import os
 import shutil
 import sys
@@ -58,21 +60,6 @@ class ExpansionSanityCheckError(ExpansionError):
 
 class PredatorError(RuntimeError):
     pass
-
-def execute(command, echo=True):
-    """
-    executes 'command' in a shell
-
-    returns a tuple with
-     1. the command's standard output as list of lines
-     2. the exitcode
-    """
-
-    if echo:
-        logging.debug("executing: %s" % command)
-    p = Popen(command, stdout=PIPE, stderr=STDOUT, shell=True)
-    (stdout, stderr) = p.communicate()
-    return (stdout.rsplit('\n'), p.returncode)
 
 def switch_config(config):
     """
@@ -460,14 +447,7 @@ def main():
                       help="call sparse on each configuration")
 
     (options, args) = parser.parse_args()
-
-    log_level = logging.WARNING # default
-    if options.verbose == 1:
-        log_level = logging.INFO
-    elif options.verbose >= 2:
-        log_level = logging.DEBUG
-
-    logging.basicConfig(level=log_level)
+    setup_logging(options.verbose)
 
     if options.model and os.path.exists(options.model):
         with open(options.model) as fd:
