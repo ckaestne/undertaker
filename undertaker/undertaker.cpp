@@ -94,7 +94,8 @@ void usage(std::ostream &out, const char *error) {
     out << "      - cpppc: CPP Preconditions for whole file\n";
     out << "      - blockpc: Block precondition (format: <file>:<line>:<column>)\n";
     out << "      - symbolpc: Symbol precondition (format <symbol>)\n";
-    out << "      - interesting: Find all interesting items for a symbol (format <symbol>)\n";
+    out << "      - checkexpr: Find a configuration that satisfies expression\n";
+    out << "      - interesting: Find related items (negated items are not in the model)\n";
     out << "\nCoverage Options:\n";
     out << "  -O: specify the output mode of generated configurations\n";
     out << "      - kconfig: generated partial kconfig configuration (default)\n";
@@ -383,6 +384,38 @@ void process_file_interesting(const char *filename) {
     std::cout << std::endl;
 }
 
+void process_file_checkexpr(const char *itemname) {
+    ConfigurationModel *model = ModelContainer::lookupMainModel();
+
+    if (!model) {
+        logger << error << "E: for finding interessting items a model must be loaded" << std::endl;
+        return;
+    }
+
+    assert(model != NULL); // some main model must be loaded
+
+    StringJoiner sj;
+    std::set<std::string> missing;
+    std::string intersected;
+
+    sj.push_back(itemname);
+
+    model->doIntersect("(" + std::string(itemname) + ")",
+                       0, // No ConfigurationModel::Checker
+                       missing, intersected);
+
+    sj.push_back(intersected);
+
+    sj.push_back(ConfigurationModel::getMissingItemsConstraints(missing));
+
+    SatChecker sc(sj.join("\n&&\n"));
+    sc();
+
+    SatChecker::AssignmentMap current_solution = sc.getAssignment();
+
+    current_solution.formatKconfig(std::cout, missing);
+}
+
 void process_file_symbolpc(const char *filename) {
     ConfigurationModel *model = ModelContainer::lookupMainModel();
 
@@ -424,6 +457,8 @@ process_file_cb_t parse_job_argument(const char *arg) {
         return process_file_blockpc;
     } else if (strcmp(arg, "interesting") == 0) {
         return process_file_interesting;
+    } else if (strcmp(arg, "checkexpr") == 0) {
+        return process_file_checkexpr;
     } else if (strcmp(arg, "symbolpc") == 0) {
         return process_file_symbolpc;
     }
