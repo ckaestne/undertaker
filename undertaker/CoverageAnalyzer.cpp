@@ -20,6 +20,7 @@
 
 #include "StringJoiner.h"
 #include "CoverageAnalyzer.h"
+#include "Logging.h"
 
 /* c'tor */
 CoverageAnalyzer::CoverageAnalyzer(CppFile *file) : file(file) {};
@@ -32,7 +33,8 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
         const std::string magic("ALWAYS_ON");
         always_on = model->getMetaValue(magic);
         if (always_on && !blocks) {
-            std::cout << "I: " << always_on->size() << " Items have been forcefully set" << std::endl;
+            logger << info << always_on->size()
+                   << " Items have been forcefully set" << std::endl;
         }
     }
 
@@ -136,8 +138,8 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
             }
         }
     } catch (SatCheckerError &e) {
-        std::cerr << "Couldn't process " << file->getFilename() << ": "
-                  << e.what() << std::endl;
+        logger << error << "Couldn't process " << file->getFilename() << ": "
+               << e.what() << std::endl;
     }
 
     return ret;
@@ -236,11 +238,11 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
             assert(configuration.size() == 0);
         }
     } catch (SatCheckerError &e) {
-        std::cerr << "Couldn't process " << file->getFilename() << ": "
-                  << e.what() << std::endl;
+        logger << error << "Couldn't process " << file->getFilename() << ": "
+               << e.what() << std::endl;
     } catch (std::bad_alloc &e) {
-        std::cerr << "Couldn't process " << file->getFilename() << ": "
-                  << e.what() << std::endl;
+        logger << error << "Couldn't process " << file->getFilename() << ": "
+               << e.what() << std::endl;
     }
     return ret;
 }

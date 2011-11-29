@@ -23,6 +23,7 @@
 #include "ConfigurationModel.h"
 #include "KconfigWhitelist.h"
 #include "StringJoiner.h"
+#include "Logging.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <cassert>
@@ -43,7 +44,8 @@ ConfigurationModel::ConfigurationModel(std::string name, std::istream *in, std::
     configuration_space_regex = _model->getMetaValue("CONFIGURATION_SPACE_REGEX");
 
     if (configuration_space_regex != NULL && configuration_space_regex->size() > 0) {
-        std::cout << "I: Set configuration space regex to '" << configuration_space_regex->front() << "'" << std::endl;
+        logger << info << "Set configuration space regex to '"
+               << configuration_space_regex->front() << "'" << std::endl;
         _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
     } else
         _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);

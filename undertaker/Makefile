@@ -17,7 +17,8 @@ LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) -lpicosat -lboost_wave-mt -lPuma $(L
 
 PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
-		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o
+		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o \
+		Logging.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 

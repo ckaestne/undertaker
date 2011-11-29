@@ -22,7 +22,7 @@ def call_undertaker(filename):
         print "STDERR:", stderr_got
         raise RuntimeError("calling undertaker in cppppc mode on '%s' failed" % filename)
 
-    return ' '.join(stdout_got[1:])
+    return ' '.join(stdout_got)
 
 def call_limboole(selection, cpppc):
     """ returns True if (selection) && (cpppc) is satisfiable """

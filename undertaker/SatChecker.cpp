@@ -42,15 +42,16 @@
 #include "ConfigurationModel.h"
 #include "SatChecker-grammar.t"
 #include "PumaConditionalBlock.h"
+#include "Logging.h"
 
 bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     SatChecker c(sat.c_str());
     try {
         return c();
     } catch (SatCheckerError &e) {
-        std::cout << "Syntax Error:" << std::endl;
-        std::cout << sat << std::endl;
-        std::cout << "End of Syntax Error" << std::endl;
+        logger << error << "Syntax Error:" << std::endl;
+        logger << error << sat << std::endl;
+        logger << error << "End of Syntax Error" << std::endl;
         throw e;
     }
     return false;
@@ -403,7 +404,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
             const std::string &name = what[1];
             std::string fullname = "CONFIG_" + name;
             if (missingSet.find(fullname) != missingSet.end()) {
-                std::cout << "Ignoring 'missing' item " << fullname << std::endl;
+                logger << debug << "Ignoring 'missing' item " << fullname << std::endl;
                 other_variables[fullname] = valid ? yes : no;
             } else
                 selection[name] = module;
@@ -415,7 +416,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
             const std::string &item_name = what[1];
 
             if (missingSet.find(what[0]) != missingSet.end()) {
-                std::cout << "Ignoring 'missing' item " << what[0] << std::endl;
+                logger << debug << "Ignoring 'missing' item " << what[0] << std::endl;
 
                 other_variables[what[1]] = valid ? yes : no;
                 continue;
@@ -428,7 +429,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
             // skip item if it is neither a 'boolean' nor a tristate one
             if (!boost::regex_match(name, module_regexp) && model &&
                 !model->isBoolean(item_name) && !model->isTristate(item_name)) {
-                std::cout << "Ignoring 'non-boolean' item " << what[0] << std::endl;
+                logger << debug << "Ignoring 'non-boolean' item " << what[0] << std::endl;
 
                 other_variables[what[1]] = valid ? yes : no;
                 continue;
@@ -584,7 +585,7 @@ int SatChecker::AssignmentMap::formatExec(std::ostream &out, const CppFile &file
 
     bool print_flag = true;
     bool after_newline = true;
-    out << "I: Calling: " << cmd << std::endl;
+    logger << info << "Calling: " << cmd << std::endl;
     while ((next = stream.next())) {
         if (flag_map.find(next) != flag_map.end())
             print_flag = flag_map[next];

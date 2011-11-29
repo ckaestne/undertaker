@@ -6,7 +6,7 @@
 
 /*
  * check-name: Guarded include
- * check-command: undertaker -q -j cpppc -Iinclude $file
+ * check-command: undertaker -j cpppc -Iinclude $file
  * check-output-start
 I: CPP Precondition for guarded-include.c
 ( B0 <-> CONFIG_A )

@@ -27,7 +27,7 @@
 
 /*
  * check-name: coverage analysis for busybox syslogd
- * check-command: undertaker -q -j coverage -O stdout -m  busybox-syslogd.model $file | grep -v '^ENABLE'
+ * check-command: undertaker -j coverage -O stdout -m  busybox-syslogd.model $file | grep -v '^ENABLE'
  * check-output-start
 I: Set configuration space regex to '^(ENABLE_|CONFIG_)[^ ]*$'
 I: loaded rsf model for busybox-syslogd.model

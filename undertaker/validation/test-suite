@@ -10,7 +10,7 @@ import getopt
 
 threads = 1
 testcase_pattern = "*.c"
-default_command = "undertaker -q -m models $file"
+default_command = "undertaker -m models $file"
 default_path = ".."
 
 QUIET = False

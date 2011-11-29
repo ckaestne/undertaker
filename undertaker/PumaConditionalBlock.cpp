@@ -20,6 +20,7 @@
 
 #include "PumaConditionalBlock.h"
 #include "StringJoiner.h"
+#include "Logging.h"
 
 #include <Puma/CTranslationUnit.h>
 #include <Puma/Unit.h>
@@ -167,7 +168,7 @@ void PumaConditionalBlockBuilder::iterateNodes (PreTree *node) {
 ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFile *cpp_file) {
     Puma::Unit *unit = _project->scanFile(filename);
     if (!unit) {
-        std::cerr << "Failed to parse: " << filename << std::endl;
+        logger << error << "Failed to parse: " << filename << std::endl;
         return NULL;
     }
 
@@ -198,7 +199,7 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
 
     Puma::PreTree *ptree = _cpp->syntaxTree();
     if (!ptree) {
-        std::cerr << "Failed to create cpp tree from file : " << filename << std::endl;
+        logger << error << "Failed to create cpp tree from file : " << filename << std::endl;
         return NULL;
     }
 
@@ -226,7 +227,7 @@ PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
 
 #if 0
 #define TRACECALL \
-    std::cerr << __PRETTY_FUNCTION__ << ": " \
+    logger << debug << __PRETTY_FUNCTION__ << ": "                   \
               << "Start: " << node->startToken()->location().line() << ", "       \
               << "End: " << node->endToken()->location().line() \
               << std::endl

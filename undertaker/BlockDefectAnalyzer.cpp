@@ -27,6 +27,7 @@
 #include "BlockDefectAnalyzer.h"
 #include "SatChecker.h"
 #include "ModelContainer.h"
+#include "Logging.h"
 
 
 void BlockDefectAnalyzer::markOk(const std::string &arch) {
@@ -211,10 +212,10 @@ bool DeadBlockDefect::writeReportToFile() const {
     std::ofstream out(filename.c_str());
 
     if (!out.good()) {
-        std::cerr << "failed to open " << filename << " for writing " << std::endl;
+        logger << error << "failed to open " << filename << " for writing " << std::endl;
         return false;
     } else {
-        std::cout << "I: creating " << filename << std::endl;
+        logger << info << "creating " << filename << std::endl;
         out << "#" << _cb->getName() << ":" 
             << _cb->filename() << ":" << _cb->lineStart() << ":" << _cb->colStart() << ":"
             << _cb->filename() << ":" << _cb->lineEnd() << ":" << _cb->colEnd() << ":"

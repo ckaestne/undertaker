@@ -3,7 +3,7 @@
 #endif
 /*
  * check-name: Handle 'defined' keyword
- * check-command: undertaker -q -j cpppc $file
+ * check-command: undertaker -j cpppc $file
  * check-output-start
 I: CPP Precondition for cpppc-handle-defined.c
 ( B0 <->  ( CONFIG_A ) && (  CONFIG_B ) )

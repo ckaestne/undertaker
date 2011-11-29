@@ -41,7 +41,7 @@
 #include "SatChecker.h"
 #include "CoverageAnalyzer.h"
 #include <errno.h>
-
+#include "Logging.h"
 #include "../version.h"
 
 
@@ -79,6 +79,9 @@ void usage(std::ostream &out, const char *error) {
     out << "`undertaker' does analysis on conditinal C code.\n\n";
     out << "Usage: undertaker [OPTIONS] <file..>\n";
     out << "\nOptions:\n";
+    out << "  -V  print version information";
+    out << "  -v  increase the log level (more verbose)";
+    out << "  -q  decrease the log level (less verbose)";
     out << "  -m  specify the model(s) (directory or file)\n";
     out << "  -M  specify the main model\n";
     out << "  -w  specify a whitelist\n";
@@ -126,7 +129,7 @@ int rm_pattern(const char *pattern) {
 void process_file_coverage_helper(const char *filename) {
     CppFile file(filename);
     if (!file.good()) {
-        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
+        logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -155,18 +158,18 @@ void process_file_coverage_helper(const char *filename) {
         return;
     }
 
-    std::cout << "I: Entries in missingSet: " << missingSet.size() << std::endl;
+    logger << info << "Entries in missingSet: " << missingSet.size() << std::endl;
 
     std::string pattern(filename);
     pattern.append(".config*");
     int r = rm_pattern(pattern.c_str());
 
-    std::cout << "I: Removed " << r << " old configurations matching " << pattern
-              << std::endl;
+    logger << info << "Removed " << r << " old configurations matching " << pattern
+           << std::endl;
 
     if (0 == file.size()) {
-        std::cout << "I: "
-                  << filename << "does not contain any conditional block" << std::endl;
+        logger << info << filename
+               << "does not contain any conditional block" << std::endl;
         return;
     }
 
@@ -188,9 +191,9 @@ void process_file_coverage_helper(const char *filename) {
             || coverageOutputMode == COVERAGE_MODE_ALL) {
             outf.open(outfstream.str().c_str(), std::ios_base::trunc);
             if (!outf.good()) {
-                std::cerr << "E: failed to write config in "
-                          << outfstream.str().c_str()
-                          << std::endl;
+                logger << error <<" failed to write config in "
+                       << outfstream.str().c_str()
+                       << std::endl;
                 outf.close();
                 continue;
             }
@@ -202,7 +205,7 @@ void process_file_coverage_helper(const char *filename) {
             break;
         case COVERAGE_MODE_MODEL:
             if (!model) {
-                std::cerr << "E: no model loaded but, model output mode specified" << std::endl;
+                logger << error << "no model loaded but, model output mode specified" << std::endl;
                 exit(1);
             }
             (*it).formatModel(outf, model);
@@ -231,32 +234,32 @@ void process_file_coverage_helper(const char *filename) {
 
     float ratio = 100.0 * enabled_blocks / file.size();
 
-    std::cout << "I: "
-              << filename << ", "
-              << "Found Solutions: " << solution.size() << ", " // #found solutions
-              << "Coverage: " << enabled_blocks << "/" << file.size() << " blocks enabled "
-              << "(" << ratio <<  "%)" << std::endl;
+    logger << info
+           << filename << ", "
+           << "Found Solutions: " << solution.size() << ", " // #found solutions
+           << "Coverage: " << enabled_blocks << "/" << file.size() << " blocks enabled "
+           << "(" << ratio <<  "%)" << std::endl;
 }
 
 void process_file_coverage (const char *filename) {
     boost::thread t(process_file_coverage_helper, filename);
 
     if (!t.timed_join(boost::posix_time::seconds(300)))
-        std::cerr << "E: timeout passed while processing " << filename
-                  << std::endl;
+        logger << error << "timeout passed while processing " << filename
+               << std::endl;
 }
 
 void process_file_cpppc(const char *filename) {
     CppFile s(filename);
     if (!s.good()) {
-        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
+        logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
     }
-    std::cout << "I: CPP Precondition for " << filename << std::endl;
+    logger << info << "CPP Precondition for " << filename << std::endl;
     try {
         std::cout << s.topBlock()->getCodeConstraints() << std::endl;
     } catch (std::runtime_error &e) {
-        std::cerr << "E: failed: " << e.what() << std::endl;
+        logger << error << "failed: " << e.what() << std::endl;
         return;
     }
 }
@@ -266,7 +269,7 @@ void process_file_blockpc(const char *filename) {
     std::string file, position;
     size_t colon_pos = fname.find_first_of(':');
     if (colon_pos == fname.npos) {
-        std::cerr << "E: invalid format for block precondition" << std::endl;
+        logger << error << "invalid format for block precondition" << std::endl;
         return;
     }
     file = fname.substr(0, colon_pos);
@@ -274,15 +277,15 @@ void process_file_blockpc(const char *filename) {
 
     CppFile cpp(file.c_str());
     if (!cpp.good()) {
-        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
+        logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
     ConditionalBlock * block = cpp.getBlockAtPosition(filename);
 
     if (block == 0) {
-         std::cout << "I: No block at " << filename << " was found." << std::endl;
-         return;
+        logger << info << "No block at " << filename << " was found." << std::endl;
+        return;
     }
 
 
@@ -291,8 +294,8 @@ void process_file_blockpc(const char *filename) {
     try {
         defect = BlockDefectAnalyzer::analyzeBlock(block, model);
     } catch (SatCheckerError &e) {
-        std::cerr << "Couldn't process " << filename << ":" << block->getName() << ": "
-                  << e.what() << std::endl;
+        logger << error << "Couldn't process " << filename << ":" << block->getName() << ": "
+               << e.what() << std::endl;
     }
 
     // /* Get the Precondition */
@@ -304,9 +307,9 @@ void process_file_blockpc(const char *filename) {
          defect_string = defect->getSuffix() + "/" + defect->defectTypeToString();
     }
 
-    std::cout << "I: Block " << block->getName()
-              << " | Defect: " << defect_string
-              << " | Global: " << (defect != 0 ? defect->isGlobal() : 0)<< std::endl;
+    logger << info << "Block " << block->getName()
+           << " | Defect: " << defect_string
+           << " | Global: " << (defect != 0 ? defect->isGlobal() : 0)<< std::endl;
 
     std::cout << precondition << std::endl;
 }
@@ -314,7 +317,7 @@ void process_file_blockpc(const char *filename) {
 void process_file_dead_helper(const char *filename) {
     CppFile file(filename);
     if (!file.good()) {
-        std::cerr << "E: failed to open file: `" << filename << "'" << std::endl;
+        logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
     }
 
@@ -332,8 +335,8 @@ void process_file_dead_helper(const char *filename) {
                 delete defect;
             }
         } catch (SatCheckerError &e) {
-            std::cerr << "Couldn't process " << filename << ":" << block->getName() << ": "
-                      << e.what() << std::endl;
+            logger << error << "Couldn't process " << filename << ":" << block->getName() << ": "
+                   << e.what() << std::endl;
         }
     }
 }
@@ -342,8 +345,8 @@ void process_file_dead(const char *filename) {
     boost::thread t(process_file_dead_helper, filename);
 
     if (!t.timed_join(boost::posix_time::seconds(300)))
-        std::cerr << "E: timeout passed while processing " << filename
-                  << std::endl;
+        logger << error << "timeout passed while processing " << filename
+               << std::endl;
 }
 
 
@@ -351,7 +354,7 @@ void process_file_interesting(const char *filename) {
     ConfigurationModel *model = ModelContainer::lookupMainModel();
 
     if (!model) {
-        std::cerr << "E: for finding interessting items a model must be loaded" << std::endl;
+        logger << error << "for finding interessting items a model must be loaded" << std::endl;
         return;
     }
 
@@ -384,7 +387,7 @@ void process_file_symbolpc(const char *filename) {
     ConfigurationModel *model = ModelContainer::lookupMainModel();
 
     if (!model) {
-        std::cerr << "E: for symbolpc models must be loaded" << std::endl;
+        logger << error << "for symbolpc models must be loaded" << std::endl;
         return;
     }
 
@@ -392,7 +395,7 @@ void process_file_symbolpc(const char *filename) {
 
     std::set<std::string> missingItems;
 
-    std::cout << "I: Symbol Precondition for `" << filename << "'" << std::endl;
+    logger << info << "Symbol Precondition for `" << filename << "'" << std::endl;
 
 
     /* Find all items that are related to the given item */
@@ -452,11 +455,13 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
                 arguments.erase(pid);
             } else {
                 process_stats.failed ++;
-                std::cout << "E: Process (" << arguments[pid] << ") failed with exitcode " << WEXITSTATUS(state) << std::endl;
+                logger << error << "Process (" << arguments[pid]
+                       << ") failed with exitcode " << WEXITSTATUS(state) << std::endl;
             }
         } else if (WIFSIGNALED(state)) {
             process_stats.signaled++;
-            std::cout << "E: Process (" << arguments[pid] << ") failed with signal " << WTERMSIG(state) << std::endl;
+            logger << error << "Process (" << arguments[pid]
+                   << ") failed with signal " << WTERMSIG(state) << std::endl;
         } else {
             continue;
         }
@@ -465,18 +470,17 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
 
     if (print_stats) {
         /* Shutdown phase */
-        std::cout << "I: Sucessful processed:  " << process_stats.ok << std::endl;
-        std::cout << "I: Failed with exitcode: " << process_stats.failed << std::endl;
-        std::cout << "I: Failed with signal:   " << process_stats.signaled << std::endl;
+        logger << info << "Sucessful processed:  " << process_stats.ok << std::endl;
+        logger << info << "Failed with exitcode: " << process_stats.failed << std::endl;
+        logger << info << "Failed with signal:   " << process_stats.signaled << std::endl;
         for (std::map<pid_t, const char *>::const_iterator it = arguments.begin() ; it != arguments.end(); it++ )
-            std::cout << "I: Failed file: " << (*it).second << endl;
+            logger << info << "Failed file: " << (*it).second << endl;
     }
 }
 
 
 int main (int argc, char ** argv) {
     int opt;
-    bool quiet(false);
     char *worklist = NULL;
     char *whitelist = NULL;
 
@@ -486,6 +490,13 @@ int main (int argc, char ** argv) {
     /* Default is dead/undead analysis */
     std::string process_mode = "dead";
     process_file_cb_t process_file = process_file_dead;
+
+    /* Standard Logging output is standard out,
+       the loglevel (threshold) is LOG_INFO
+       the default Loglevel is LOG_INFO
+    */
+    logger.init(std::cout, Logging::LOG_INFO, Logging::LOG_INFO);
+    int loglevel = Logging::LOG_INFO;
 
     /* Command line structure:
        - Model Options:
@@ -498,7 +509,7 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:C:I:vhq")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:C:I:Vhvq")) != -1) {
         switch (opt) {
         case 'w':
             whitelist = strdup(optarg);
@@ -526,8 +537,8 @@ int main (int argc, char ** argv) {
                     coverage_exec_cmd = &optarg[5];
             }
             else
-                std::cerr << "WARNING, mode " << optarg << " is unknown, using 'kconfig' instead"
-                          << std::endl;
+                logger << warn << "mode " << optarg << " is unknown, using 'kconfig' instead"
+                       << std::endl;
             break;
         case 'C':
             if (0 == strcmp(optarg, "simple"))
@@ -535,8 +546,8 @@ int main (int argc, char ** argv) {
             else if (0 == strcmp(optarg, "min"))
                 coverageOperationMode = COVERAGE_OP_MINIMIZE;
             else
-                std::cerr << "WARNING, mode " << optarg << " is unknown, using 'simple' instead"
-                          << std::endl;
+                logger << warn << "mode " << optarg << " is unknown, using 'simple' instead"
+                       << std::endl;
             break;
         case 't':
             threads = strtol(optarg, (char **)0, 10);
@@ -546,7 +557,7 @@ int main (int argc, char ** argv) {
                 exit(EXIT_FAILURE);
             }
             if (threads < 1) {
-                std::cerr << "WARNING: Invalid numbers of threads, using 1 instead." << std::endl;
+                logger << warn << "Invalid numbers of threads, using 1 instead." << std::endl;
                 threads = 1;
             }
             break;
@@ -571,23 +582,30 @@ int main (int argc, char ** argv) {
             PumaConditionalBlockBuilder::addIncludePath(optarg);
             break;
         case 'h':
-            std::cout << "undertaker " << version << std::endl;
+            logger << info << "undertaker " << version << std::endl;
             usage(std::cout, NULL);
             exit(0);
             break;
-        case 'v':
-            std::cout << "undertaker " << version << std::endl;
+        case 'V':
+            logger << info << "undertaker " << version << std::endl;
             exit(0);
             break;
         case 'q':
-            quiet = true;
+            loglevel = loglevel + 10;
+            logger.setLogLevel(loglevel);
+            break;
+        case 'v':
+            loglevel = loglevel - 10;
+            if (loglevel < 0)
+                loglevel = Logging::LOG_EVERYTHING;
+            logger.setLogLevel(loglevel);
+            break;
         default:
             break;
         }
     }
 
-    if (!quiet)
-        std::cout << "undertaker " << version << std::endl;
+    logger << debug << "undertaker " << version << std::endl;
 
     if (!worklist && optind >= argc) {
         usage(std::cout, "please specify a file to scan or a worklist");
@@ -605,9 +623,9 @@ int main (int argc, char ** argv) {
         KconfigWhitelist *wl = KconfigWhitelist::getInstance();
         int n = wl->loadWhitelist(whitelist);
         if (n >= 0) {
-            std::cout << "I: loaded " << n << " items to whitelist" << std::endl;
+            logger << info << "loaded " << n << " items to whitelist" << std::endl;
         } else {
-            std::cout << "E: couldn't load whitelist" << std::endl;
+            logger << error << "couldn't load whitelist" << std::endl;
             exit(-1);
         }
         free(whitelist);
@@ -676,7 +694,7 @@ int main (int argc, char ** argv) {
                 } else { /* Change working mode */
                     process_file_cb_t new_function = parse_job_argument(new_mode.c_str());
                     if (!new_function) {
-                        std::cerr << "Invalid new working mode: " << new_mode << std::endl;
+                        logger << error << "Invalid new working mode: " << new_mode << std::endl;
                         continue;
                     }
                     /* now change the pointer and the working mode */
@@ -695,7 +713,7 @@ int main (int argc, char ** argv) {
                 process_file(workfiles[i].c_str());
                 exit(EXIT_SUCCESS);
             } else if (pid < 0) {
-                std::cerr << "E: forking failed. Exiting." << std::endl;
+                logger << error << "forking failed. Exiting." << std::endl;
                 exit(EXIT_FAILURE);
             } else { /* Father process */
                 wait_for_forked_child(pid, threads, workfiles[i].c_str());
