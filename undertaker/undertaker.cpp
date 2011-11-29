@@ -76,12 +76,12 @@ static const char *coverage_exec_cmd = "cat";
 void usage(std::ostream &out, const char *error) {
     if (error)
         out << error << std::endl << std::endl;
-    out << "`undertaker' does analysis on conditinal C code.\n\n";
+    out << "`undertaker' analyzes conditional C code with #ifdefs.\n\n";
     out << "Usage: undertaker [OPTIONS] <file..>\n";
     out << "\nOptions:\n";
-    out << "  -V  print version information";
-    out << "  -v  increase the log level (more verbose)";
-    out << "  -q  decrease the log level (less verbose)";
+    out << "  -V  print version information\n";
+    out << "  -v  increase the log level (more verbose)\n";
+    out << "  -q  decrease the log level (less verbose)\n";
     out << "  -m  specify the model(s) (directory or file)\n";
     out << "  -M  specify the main model\n";
     out << "  -w  specify a whitelist\n";
