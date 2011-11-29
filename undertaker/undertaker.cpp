@@ -72,6 +72,7 @@ enum CoverageOperationMode {
 } coverageOperationMode = COVERAGE_OP_SIMPLE;
 
 static const char *coverage_exec_cmd = "cat";
+static int RETVALUE = EXIT_SUCCESS;
 
 void usage(std::ostream &out, const char *error) {
     if (error)
@@ -384,11 +385,11 @@ void process_file_interesting(const char *filename) {
     std::cout << std::endl;
 }
 
-void process_file_checkexpr(const char *itemname) {
+void process_file_checkexpr(const char *expression) {
     ConfigurationModel *model = ModelContainer::lookupMainModel();
 
     if (!model) {
-        logger << error << "E: for finding interessting items a model must be loaded" << std::endl;
+        logger << error << "for finding interessting items a model must be loaded" << std::endl;
         return;
     }
 
@@ -398,9 +399,9 @@ void process_file_checkexpr(const char *itemname) {
     std::set<std::string> missing;
     std::string intersected;
 
-    sj.push_back(itemname);
+    sj.push_back(expression);
 
-    model->doIntersect("(" + std::string(itemname) + ")",
+    model->doIntersect("(" + std::string(expression) + ")",
                        0, // No ConfigurationModel::Checker
                        missing, intersected);
 
@@ -409,11 +410,14 @@ void process_file_checkexpr(const char *itemname) {
     sj.push_back(ConfigurationModel::getMissingItemsConstraints(missing));
 
     SatChecker sc(sj.join("\n&&\n"));
-    sc();
-
-    SatChecker::AssignmentMap current_solution = sc.getAssignment();
-
-    current_solution.formatKconfig(std::cout, missing);
+    if (sc()) {
+        SatChecker::AssignmentMap current_solution = sc.getAssignment();
+        current_solution.formatKconfig(std::cout, missing);
+    }
+    else {
+        logger << info << "Expression is NOT satisfiable" << std::endl;
+        RETVALUE = EXIT_FAILURE;
+    }
 }
 
 void process_file_symbolpc(const char *filename) {
@@ -502,6 +506,9 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
         }
         running_processes --;
     }
+
+    if (process_stats.failed > 0)
+        RETVALUE = EXIT_FAILURE;
 
     if (print_stats) {
         /* Shutdown phase */
@@ -746,10 +753,10 @@ int main (int argc, char ** argv) {
             if (pid == 0) { /* child */
                 /* calling the function pointer */
                 process_file(workfiles[i].c_str());
-                exit(EXIT_SUCCESS);
+                return RETVALUE;
             } else if (pid < 0) {
                 logger << error << "forking failed. Exiting." << std::endl;
-                exit(EXIT_FAILURE);
+                return EXIT_FAILURE;
             } else { /* Father process */
                 wait_for_forked_child(pid, threads, workfiles[i].c_str());
 
@@ -758,5 +765,5 @@ int main (int argc, char ** argv) {
         /* Wait unitl fork count reaches zero */
         wait_for_forked_child(0, 0, 0, threads > 1);
     }
-    return EXIT_SUCCESS;
+    return RETVALUE;
 }
