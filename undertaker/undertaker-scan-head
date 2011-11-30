@@ -78,7 +78,7 @@ if ! git reset --hard FETCH_HEAD; then
 fi
 
 echo "Running on Linux Version $(git describe || echo '(no git)')"
-echo "Using $(undertaker -v)"
+echo "Using $(undertaker -V)"
 git clean -fxq
 
 version="$(git describe || date +%Y-%m-%d-%H:%M)"
