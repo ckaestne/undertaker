@@ -20,7 +20,6 @@
 import unittest as t
 import StringIO
 from vamos.rsf2model import RsfReader
-from vamos.rsf2model.BoolRewriter import BoolParser as BP
 from vamos.rsf2model.BoolRewriter import BoolRewriter as BR
 
 
@@ -29,7 +28,7 @@ class TestRsfReader(t.TestCase):
     def setUp(self):
         rsf = """Item A 'boolean'
 Item B tristate
-ItemFoo B XXX
+ItemFoo B some_value
 Item C boolean
 CRAP CARASDD"""
         self.rsf = RsfReader.RsfReader(StringIO.StringIO(rsf))

@@ -18,7 +18,7 @@
 #
 
 import shlex
-from vamos.rsf2model import BoolRewriter
+from vamos.rsf2model.BoolRewriter import BoolRewriter, BoolParserException
 from vamos.rsf2model import tools
 
 class RsfReader:
@@ -159,8 +159,8 @@ class Option (tools.Repr):
 
         # Rewrite the dependency
         try:
-            return str(BoolRewriter.BoolRewriter(self.rsf, depends, eval_to_module = eval_to_module).rewrite())
-        except:
+            return str(BoolRewriter(self.rsf, depends, eval_to_module = eval_to_module).rewrite())
+        except BoolParserException:
             return ""
 
     def __unicode__(self):
