@@ -88,3 +88,4 @@ undertaker-lcov:
 
 FORCE:
 .PHONY: FORCE check undertaker-lcov
+.NOTPARALLEL:
