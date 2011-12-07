@@ -68,7 +68,8 @@ install: all $(MANPAGES)
 
 	@install -v -m 0644 -t $(DESTDIR)$(MANDIR)/man1 $(MANPAGES)
 
-	@python setup.py install --prefix=$(PREFIX) $(SETUP_PY_EXTRA_ARG)
+	@python setup.py build $(SETUP_PY_BUILD_EXTRA_ARG)
+	@python setup.py install --prefix=$(PREFIX) $(SETUP_PY_INSTALL_EXTRA_ARG)
 
 dist: clean
 	tar -czvf ../undertaker-$(VERSION).tar.gz . \
