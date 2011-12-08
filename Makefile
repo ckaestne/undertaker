@@ -64,6 +64,10 @@ install: all $(MANPAGES)
 
 	@install -v ziz/zizler $(DESTDIR)$(BINDIR)
 
+	@install -v scripts/Makefile.list $(DESTDIR)/$(LIBDIR)
+	@install -v scripts/Makefile.list_recursion $(DESTDIR)/$(LIBDIR)
+	@install -v scripts/Makefile.version $(DESTDIR)/$(LIBDIR)
+
 	@install -v -m 0644 contrib/undertaker.el $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 
 	@install -v -m 0644 -t $(DESTDIR)$(MANDIR)/man1 $(MANPAGES)

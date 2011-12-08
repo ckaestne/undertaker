@@ -1,0 +1,84 @@
+# -*- mode: makefile -*-#
+
+src := $(obj)
+
+PHONY := __list __find
+
+ifeq ($(compiled),)
+__list:
+else
+__find:
+endif
+
+# Read auto.conf if it exists, otherwise ignore
+ifeq ($(auto_conf),)
+-include include/config/auto.conf
+else
+include $(auto_conf)
+endif
+
+# The filename Kbuild has precedence over Makefile
+kbuild-dir := $(if $(filter /%,$(src)),$(src),$(srctree)/$(src))
+include $(if $(wildcard $(kbuild-dir)/Kbuild), $(kbuild-dir)/Kbuild, $(kbuild-dir)/Makefile)
+
+# Figure out what we need to build from the various variables
+# ==========================================================================
+
+__subdir-y	:= $(patsubst %/,%,$(filter %/, $(obj-y)))
+subdir-y	+= $(__subdir-y)
+__subdir-m	:= $(patsubst %/,%,$(filter %/, $(obj-m)))
+subdir-m	+= $(__subdir-m)
+__subdir-n	:= $(patsubst %/,%,$(filter %/, $(obj-n)))
+subdir-n	+= $(__subdir-n)
+__subdir-	:= $(patsubst %/,%,$(filter %/, $(obj-)))
+subdir-		+= $(__subdir-)
+
+# Subdirectories we need to descend into
+subdir-ym	:= $(sort $(subdir-y) $(subdir-m))
+subdir-ymn      := $(sort $(subdir-ym) $(subdir-n) $(subdir-))
+
+include scripts/Makefile.lib
+
+__list: $(subdir-ym)
+ifneq ($(print_dirs),)
+	@echo $(obj)/
+endif
+ifneq ($(print_files),)
+ifneq ($(strip $(real-objs-y)),)
+	@for a in $(real-objs-y); do \
+		echo $$a y; \
+	done
+endif
+ifneq ($(strip $(real-objs-m)),)
+	@for a in $(real-objs-m); do \
+		echo $$a m; \
+	done
+endif
+endif
+	@:
+
+__find: $(foreach dir,$(subdir-ym),$(if $(filter $(dir)%,$(compiled)), $(dir)))
+ifneq ($(filter $(compiled),$(real-objs-y)),)
+	@echo $(compiled) y
+endif
+ifneq ($(filter $(compiled),$(real-objs-m)),)
+	@echo $(compiled) m
+endif
+	@:
+
+
+list := $(if $(UNDERTAKER_SCRIPTS),$(UNDERTAKER_SCRIPTS)/)Makefile.list_recursion
+
+PHONY += $(subdir-ym)
+$(subdir-ym):
+ifeq ($(compiled),)
+	$(Q)$(MAKE) -f $(list) obj=$(patsubst _list_%,%,$@)
+else
+	$(Q)$(MAKE) -f $(list) compiled=$(compiled) obj=$(patsubst _list_%,%,$@)
+endif
+
+# Declare the contents of the .PHONY variable as phony.  We keep that
+# information in a variable se we can use it in if_changed and friends.
+
+
+.PHONY: $(PHONY)

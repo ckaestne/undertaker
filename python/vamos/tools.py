@@ -17,10 +17,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+
 import logging
-import os
+import os.path
+import sys
 
 from subprocess import *
+
+class NotALinuxTree(RuntimeError):
+    """ Indicates we are not in a Linux tree """
+    pass
 
 def setup_logging(log_level):
     """ setup the logging module with the given log_level """
@@ -51,3 +57,57 @@ def execute(command, echo=True):
     if len(stdout) > 0 and stdout[-1] == '\n':
         stdout = stdout[:-1]
     return (stdout.__str__().rsplit('\n'), p.returncode)
+
+
+def get_linux_version():
+    """
+    Checks that the current working directory is actually a Linux Tree
+
+    Uses a custom Makefile to retrieve the current kernel version. If we
+    are in a git tree, additionally compare the git version with the
+    version stated in the Makefile for plausibility.
+
+    Raises a 'NotALinuxTree' exception if the version could not be retrieved.
+    """
+
+    scriptsdir = find_scripts_basedir()
+
+    if not os.path.exists('Makefile'):
+        raise NotALinuxTree("No 'Makefile' found")
+
+    cmd = "make -f %(basedir)s/Makefile.version UNDERTAKER_SCRIPTS=%(basedir)s" % \
+        { 'basedir' : scriptsdir }
+
+    (output, ret) = execute(cmd)
+    if ret > 0:
+        raise NotALinuxTree("Makefile does not indicate a Linux version")
+
+    version = output[-1] # use last line, if not configured we get additional warning messages
+    if os.path.isdir('.git'):
+        cmd = "git describe"
+        (output, ret) = execute(cmd)
+        git_version = output[0]
+        if (ret > 0):
+            return 'v' + version
+
+        if (not git_version.startswith('v')):
+            raise NotALinuxTree("Git does not indicate a Linux version ('%s')" % \
+                                    git_version)
+
+        if git_version[1:].startswith(version[0:3]):
+            return git_version
+        else:
+            raise NotALinuxTree("Git version does not look like a Linux version ('%s' vs '%s')" % \
+                                    (git_version, version))
+    else:
+        return 'v' + version
+
+
+def find_scripts_basedir():
+    executable = os.path.realpath(sys.argv[0])
+    base_dir   = os.path.dirname(executable)
+    for d in [ '../lib', '../scripts']:
+        f = os.path.join(base_dir, d, 'Makefile.list')
+        if os.path.exists(f):
+            return os.path.realpath(os.path.join(base_dir, d))
+    raise RuntimeError("Failed to locate Makefile.list")

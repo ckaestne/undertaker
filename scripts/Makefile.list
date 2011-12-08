@@ -1,0 +1,43 @@
+# -*- mode: makefile -*-#
+#===============================================
+# Listing files compiled by current configuration
+#
+# For retrieving a list of files compiled into the kernel with the current
+# configuration use (in a kernel source tree)
+# - make -f Makefile.list
+#   options:
+#     print_files - print all compiles files (default: "y")
+#     print_dirs  - print all directories considered for compilation (default: "")
+#
+# If you want to check if a file is compiled by the current configuration
+# - make -f Makefile.list compiled=kernel/sched.c
+#
+# You can also override, which auto.conf should be loaded, when the source
+# tree is traversed
+# - make -f Makefile.list auto_conf=another/path/to/auto.conf
+
+list:
+
+include Makefile
+
+list-dirs      := $(addprefix _list_, . $(vmlinux-alldirs))
+
+print_files ?= y
+
+PHONY += $(list-dirs) list
+$(list-dirs):
+ifeq ($(compiled),)
+	$(Q)$(MAKE) -f $(list) \
+		auto_conf=$(auto_conf) \
+		print_dirs=$(print_dirs) \
+		print_files=$(print_files) \
+		obj=$(patsubst _list_%,%,$@)
+else
+	$(Q)$(MAKE) -f $(list) \
+		auto_conf=$(auto_conf) \
+		compiled=$(patsubst %.c,%.o,$(compiled)) \
+		obj=$(patsubst _list_%,%,$@)
+endif
+
+list: $(list-dirs)
+list := $(if $(UNDERTAKER_SCRIPTS),$(UNDERTAKER_SCRIPTS)/)Makefile.list_recursion
