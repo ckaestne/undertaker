@@ -110,6 +110,13 @@ class RsfReader:
                 deps[k] = v
         return deps
 
+    def is_bool_tristate(self,symbol):
+        for item in self.database["Item"]:
+            if item[0] == symbol:
+                if item[1] in ["boolean", "tristate"]:
+                    return True
+        return False
+
 
 
 class OptionInvalid(Exception):

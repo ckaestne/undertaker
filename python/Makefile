@@ -7,10 +7,10 @@ pylint:
 
 check: all
 	$(MAKE) -s clean-check
-	@for test in vamos/*/*_test.py; do \
+	@for test in vamos/*/*_test.py vamos/*_test.py; do \
 	   echo "Running python unittest $$test"; \
 	   env PYTHONPATH=$(CURDIR) python "$$test"; \
-	done 
+	done
 	cd validation && ./test-suite
 	$(MAKE) -s pylint
 
