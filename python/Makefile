@@ -1,4 +1,4 @@
-PYTHONFILES=golem rsf2model undertaker-calc-coverage $(wildcard vamos/*/*.py) $(wildcard vamos/*.py)
+PYTHONFILES=golem rsf2model undertaker-calc-coverage vampyr $(wildcard vamos/*/*.py) $(wildcard vamos/*.py)
 
 all:
 

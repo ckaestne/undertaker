@@ -4,7 +4,7 @@
 
 default_path=".."
 default_cmd="rsf2model \$file"
-tests_list=`find . -name '*.fm' | sed -e 's#^\./\(.*\)#\1#' | sort`
+tests_list=`find . -name '*.fm' -o -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
 prog_name=`basename $0`
 
 # counts:
