@@ -1,0 +1,3 @@
+config A
+	depends on B
+	depends on C

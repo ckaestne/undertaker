@@ -1,5 +1,6 @@
 Item FB boolean
 Depends FB "A"
+Item FB boolean
 Depends FB "B"
 /*
  * check-name: =n, =y, =m...
@@ -7,7 +8,7 @@ Depends FB "B"
 I: Items-Count: 1
 I: Format: <variable> [presence condition]
 UNDERTAKER_SET SCHEMA_VERSION 1.1
-CONFIG_FB "(CONFIG_A && CONFIG_B)"
+CONFIG_FB "(CONFIG_A || CONFIG_B)"
  * check-output-end
  */
 
