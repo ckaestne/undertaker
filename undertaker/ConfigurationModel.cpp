@@ -19,7 +19,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include "ConditionalBlock.h"
 #include "ConfigurationModel.h"
 #include "KconfigWhitelist.h"
 #include "StringJoiner.h"
@@ -59,43 +59,6 @@ ConfigurationModel::~ConfigurationModel() {
     delete _model_stream;
 }
 
-std::set<std::string> ConfigurationModel::itemsOfString(const std::string &str) {
-    std::set<std::string> result;
-    std::string::const_iterator it = str.begin();
-    std::string tmp = "";
-    while (it != str.end()) {
-        switch (*it) {
-        case '(':
-        case ')':
-        case '!':
-        case '&':
-        case '=':
-        case '<':
-        case '>':
-        case '|':
-        case '-':
-        case 'y':
-        case 'n':
-        case ' ':
-            if (!tmp.empty()) {
-                result.insert(tmp);
-                //std::cout << "    (itemsOfString) inserting " << tmp << "\n";
-                tmp = "";
-            }
-        it++;
-        break;
-        default:
-            tmp += (*it);
-            it++;
-            break;
-        }
-    }
-    if (!tmp.empty()) {
-        result.insert(tmp);
-    }
-    return result;
-}
-
 std::set<std::string>
 ConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initialItems) const {
     std::set<std::string> item_set, result;
@@ -112,7 +75,7 @@ ConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initi
         workingStack.pop();
         if (item != NULL) {
             if (item->compare("") != 0) {
-                item_set = itemsOfString(*item);
+                item_set = ConditionalBlock::itemsOfString(*item);
                 for(std::set<std::string>::iterator sit = item_set.begin(); sit != item_set.end(); sit++) {
                     /* Item already seen? continue */
                     if (result.count(*sit) == 0) {
@@ -147,7 +110,7 @@ int ConfigurationModel::doIntersect(const std::string exp,
                                     const ConfigurationModel::Checker *c,
                                     std::set<std::string> &missing,
                                     std::string &intersected) const {
-    const std::set<std::string> start_items = itemsOfString(exp);
+    const std::set<std::string> start_items = ConditionalBlock::itemsOfString(exp);
     return doIntersect(start_items, c, missing, intersected);
 }
 

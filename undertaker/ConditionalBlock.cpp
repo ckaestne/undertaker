@@ -17,12 +17,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/regex.hpp>
 #include "StringJoiner.h"
 #include "ConditionalBlock.h"
 
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
+
+#include <boost/regex.hpp>
+#include <set>
 
 CppFile::CppFile(const char *filename) : filename(filename), top_block(0), checker(this) {
     top_block = ConditionalBlockImpl::parse(filename, this);
@@ -38,7 +40,7 @@ CppFile::~CppFile(){
     }
     // Remove also all defines
 
-    for (std::map<std::string, CppDefine *>::iterator i = getDefines()->begin(); 
+    for (std::map<std::string, CppDefine *>::iterator i = getDefines()->begin();
          i != getDefines()->end(); ++i) {
         delete (*i).second;
     }
@@ -63,6 +65,45 @@ static int lineFromPosition(std::string line) {
     ss >> i;
     return i;
 }
+
+
+std::set<std::string> ConditionalBlock::itemsOfString(const std::string &str) {
+    std::set<std::string> result;
+    std::string::const_iterator it = str.begin();
+    std::string tmp = "";
+    while (it != str.end()) {
+        switch (*it) {
+        case '(':
+        case ')':
+        case '!':
+        case '&':
+        case '=':
+        case '<':
+        case '>':
+        case '|':
+        case '-':
+        case 'y':
+        case 'n':
+        case ' ':
+            if (!tmp.empty()) {
+                result.insert(tmp);
+                //std::cout << "    (itemsOfString) inserting " << tmp << "\n";
+                tmp = "";
+            }
+        it++;
+        break;
+        default:
+            tmp += (*it);
+            it++;
+            break;
+        }
+    }
+    if (!tmp.empty()) {
+        result.insert(tmp);
+    }
+    return result;
+}
+
 
 ConditionalBlock *
 CppFile::getBlockAtPosition(const std::string &position) {
@@ -306,13 +347,10 @@ CppDefine::getConstraints(UniqueStringJoiner *and_clause, std::set<ConditionalBl
 
     for (std::deque <ConditionalBlock *>::iterator i = defined_in.begin(); i != defined_in.end(); i++) {
         // Not yet visited and not the toplevel block
-        if (visited->count(*i) == 0 && (*i)->getParent() != 0) { 
+        if (visited->count(*i) == 0 && (*i)->getParent() != 0) {
             (*i)->getCodeConstraints(and_clause, visited);
         }
     }
 
     return join ? and_clause->join("\n&& ") : "";
 }
-
-
-

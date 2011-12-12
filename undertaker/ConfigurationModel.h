@@ -67,9 +67,6 @@ public:
                     std::set<std::string> &missing,
                     std::string &intersected) const;
 
-    static std::set<std::string> itemsOfString(const std::string &str);
-
-
     std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &working) const;
     static std::string getMissingItemsConstraints(std::set<std::string> &missing);
     std::string getName() const { return _name; }

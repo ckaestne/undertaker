@@ -107,21 +107,23 @@ class ConditionalBlock : public CondBlockList {
         : cpp_file(file), _parent(parent), _prev(prev),
           cached_code_expression(0) {}
 
+    //! returns all (configuration) items of the given string
+    static std::set<std::string> itemsOfString(const std::string &str);
+
     //! Has to be called after constructing a ConditionalBlock
     void lateConstructor();
 
     virtual ~ConditionalBlock() { delete cached_code_expression; };
-
 
     //! \return enclosing block or 0 if == cpp_file->topBlock()
     const ConditionalBlock * getParent() const { return _parent; }
     //! \return previous block on current level or 0 if first block on level
     const ConditionalBlock * getPrev() const { return _prev; }
     //! \return associated file
-    CppFile * getFile() { return cpp_file; }
+    CppFile * getFile() const { return cpp_file; }
 
     //! \return rewritten (define) macro expression
-    std::string ifdefExpression() { return _exp; };
+    std::string ifdefExpression() const { return _exp; };
 
     std::string getCodeConstraints(UniqueStringJoiner *and_clause = 0,
                                   std::set<ConditionalBlock *> *visited = 0);

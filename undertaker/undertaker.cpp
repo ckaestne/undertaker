@@ -93,6 +93,7 @@ void usage(std::ostream &out, const char *error) {
     out << "      - dead: dead/undead file analysis (default)\n";
     out << "      - coverage: coverage file analysis\n";
     out << "      - cpppc: CPP Preconditions for whole file\n";
+    out << "      - cppsym: list CPP symbols mentioned in source files\n";
     out << "      - blockpc: Block precondition (format: <file>:<line>:<column>)\n";
     out << "      - symbolpc: Symbol precondition (format <symbol>)\n";
     out << "      - checkexpr: Find a configuration that satisfies expression\n";
@@ -264,6 +265,74 @@ void process_file_cpppc(const char *filename) {
         logger << error << "failed: " << e.what() << std::endl;
         return;
     }
+}
+
+void process_file_cppsym_helper(const char *filename) {
+    CppFile s(filename);
+
+    if (!s.good()) {
+        logger << error << "failed to open file: `" << filename << "'" << std::endl;
+        return;
+    }
+
+    ModelContainer *f = ModelContainer::getInstance();
+    ConfigurationModel *model = f->lookupMainModel();
+
+    std::set<std::string> found_items;
+
+    for (CppFile::const_iterator c = s.begin(); c != s.end(); ++c) {
+        ConditionalBlock *block = *c;
+        std::string expr = block->ifdefExpression();
+
+        std::set<std::string> items = ConditionalBlock::itemsOfString(expr);
+        for (std::set<std::string>::const_iterator i = items.begin(); i != items.end(); i++) {
+            static const boost::regex module_regexp("^(CONFIG_.*[^.])_MODULE$");
+            boost::match_results<std::string::const_iterator> what;
+
+            if (boost::regex_match(*i, what, module_regexp)) {
+                found_items.insert(what[1]);
+            } else {
+                found_items.insert(*i);
+            }
+        }
+    }
+
+    std::set<std::string>::const_iterator i;
+    for (i = found_items.begin(); i != found_items.end(); ++i) {
+        std::cout << *i;
+        if (model) {
+            static const boost::regex item_regexp("^CONFIG_(.*[^.])$");
+            static const boost::regex kconfig_regexp("^CONFIG_");
+            boost::match_results<std::string::const_iterator> what;
+            StringJoiner sj;
+
+            if (model->find(*i) == model->end())
+                sj.push_back("MISSING");
+
+            if (boost::regex_match(*i, what, item_regexp)) {
+                const std::string &feature = what[1];
+
+                if (model->isBoolean(feature))
+                    sj.push_back("BOOLEAN");
+                if (model->isTristate(feature))
+                    sj.push_back("TRISTATE");
+            } else if (!boost::regex_match(*i, kconfig_regexp)) {
+                sj.push_back("NOT_CONFIG_LIKE");
+            }
+
+            if (sj.size() > 0)
+                std::cout << " (" << sj.join(", ") << ")";
+        }
+        std::cout << std::endl;
+    }
+}
+
+void process_file_cppsym(const char *filename) {
+    boost::thread t(process_file_cppsym_helper, filename);
+
+    if (!t.timed_join(boost::posix_time::seconds(30)))
+        logger << error << "timeout passed while processing " << filename
+               << std::endl;
 }
 
 void process_file_blockpc(const char *filename) {
@@ -457,6 +526,8 @@ process_file_cb_t parse_job_argument(const char *arg) {
         return process_file_coverage;
     } else if (strcmp(arg, "cpppc") == 0) {
         return process_file_cpppc;
+    } else if (strcmp(arg, "cppsym") == 0) {
+        return process_file_cppsym;
     } else if (strcmp(arg, "blockpc") == 0) {
         return process_file_blockpc;
     } else if (strcmp(arg, "interesting") == 0) {
