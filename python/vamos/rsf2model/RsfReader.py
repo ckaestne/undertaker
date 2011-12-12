@@ -105,7 +105,7 @@ class RsfReader:
         for k, v in deps.items():
             v = map(lambda x: x[0], v)
             if len(v) > 1:
-                deps[k] = ["(" + ") && (".join(v) + ")"]
+                deps[k] = ["(" + ") || (".join(v) + ")"]
             else:
                 deps[k] = v
         return deps

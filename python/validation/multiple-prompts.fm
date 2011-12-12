@@ -1,0 +1,15 @@
+Item	X86_EXTENDED_PLATFORM	boolean
+Depends	X86_EXTENDED_PLATFORM	"X86_32"
+HasPrompts	X86_EXTENDED_PLATFORM	0
+Item	X86_EXTENDED_PLATFORM	boolean
+Depends	X86_EXTENDED_PLATFORM	"X86_64"
+HasPrompts	X86_EXTENDED_PLATFORM	0
+/*
+ * check-name: depending on m (feature must be module)
+ * check-output-start
+I: Items-Count: 1
+I: Format: <variable> [presence condition]
+UNDERTAKER_SET SCHEMA_VERSION 1.1
+CONFIG_X86_EXTENDED_PLATFORM "(CONFIG_X86_32 || CONFIG_X86_64)"
+ * check-output-end
+ */
