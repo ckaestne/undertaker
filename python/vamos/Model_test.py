@@ -44,6 +44,14 @@ CONFIG_C_MODULE "!CONFIG_C && CONFIG_MODULE"
         self.assertEqual(model["CONFIG_B"], "CONFIG_A")
         self.assertEqual(model["CONFIG_C"], "!CONFIG_C_MODULE")
 
+    def test_symbol_always_on(self):
+        model = Model(self.model_file.name)
+        for symbol in ("CONFIG_ALWAYS_ON", "CONFIG_BARFOO"):
+            self.assertTrue(symbol in model.always_on_items, msg="%s not in model" % symbol)
+
+        for symbol in ("CONFIG_A", "CONFIG_B", "CONFIG_C", "CONFIG_MODULE"):
+            self.assertFalse(symbol in model.always_on_items, msg="%s not in model" % symbol)
+
     def test_leaf_features(self):
         model = Model(self.model_file.name)
         self.assertEqual(set(model.leaf_features()),set(['CONFIG_X', 'CONFIG_ALWAYS_ON', 'CONFIG_BARFOO', 'CONFIG_B']) )

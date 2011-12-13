@@ -21,14 +21,30 @@ class Model(dict):
     def __init__(self, path):
         dict.__init__(self)
         self.path = path
-        fd = open(path)
+        self.always_on_items = set()
+
+        with open(path) as fd:
+            self.parse(fd)
+
+        if path.endswith(".model"):
+            rsf = path[:-len(".model")] + ".rsf"
+            try:
+                with open(rsf) as f:
+                    self.rsf = RsfReader(f)
+            except IOError:
+                self.rsf = None
+        else:
+            self.rsf = None
+
+    def parse(self, fd):
         for line in fd.readlines():
             line = line.strip()
             if line.startswith("UNDERTAKER_SET ALWAYS_ON"):
                 line = line.split(" ")[2:]
-                line = [ l.strip(" \t\"") for l in line]
-                for item in line:
+                always_on_items = [ l.strip(" \t\"") for l in line]
+                for item in always_on_items:
                     self[item] = None
+                    self.always_on_items.add(item)
                 continue
             elif line.startswith("I:") or line.startswith("UNDERTAKER_SET"):
                 continue
@@ -37,15 +53,6 @@ class Model(dict):
                 self[line[0]] = None
             elif len(line) == 2:
                 self[line[0]] = line[1].strip(" \"\t\n")
-
-        if path.endswith(".model"):
-            rsf = path[:-len(".model")] + ".rsf"
-            try:
-                self.rsf = RsfReader(open(rsf))
-            except IOError:
-                self.rsf = None
-        else:
-            self.rsf = None
 
     def mentioned_items(self, key):
         """Return list of mentioned items of the key's implications"""

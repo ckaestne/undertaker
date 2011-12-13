@@ -18,35 +18,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from vamos.tools import execute, setup_logging
-
-import os
-import shutil
 import sys
+from os.path import join, dirname
+
+sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
+                (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
+                + sys.path
+
+from vamos.tools import execute, setup_logging
+from vamos.model import Model
+from vamos.golem.kbuild import apply_configuration
+
+import os.path
+import shutil
 import glob
 import re
-import shlex
 import logging
 from subprocess import Popen, STDOUT, PIPE
 from optparse import OptionParser
-
-class ModelReader(dict):
-    def __init__(self, fd):
-        dict.__init__(self, fd)
-
-        self.meta_info = dict()
-
-        for l in fd:
-            if l.startswith('I: '):
-                continue
-            if l.startswith('UNDERTAKER_SET'):
-                row = shlex.split(l)[1:]
-                if len(row) > 0:
-                    self.meta_info[row[0]] = row[1:]
-                continue
-            row = shlex.split(l)
-            if len(row) > 0:
-                self[row[0]] = row[1:]
 
 model = None
 
@@ -67,14 +56,15 @@ def switch_config(config):
     """
     switches the current tree to the given config. throws an exception in case make fails
     """
-    execute("find include -name autoconf.h -exec rm {} +", echo=True)
+    execute("find include -name autoconf.h -delete", echo=True)
 
     (output, returncode) = execute("make %s" % config, echo=False)
     if returncode != 0:
         raise RuntimeError("Failed to switch to config %s" % config)
-    (_, returncode2) = execute("make silentoldconfig", echo=False)
-    if returncode2 != 0:
-        raise RuntimeError("silentoldconfig failed while switching to config %s" % config)
+
+    # sanity check
+    apply_configuration()
+
     return output
 
 def switch_config_path(filename):
@@ -270,7 +260,7 @@ def verify_config(partial_config):
         for l in partial_configf:
             if l.startswith('CONFIG_'):
                 (item, value) = l.split('=')
-                if model and item in model.meta_info['ALWAYS_ON']:
+                if model and item in model.always_on_items:
                     continue
                 if item in config_whitelist:
                     continue
@@ -282,7 +272,7 @@ def verify_config(partial_config):
             if l.startswith('CONFIG_'):
                 (item, value) = l.split('=')
                 found_items[item] = value.rstrip()
-                if model and item in model.meta_info['ALWAYS_ON']:
+                if model and item in model.always_on_items:
                     continue
                 if (item in value_errors):
                     if (value_errors[item] == value.rstrip()):
@@ -359,9 +349,9 @@ def get_loc_coverage(filename):
     """
 
     cmd = "grep -v -E '^\s*#\s*include' %s | cpp -include %s" % (filename, find_autoconf())
-    (lines, rc) = execute(cmd, echo=True)
-    if rc != 0:
-        raise RuntimeError("Calculating loc coverage failed, rc: %d" % rc)
+    (lines, _) = execute(cmd, echo=True)
+    # we ignore the exitcode here as we are not interested in failing
+    # for #error directives and similar.
     return len(lines)
 
 
@@ -403,12 +393,13 @@ def vamos_coverage(filename, results, options):
                 mismatches = list()
                 for c in value_errors.keys():
                     mismatches.append("%s != %s" % (c, value_errors[c]))
-                logging.debug("".join(mismatches))
+                logging.debug(", ".join(mismatches))
         except ValueError:
             logging.warning("Failure to analyze partial config expansion, continuing anyways")
 
         results[filename][config]['value_errors'] = value_errors
         results[filename][config]['selected_items'] = selected_items(config)
+        results[filename][config]['loc_coverage'] = get_loc_coverage(filename)
 
         if options.run_sparse:
             (warnings, errors) = run_sparse_on_config(filename, config)
@@ -464,25 +455,15 @@ def parse_options():
     setup_logging(options.verbose)
 
     if options.model and os.path.exists(options.model):
-        with open(options.model) as fd:
-            global model
-            model = ModelReader(fd)
-            logging.info("Loaded %d options from Model %s", (len(model), options.model))
-            logging.info("%d items are always on", len(model.meta_info['ALWAYS_ON']))
+        global model
+        model = Model(options.model)
+        logging.info("Loaded %d options from Model %s", len(model), options.model)
+        logging.info("%d items are always on", len(model.always_on_items))
 
     if len(args) == 0:
         logging.critical("please specify a worklist")
         sys.exit(1)
 
-    worklist = args[0]
-    try:
-        with open(worklist) as f:
-            filenames = [x.strip() for x in f.readlines()]
-    except IOError as error:
-        logging.critical("failed to open worklist: " + error.__str__())
-        sys.exit(1)
-
-    logging.debug("Worklist contains %d items", len(filenames))
     return parser.parse_args()
 
 def do_work(filenames, options):
@@ -538,12 +519,15 @@ def do_work(filenames, options):
                         print "selected_items: %d"  % results[filename][config]['selected_items']
                         print "runtime: 0.0"
                         print "covered_blocks: %d"  % len(results[filename][config]['covered_blocks'])
+                        print "loc_coverage: %d" % results[filename][config]['loc_coverage']
+
+                        if options.run_sparse:
+                            print "sparse_warnings: %d" % results[filename][config]['sparse_warnings']
+                            print "sparse_errors: %d"   % results[filename][config]['sparse_errors']
+
                     except KeyError:
                         pass
 
-                    if options.run_sparse:
-                        print "sparse_warnings: %d" % results[filename][config]['sparse_warnings']
-                        print "sparse_errors: %d"   % results[filename][config]['sparse_errors']
 
         except PredatorError as error:
             continue
@@ -555,15 +539,6 @@ def do_work(filenames, options):
 def main():
     (options, args) = parse_options()
     setup_logging(options.verbose)
-
-    if options.model and os.path.exists(options.model):
-        with open(options.model) as fd:
-            global model
-            model = ModelReader(fd)
-            logging.info("Loaded %d options from Model %s",
-                         len(model), options.model)
-            logging.info("%d items are always on",
-                         len(model.meta_info['ALWAYS_ON']))
 
     if len(args) == 0:
         logging.critical("please specify a worklist")
@@ -577,9 +552,13 @@ def main():
         logging.critical("failed to open worklist: " + error.__str__())
         sys.exit(1)
 
-    logging.debug("Worklist contains %d items", len(filenames))
-
-    do_work(worklist, filenames)
+    if len(filenames) > 0:
+        logging.debug("Worklist contains %d items", len(filenames))
+        do_work(filenames, options)
+        sys.exit(0)
+    else:
+        logging.error("Worklist contains no work items!")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
