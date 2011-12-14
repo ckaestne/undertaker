@@ -75,10 +75,15 @@ def files_for_current_configuration(how=False):
             continue
         try:
             if (how):
-                l = line
+                objfile = line
             else:
-                l = line.split()[0]
-            files.add(l)
+                objfile = line.split()[0]
+            # try to guess the source filename
+            sourcefile = objfile[:-2] + '.c'
+            if os.path.exists(sourcefile):
+                files.add(sourcefile)
+            else:
+                logging.warning("Failed to guess source file for %s", objfile)
         except IndexError:
             raise RuntimeError("Failed to parse line '%s'" % line)
 

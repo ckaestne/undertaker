@@ -70,7 +70,7 @@ def main():
         variables = determine_buildsystem_variables()
         logging.info("Detected %d Kconfig variables in Makefiles", len(variables))
         for v in variables:
-            print v
+            print 'CONFIG_' + v
         sys.exit(0)
 
     if opts.do_list:

@@ -100,6 +100,7 @@ deadlist="${resultdir}/${version}-deads.txt"
 
 echo "Scanning version ${version}, logging to ${report}"
 
+
 echo "Step 0: Extract Kconfig feature dependencies"
 if $TIME -v -o kconfigdump.stats -- undertaker-kconfigdump  >"$report" \
       2>kconfigdump-error-output.txt; then
@@ -143,3 +144,19 @@ fi
 if ! test -s undertaker-coverage-errors.txt; then
     rm -f undertaker-coverage-errors.txt
 fi
+
+
+echo "Step 3: CPP symbol statistics"
+if $TIME -v -o undertaker-cppsym.stats -- undertaker-linux-tree -t ${PROCESSORS} -s \
+      2>undertaker-cppsym-stat-errors.txt; then
+    cat undertaker-cppsym.stats
+    echo "CPP symbols statistics done, check undertaker-stat/*"
+else
+    echo "CPP symbols statistics failed with exit code $?. check the error logfiles."
+    cat undertaker-cppsym-stat-errors.txt
+fi
+if ! test -s undertaker-cppsym-stat-errors.txt; then
+    rm -rf undertaker-cppsym-stat-errors.txt
+fi
+
+exit 0

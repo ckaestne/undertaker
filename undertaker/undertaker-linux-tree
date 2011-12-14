@@ -7,7 +7,10 @@
 # before, in order to create the models.
 #
 
-while getopts :t:m:a:cvh OPT; do
+# scan for deads by default
+MODE="scan-deads"
+
+while getopts :t:m:a:csvh OPT; do
     case $OPT in
         m)
             MODELS="$OPTARG"
@@ -19,16 +22,19 @@ while getopts :t:m:a:cvh OPT; do
             PROCESSORS="$OPTARG"
             ;;
         c)
-            COVERAGE=t
+            MODE="calc-coverage"
+            ;;
+        s)
+            MODE="feature-statistics"
             ;;
         v)
             echo "undertaker-linux-tree"
             exit
             ;;
         h)
-            echo "\`undertaker-linux-tree' runs the undertaker a whole linux-tree"
+            echo "\`undertaker-linux-tree' drives the undertaker over a whole linux-tree"
             echo
-            echo "Usage: ${0##*/} [-m DIR] [-a ARCH] [-t PROCS] [-c]"
+            echo "Usage: ${0##*/} [-m DIR] [-a ARCH] [-t PROCS] [-c|-s]"
             echo " -m <modeldir>  Specify the directory for the models"
             echo "           (default: models)"
             echo " -a <arch>  Default architecture to check for"
@@ -36,6 +42,7 @@ while getopts :t:m:a:cvh OPT; do
             echo " -t <count>   Number of analyzing processes"
             echo "        (default: _NPROCESSORS_ONLN)"
             echo " -c  Do coverage analysis instead of dead block search"
+            echo " -s  Do feature statistics instead of dead block search"
             exit
             ;;
     esac
@@ -64,7 +71,7 @@ if ! ls "$MODELS"/*.model >/dev/null 2>&1; then
     exit
 fi
 
-if [ -n "$COVERAGE" ]; then
+if [ "$MODE" = "calc-coverage" ]; then
     find -type f -name '*.c' \
         ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
         -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-coverage-worklist
@@ -99,7 +106,7 @@ if [ -n "$COVERAGE" ]; then
     fi
 fi
 
-else
+if [ "$MODE" = "scan-deads" ]; then
     find -type f -name "*.[hcS]" \
         ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
         -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-worklist
@@ -110,4 +117,66 @@ else
     echo "Analyzing $(wc -l < undertaker-worklist) files with $PROCESSORS threads."
     undertaker -v -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"
     printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
+    exit 0
+fi
+
+do_archstat () {
+    CONFIG=$1
+    ARCH=$2
+    CROSS_COMPILE=
+    export ARCH CROSS_COMPILE
+
+    if ! make $CONFIG >/dev/null 2>&1; then
+        # some strange architectures (e.g., h8300) are just utterly broken. skip them
+        echo "Skipping $ARCH ($CONFIG)"
+        return
+    fi
+    if ! golem -l >undertaker-stat/$CONFIG-$ARCH.list  2>undertaker-stat/$CONFIG-$ARCH.failed; then
+        echo "golem -l failed on $ARCH with $CONFIG, skipping"
+        return
+    fi
+    echo -n "Architecture $ARCH uses $(cat undertaker-stat/$CONFIG-$ARCH.list | wc -l) source files for $CONFIG"
+    echo " (plus possibly $(grep -c 'Failed to guess' undertaker-stat/$CONFIG-$ARCH.failed) additional files)"
+    if ! undertaker -j cppsym -t $PROCESSORS -b undertaker-stat/$CONFIG-$ARCH.list -m models/$ARCH.model |
+         grep -v -E '(MISSING|NON_KCONFIG)' | sort |
+         uniq >undertaker-stat/$CONFIG-$ARCH.cppsym 2>undertaker-stat/$CONFIG-$ARCH.cppsym-errors; then
+        echo "Failed to extract CPP symbols for $ARCH with $CONFIG:"
+        cat undertaker-stat/$CONFIG-$ARCH.cppsym-errors
+    fi
+    if ! test -s undertaker-stat/$CONFIG-$ARCH.cppsym-errors; then
+        rm -f undertaker-stat/$CONFIG-$ARCH.cppsym-errors
+    fi
+}
+
+if [ "$MODE" = "feature-statistics" ]; then
+    allmodels="$(ls models/*.model)"
+    allrsfs="$(ls models/*.rsf)"
+    mkdir -p undertaker-stat
+
+    golem -o | sort -u > undertaker-kbuild-variables
+    echo "Found $(cat undertaker-kbuild-variables | wc -l) configuration variables mentioned in Makefiles"
+
+    find -type f -name "*.[hcS]" \
+        ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
+        -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-worklist
+
+    if undertaker -j cppsym -t $PROCESSORS -b undertaker-worklist \
+        >undertaker-all-cppsym.raw 2>undertaker-cppsym.errors; then
+        sort -u undertaker-all-cppsym.raw | grep -v -E '^(I|E): ' >undertaker-all-cppsym
+        echo "Found $(cat undertaker-all-cppsym|wc -l) CPP symbols."
+    else
+        echo "checking for cppsym errors failed, check the error log:"
+        cat undertaker-cppsym.errors
+    fi
+    if ! test -s undertaker-cppsym.errors; then
+        rm -f undertaker-cppsym.errors
+    fi
+
+    for m in $allmodels; do
+        ARCH=$(basename $m .model)
+        do_archstat allnoconfig $ARCH
+        do_archstat allyesconfig $ARCH
+        do_archstat allmodconfig $ARCH
+    done
+    exit 0
 fi

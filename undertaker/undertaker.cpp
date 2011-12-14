@@ -287,7 +287,12 @@ void process_file_cppsym_helper(const char *filename) {
         std::set<std::string> items = ConditionalBlock::itemsOfString(expr);
         for (std::set<std::string>::const_iterator i = items.begin(); i != items.end(); i++) {
             static const boost::regex module_regexp("^(CONFIG_.*[^.])_MODULE$");
+            static const boost::regex valid_item("^[0-9A-Za-z_]+$");
             boost::match_results<std::string::const_iterator> what;
+
+            // Skip strange items like operators and rewritten CPP symbols
+            if (!boost::regex_match(*i, valid_item))
+                continue;
 
             if (boost::regex_match(*i, what, module_regexp)) {
                 found_items.insert(what[1]);
