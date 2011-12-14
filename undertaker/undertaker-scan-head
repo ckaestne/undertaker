@@ -1,10 +1,13 @@
-#!/bin/bash -e
+#!/bin/bash
 
 #
 # This script is intended to be used in automatic cronjobs for
 # scanning the linux git tree for dead blocks and do coverage analysis
 # on it.
 #
+
+set -e
+set -o pipefail
 
 giturl="git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git"
 
@@ -14,7 +17,7 @@ function usage() {
     echo " -t   undertaker processes to be run"
     echo "      default: _NPROCESSORS_ONLN"
     echo " -c   commit (revspec) to be used"
-    echo "      default: master (but can also be a tag like refs/tags/v3.0)"
+    echo "      default: master (but can also be a tag like refs/tags/v3.1)"
     exit 2
 }
 
@@ -39,35 +42,41 @@ OPTIND=1
 
 PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
 COMMIT=${COMMIT:-master}
+TIME="$(type -P time)"
 
 if [ -z "$GIT_DIRECTORY" ]; then
     echo "Error: No directory for the linux tree was given."
-    echo 
+    echo
     usage
 fi
 
-if ! which  undertaker-kconfigdump > /dev/null; then
+if ! type -p undertaker-kconfigdump >/dev/null; then
     echo "No undertaker-kconfigdump executable found."
     exit 1
 fi
 
-if ! which  undertaker-linux-tree > /dev/null; then
+if ! type -p undertaker-linux-tree >/dev/null; then
     echo "No undertaker-linux-tree executable found."
     exit 1
 fi
 
-
 if [ ! -d "$GIT_DIRECTORY" ]; then
-    git clone "$giturl" "$GIT_DIRECTORY"
+    if ! git clone "$giturl" "$GIT_DIRECTORY"; then
+        echo "Repository on kernel.org failed, fetching sources from github instead"
+        if ! git fetch -q --tags git://github.com/torvalds/linux.git "$COMMIT"; then
+            echo "Failed to clone the linux kernel."
+            exit 1
+        fi
+    fi
 fi
 
 resultdir="$GIT_DIRECTORY"/results
 cd "$GIT_DIRECTORY"
 mkdir -p "$resultdir"
 
-if ! git fetch -q "$giturl" "$COMMIT"; then
+if ! git fetch -q --tags "$giturl" "$COMMIT"; then
     echo "Repository on kernel.org failed, fetching sources from github instead"
-    if ! git fetch -q git://github.com/torvalds/linux.git "$COMMIT"; then
+    if ! git fetch -q --tags git://github.com/torvalds/linux.git "$COMMIT"; then
         echo "Failed to update the kernel sources, but continuing anyways"
     fi
 fi
@@ -79,7 +88,11 @@ fi
 
 echo "Running on Linux Version $(git describe || echo '(no git)')"
 echo "Using $(undertaker -V)"
-git clean -fxq
+
+if ! git clean -fxq; then
+    echo "git clean failed - check for write permissions in $GIT_DIRECTORY"
+    exit 1
+fi
 
 version="$(git describe || date +%Y-%m-%d-%H:%M)"
 report="${resultdir}/${version}-report.txt"
@@ -87,15 +100,46 @@ deadlist="${resultdir}/${version}-deads.txt"
 
 echo "Scanning version ${version}, logging to ${report}"
 
-undertaker-kconfigdump  > "$report"
+echo "Step 0: Extract Kconfig feature dependencies"
+if $TIME -v -o kconfigdump.stats -- undertaker-kconfigdump  >"$report" \
+      2>kconfigdump-error-output.txt; then
+    cat kconfigdump.stats
+else
+    echo "Failed to dump models. Check your installation"
+    cat kconfigdump-error-output.txt
+    exit 1
+fi
+if ! test -s kconfigdump-error-output.txt; then
+    rm -f kconfigdump-error-output.txt
+fi
 
-undertaker-linux-tree -t ${PROCESSORS}    >>"$report" 2>undertaker-error-output.txt
-find . -name '*dead' -ls > "$deadlist"
-echo "Found $(grep globally $deadlist | wc -l) globally dead blocks"
+
+echo "Step 1: Dead/Undead analysis"
+if $TIME -v -o undertaker.stats -- undertaker-linux-tree -t ${PROCESSORS} >>"$report" \
+      2>undertaker-errors.txt; then
+    cat undertaker.stats
+    find . -name '*dead' -ls > "$deadlist"
+    echo "Found $(grep globally $deadlist | wc -l) globally dead blocks"
+else
+    echo "Scanning for Dead features failed, check the error logfiles!"
+    cat undertaker-errors.txt
+fi
+if ! test -s undertaker-errors.txt; then
+    rm -f kconfigdump-error-output.txt
+fi
 
 
-undertaker-linux-tree -t ${PROCESSORS} -c
-
-
-
-
+echo "Step 2: Coverage analysis"
+if $TIME -v -o undertaker-coverage.stats -- undertaker-linux-tree -t ${PROCESSORS} -c \
+      2>undertaker-coverage-errors.txt; then
+    cat undertaker-coverage.stats
+    found_configs=`grep -c ^CONFIG undertaker-calc-coverage.output`
+    processed_files=`grep -c ^RESULT undertaker-calc-coverage.output`
+    echo "Processed $found_configs (partial) configurations on $processed_files files"
+else
+    echo "Coverage analysis failed with exit code $?, check the error logfiles!"
+    cat undertaker-coverage-errors.txt
+fi
+if ! test -s undertaker-coverage-errors.txt; then
+    rm -f undertaker-coverage-errors.txt
+fi

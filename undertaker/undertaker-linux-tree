@@ -72,7 +72,7 @@ if [ -n "$COVERAGE" ]; then
     files=`wc -l <undertaker-coverage-worklist`
     echo "Calculating partial configurations (greedy variant) on $files files"
 
-    time undertaker -v -j coverage -C min -t "$PROCESSORS" -b undertaker-coverage-worklist \
+    undertaker -v -j coverage -C min -t "$PROCESSORS" -b undertaker-coverage-worklist \
         -m "$MODELS" -M "$DEFAULT_ARCH" 2>&1 |
             grep '^I: ./' > coverage.txt
 
@@ -88,21 +88,26 @@ if [ -n "$COVERAGE" ]; then
             head -n 50 | tee coverage.stats
 
     awk '/c$/ { print $4 }' coverage.stats > undertaker-calc-coverage-worklist
-    time undertaker-calc-coverage -m models/x86.model undertaker-calc-coverage-worklist \
-        --run-sparse 2> undertaker-calc-coverage.error >undertaker-calc-coverage.output || true
-
-    found_configs=`grep -c ^CONFIG undertaker-calc-coverage.output`
-    processed_files=`grep -c ^RESULT undertaker-calc-coverage.output`
-    echo "Processed $found_configs (partial) configurations on $processed_files files"
+    if ! undertaker-calc-coverage -m models/x86.model undertaker-calc-coverage-worklist \
+              --run-sparse 2> undertaker-calc-coverage.error >undertaker-calc-coverage.output; then
+        echo "undertaker-calc-coverage failed, error messages follow:"
+        cat undertaker-calc-coverage.error
+        exit 1
+    fi
+    if ! test -s undertaker-calc-coverage.error; then
+        rm -f undertaker-calc-coverage.error
+    fi
+fi
 
 else
     find -type f -name "*.[hcS]" \
         ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
         -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-worklist
 
+    # delete potentially confusing .dead files first
     find . -type f -name '*dead' -delete
 
     echo "Analyzing $(wc -l < undertaker-worklist) files with $PROCESSORS threads."
-    time undertaker -v -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"
+    undertaker -v -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"
     printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
 fi
