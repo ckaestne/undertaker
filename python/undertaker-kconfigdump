@@ -31,6 +31,9 @@
 # - MODELS: the directory where the models are placed (default:
 #           models)
 # - DEBUG: give some debug informations
+#
+# Arguments:
+# - Architecture models to build
 
 
 MODELS=${MODELS:-models}
@@ -71,7 +74,11 @@ if [ ! -f arch/x86/Kconfig ]; then
     exit 1
 fi
 
-ARCHS=$(ls arch/*/Kconfig | cut -d '/' -f 2)
+if [ -z "$1" ]; then
+    ARCHS="$(ls arch/*/Kconfig | cut -d '/' -f 2) um"
+else
+    ARCHS="$@"
+fi
 
 mkdir -p "$MODELS"
 
@@ -100,7 +107,10 @@ function do_convert() {
         KCONFIG=Kconfig.x86
     fi
 
-    test -f arch/$ARCH/$KCONFIG || return 0
+    test -f arch/$ARCH/$KCONFIG || {
+       echo "ERROR: Architecture $ARCH not found";
+       exit 1
+    }
 
   # dumpconf, remove all the comments because they will confuse rsf2model
     SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | grep -v '^#' > "$MODELS/$ARCH.rsf"
@@ -117,9 +127,14 @@ function do_convert() {
         >> "$MODELS/$ARCH.model"
 }
 
-for ARCH in $ARCHS um
+for ARCH in $ARCHS
 do
     do_convert $ARCH &
     # run many converting processes in parallel
     pwait ${PROCESSORS}
 done
+
+while [ $(jobs -r | wc -l) -gt 0 ]; do
+	sleep 0.5
+done
+
