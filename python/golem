@@ -29,7 +29,7 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      + sys.path
 
 
-from vamos.tools import setup_logging, get_linux_version, NotALinuxTree
+from vamos.tools import setup_logging
 from vamos.golem.kbuild import *
 
 

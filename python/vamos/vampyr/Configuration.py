@@ -20,10 +20,6 @@
 from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage
 from vamos.tools import execute
 
-import logging
-import re
-import os
-import shutil
 
 class ExpansionError(RuntimeError):
     """ Base class of all sort of Expansion errors """
@@ -33,15 +29,6 @@ class ExpansionError(RuntimeError):
 class ExpansionSanityCheckError(ExpansionError):
     """ Internal kernel config sanity checks failed, like `make silentoldconfig` """
     pass
-
-
-def arch_from_file(filename, default="x86"):
-    """Determine the needed architecture for a specified file"""
-
-    m = re.search("arch/([^/]+)/", filename)
-    if m:
-        return m.group(1)
-    return default
 
 
 class Configuration:
@@ -77,7 +64,7 @@ class BareConfiguration(Configuration):
             cmd += " " + self.framework.options['args'][compiler]
         cmd += " " + self.cpp_flags
         cmd += " '" + on_file + "'"
-        (out, returncode) = execute(cmd)
+        (out, returncode) = execute(cmd, failok=True)
         if returncode == 127:
             raise RuntimeError(compiler + " not found on this system?")
         else:

@@ -65,9 +65,7 @@ class BareBuildFramework(BuildFramework):
         if 'undertaker' in self.options['args']:
             undertaker += " " + self.options['args']['undertaker']
         undertaker += " '" + filename + "'"
-        (output, statuscode) = execute(undertaker)
-        if statuscode != 0:
-            raise RuntimeError("Couldn't run undertaker")
+        (output, _) = execute(undertaker, failok=False)
         flags_list = filter(lambda x: not x.startswith("I:"), output)
         configs = [BareConfiguration(self, x) for x in flags_list]
         return configs

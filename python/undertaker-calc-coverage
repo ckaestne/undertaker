@@ -25,47 +25,46 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                 (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
                 + sys.path
 
-from vamos.tools import execute, setup_logging
+from vamos.golem.kbuild import *
 from vamos.model import Model
-from vamos.golem.kbuild import apply_configuration
+from vamos.tools import setup_logging, execute
 
-import os.path
-import shutil
 import glob
-import re
-import logging
-from subprocess import Popen, STDOUT, PIPE
+import shutil
+
 from optparse import OptionParser
 
 model = None
 
 std_configs = ["allyesconfig"]
 
+
 class ExpansionError(RuntimeError):
     """ Base class of all sort of Expansion errors """
     pass
+
 
 class ExpansionSanityCheckError(ExpansionError):
     """ Internal kernel config sanity checks failed, like `make silentoldconfig` """
     pass
 
+
 class PredatorError(RuntimeError):
     pass
+
 
 def switch_config(config):
     """
     switches the current tree to the given config. throws an exception in case make fails
     """
-    execute("find include -name autoconf.h -delete", echo=True)
-
-    (output, returncode) = execute("make %s" % config, echo=False)
-    if returncode != 0:
-        raise RuntimeError("Failed to switch to config %s" % config)
+    execute("find include -name autoconf.h -delete", failok=False)
+    (output, _) = call_linux_makefile(config, failok=False)
 
     # sanity check
     apply_configuration()
 
     return output
+
 
 def switch_config_path(filename):
     """
@@ -74,24 +73,18 @@ def switch_config_path(filename):
     As sideffect, the current .config file is overwritten
     """
 
+    assert(os.path.exists(filename))
+
     # now replace the old .config with our 'expanded' one
     shutil.copyfile(filename, '.config')
-    arch = "x86"
-    m = re.search("arch/([^/]*)/", filename)
-    if m:
-        arch = m.group(1)
-    satconf_cmd = 'yes "" | make oldconfig ARCH="%s" KERNELVERSION=`git describe`' % arch
-    (_, returncode) = execute(satconf_cmd, echo=True)
-    if returncode != 0:
-        raise ExpansionError("command used: " + satconf_cmd)
+    try:
+        call_linux_makefile('oldconfig', filename=filename, failok=False)
 
-    cmd = 'yes "" | make silentoldconfig ARCH="%s" KERNELVERSION=`git describe`' % arch
-    (_, ret2) = execute(cmd, echo=False)
-    if ret2 != 0:
-        # with the satconfig approach, this always worked
-        msg ="silentoldconfig failed while switching to config %s (rc: %d)" \
-            % (filename, ret2)
-        raise ExpansionSanityCheckError(msg)
+    except CommandFailed as e:
+        raise ExpansionError(e)
+
+    apply_configuration(filename=filename)
+
 
 def call_sparse(filename):
     """
@@ -100,14 +93,10 @@ def call_sparse(filename):
     @return output of sparse
     """
 
-    arch = "x86"
-    m = re.search("arch/([^/]*)/", filename)
-    if m:
-        arch = m.group(1)
-
-    coverage_cmd = 'ARCH="%s" make %s C=2' % (arch, filename.replace(".c", ".o"))
-    p = Popen(coverage_cmd, stdout=PIPE, stderr=STDOUT, shell=True)
-    (stdout, dummy) = p.communicate()
+    (stdout, _) = call_linux_makefile(filename.replace(".c", ".o"),
+                                      filename=filename,
+                                      failok=True,
+                                      extra_variables="C=2")
 
     return stdout
 
@@ -124,7 +113,8 @@ def run_sparse_on_config(filename, config):
 
     logging.debug("Creating " + outfn)
     with open (outfn, 'w') as f:
-        f.write(sparse_output)
+        for l in sparse_output:
+            f.write(l + '\n')
 
     warnings = 0
     errors = 0
@@ -136,12 +126,12 @@ def run_sparse_on_config(filename, config):
 
     return (warnings, errors)
 
-def get_covered_lines(filename):
-    coverage_cmd = "make %s C=2 CHECK=sparse-coverage" % filename.replace(".c", ".o")
-    (sparse_coverage, returncode) = execute(coverage_cmd, echo=False)
 
-    if returncode != 0:
-        raise RuntimeError("sparse-coverage failed")
+def get_covered_lines(filename):
+    (sparse_coverage, _) = call_linux_makefile(filename.replace(".c", ".o"),
+                                               filename=filename,
+                                               extra_variables="C=2 CHECK=sparse_coverage",
+                                               failok=False)
 
     lines = []
     for line in sparse_coverage:
@@ -149,6 +139,7 @@ def get_covered_lines(filename):
         if tokens[0] != "" and tokens[0] in filename:
             lines.append(int(tokens[1]))
     return lines
+
 
 def default_configs(filename, results):
 
@@ -166,6 +157,7 @@ extra_dependencies = {
     './drivers/cpuidle/cpuidle.c': ["CONFIG_CPU_IDLE=y", "CONFIG_ARCH_HAS_DEFAULT_IDLE=y"],
 }
 
+
 def expand_by_copy(config):
     logging.debug("Trying to expand configuration " + config)
 
@@ -174,6 +166,7 @@ def expand_by_copy(config):
 
     shutil.copy(config, config + '.config')
     return config + '.config'
+
 
 def expand_with_defconfig(config):
     """
@@ -185,20 +178,22 @@ def expand_with_defconfig(config):
     @return the path to the expanded configuration
     """
 
-    logging.debug("Trying to expand configuration " + config)
+    logging.debug("Trying to expand configuration '%s' with defconfig", config)
 
     if not os.path.exists(config):
         raise RuntimeError("Partial configuration %s does not exist" % config)
 
-    arch = "x86"
-    m = re.search("arch/([^/]*)/", config)
-    if m:
-        arch = m.group(1)
-    cmd = 'yes "" | make KCONFIG_ALLCONFIG="%s" alldefconfig ARCH="%s" KERNELVERSION=`git describe`' % (config, arch)
-    (_, returncode) = execute(cmd, echo=True)
-    if returncode != 0:
-        raise ExpansionError("command used: " + cmd)
-    shutil.copy('.config', config + '.config')
+    try:
+        extra_variables='KCONFIG_ALLCONFIG="%s"' % config
+
+        call_linux_makefile("alldefconfig",
+                            filename=config,
+                            failok=False,
+                            extra_variables=extra_variables)
+    except CommandFailed as e:
+        msg="Config '%s' failed to expand. Command used: '%s' (returncode: %d)" % \
+            (config, e.command, e.returncode)
+        raise ExpansionError(msg)
 
     expanded_config = config + '.config'
     shutil.copy('.config', expanded_config)
@@ -243,6 +238,7 @@ def expand_by_filtering(config):
 #                newconfigf.write("\n".join(extra_dependencies[filename]))
 
     return config + '.config'
+
 
 def verify_config(partial_config):
     """
@@ -303,6 +299,7 @@ def selected_items(partial_config):
 
     return selected
 
+
 autoconf = None
 def find_autoconf():
     """ returns the path to the autoconf.h file in this linux tree
@@ -310,13 +307,14 @@ def find_autoconf():
     global autoconf
     if autoconf == None:
         switch_config('allyesconfig')
-        (autoconf, rc) = execute("find include -name autoconf.h", echo = True)
+        (autoconf, _) = execute("find include -name autoconf.h", failok=False)
         autoconf = filter(lambda x: len(x) > 0, autoconf)
-        if rc != 0 or len(autoconf) != 1:
+        if len(autoconf) != 1:
             logging.error("Not exactly one autoconf.h was found (%s)",
                           ", ".join(autoconf))
             raise RuntimeError("Not exactly one autoconf.h was found")
     return autoconf[0]
+
 
 def get_conditional_blocks(filename, selected_only=False):
     """
@@ -335,7 +333,7 @@ def get_conditional_blocks(filename, selected_only=False):
         cmd = 'predator "%s" | cpp -include %s' % (filename, find_autoconf())
     else:
         cmd = 'predator "%s"' % filename
-    (blocks, rc) = execute(cmd, echo=True)
+    (blocks, rc) = execute(cmd, echo=True, failok=True)
 
     blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
     if rc != 0:
@@ -348,8 +346,10 @@ def get_loc_coverage(filename):
     Returns LOC of the given file taking the current configuration into account
     """
 
-    cmd = "grep -v -E '^\s*#\s*include' %s | cpp -include %s" % (filename, find_autoconf())
-    (lines, _) = execute(cmd, echo=True)
+    assert(os.path.exists(filename))
+    cmd = "grep -v -E '^\s*#\s*include' %s | cpp -include %s" % \
+        (filename, find_autoconf())
+    (lines, _) = execute(cmd, echo=True, failok=True)
     # we ignore the exitcode here as we are not interested in failing
     # for #error directives and similar.
     return len(lines)
@@ -423,6 +423,7 @@ def vamos_coverage(filename, results, options):
     results[filename]['vamos'] = len(covered)
     return results
 
+
 def configurations(filename):
     l = glob.glob(filename + ".config[0-9]")
     l += (glob.glob(filename + ".config[0-9][0-9]"))
@@ -482,6 +483,7 @@ def do_work(filenames, options):
                 logging.debug("%s does not exist, skipping", filename)
                 continue
 
+        filename = os.path.normpath(filename)
         logging.info("processing %s", filename)
 
         default_configs(filename, results)
@@ -535,7 +537,7 @@ def do_work(filenames, options):
             logging.error(error.__str__())
             logging.error("Skipping file " + filename)
             continue
-    
+
 def main():
     (options, args) = parse_options()
     setup_logging(options.verbose)

@@ -20,13 +20,27 @@
 
 import logging
 import os.path
-import sys
 
 from subprocess import *
 
-class NotALinuxTree(RuntimeError):
-    """ Indicates we are not in a Linux tree """
-    pass
+
+class CommandFailed(RuntimeError):
+    """ Indicates that some command failed
+
+    Attributes:
+        command    -- the command that failed
+        returncode -- the exitcode of the failed command
+    """
+    def __init__(self, command, returncode):
+        assert(returncode != 0)
+        self.command = command
+        self.returncode = returncode
+        self.repr = "Command %s failed to execute (returncode: %d)" % \
+            (command, returncode)
+        RuntimeError.__init__(self, self.repr)
+    def __str__(self):
+        return self.repr
+
 
 def setup_logging(log_level):
     """ setup the logging module with the given log_level """
@@ -40,9 +54,15 @@ def setup_logging(log_level):
     logging.basicConfig(level=l)
 
 
-def execute(command, echo=True):
+def execute(command, echo=True, failok=True):
     """
-    executes 'command' in a shell
+    executes 'command' in a shell.
+
+    optional parameter echo can be used to suppress emitting the command
+    to logging.debug.
+
+    if failok is set to false, an RuntimeError will be raised with the
+    full commandname and exitcode.
 
     returns a tuple with
      1. the command's standard output as list of lines
@@ -53,61 +73,10 @@ def execute(command, echo=True):
     if echo:
         logging.debug("executing: " + command)
     p = Popen(command, stdout=PIPE, stderr=STDOUT, shell=True)
-    (stdout, _)  = p.communicate() # ignore stderr
+    (stdout, _)  = p.communicate() # stderr is merged into STDOUT
+    if not failok and p.returncode != 0:
+        raise CommandFailed(command, p.returncode)
     if len(stdout) > 0 and stdout[-1] == '\n':
         stdout = stdout[:-1]
     return (stdout.__str__().rsplit('\n'), p.returncode)
 
-
-def get_linux_version():
-    """
-    Checks that the current working directory is actually a Linux Tree
-
-    Uses a custom Makefile to retrieve the current kernel version. If we
-    are in a git tree, additionally compare the git version with the
-    version stated in the Makefile for plausibility.
-
-    Raises a 'NotALinuxTree' exception if the version could not be retrieved.
-    """
-
-    scriptsdir = find_scripts_basedir()
-
-    if not os.path.exists('Makefile'):
-        raise NotALinuxTree("No 'Makefile' found")
-
-    cmd = "make -f %(basedir)s/Makefile.version UNDERTAKER_SCRIPTS=%(basedir)s" % \
-        { 'basedir' : scriptsdir }
-
-    (output, ret) = execute(cmd)
-    if ret > 0:
-        raise NotALinuxTree("Makefile does not indicate a Linux version")
-
-    version = output[-1] # use last line, if not configured we get additional warning messages
-    if os.path.isdir('.git'):
-        cmd = "git describe"
-        (output, ret) = execute(cmd)
-        git_version = output[0]
-        if (ret > 0):
-            return 'v' + version
-
-        if (not git_version.startswith('v')):
-            raise NotALinuxTree("Git does not indicate a Linux version ('%s')" % \
-                                    git_version)
-
-        if git_version[1:].startswith(version[0:3]):
-            return git_version
-        else:
-            raise NotALinuxTree("Git version does not look like a Linux version ('%s' vs '%s')" % \
-                                    (git_version, version))
-    else:
-        return 'v' + version
-
-
-def find_scripts_basedir():
-    executable = os.path.realpath(sys.argv[0])
-    base_dir   = os.path.dirname(executable)
-    for d in [ '../lib', '../scripts']:
-        f = os.path.join(base_dir, d, 'Makefile.list')
-        if os.path.exists(f):
-            return os.path.realpath(os.path.join(base_dir, d))
-    raise RuntimeError("Failed to locate Makefile.list")
