@@ -84,6 +84,13 @@ public:
     bool isTristate(const std::string&) const;
     //@}
 
+    //! returns the type of the given symbol
+    /*!
+     * Normalizes the given item so that passing with and without
+     * CONFIG_ prefix works.
+     */
+    std::string getType(const std::string &feature_name) const;
+
     RsfReader::iterator find(const RsfReader::key_type &x) const { return _model->find(x); }
     RsfReader::iterator begin() const { return _model->begin(); }
     RsfReader::iterator end()   const { return _model->end(); }

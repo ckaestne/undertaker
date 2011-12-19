@@ -93,7 +93,7 @@ void usage(std::ostream &out, const char *error) {
     out << "      - dead: dead/undead file analysis (default)\n";
     out << "      - coverage: coverage file analysis\n";
     out << "      - cpppc: CPP Preconditions for whole file\n";
-    out << "      - cppsym: list CPP symbols mentioned in source files\n";
+    out << "      - cppsym: statistics over CPP symbols mentioned in source files\n";
     out << "      - blockpc: Block precondition (format: <file>:<line>:<column>)\n";
     out << "      - symbolpc: Symbol precondition (format <symbol>)\n";
     out << "      - checkexpr: Find a configuration that satisfies expression\n";
@@ -268,6 +268,11 @@ void process_file_cpppc(const char *filename) {
 }
 
 void process_file_cppsym_helper(const char *filename) {
+    // vector of length 2, first: #references, second: #rewrites
+    typedef std::vector<size_t> ItemStats;
+    // key: name of the item.
+    typedef std::map<std::string, ItemStats> FoundItems;
+
     CppFile s(filename);
 
     if (!s.good()) {
@@ -278,7 +283,7 @@ void process_file_cppsym_helper(const char *filename) {
     ModelContainer *f = ModelContainer::getInstance();
     ConfigurationModel *model = f->lookupMainModel();
 
-    std::set<std::string> found_items;
+    FoundItems found_items;
 
     for (CppFile::const_iterator c = s.begin(); c != s.end(); ++c) {
         ConditionalBlock *block = *c;
@@ -286,49 +291,62 @@ void process_file_cppsym_helper(const char *filename) {
 
         std::set<std::string> items = ConditionalBlock::itemsOfString(expr);
         for (std::set<std::string>::const_iterator i = items.begin(); i != items.end(); i++) {
-            static const boost::regex module_regexp("^(CONFIG_.*[^.])_MODULE$");
-            static const boost::regex valid_item("^[0-9A-Za-z_]+$");
+            static const boost::regex valid_item("^([A-Za-z_][0-9A-Za-z_]*?)(\\.*)(_MODULE)?$");
             boost::match_results<std::string::const_iterator> what;
 
-            // Skip strange items like operators and rewritten CPP symbols
-            if (!boost::regex_match(*i, valid_item))
-                continue;
+            if (boost::regex_match(*i, what, valid_item)) {
+                size_t rewrites = what[2].length();
+                const std::string item_name = what[1];
+                FoundItems::iterator it = found_items.find(item_name);
 
-            if (boost::regex_match(*i, what, module_regexp)) {
-                found_items.insert(what[1]);
+                if (it == found_items.end()) {
+                    ItemStats s(2);
+                    s[0]++; // increase refcount
+                    found_items[item_name] = s;
+                } else {
+                    ItemStats &s = (*it).second;
+                    s[0]++; // increase reference cound
+                    s[1] = std::max(s[1], rewrites);
+                }
             } else {
-                found_items.insert(*i);
+                logger << info << "Ignoring non-symbol: " << *i << std::endl;
             }
         }
     }
 
-    std::set<std::string>::const_iterator i;
-    for (i = found_items.begin(); i != found_items.end(); ++i) {
-        std::cout << *i;
+    for (FoundItems::const_iterator i = found_items.begin(); i != found_items.end(); ++i) {
+        StringJoiner sj;
+        static const boost::regex kconfig_regexp("^CONFIG_.+");
+        boost::match_results<std::string::const_iterator> what;
+        const std::string &item_name = (*i).first;
+        const ItemStats &stats = (*i).second;
+        std::ostringstream references;
+        std::ostringstream rewrites;
+
+        sj.push_back(item_name);
+
+        references << stats[0];
+        sj.push_back(references.str());
+
+        rewrites << stats[1];
+        sj.push_back(rewrites.str());
+
         if (model) {
-            static const boost::regex item_regexp("^CONFIG_(.*[^.])$");
-            static const boost::regex kconfig_regexp("^CONFIG_");
-            boost::match_results<std::string::const_iterator> what;
-            StringJoiner sj;
-
-            if (model->find(*i) == model->end())
+            if (model->find(item_name) != model->end()) {
+                sj.push_back("PRESENT");
+                sj.push_back(model->getType(item_name));
+            } else {
                 sj.push_back("MISSING");
-
-            if (boost::regex_match(*i, what, item_regexp)) {
-                const std::string &feature = what[1];
-
-                if (model->isBoolean(feature))
-                    sj.push_back("BOOLEAN");
-                if (model->isTristate(feature))
-                    sj.push_back("TRISTATE");
-            } else if (!boost::regex_match(*i, kconfig_regexp)) {
-                sj.push_back("NOT_CONFIG_LIKE");
+                sj.push_back(boost::regex_match(item_name, kconfig_regexp) ?
+                             "CONFIG_LIKE" : "NOT_CONFIG_LIKE");
             }
-
-            if (sj.size() > 0)
-                std::cout << " (" << sj.join(", ") << ")";
+        } else {
+            sj.push_back("NO_MODEL");
+            sj.push_back(boost::regex_match(item_name, kconfig_regexp) ?
+                         "CONFIG_LIKE" : "NOT_CONFIG_LIKE");
         }
-        std::cout << std::endl;
+        assert(sj.size() == 5);
+        std::cout << sj.join(", ") << std::endl;
     }
 }
 

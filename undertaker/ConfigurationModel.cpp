@@ -182,3 +182,21 @@ bool ConfigurationModel::isTristate(const std::string &item) const {
 
     return false;
 }
+
+std::string ConfigurationModel::getType(const std::string &feature_name) const {
+    static const boost::regex item_regexp("^(CONFIG_)?([0-9A-Za-z_]+)(_MODULE)?$");
+    boost::match_results<std::string::const_iterator> what;
+
+    if (boost::regex_match(feature_name, what, item_regexp)) {
+        std::string item = what[2];
+        const std::string *value = _rsf->getValue(item);
+        if (value) {
+            std::string type = *value;
+            std::transform(type.begin(), type.end(), type.begin(), ::toupper);
+            return type;
+        } else {
+            return std::string("MISSING");
+        }
+    }
+    return std::string("#ERROR");
+}

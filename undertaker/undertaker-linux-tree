@@ -160,10 +160,22 @@ if [ "$MODE" = "feature-statistics" ]; then
         ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
         -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-worklist
 
-    if undertaker -j cppsym -t $PROCESSORS -b undertaker-worklist \
-        >undertaker-all-cppsym.raw 2>undertaker-cppsym.errors; then
-        sort -u undertaker-all-cppsym.raw | grep -v -E '^(I|E): ' >undertaker-all-cppsym
-        echo "Found $(cat undertaker-all-cppsym|wc -l) CPP symbols."
+    if undertaker -j cppsym -t $PROCESSORS -b undertaker-worklist |
+        grep -v -E '^(E|I|W): '>undertaker-all-cppsym.raw 2>undertaker-cppsym.errors; then
+        awk '
+BEGIN { FS="," }
+
+{
+    references[$1] = references[$1] + $2;
+    rewrites[$1] = rewrites[$1] + $3;
+}
+
+END {
+    for (item in references) {
+        printf "%s, %d, %d\n", item, references[item], rewrites[item]
+    }
+}' < undertaker-all-cppsym.raw > undertaker-all-cppsym
+        echo "Found $(cat undertaker-all-cppsym|wc -l) distinct CPP symbols."
     else
         echo "checking for cppsym errors failed, check the error log:"
         cat undertaker-cppsym.errors
