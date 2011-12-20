@@ -54,11 +54,13 @@ def main():
 
     setup_logging(opts.verbose)
 
-    if len(args) > 0:
-        print "golem - analyzes feature dependencies in Linux makefiles"
-        parser.print_help()
-        print "\nGolem takes only options, no arguments"
-        sys.exit(1)
+    def check_argument_length(option, number):
+        """Check the number of arguments"""
+        if len(args) > number:
+            print "golem - analyzes feature dependencies in Linux makefiles"
+            parser.print_help()
+            print "\ngolem %s takes at most %d argument(s)" %(option, number)
+            sys.exit(1)
 
     try:
         logging.info("using Linux version %s", get_linux_version())
@@ -67,13 +69,18 @@ def main():
         sys.exit(1)
 
     if opts.do_opt:
-        variables = determine_buildsystem_variables()
+        check_argument_length("-o|--options", 1)
+        arch = None
+        if len(args) == 1:
+            arch = args[0]
+        variables = determine_buildsystem_variables(arch)
         logging.info("Detected %d Kconfig variables in Makefiles", len(variables))
         for v in variables:
             print 'CONFIG_' + v
         sys.exit(0)
 
     if opts.do_list:
+        check_argument_length("-l|--list", 0)
         if opts.verbose > 0:
             how = True
         else:
@@ -88,6 +95,7 @@ def main():
             sys.exit(1)
         sys.exit(0)
     elif opts.compiled:
+        check_argument_length("-c|--compiled", 0)
         try:
             for filename in opts.compiled:
                 status = file_in_current_configuration(filename)

@@ -160,18 +160,25 @@ def file_in_current_configuration(filename):
     return "n"
 
 
-def determine_buildsystem_variables():
+def determine_buildsystem_variables(arch=None):
     """
     returns a list of kconfig variables that are mentioned in Linux Makefiles
     """
-    cmd = "find . -name Kbuild -o -name Makefile -exec sed -n '/^obj-\$(CONFIG_/p' {} \+"
+    if arch:
+        cmd = r"find . \( -name Kbuild -o -name Makefile \) " + \
+              r"\( ! -path './arch/*' -o -path './arch/%(arch)s/*' \) " + \
+              r"-exec sed -n '/-\$(CONFIG_/p' {} \+"
+        cmd = cmd % {'arch': arch}
+
+    else:
+        cmd = r"find . \( -name Kbuild -o -name Makefile \) -exec sed -n '/-\$(CONFIG_/p' {} \+"
     find_result = execute(cmd, failok=False)
 
     ret = set()
     # line might look like this:
     # obj-$(CONFIG_MODULES)           += microblaze_ksyms.o module.o
     for line in find_result[0]:
-        m = re.search(r'^obj-\$\(CONFIG_(\w+)\)', line)
+        m = re.search(r'-\$\(CONFIG_(\w+)\)', line)
         if not m: continue
         config_variable = m.group(1)
         if (config_variable):

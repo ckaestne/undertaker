@@ -153,7 +153,9 @@ if [ "$MODE" = "feature-statistics" ]; then
     allrsfs="$(ls models/*.rsf)"
     mkdir -p undertaker-stat
 
-    golem -o | sort -u > undertaker-kbuild-variables
+    golem -o     | sort -u > undertaker-kbuild-variables
+    golem -o x86 | sort -u > undertaker-kbuild-variables-x86
+
     echo "Found $(cat undertaker-kbuild-variables | wc -l) configuration variables mentioned in Makefiles"
 
     find -type f -name "*.[hcS]" \
