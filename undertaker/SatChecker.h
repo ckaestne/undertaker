@@ -26,7 +26,6 @@
 #include <boost/spirit/include/classic.hpp>
 #include <boost/spirit/include/classic_core.hpp>
 #include <boost/spirit/include/classic_parse_tree.hpp>
-#include <boost/spirit/include/classic_tree_to_xml.hpp>
 #include <stdexcept>
 #include <map>
 #include <sstream>

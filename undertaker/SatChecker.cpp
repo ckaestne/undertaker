@@ -24,10 +24,6 @@
 #include <Puma/TokenStream.h>
 #include <boost/regex.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/spirit/include/classic.hpp>
-#include <boost/spirit/include/classic_core.hpp>
-#include <boost/spirit/include/classic_parse_tree.hpp>
-#include <boost/spirit/include/classic_tree_to_xml.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <pstreams/pstream.h>
 
