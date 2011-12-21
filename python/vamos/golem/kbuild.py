@@ -70,7 +70,7 @@ def apply_configuration(arch=None, subarch=None, filename=None):
             raise
 
 
-def files_for_current_configuration(how=False, arch=None, subarch=None):
+def files_for_current_configuration(arch=None, subarch=None, how=False):
     """
     to be run in a Linux source tree.
 

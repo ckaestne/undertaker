@@ -62,6 +62,14 @@ def main():
             print "\ngolem %s takes at most %d argument(s)" %(option, number)
             sys.exit(1)
 
+    (arch, subarch) = (None, None)
+
+    if os.environ.has_key('ARCH'):
+        arch = os.environ['ARCH']
+
+    if os.environ.has_key('SUBARCH'):
+        subarch = os.environ['SUBARCH']
+
     try:
         logging.info("using Linux version %s", get_linux_version())
     except NotALinuxTree as e:
@@ -86,7 +94,7 @@ def main():
         else:
             how = False
         try:
-            files = files_for_current_configuration(how)
+            files = files_for_current_configuration(arch=arch, subarch=subarch, how=how)
             logging.info("Detected %d files with current configuration", len(files))
             for f in sorted(files):
                 print f
