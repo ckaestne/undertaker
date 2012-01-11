@@ -14,11 +14,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import re
 from vamos.rsf2model.RsfReader import RsfReader
 
+import logging
+import re
+import sys
+
 class Model(dict):
-    def __init__(self, path):
+    def __init__(self, path, rsf = None):
         dict.__init__(self)
         self.path = path
         self.always_on_items = set()
@@ -26,15 +29,15 @@ class Model(dict):
         with open(path) as fd:
             self.parse(fd)
 
-        if path.endswith(".model"):
+        if not rsf and path.endswith(".model"):
             rsf = path[:-len(".model")] + ".rsf"
+
+        if rsf:
             try:
                 with open(rsf) as f:
                     self.rsf = RsfReader(f)
             except IOError:
-                self.rsf = None
-        else:
-            self.rsf = None
+                logging.warning ("no rsf file for model %s was found", path)
 
     def parse(self, fd):
         for line in fd.readlines():
@@ -54,6 +57,7 @@ class Model(dict):
             elif len(line) == 2:
                 self[line[0]] = line[1].strip(" \"\t\n")
 
+
     def mentioned_items(self, key):
         """Return list of mentioned items of the key's implications"""
         expr = self.get(key, "")
@@ -66,6 +70,7 @@ class Model(dict):
     def leaf_features(self):
         """Return list of leaf features in model
         Leaf features are feature that aren't mentioned anywhere else"""
+
         # Dictionary of mentioned items
         features = dict([(key, False) for key in self.keys()
                         if not key.endswith("_MODULE")])
@@ -84,21 +89,32 @@ class Model(dict):
                 # CONFIG_A_MODULE -> !CONFIG_A
                 if key != mentioned and mentioned in features:
                     features[mentioned] = True
+        return sorted([key for key in features if features[key] == False])
 
-        return [key for key in features if features[key] == False]
-
-    def is_bool_tristate(self, symbol):
+    def get_type(self, symbol):
+        """Returns data type of symbol.
+RuntimeError gets raised if no corresponding rsf is found."""
         if not self.rsf:
-            return True
+            raise RuntimeError("No corresponding rsf file found.")
         if symbol.startswith("CONFIG_"):
             symbol = symbol[len("CONFIG_"):]
+        return self.rsf.get_type(symbol)
+
+
+    def is_bool_tristate(self, symbol):
+        """Returns true if symbol is tristate, otherwise false is returned.
+RuntimeError gets raised if no corresponding rsf is found."""
+        if not self.rsf:
+            raise RuntimeError("No corresponding rsf file found.")
+
+        if symbol.startswith("CONFIG_"):
+            symbol = symbol[len("CONFIG_"):]
+
         return self.rsf.is_bool_tristate(symbol)
 
     def slice_symbols(self, initial):
         """Apply the slicing algorithm to the given set of symbols
-
         returns a list of interesting symbol"""
-
         if type(initial) == list:
             stack = initial
         else:
@@ -113,5 +129,3 @@ class Model(dict):
                 if not new_symbols in visited:
                     stack.append(new_symbols)
         return list(visited)
-
-

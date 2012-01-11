@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import unittest as t
+import unittest2 as t
 from vamos.model import Model
 import tempfile
 
@@ -26,50 +26,100 @@ class TestModel(t.TestCase):
         self.model_file.file.write("""I: Items-Count: 12399
 I: Format: <variable> [presence condition]
 UNDERTAKER_SET SCHEMA_VERSION 1.1
-UNDERTAKER_SET ALWAYS_ON "CONFIG_ALWAYS_ON" "CONFIG_BARFOO"
-CONFIG_A
-CONFIG_X "CONFIG_C -> CONFIG_FOO && (CONFIG_BLA)"
-CONFIG_B CONFIG_A
-CONFIG_C "!CONFIG_C_MODULE"
-CONFIG_C_MODULE "!CONFIG_C && CONFIG_MODULE"
+UNDERTAKER_SET ALWAYS_ON "CONFIG_B1 "CONFIG_B2"
+CONFIG_T1
+CONFIG_B3 "CONFIG_T2 -> CONFIG_FOO && (CONFIG_BAR)"
+CONFIG_B4 CONFIG_T1
+CONFIG_T2 "!CONFIG_T2_MODULE && CONFIG_FOO"
+CONFIG_T2_MODULE "!CONFIG_T2 && CONFIG_BAR && CONFIG_MODULES"
+CONFIG_T3 "CONFIG_BAR"
 """)
         self.model_file.file.flush()
 
+        self.rsf_file = tempfile.NamedTemporaryFile()
+        self.rsf_file.file.write("""Item B1 boolean
+Default "y"
+Item B2 boolean
+Default "y"
+Item T1 tristate
+Default T1 "y"
+Item B3 boolean
+HasPrompts B3 0
+Default B3 "FOO && BLA" "y"
+Item B4 boolean
+Default B4 "A" "y"
+Item T2 tristate
+Depends T2 "BAR"
+Item T3 tristate
+Depends T3 "BAR"
+""")
+        self.rsf_file.file.flush()
+
     def test_all_symbols_included(self):
         model = Model(self.model_file.name)
-        for symbol in ["CONFIG_ALWAYS_ON", "CONFIG_BARFOO", "CONFIG_A", "CONFIG_B",
-                       "CONFIG_C", "CONFIG_C_MODULE", "CONFIG_X"]:
-            self.assertTrue(symbol in model, msg="%s not in model" % symbol)
+        for symbol in ("CONFIG_B1", "CONFIG_B2", "CONFIG_B3", "CONFIG_B4",
+                       "CONFIG_T1", "CONFIG_T2_MODULE", "CONFIG_T2", "CONFIG_T3"):
+            self.assertIn(symbol, model)
 
-        self.assertEqual(model["CONFIG_B"], "CONFIG_A")
-        self.assertEqual(model["CONFIG_C"], "!CONFIG_C_MODULE")
-
-    def test_symbol_always_on(self):
-        model = Model(self.model_file.name)
-        for symbol in ("CONFIG_ALWAYS_ON", "CONFIG_BARFOO"):
-            self.assertTrue(symbol in model.always_on_items, msg="%s not in model" % symbol)
-
-        for symbol in ("CONFIG_A", "CONFIG_B", "CONFIG_C", "CONFIG_MODULE"):
-            self.assertFalse(symbol in model.always_on_items, msg="%s not in model" % symbol)
-
-    def test_leaf_features(self):
-        model = Model(self.model_file.name)
-        self.assertEqual(set(model.leaf_features()),set(['CONFIG_X', 'CONFIG_ALWAYS_ON', 'CONFIG_BARFOO', 'CONFIG_B']) )
+        for symbol in ("CONFIG_ALWAYS_ON", "ALWAYS_ON"):
+            self.assertNotIn(symbol, model)
 
     def test_mentioned_items(self):
         model = Model(self.model_file.name)
-        self.assertEqual(model.mentioned_items("CONFIG_A"), [])
-        self.assertEqual(model.mentioned_items("CONFIG_XYZ"), [])
-        self.assertEqual(model.mentioned_items("CONFIG_B"), ["CONFIG_A"])
-        self.assertEqual(set(model.mentioned_items("CONFIG_X")), set(["CONFIG_C", "CONFIG_FOO", "CONFIG_BLA"]))
-        self.assertEqual(set(model.mentioned_items("CONFIG_C")), set(["CONFIG_C_MODULE"]))
-        self.assertEqual(set(model.mentioned_items("CONFIG_C_MODULE")), set(["CONFIG_C", "CONFIG_MODULE"]))
+        self.assertEqual(model.mentioned_items("CONFIG_T1"), [])
+        self.assertEqual(model.mentioned_items("CONFIG_FOO"), [])
+        self.assertEqual(model.mentioned_items("CONFIG_B4"), ["CONFIG_T1"])
+        self.assertEqual(set(model.mentioned_items("CONFIG_B3")), set(["CONFIG_T2",
+                "CONFIG_FOO", "CONFIG_BAR"]))
+        self.assertEqual(set(model.mentioned_items("CONFIG_T2")), set(["CONFIG_T2_MODULE",
+                "CONFIG_FOO"]))
+        self.assertEqual(set(model.mentioned_items("CONFIG_T2_MODULE")), set(["CONFIG_T2",
+                "CONFIG_MODULES","CONFIG_BAR"]))
+        self.assertEqual(set(model.mentioned_items("CONFIG_T3")), set(["CONFIG_BAR"]))
+
+    def test_symbol_always_on(self):
+        model = Model(self.model_file.name)
+        for symbol in ("CONFIG_ALWAYS_ON", "CONFIG_BARFOO",
+                       "CONFIG_A", "CONFIG_B", "CONFIG_C", "CONFIG_MODULE"):
+            self.assertNotIn(symbol, model.always_on_items)
+
+        for symbol in ("CONFIG_B1", "CONFIG_B2"):
+            self.assertIn(symbol, model.always_on_items)
 
     def test_slice_symbols(self):
         model = Model(self.model_file.name)
-        self.assertEqual(set(model.slice_symbols(["CONFIG_B"])),set(["CONFIG_A", "CONFIG_B"]))
-        self.assertEqual(set(model.slice_symbols(["CONFIG_A"])),set(["CONFIG_A"]))
-        self.assertEqual(set(model.slice_symbols(["CONFIG_X"])),set(["CONFIG_X", "CONFIG_C", "CONFIG_FOO", "CONFIG_BLA", "CONFIG_C_MODULE", "CONFIG_MODULE"]))
+        self.assertEqual(set(model.slice_symbols(["CONFIG_B1"])),set(["CONFIG_B1"]))
+        self.assertEqual(set(model.slice_symbols(["CONFIG_B2"])),set(["CONFIG_B2"]))
+        self.assertEqual(set(model.slice_symbols(["CONFIG_B3"])),set(["CONFIG_B3",
+                "CONFIG_T2", "CONFIG_FOO", "CONFIG_BAR", "CONFIG_T2_MODULE",
+                "CONFIG_MODULES"]))
+        self.assertEqual(set(model.slice_symbols(["CONFIG_B4"])),set(["CONFIG_B4",
+                "CONFIG_T1"]))
+        self.assertEqual(set(model.slice_symbols(["CONFIG_T1"])),set(["CONFIG_T1"]))
+        self.assertEqual(set(model.slice_symbols(["CONFIG_T2"])),set(["CONFIG_T2",
+                "CONFIG_T2_MODULE", "CONFIG_FOO", "CONFIG_BAR", "CONFIG_MODULES"]))
+        self.assertEqual(set(model.slice_symbols(["CONFIG_T2_MODULE"])),
+                set(["CONFIG_T2_MODULE", "CONFIG_T2", "CONFIG_BAR", "CONFIG_MODULES",
+                "CONFIG_FOO"]))
+
+    def test_leaf_features(self):
+        model = Model(self.model_file.name)
+        for x in ("CONFIG_B1", "CONFIG_B2", "CONFIG_B3", "CONFIG_B4", "CONFIG_T3"):
+            self.assertIn(x, model.leaf_features())
+
+    def test_none_leaf_features(self):
+        model = Model(self.model_file.name)
+        self.assertNotIn(set(["CONFIG_FOO", "CONFIG_BAR", "CONFIG_T1", "CONFIG_T2"]),
+                set(model.leaf_features()))
+
+    def test_types(self):
+        model = Model(self.model_file.name, self.rsf_file.name)
+        for x in ("CONFIG_B1", "CONFIG_B2", "CONFIG_B3", "CONFIG_B4"):
+            self.assertEqual(model.get_type(x), "boolean")
+        for x in ("CONFIG_T1", "CONFIG_T2"):
+            self.assertEqual(model.get_type(x), "tristate")
+
+
 
 if __name__ == '__main__':
     t.main()

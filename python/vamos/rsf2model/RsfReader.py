@@ -57,6 +57,7 @@ class RsfReader:
     @tools.memoized
     def options(self):
         """Returns all configuration options"""
+
         # Collect all options
         tristate = {}
         omnipresent = {}
@@ -87,6 +88,7 @@ class RsfReader:
     @tools.memoized
     def collect(self, key, col = 0, multival = False):
         """Collect all database keys and put them by the n'th column in a dict"""
+
         result = {}
         for item in self.database[key]:
             if len(item) < col: continue
@@ -111,13 +113,17 @@ class RsfReader:
         return deps
 
     def is_bool_tristate(self,symbol):
-        for item in self.database["Item"]:
-            if item[0] == symbol:
-                if item[1] in ["boolean", "tristate"]:
-                    return True
-        return False
+        """Returns true if symbol is boolean or tristate, otherwise false is returned."""
 
+        return self.get_type(symbol) in ["boolean", "tristate"]
 
+    def get_type(self, symbol):
+        """Get data type of symbol. Returns 'None' if item is not found"""
+
+        for (item, kconfig_type) in self.database["Item"]:
+            if item == symbol:
+                return kconfig_type
+        return None
 
 class OptionInvalid(Exception):
     pass
