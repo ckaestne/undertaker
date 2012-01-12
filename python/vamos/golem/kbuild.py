@@ -75,11 +75,16 @@ def files_for_current_configuration(arch=None, subarch=None, how=False):
     to be run in a Linux source tree.
 
     Returns a list of files that are compiled with the current
-    configuration. If the optional parameter 'how' is added, the
-    returned list additionally indicates in what way (i.e., module or
-    statically compiled) the file is included.
+    configuration.
 
-    If not working for the default architecture 'x86', the optional
+    The parameter 'how', which defaults to False, decides on the mode of
+    operation. If it is not set, this function guesses for each found
+    file the corresponding source file. A warning is issued if the
+    source file could not be guessed. If it is set, the function returns
+    a list of object files and additionally indicates in what way (i.e.,
+    module or statically built-in) the object file is compiled.
+
+    NB: If not working for the default architecture 'x86', the optional
     parameters "arch" (and possibly "subarch") need to be specified!
     """
 
@@ -104,15 +109,15 @@ def files_for_current_configuration(arch=None, subarch=None, how=False):
             continue
         try:
             if (how):
-                objfile = line
+                files.add(line)
             else:
                 objfile = line.split()[0]
-            # try to guess the source filename
-            sourcefile = objfile[:-2] + '.c'
-            if os.path.exists(sourcefile):
-                files.add(sourcefile)
-            else:
-                logging.warning("Failed to guess source file for %s", objfile)
+                # try to guess the source filename
+                sourcefile = objfile[:-2] + '.c'
+                if os.path.exists(sourcefile):
+                    files.add(sourcefile)
+                else:
+                    logging.warning("Failed to guess source file for %s", objfile)
         except IndexError:
             raise RuntimeError("Failed to parse line '%s'" % line)
 
