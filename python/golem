@@ -34,7 +34,10 @@ from vamos.golem.kbuild import *
 
 
 def main():
-    parser = OptionParser(usage="%prog [options]")
+    parser = OptionParser(usage="%prog [options]\n\n"
+                          "This tool is meant to be run in a Linux source tree.\n"
+                          "It is sensitive to the environment variables $ARCH and $SUBARCH.\n"
+                          "Change them to scan on specific architectures.")
 
     parser.add_option('-v', '--verbose', dest='verbose', action='count',
                       help="increase verbosity (specify multiple times for more)")
@@ -42,25 +45,15 @@ def main():
                       help="list all object files that would be built"\
                           +" in the current configuration")
     parser.add_option('-o', '--options', dest='do_opt', action='store_true', default=False,
-                      help="list configuration options mentioned in Linux makefiles")
+                      help="list configuration options mentioned in Linux makefiles.")
     parser.add_option('-c', '--compiled', dest='compiled', action='append',
                       help="check if a given file is compiled"\
                       +" in the current configuration. This option can"\
                       +" be given multiple times.")
-    parser.add_option('-m', '--model', dest='model', action='store',
-                      help="model to use for calculation")
 
     (opts, args) = parser.parse_args()
 
     setup_logging(opts.verbose)
-
-    def check_argument_length(option, number):
-        """Check the number of arguments"""
-        if len(args) > number:
-            print "golem - analyzes feature dependencies in Linux makefiles"
-            parser.print_help()
-            print "\ngolem %s takes at most %d argument(s)" %(option, number)
-            sys.exit(1)
 
     (arch, subarch) = (None, None)
 
@@ -77,10 +70,6 @@ def main():
         sys.exit(1)
 
     if opts.do_opt:
-        check_argument_length("-o|--options", 1)
-        arch = None
-        if len(args) == 1:
-            arch = args[0]
         variables = determine_buildsystem_variables(arch)
         logging.info("Detected %d Kconfig variables in Makefiles", len(variables))
         for v in variables:
@@ -88,11 +77,7 @@ def main():
         sys.exit(0)
 
     if opts.do_list:
-        check_argument_length("-l|--list", 0)
-        if opts.verbose > 0:
-            how = True
-        else:
-            how = False
+        how = opts.verbose > 0
         try:
             files = files_for_current_configuration(arch=arch, subarch=subarch, how=how)
             logging.info("Detected %d files with current configuration", len(files))
@@ -103,7 +88,6 @@ def main():
             sys.exit(1)
         sys.exit(0)
     elif opts.compiled:
-        check_argument_length("-c|--compiled", 0)
         try:
             for filename in opts.compiled:
                 status = file_in_current_configuration(filename)
