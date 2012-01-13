@@ -119,6 +119,7 @@ echo "Scanning version ${version}, logging to ${report}"
 
 
 echo "Step 0: Extract Kconfig feature dependencies"
+echo "     -> General constraints from all architectures"
 if $TIME -v -o kconfigdump.stats -- undertaker-kconfigdump  >"$report" \
       2>kconfigdump-error-output.txt; then
     cat kconfigdump.stats
@@ -130,7 +131,20 @@ fi
 if ! test -s kconfigdump-error-output.txt; then
     rm -f kconfigdump-error-output.txt
 fi
-
+echo "     -> From Makefiles for x86"
+if $TIME -v -o inference.stats -- undertaker-linux-tree -i -t ${PROCESSORS} >>"$report" \
+      2>inference-errors.txt; then
+    cat inference.stats
+    echo "Extracted $(grep -c ^FILE_ models/x86.makefile-constraints) source file implications for arch-x86."
+    echo "Used $(grep -c "partial configuartion" models/x86.makefile-constraints) partial configurations"
+    grep "^FILE_" models/x86.makefile-constraints >> models/x86.model
+else
+    echo "Dependency extraction from makefiles failed."
+    cat inference-errors.txt
+fi
+if ! test -s inference.errors; then
+    rm -f inference-errors.txt
+fi
 
 echo "Step 1: Dead/Undead analysis"
 if $TIME -v -o undertaker.stats -- undertaker-linux-tree -t ${PROCESSORS} >>"$report" \

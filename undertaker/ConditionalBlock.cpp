@@ -20,6 +20,7 @@
 
 #include "StringJoiner.h"
 #include "ConditionalBlock.h"
+#include "ModelContainer.h"
 
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
@@ -30,8 +31,12 @@ typedef PumaConditionalBlock ConditionalBlockImpl;
 #include <boost/regex.hpp>
 #include <set>
 
-CppFile::CppFile(const char *filename) : filename(filename), top_block(0), checker(this) {
-    top_block = ConditionalBlockImpl::parse(filename, this);
+CppFile::CppFile(const char *f) : top_block(0), checker(this) {
+    if (strncmp("./", f, 2))
+        filename = f;
+    else
+        filename = f+2; // skip starting './'
+    top_block = ConditionalBlockImpl::parse(f, this);
 }
 
 CppFile::~CppFile(){
@@ -166,7 +171,20 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
 std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                                                  std::set<ConditionalBlock *> *visited) {
     UniqueStringJoiner sj; // on our stack
+    std::stringstream fi; // file identifier
+    ModelContainer *mc = ModelContainer::getInstance();
     bool join = false;
+    std::string normalized_filename(this->filename());
+
+    for (std::string::iterator i = normalized_filename.begin();
+         i != normalized_filename.end(); i++)
+        if ((*i) == '/' || (*i) == '-')
+            *i = '_';
+
+    fi << "FILE_";
+    fi << normalized_filename;
+
+
     if (!and_clause) {
         if (cached_code_expression)
             return *cached_code_expression;
@@ -227,6 +245,17 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                     define->getConstraints(and_clause, visited);
                 }
             }
+        }
+
+        if (mc && mc->size() > 0) {
+            StringJoiner file_joiner;
+
+            file_joiner.push_back("(");
+            file_joiner.push_back("B00");
+            file_joiner.push_back("<->");
+            file_joiner.push_back(fi.str());
+            file_joiner.push_back(")");
+            and_clause->push_back(file_joiner.join(" "));
         }
     }
 

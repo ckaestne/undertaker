@@ -126,6 +126,8 @@ int ConfigurationModel::doIntersect(const std::set<std::string> start_items,
     for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); it++) {
         const std::string *item = _model->getValue(*it);
 
+        // logger << debug << "interesting item: " << *it << std::endl;
+
         if (item != NULL) {
             valid_items++;
             if (item->compare("") != 0)

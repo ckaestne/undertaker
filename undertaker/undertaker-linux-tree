@@ -29,7 +29,7 @@
 # scan for deads by default
 MODE="scan-deads"
 
-while getopts :t:m:a:csvh OPT; do
+while getopts :t:m:a:csivh OPT; do
     case $OPT in
         m)
             MODELS="$OPTARG"
@@ -45,6 +45,9 @@ while getopts :t:m:a:csvh OPT; do
             ;;
         s)
             MODE="feature-statistics"
+            ;;
+        i)
+            MODE="inference"
             ;;
         v)
             echo "undertaker-linux-tree"
@@ -212,4 +215,11 @@ END {
         do_archstat allmodconfig $ARCH
     done
     exit 0
+fi
+
+if [ "$MODE" = "inference" ]; then
+    ARCH='x86'
+    export ARCH
+    golem -iv > models/x86.makefile-constraints
+    echo "Extracted $(grep -c ^FILE_ models/x86.makefile-constraints) source file implications for x86"
 fi

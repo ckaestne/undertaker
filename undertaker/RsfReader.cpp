@@ -19,13 +19,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include <boost/regex.hpp>
 #include <sstream>
 #include <deque>
 #include <fstream>
 #include <iostream>
 
 #include "RsfReader.h"
+#include "Logging.h"
 
 RsfReader::RsfReader(std::istream &f, std::string metaflag)
     : std::map<key_type, mapped_type>(), metaflag(metaflag) {
@@ -88,6 +89,25 @@ size_t RsfReader::read_rsf(std::istream &rsf_file) {
             columns.pop_front();
             meta_information.insert(make_pair(key, columns));
         } else {
+            static const boost::regex file_identifier("^FILE_.*$");
+
+            if (boost::regex_match(key, file_identifier)) {
+//                logger << debug << "found a file presence condition for " << key << std::endl;
+
+                bool dirty=false;
+
+                for (size_t pos = 0; pos < key.length(); pos++) {
+                    if (key.at(pos) == '/' || key.at(pos) == '-') {
+                        key[pos] = '_';
+//                        dirty = true;
+                    }
+                }
+
+                if (dirty)
+                    logger << debug << "Normalized item: "
+                           << key << std::endl;
+            }
+
             insert(make_pair(key, columns));
         }
     }

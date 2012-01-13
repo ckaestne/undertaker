@@ -1,8 +1,8 @@
 #
 #   golem - analyzes feature dependencies in Linux makefiles
 #
-# Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
-# Copyright (C) 2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from vamos.tools import execute, CommandFailed
+from vamos.tools import execute, CommandFailed, execute
+from tempfile import mkstemp
 
 import logging
 import os
@@ -60,6 +61,10 @@ def apply_configuration(arch=None, subarch=None, filename=None):
             arch = guessed_arch
         if not subarch:
             subarch = guessed_subarch
+
+    if not arch:
+        logging.warning("No architecture selected. Defaulting to x86")
+        arch = 'x86'
 
     try:
         call_linux_makefile('silentoldconfig', arch=arch, subarch=subarch)
@@ -188,6 +193,28 @@ def determine_buildsystem_variables(arch=None):
         config_variable = m.group(1)
         if (config_variable):
             ret.add(config_variable)
+    return ret
+
+def determine_buildsystem_variables_in_directory(directory):
+    kbuild = os.path.join(directory, "Kbuild")
+    makefile = os.path.join(directory, "Makefile")
+    if os.path.exists(kbuild):
+        filename = kbuild
+    elif os.path.exists(makefile):
+        filename = makefile
+    else:
+        return set()
+
+    fd = open(filename)
+    ret = set()
+
+    with open(filename) as fd:
+        for line in fd:
+            m = re.search(r'-\$\(CONFIG_(\w+)\)', line)
+            if m:
+                config_variable = m.group(1)
+                if (config_variable):
+	            ret.add("CONFIG_" + config_variable)
 
     return ret
 
@@ -355,3 +382,60 @@ def find_scripts_basedir():
         if os.path.exists(f):
             return os.path.realpath(os.path.join(base_dir, d))
     raise RuntimeError("Failed to locate Makefile.list")
+
+
+def files_for_selected_features(features, arch, subarch):
+    """
+    to be run in a Linux source tree.
+
+    The parameter features represents a (partial) Kconfig selection in
+    the form of a dict from feature -> value e.g: {'CONFIG_X86': 'y',
+    'CONFIG_BARFOO': 'm'}.
+
+    @return a tuple of (files, dirs). The first member 'files' is a list
+    of files that are compiled with the selected features
+    configuration. The second member 'dirs' is a list if directories
+    that are traversed thereby.
+    """
+
+    # locate directory for supplemental makefiles
+    scriptsdir = find_scripts_basedir()
+    assert(os.path.exists(os.path.join(scriptsdir, 'Makefile.list_recursion')))
+
+    (fd, tempfile) = mkstemp()
+    with os.fdopen(fd, "w+") as fd:
+        logging.info("dumping partial configuration with %d items to %s", len(features.items()), tempfile)
+        for (key, value) in features.items():
+            fd.write("%s=%s\n" % (key, value))
+            logging.info("%s=%s", key, value)
+
+    make_args= "-f %(basedir)s/Makefile.list UNDERTAKER_SCRIPTS=%(basedir)s" % \
+        { 'basedir' : scriptsdir }
+    make_args += " print_dirs=y print_files=y auto_conf=%(tempfile)s" % \
+           {'tempfile': tempfile }
+
+    try:
+        (make_result, _) = call_linux_makefile('list',
+                                               arch=arch,
+                                               subarch=subarch,
+                                               failok=False,
+                                               extra_variables=make_args)
+    except:
+        os.unlink(tempfile)
+        raise
+
+    files = set()
+    dirs = set()
+    for line in make_result:
+        l = line.split()
+        try:
+            if line.endswith("/"):
+                dirs.add(os.path.normpath(line))
+            else:
+                files.add(os.path.normpath(l[0]))
+        except IndexError:
+            raise RuntimeError("Failed to parse line '%s'" % line)
+
+    os.unlink(tempfile)
+
+    return (files, dirs)

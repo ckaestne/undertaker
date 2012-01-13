@@ -30,7 +30,30 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
 
 
 from vamos.tools import setup_logging
-from vamos.golem.kbuild import *
+from vamos.model import Model
+
+from vamos.golem.inference import FileSymbolInferencer
+from vamos.golem.kbuild import determine_buildsystem_variables, \
+    file_in_current_configuration, files_for_current_configuration, \
+    get_linux_version, NotALinuxTree, TreeNotConfigured
+
+import os.path
+
+def do_inference(args, arch, subarch):
+    path = ""
+    if not arch:
+        logging.warning("Environment variable $ARCH not set, defaulting to 'x86'")
+        arch = 'x86'
+    if len(args) > 0 and os.path.isdir(args[0]):
+        path = os.path.normpath(args[0])
+        logging.info("Limiting the constraints interferencing to subdirectory '%s'", path)
+    modelfile = 'models/%s.model' % arch
+    logging.info("loading model %s", modelfile)
+    if not os.path.exists(modelfile):
+        logging.error("%s not found, please generate models using undertaker-kconfigdump",
+                      modelfile)
+    inferencer = FileSymbolInferencer(Model(modelfile), arch=arch, subarch=subarch, subdir=path)
+    inferencer.calculate()
 
 
 def main():
@@ -50,6 +73,9 @@ def main():
                       help="check if a given file is compiled"\
                       +" in the current configuration. This option can"\
                       +" be given multiple times.")
+    parser.add_option('-i', '--inference', dest='inference', action='store_true',
+                      help="inference makefile configurability for"\
+                      +" symbols given as arguments")
 
     (opts, args) = parser.parse_args()
 
@@ -95,6 +121,9 @@ def main():
         except TreeNotConfigured:
             logging.error("Your Linux tree is not configured, please configure it first")
             sys.exit(1)
+        sys.exit(0)
+    elif opts.inference:
+        do_inference(args, arch=arch, subarch=subarch)
         sys.exit(0)
     else:
         print "No option given"

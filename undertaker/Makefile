@@ -36,6 +36,8 @@ predator: libparser.a predator.o PredatorVisitor.o
 
 undertaker.d: ../version.h
 
+SatChecker.o test-SatChecker ConditionalBlock.o: SatChecker-grammar.t
+
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
 

@@ -1,7 +1,7 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  *
@@ -125,6 +125,8 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
         formula.push_back(kconfig_formula);
         std::string formula_str = formula.join("\n&&\n");
         SatChecker kconfig_constraints(formula_str);
+
+        // logger << debug << "kconfig_constraints: " << formula_str << std::endl;
 
         if (!kconfig_constraints()) {
             if (_defectType != Configuration) {
