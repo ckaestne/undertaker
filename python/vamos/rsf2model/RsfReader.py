@@ -69,7 +69,7 @@ class RsfReader:
                 continue
             options.add(item[0])
             tristate[item[0]] = item[1].lower() == "tristate"
-            omnipresent[item[0]] = item[1].lower() == "integer"
+            omnipresent[item[0]] = False
 
         # Map them to options
         result = {}
