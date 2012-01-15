@@ -42,6 +42,7 @@
 
 bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     SatChecker c(sat.c_str());
+
     try {
         return c();
     } catch (SatCheckerError &e) {
@@ -141,6 +142,7 @@ int SatChecker::orClause(int A_clause, int B_clause) {
 
 int SatChecker::transform_bool_rec(iter_t const& input) {
     iter_t root_node = input;
+
  beginning_of_function:
     iter_t iter = root_node->children.begin();
 
@@ -312,6 +314,7 @@ int SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
 int SatChecker::fillSatChecker(tree_parse_info<>& info) {
     iter_t expression = info.trees.begin()->children.begin();
     int top_clause = transform_bool_rec(expression);
+
     /* This adds the last clause */
     Picosat::picosat_assume(top_clause);
     return top_clause;

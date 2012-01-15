@@ -1,7 +1,7 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  *
@@ -166,6 +166,7 @@ ConfigurationModel *ModelContainer::lookupMainModel() {
 
 void ModelContainer::setMainModel(std::string main_model) {
     ModelContainer *f = getInstance();
+
     if (!ModelContainer::lookupModel(main_model.c_str())) {
         logger << error << "Could not specify main model "
                << main_model << ", because no such model is loaded" << std::endl;
@@ -183,6 +184,7 @@ const char *ModelContainer::getMainModel() {
 
 ModelContainer *ModelContainer::getInstance() {
     static ModelContainer *instance;
+
     if (!instance) {
         instance = new ModelContainer();
     }
@@ -190,7 +192,6 @@ ModelContainer *ModelContainer::getInstance() {
 }
 
 ModelContainer::~ModelContainer() {
-    ModelContainer::iterator i;
-    for (i = begin(); i != end(); i++)
+    for (ModelContainer::iterator i = begin(); i != end(); i++)
         free((*i).second);
 }

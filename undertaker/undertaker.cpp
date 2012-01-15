@@ -131,6 +131,7 @@ int rm_pattern(const char *pattern) {
 
 void process_file_coverage_helper(const char *filename) {
     CppFile file(filename);
+
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
@@ -362,10 +363,12 @@ void process_file_blockpc(const char *filename) {
     std::string fname = std::string(filename);
     std::string file, position;
     size_t colon_pos = fname.find_first_of(':');
+
     if (colon_pos == fname.npos) {
         logger << error << "invalid format for block precondition" << std::endl;
         return;
     }
+
     file = fname.substr(0, colon_pos);
     position = fname.substr(colon_pos + 1);
 

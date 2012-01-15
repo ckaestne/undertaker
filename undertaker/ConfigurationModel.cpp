@@ -1,7 +1,7 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  *
@@ -26,6 +26,7 @@
 #include "Logging.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/regex.hpp>
 #include <cassert>
 #include <cstdlib>
 #include <sstream>
@@ -59,11 +60,11 @@ ConfigurationModel::~ConfigurationModel() {
     delete _model_stream;
 }
 
-std::set<std::string>
-ConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initialItems) const {
+std::set<std::string> ConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initialItems) const {
     std::set<std::string> item_set, result;
     std::stack<std::string> workingStack;
     std::string tmp;
+
     /* Initialize the working stack with the given elements */
     for(std::set<std::string>::iterator sit = initialItems.begin(); sit != initialItems.end(); sit++) {
         workingStack.push(*sit);
@@ -73,15 +74,13 @@ ConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initi
     while (!workingStack.empty()) {
         const std::string *item = _model->getValue(workingStack.top());
         workingStack.pop();
-        if (item != NULL) {
-            if (item->compare("") != 0) {
-                item_set = ConditionalBlock::itemsOfString(*item);
-                for(std::set<std::string>::iterator sit = item_set.begin(); sit != item_set.end(); sit++) {
-                    /* Item already seen? continue */
-                    if (result.count(*sit) == 0) {
-                        workingStack.push(*sit);
-                        result.insert(*sit);
-                    }
+        if (item != NULL && item->compare("") != 0) {
+            item_set = ConditionalBlock::itemsOfString(*item);
+            for(std::set<std::string>::const_iterator sit = item_set.begin(); sit != item_set.end(); sit++) {
+                /* Item already seen? continue */
+                if (result.count(*sit) == 0) {
+                    workingStack.push(*sit);
+                    result.insert(*sit);
                 }
             }
         }

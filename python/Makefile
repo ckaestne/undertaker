@@ -9,9 +9,9 @@ check: all
 	$(MAKE) -s clean-check
 	@for test in vamos/*/*_test.py vamos/*_test.py; do \
 	   echo "Running python unittest $$test"; \
-	   env PYTHONPATH=$(CURDIR) python "$$test"; \
+	   env PATH="$(CURDIR)/../undertaker:$(PATH)" PYTHONPATH=$(CURDIR) python "$$test"; \
 	done
-	cd validation && ./test-suite
+	cd validation && env PATH="$(CURDIR)/../undertaker:$(PATH)" ./test-suite
 	$(MAKE) -s pylint
 
 clean: clean-check
