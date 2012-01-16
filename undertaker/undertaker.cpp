@@ -255,13 +255,27 @@ void process_file_coverage (const char *filename) {
 
 void process_file_cpppc(const char *filename) {
     CppFile s(filename);
+
     if (!s.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
     }
+
     logger << info << "CPP Precondition for " << filename << std::endl;
     try {
-        std::cout << s.topBlock()->getCodeConstraints() << std::endl;
+        StringJoiner sj;
+        ModelContainer *f = ModelContainer::getInstance();
+        std::string code_formula = s.topBlock()->getCodeConstraints();
+
+        sj.push_back(code_formula);
+        if (f && f->size() > 0) {
+            ConfigurationModel *model = f->lookupMainModel();
+            std::set<std::string> missingSet;
+
+            model->doIntersect(code_formula, NULL, missingSet, code_formula);
+            sj.push_back(code_formula);
+        }
+        std::cout << sj.join("\n&& ") << std::endl;
     } catch (std::runtime_error &e) {
         logger << error << "failed: " << e.what() << std::endl;
         return;
