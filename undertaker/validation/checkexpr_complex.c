@@ -45,6 +45,6 @@ CONFIG_X86_UP_APIC=n
 # PPC=n
 # PPC_PMAC=n
 # S390=n
-# n=y
+# n=n
  * check-output-end
  */

@@ -76,9 +76,17 @@ END_TEST
 
 
 void parse_test(std::string input, bool good) {
-    static bool_grammar e;
+    bool_grammar e;
 
     tree_parse_info<> info = pt_parse(input.c_str(), e, space_p);
+
+#if 0
+    for (bool_grammar::SymbolSet::const_iterator i = e.get_symbols().begin();
+         i != e.get_symbols().end(); i++) {
+        std::cout << *i << " ";
+    }
+    std::cout << std::endl;
+#endif
 
     fail_unless((info.full ? true : false) == good,
                 "%s: %d", input.c_str(), info.full);

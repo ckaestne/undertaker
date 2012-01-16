@@ -6,15 +6,39 @@ using namespace BOOST_SPIRIT_CLASSIC_NS;
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <string>
+#include <set>
+
 struct bool_grammar : public grammar<bool_grammar>
 {
     enum {symbolID = 2, not_symbolID, andID, orID, impliesID, iffID,
           comparatorID,
     };
 
+    typedef std::set<std::string> SymbolSet;
+
+
+    mutable SymbolSet symbols;
+
+    SymbolSet &get_symbols() const {
+        return symbols;
+    }
+
     template <typename ScannerT>
     struct definition
     {
+
+        struct add_symbol {
+            add_symbol(SymbolSet &s) : _s(s) {};
+
+            SymbolSet &_s;
+            void operator() (const char *first, const char *last) const {
+                std::string s(first, last);
+                _s.insert(s);
+            }
+        };
+
+        add_symbol collect_symbols;
 
         rule<ScannerT, parser_context<>, parser_tag<symbolID> > symbol;
         rule<ScannerT, parser_context<>, parser_tag<not_symbolID> > not_symbol;
@@ -26,13 +50,13 @@ struct bool_grammar : public grammar<bool_grammar>
         rule<ScannerT, parser_context<>, parser_tag<comparatorID> > comparator_term;
         rule<ScannerT> start_rule, group, term, expression;
 
-        definition(bool_grammar const& self)  {
+        definition(bool_grammar const& self) : collect_symbols(self.get_symbols())  {
             /*
                Operators (from weak to strong): <->, ->, |, &, !(),
              */
             (void) self;
-            symbol       = lexeme_d[ leaf_node_d[ +(alnum_p | ch_p('_') | ch_p('.') | ch_p('\'') | ch_p('"')) ]]
-                >> *(no_node_d [ ch_p('(') >> *(~ch_p(')')) >> ch_p(')')]);
+            symbol       = (lexeme_d[ leaf_node_d[ +(alnum_p | ch_p('_') | ch_p('.') | ch_p('\'') | ch_p('"')) ]]
+                >> *(no_node_d [ ch_p('(') >> *(~ch_p(')')) >> ch_p(')')]))[collect_symbols];
             group        = no_node_d[ ch_p('(') ]
                 >> start_rule
                 >> no_node_d[ ch_p(')') ];

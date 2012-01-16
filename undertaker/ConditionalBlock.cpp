@@ -23,6 +23,9 @@
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
 
+#include "SatChecker.h"
+#include "SatChecker-grammar.t"
+
 #include <boost/regex.hpp>
 #include <set>
 
@@ -68,40 +71,11 @@ static int lineFromPosition(std::string line) {
 
 
 std::set<std::string> ConditionalBlock::itemsOfString(const std::string &str) {
-    std::set<std::string> result;
-    std::string::const_iterator it = str.begin();
-    std::string tmp = "";
-    while (it != str.end()) {
-        switch (*it) {
-        case '(':
-        case ')':
-        case '!':
-        case '&':
-        case '=':
-        case '<':
-        case '>':
-        case '|':
-        case '-':
-        case 'y':
-        case 'n':
-        case ' ':
-            if (!tmp.empty()) {
-                result.insert(tmp);
-                //std::cout << "    (itemsOfString) inserting " << tmp << "\n";
-                tmp = "";
-            }
-        it++;
-        break;
-        default:
-            tmp += (*it);
-            it++;
-            break;
-        }
-    }
-    if (!tmp.empty()) {
-        result.insert(tmp);
-    }
-    return result;
+    bool_grammar e;
+    tree_parse_info<> info;
+
+    info = pt_parse(str.c_str(), e, space_p);
+    return e.get_symbols();
 }
 
 
