@@ -1,4 +1,8 @@
-# Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+#
+#   vamos - common auxiliary functionality
+#
+# Copyright (C) 2011-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +22,6 @@ from vamos.rsf2model.RsfReader import RsfReader
 
 import logging
 import re
-import sys
 
 class Model(dict):
     def __init__(self, path, rsf = None):
@@ -59,7 +62,9 @@ class Model(dict):
 
 
     def mentioned_items(self, key):
-        """Return list of mentioned items of the key's implications"""
+        """
+        @return list of mentioned items of the key's implications
+        """
         expr = self.get(key, "")
         if expr == None:
             return []
@@ -68,8 +73,11 @@ class Model(dict):
         return [x for x in expr if len(x) > 0]
 
     def leaf_features(self):
-        """Return list of leaf features in model
-        Leaf features are feature that aren't mentioned anywhere else"""
+        """
+        Leaf features are feature that aren't mentioned anywhere else
+
+        @return list of leaf features in model
+        """
 
         # Dictionary of mentioned items
         features = dict([(key, False) for key in self.keys()
@@ -92,8 +100,10 @@ class Model(dict):
         return sorted([key for key in features if features[key] == False])
 
     def get_type(self, symbol):
-        """Returns data type of symbol.
-RuntimeError gets raised if no corresponding rsf is found."""
+        """
+        RuntimeError gets raised if no corresponding rsf is found.
+        @return data type of symbol.
+        """
         if not self.rsf:
             raise RuntimeError("No corresponding rsf file found.")
         if symbol.startswith("CONFIG_"):
@@ -102,8 +112,12 @@ RuntimeError gets raised if no corresponding rsf is found."""
 
 
     def is_bool_tristate(self, symbol):
-        """Returns true if symbol is tristate, otherwise false is returned.
-RuntimeError gets raised if no corresponding rsf is found."""
+        """
+        Returns true if symbol is tristate, otherwise false is returned.
+
+        Raises RuntimeError if no corresponding rsf-file is found.
+        """
+
         if not self.rsf:
             raise RuntimeError("No corresponding rsf file found.")
 
@@ -113,8 +127,10 @@ RuntimeError gets raised if no corresponding rsf is found."""
         return self.rsf.is_bool_tristate(symbol)
 
     def slice_symbols(self, initial):
-        """Apply the slicing algorithm to the given set of symbols
-        returns a list of interesting symbol"""
+        """
+        Apply the slicing algorithm to the given set of symbols
+        returns a list of interesting symbol
+        """
         if type(initial) == list:
             stack = initial
         else:

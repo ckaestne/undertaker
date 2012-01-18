@@ -1,4 +1,22 @@
 #!/usr/bin/env python
+#
+#   tests undertaker to hande #define statements properly
+#
+# Copyright (C) 2011-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 import sys
 import subprocess
@@ -20,7 +38,7 @@ def call_undertaker(filename):
     if 0 != cpppc.returncode or len(stderr_got) > 0:
         print "STDOUT:", stdout_got
         print "STDERR:", stderr_got
-        raise RuntimeError("calling undertaker in cppppc mode on '%s' failed" % filename)
+        raise RuntimeError("calling undertaker in cpppc mode on '%s' failed" % filename)
 
     return ' '.join(stdout_got)
 

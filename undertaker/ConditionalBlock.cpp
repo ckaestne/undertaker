@@ -2,6 +2,7 @@
  *   undertaker - analyze preprocessor blocks in code
  *
  * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -79,8 +80,7 @@ std::set<std::string> ConditionalBlock::itemsOfString(const std::string &str) {
 }
 
 
-ConditionalBlock *
-CppFile::getBlockAtPosition(const std::string &position) {
+ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
     int line = lineFromPosition(position);
 
     ConditionalBlock *block = 0;
@@ -203,7 +203,9 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                 const CppDefine *define = (*def).second;
                 define->getConstraintsHelper(and_clause);
             }
+
             and_clause->push_back("B00");
+
         } else {
             const ConditionalBlock *block = this;
             const_cast<ConditionalBlock *>(block)->getConstraintsHelper(and_clause);
@@ -273,8 +275,7 @@ CppDefine::newDefine(ConditionalBlock *parent, bool define) {
 
 }
 
-std::string
-CppDefine::replaceDefinedSymbol(const std::string &exp) {
+std::string CppDefine::replaceDefinedSymbol(const std::string &exp) {
     std::string copy(exp);
     boost::match_results<std::string::iterator> what;
     boost::match_flag_type flags = boost::match_default;
@@ -288,24 +289,21 @@ CppDefine::replaceDefinedSymbol(const std::string &exp) {
     return copy;
 }
 
-bool
-CppDefine::containsDefinedSymbol(const std::string &exp) {
+bool CppDefine::containsDefinedSymbol(const std::string &exp) {
     if (!strstr(exp.c_str(), defined_symbol.c_str()))
         return false;
     return boost::regex_search(exp, replaceRegex);
 }
 
 
-void
-CppDefine::getConstraintsHelper(UniqueStringJoiner *and_clause) const {
+void CppDefine::getConstraintsHelper(UniqueStringJoiner *and_clause) const {
     for (std::list<std::string>::const_iterator i  = defineExpressions.begin(); i != defineExpressions.end(); ++i) {
         and_clause->push_back(*i);
     }
 }
 
 
-std::string
-CppDefine::getConstraints(UniqueStringJoiner *and_clause, std::set<ConditionalBlock *> *visited) {
+std::string CppDefine::getConstraints(UniqueStringJoiner *and_clause, std::set<ConditionalBlock *> *visited) {
     UniqueStringJoiner sj; // on our stack
     bool join = false;
     if (!and_clause) {

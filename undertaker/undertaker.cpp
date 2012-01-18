@@ -1,9 +1,9 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
- * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -427,6 +427,7 @@ void process_file_blockpc(const char *filename) {
 
 void process_file_dead_helper(const char *filename) {
     CppFile file(filename);
+
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
@@ -434,10 +435,9 @@ void process_file_dead_helper(const char *filename) {
 
     ConfigurationModel *model = ModelContainer::lookupMainModel();
 
-
     /* Iterate over all Blocks */
     for (CppFile::iterator c = file.begin(); c != file.end(); c++) {
-        ConditionalBlock * block = *c;
+        ConditionalBlock *block = *c;
 
         try {
             const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(block, model);
