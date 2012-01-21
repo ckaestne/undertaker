@@ -75,7 +75,7 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p
 
     assert(defect->defectType() != BlockDefectAnalyzer::None);
 
-    // (ATM) Implementation and Configuration defects do not require a crosscheck
+    // Implementation (i.e., Code) defects do not require a crosscheck
     if (!p_model || !defect->needsCrosscheck())
         return defect;
 
@@ -136,7 +136,6 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
                 _arch = ModelContainer::lookupArch(model);
             }
             _defectType = Configuration;
-            _isGlobal = true;
             return true;
         } else {
             // An incomplete model (not all symbols mentioned) can't
@@ -164,7 +163,6 @@ bool DeadBlockDefect::needsCrosscheck() const {
     switch(_defectType) {
     case None:
     case Implementation:
-    case Configuration:
         return false;
     default:
         // skip crosschecking if we already know that it is global
@@ -270,7 +268,6 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
                 _arch = ModelContainer::lookupArch(model);
             }
             _defectType = Configuration;
-            _isGlobal = true;
             return true;
         } else {
             // An incomplete model (not all symbols mentioned) can't
