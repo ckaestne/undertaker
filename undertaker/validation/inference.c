@@ -10,7 +10,7 @@
  * check-output-start
 I: Using file-presence-conditions.model as primary model
 I: loaded rsf model for file-presence-conditions.model
-I: creating inference.c.B1.file-presence-conditions.model.kconfig.globally.dead
+I: creating inference.c.B1.kconfig.globally.dead
  * check-output-end
  */
 

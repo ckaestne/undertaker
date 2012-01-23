@@ -194,8 +194,6 @@ bool DeadBlockDefect::writeReportToFile() const {
 
     fname_joiner.push_back(_cb->getFile()->getFilename());
     fname_joiner.push_back(_cb->getName());
-    if(_arch && (!_isGlobal || _defectType == Configuration))
-        fname_joiner.push_back(_arch);
 
     switch(_defectType) {
     case None: return false;  // Nothing to write
@@ -205,6 +203,8 @@ bool DeadBlockDefect::writeReportToFile() const {
 
     if (_isGlobal)
         fname_joiner.push_back("globally");
+    else
+        fname_joiner.push_back(_arch);
 
     fname_joiner.push_back(_suffix);
 
