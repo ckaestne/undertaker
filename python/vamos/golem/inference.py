@@ -21,7 +21,8 @@
 import logging
 import os
 
-from vamos.golem.kbuild import determine_buildsystem_variables_in_directory, apply_configuration
+from vamos.golem.kbuild import determine_buildsystem_variables_in_directory, \
+    apply_configuration, guess_source_for_target
 
 from vamos.selection import Selection
 from vamos.golem.FileSet import FileSet, FileSetCache
@@ -74,6 +75,7 @@ class FileSymbolInferencer:
 
         self.file_set_cache = FileSetCache(arch=arch, subarch=subarch)
 
+
     def calculate(self):
         directories = self.empty_fileset.dirs
 
@@ -84,8 +86,8 @@ class FileSymbolInferencer:
                              self.empty_fileset)
 
         for objfile in self.file_selections:
-            sourcefile = objfile[:-2] + '.c'
-            if not os.path.exists(sourcefile):
+            sourcefile = guess_source_for_target(objfile)
+            if not sourcefile:
                 logging.warning("Failed to guess source file for %s", objfile)
                 sourcefile = objfile # makes these cases easier to identify
             if self.file_selections[objfile]:

@@ -214,7 +214,7 @@ def determine_buildsystem_variables_in_directory(directory):
             if m:
                 config_variable = m.group(1)
                 if (config_variable):
-	            ret.add("CONFIG_" + config_variable)
+                    ret.add("CONFIG_" + config_variable)
 
     return ret
 
@@ -251,6 +251,19 @@ def guess_arch_from_filename(filename):
         assert(arch==subarch)
 
     return (arch, subarch)
+
+
+def guess_source_for_target(target):
+    """
+    for the given target, try to determine its source file.
+
+    return None if no source file could be found
+    """
+    for suffix in ('.c', '.S'):
+        sourcefile = target[:-2] + suffix
+        if os.path.exists(sourcefile):
+            return sourcefile
+    return None
 
 
 def call_linux_makefile(target, extra_env="", extra_variables="",
