@@ -23,10 +23,12 @@
 #include "ConfigurationModel.h"
 #include "KconfigWhitelist.h"
 #include "StringJoiner.h"
+#include "RsfReader.h"
 #include "Logging.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/regex.hpp>
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <sstream>
@@ -123,6 +125,9 @@ int ConfigurationModel::doIntersect(const std::set<std::string> start_items,
 
     std::set<std::string> interesting = findSetOfInterestingItems(start_items);
 
+    const std::string magic("ALWAYS_ON");
+    const StringList *always_on = this->getMetaValue(magic);
+
     for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); it++) {
         const std::string *item = _model->getValue(*it);
 
@@ -132,6 +137,13 @@ int ConfigurationModel::doIntersect(const std::set<std::string> start_items,
             valid_items++;
             if (item->compare("") != 0)
                 sj.push_back("(" + *it + " -> (" + *item + "))");
+
+            if (always_on) {
+                StringList::const_iterator cit = std::find(always_on->begin(), always_on->end(), *it);
+                if (cit != always_on->end()) {
+                    sj.push_back(*it);
+                }
+            }
         } else {
             // check if the symbol might be in the model space.
             // if not it can't be missing!
