@@ -81,6 +81,8 @@ class RsfReader:
             tristate = item[2] == "tristate"
             required = item[1] == "required"
             result[item[0]] = Choice(self, item[0], tristate = tristate, required = required)
+            if tristate:
+                result[item[0] + "_META"] = ChoiceMeta(result[item[0]])
 
         return result
 
@@ -181,7 +183,11 @@ class Option (tools.Repr):
 
 class Choice(Option):
     def __init__(self, rsf, name, tristate, required):
-        Option.__init__(self, rsf, name, tristate)
+        # Boolean tristates are always on, when choice is tristate, we
+        # have a ChoiceMeta option in the symbol dict
+        omnipresent = not tristate
+        Option.__init__(self, rsf, name, tristate, omnipresent)
+
         self._required = required
     def insert_forward_references(self):
         """Insert dependencies SYMBOL -> CHOICE"""
@@ -189,8 +195,15 @@ class Choice(Option):
         deps = {}
         own_items = []
         deps[self.rsf.symbol(self.name)] = []
+
         if self.tristate():
             deps[self.rsf.symbol_module(self.name)] = []
+            # If we are tristate there is an ALWAYS_ON item
+            # CHOICE_%d_META.
+            # This is also a dependency of both items.
+            deps[self.symbol()].append("%s_META" % self.symbol())
+            deps[self.symbol_module()].append("%s_META" % self.symbol())
+
 
         if self.name in items:
             for [symbol] in items[self.name]:
@@ -224,3 +237,13 @@ class Choice(Option):
         deps[self.rsf.symbol(self.name)].extend([ "((" + ") || (".join(or_clause) + "))"])
 
         return deps
+
+class ChoiceMeta(Option):
+    def __init__(self, choice):
+        Option.__init__(self, choice.rsf, choice.name + "_META", tristate=False, omnipresent=True)
+        self.choice = choice
+
+    def dependency(self, eval_to_module = True):
+        return "((%s && !%s_MODULE) || (!%s && %s_MODULE))" % \
+               tuple([self.choice.name] * 4)
+
