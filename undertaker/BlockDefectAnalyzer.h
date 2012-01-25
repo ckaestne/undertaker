@@ -91,11 +91,14 @@ public:
     virtual bool needsCrosscheck() const; //!< defect will be present on every model
     virtual bool writeReportToFile() const;
 
+    virtual const char *getArch() { return _arch; }
+    virtual void setArch(const char *arch) { _arch = arch; }
+
 protected:
     bool _needsCrosscheck;
 
-    std::string _formula;
     const char *_arch;
+    std::string _formula;
 };
 
 //! Checks a given block for "un-deselectable block" defects.

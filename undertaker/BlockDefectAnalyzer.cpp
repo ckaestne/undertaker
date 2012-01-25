@@ -58,7 +58,7 @@ std::string BlockDefectAnalyzer::getBlockPrecondition(const ConfigurationModel *
 
 const BlockDefectAnalyzer *
 BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p_model) {
-    BlockDefectAnalyzer *defect = new DeadBlockDefect(block);
+    DeadBlockDefect *defect = new DeadBlockDefect(block);
 
     // If this is neither an Implementation, Configuration nor Referential *dead*,
     // then destroy the analysis and retry with an Undead Analysis
@@ -80,12 +80,16 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p
         return defect;
 
     ModelContainer *f = ModelContainer::getInstance();
+    const char *oldarch = defect->getArch();
+    int original_classification = defect->defectType();
     for (ModelContainer::iterator i = f->begin(); i != f->end(); i++) {
         const std::string &arch = (*i).first;
         const ConfigurationModel *model = (*i).second;
 
         if (!defect->isDefect(model)) {
             defect->markOk(arch);
+            if (original_classification == BlockDefectAnalyzer::Configuration)
+                defect->setArch(oldarch);
             return defect;
         }
     }
