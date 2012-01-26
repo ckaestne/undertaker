@@ -63,7 +63,7 @@ class RsfReader:
         omnipresent = {}
         options = set()
         for item in self.database["Item"]:
-            if not item[1].lower() in ["boolean", "tristate", "integer"]:
+            if not item[1].lower() in ["boolean", "tristate", "integer", "string", "hex"]:
                 continue
             if len(item) < 2:
                 continue
@@ -114,7 +114,7 @@ class RsfReader:
                 deps[k] = v
         return deps
 
-    def is_bool_tristate(self,symbol):
+    def is_bool_tristate(self, symbol):
         """Returns true if symbol is boolean or tristate, otherwise false is returned."""
 
         return self.get_type(symbol) in ["boolean", "tristate"]
@@ -164,6 +164,15 @@ class Option (tools.Repr):
     def prompts(self):
         prompts = self.rsf.collect("HasPrompts")
         return int(prompts.get(self.name, ["-1"])[0])
+
+    def get_type(self):
+        return self.rsf.get_type(self.name)
+
+    def hex(self):
+        return self.get_type() == 'hex'
+
+    def string(self):
+        return self.get_type() == 'string'
 
     def dependency(self, eval_to_module = True):
         depends = self.rsf.depends()

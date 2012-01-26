@@ -28,6 +28,8 @@ class TestRsfReader(t.TestCase):
 Item B tristate
 ItemFoo B some_value
 Item C boolean
+Item H hex
+Item S string
 CRAP CARASDD"""
         self.rsf = RsfReader.RsfReader(StringIO.StringIO(rsf))
 
@@ -44,11 +46,19 @@ CRAP CARASDD"""
             if opt.name == "C":
                 opts.add("C")
                 self.assertEqual(opt.tristate(), False, "Item state wrong parsed")
+            if opt.name == "H":
+                opts.add("H")
+                self.assertEqual(opt.hex(), True, "Item state wrong")
+            if opt.name == "S":
+                opts.add("S")
+                self.assertEqual(opt.string(), True, "Item state wrong")
 
     def test_symbol_generation(self):
         self.assertEqual(self.rsf.options()["A"].symbol(), "CONFIG_A")
         self.assertRaises(RsfReader.OptionNotTristate, self.rsf.options()["A"].symbol_module)
         self.assertEqual(self.rsf.options()["B"].symbol_module(), "CONFIG_B_MODULE")
+        self.assertEqual(self.rsf.options()["S"].symbol(), "CONFIG_S")
+        self.assertEqual(self.rsf.options()["H"].symbol(), "CONFIG_H")
 
 
 if __name__ == '__main__':

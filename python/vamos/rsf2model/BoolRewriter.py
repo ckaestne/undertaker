@@ -310,11 +310,13 @@ class BoolRewriter(tools.UnicodeMixin):
         if self.expr == []:
             return ""
         return __concat(self.expr)
+
     def rewrite(self):
         self.rewrite_not()
         self.rewrite_choice()
         self.rewrite_tristate()
         self.rewrite_symbol()
         return self
+
     def __unicode__(self):
         return self.dump()

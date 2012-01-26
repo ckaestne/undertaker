@@ -30,6 +30,8 @@ class TestRsfReader(t.TestCase):
 Item B tristate
 ItemFoo B some_value
 Item C boolean
+Item S string
+Item H hex
 CRAP CARASDD"""
         self.rsf = RsfReader.RsfReader(StringIO.StringIO(rsf))
 
@@ -50,6 +52,9 @@ CRAP CARASDD"""
         rewrite("!B", "!CONFIG_B")
         rewrite("B", "CONFIG_B", False)
         rewrite("!B", "(!CONFIG_B_MODULE && !CONFIG_B)", False)
+
+        rewrite("S", "CONFIG_S")
+        rewrite("H", "CONFIG_H")
 
         rewrite("FOO=y", "CONFIG_FOO")
 
