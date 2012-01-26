@@ -4,6 +4,7 @@
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,6 +65,7 @@ enum CoverageOutputMode {
     COVERAGE_MODE_CPP,     // prints all cpp items as cpp cmd-line arguments
     COVERAGE_MODE_EXEC,    // pipe file for every configuration to cmd
     COVERAGE_MODE_ALL,     // prints all items and blocks
+    COVERAGE_MODE_COMBINED,// create files for both configuration and modified source file
 } coverageOutputMode;
 
 enum CoverageOperationMode {
@@ -104,8 +106,9 @@ void usage(std::ostream &out, const char *error) {
     out << "      - stdout: print on stdout the found configurations\n";
     out << "      - cpp: print on stdout cpp -D command line arguments\n";
     out << "      - exec:cmd: pipe file for every configuration to cmd\n";
-    out << "      - model:   print all options which are in the configuration space\n";
-    out << "      - all:     dump every assigned symbol (both items and code blocks)\n";
+    out << "      - model:    print all options which are in the configuration space\n";
+    out << "      - all:      dump every assigned symbol (both items and code blocks)\n";
+    out << "      - combined: create files for both configuration and pre-commended sources\n";
     out << "  -C: specify coverage algorithm\n";
     out << "      simple  - relative simple and fast algorithm (default)\n";
     out << "      min     - slow but generates less configuration sets\n";
@@ -186,7 +189,8 @@ void process_file_coverage_helper(const char *filename) {
     std::vector<bool> blocks(file.size(), false); // bitvector
 
     std::list<SatChecker::AssignmentMap>::iterator it;
-    for (it = solution.begin(); it != solution.end(); it++) {
+    unsigned current(0);
+    for (it = solution.begin(); it != solution.end(); it++, current++) {
         static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
         SatChecker::AssignmentMap::iterator j;
         std::stringstream outfstream;
@@ -226,7 +230,10 @@ void process_file_coverage_helper(const char *filename) {
             (*it).formatCPP(std::cout, model);
             break;
         case COVERAGE_MODE_EXEC:
-            (*it).formatExec(std::cout, file, coverage_exec_cmd);
+            (*it).formatExec(file, coverage_exec_cmd);
+            break;
+        case COVERAGE_MODE_COMBINED:
+            (*it).formatCombined(file, model, current);
             break;
         default:
             assert(false);
@@ -704,6 +711,8 @@ int main (int argc, char ** argv) {
                 coverageOutputMode = COVERAGE_MODE_CPP;
             else if (0 == strcmp(optarg, "all"))
                 coverageOutputMode = COVERAGE_MODE_ALL;
+            else if (0 == strcmp(optarg, "combined"))
+                coverageOutputMode = COVERAGE_MODE_COMBINED;
             else if (0 == strncmp(optarg, "exec", 4)) {
                 coverageOutputMode = COVERAGE_MODE_EXEC;
                 if (optarg[4] == ':')

@@ -1,9 +1,10 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -181,12 +182,31 @@ public:
         /**
          * \brief pipe all activated blocks into command
          *
-         * \param out an output stream on which the solution shall be
-         *     printed and the output of the command is redirected to
          * \param CPP file which is basis for the analysis
-         * \param command which should be spawned
+         * \param cmd the command that is spawned
          */
-        int formatExec(std::ostream &out, const CppFile &, const char *);
+        int formatExec(const CppFile &file, const char *cmd);
+
+        /**
+         * \brief comments out all unselected blocks
+         *
+         * \param out the output stream to work on
+         * \param file the corresponding CppFile for this AssignmentMap
+         */
+        int formatCommented(std::ostream &out, const CppFile &file);
+
+        /**
+         * \brief combination of formatCPP and formatCommented.
+         *
+         * This output format uses both formatCPP and
+         * formatCommented. Unlike the other methods, this mode produces
+         * two additional files with the content.
+         *
+         * \param file passed to formatCommented
+         * \param model passed to formatCPP
+         * \param number a running numer that is encoded in the filename
+         */
+        int formatCombined(const CppFile &file, const ConfigurationModel *model, unsigned number);
     };
 
     /**

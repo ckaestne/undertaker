@@ -1,9 +1,10 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +32,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <sstream>
 #include "SatChecker.h"
 #include "KconfigWhitelist.h"
 
@@ -536,13 +538,20 @@ int SatChecker::AssignmentMap::formatCPP(std::ostream &out, const ConfigurationM
     return size();
 }
 
-int SatChecker::AssignmentMap::formatExec(std::ostream &out, const CppFile &file, const char *cmd) {
+
+int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile &file) {
     std::map<Puma::Token *, bool> flag_map;
     Puma::Token *next;
     Puma::TokenStream stream;
+    sighandler_t oldaction;
 
     PumaConditionalBlock *top = (PumaConditionalBlock *) file.topBlock();
     Puma::Unit *unit = top->pumaStartToken()->unit();
+
+	/* If the child process terminates before reading all of stdin
+	 * undertaker gets a SIGPIPE which we don't want to handle
+	 */
+    oldaction = signal(SIGPIPE, SIG_IGN);
 
     flag_map[top->pumaStartToken()] = true;
     flag_map[top->pumaEndToken()] = false;
@@ -581,25 +590,45 @@ int SatChecker::AssignmentMap::formatExec(std::ostream &out, const CppFile &file
     /* Initialize token stream with the Puma::Unit */
     stream.push(unit);
 
-    /* Ignore all broken pipes */
-    sigignore(SIGPIPE);
-
-    redi::opstream cmd_process(cmd);
-
     bool print_flag = true;
     bool after_newline = true;
-    logger << info << "Calling: " << cmd << std::endl;
+
     while ((next = stream.next())) {
         if (flag_map.find(next) != flag_map.end())
             print_flag = flag_map[next];
 
         if (!print_flag && after_newline)
-            cmd_process << "//";
+            out << "// ";
 
-        cmd_process << next->text();
+        out << next->text();
 
-    after_newline = strchr(next->text(), '\n') != NULL;
+        after_newline = strchr(next->text(), '\n') != NULL;
     }
+
+    signal(SIGPIPE, oldaction);
+
+    return size();
+}
+
+int SatChecker::AssignmentMap::formatCombined(const CppFile &file, const ConfigurationModel *model, unsigned number) {
+    std::stringstream s;
+    s << file.getFilename() << ".config" << number;
+
+    std::ofstream modelstream(s.str().c_str());
+    formatCPP(modelstream, model);
+
+    s << ".src";
+    std::ofstream commented(s.str().c_str());
+    formatCommented(commented, file);
+
+    return size();
+}
+
+int SatChecker::AssignmentMap::formatExec(const CppFile &file, const char *cmd) {
+    redi::opstream cmd_process(cmd);
+
+    logger << info << "Calling: " << cmd << std::endl;
+    formatCommented(cmd_process, file);
     cmd_process.close();
 
     return size();
