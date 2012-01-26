@@ -74,6 +74,18 @@ def apply_configuration(arch=None, subarch=None, filename=None):
         else:
             raise
 
+def guess_source_for_target(target):
+    """
+    for the given target, try to determine its source file.
+
+    return None if no source file could be found
+    """
+    for suffix in ('.c', '.S'):
+        sourcefile = target[:-2] + suffix
+        if os.path.exists(sourcefile):
+            return sourcefile
+    return None
+
 
 def files_for_current_configuration(arch=None, subarch=None, how=False):
     """
@@ -83,11 +95,12 @@ def files_for_current_configuration(arch=None, subarch=None, how=False):
     configuration.
 
     The parameter 'how', which defaults to False, decides on the mode of
-    operation. If it is not set, this function guesses for each found
-    file the corresponding source file. A warning is issued if the
-    source file could not be guessed. If it is set, the function returns
-    a list of object files and additionally indicates in what way (i.e.,
-    module or statically built-in) the object file is compiled.
+    operation. If it is set to False, this function guesses for each
+    found file the corresponding source file. A warning is issued if the
+    source file could not be guessed and the file is ignored. If it is
+    set to True, the function returns a list of object files and
+    additionally indicates in what way (i.e., module or statically
+    built-in) the object file is compiled.
 
     NB: If not working for the default architecture 'x86', the optional
     parameters "arch" (and possibly "subarch") need to be specified!
@@ -110,6 +123,8 @@ def files_for_current_configuration(arch=None, subarch=None, how=False):
 
     files = set()
     for line in output:
+        # these lines indicate error and warning messages
+        if '***' in line: continue
         if len(line) == 0:
             continue
         try:
@@ -118,11 +133,11 @@ def files_for_current_configuration(arch=None, subarch=None, how=False):
             else:
                 objfile = line.split()[0]
                 # try to guess the source filename
-                sourcefile = objfile[:-2] + '.c'
-                if os.path.exists(sourcefile):
-                    files.add(sourcefile)
-                else:
+                sourcefile = guess_source_for_target(objfile)
+                if not sourcefile:
                     logging.warning("Failed to guess source file for %s", objfile)
+                else:
+                    files.add(sourcefile)
         except IndexError:
             raise RuntimeError("Failed to parse line '%s'" % line)
 
@@ -164,6 +179,8 @@ def file_in_current_configuration(filename):
                                            extra_variables=make_args)
 
     for line in make_result:
+        # these lines indicate error and warning messages
+        if '***' in line: continue
         if line.startswith(basename):
             return line.split(" ")[1]
 
@@ -251,19 +268,6 @@ def guess_arch_from_filename(filename):
         assert(arch==subarch)
 
     return (arch, subarch)
-
-
-def guess_source_for_target(target):
-    """
-    for the given target, try to determine its source file.
-
-    return None if no source file could be found
-    """
-    for suffix in ('.c', '.S'):
-        sourcefile = target[:-2] + suffix
-        if os.path.exists(sourcefile):
-            return sourcefile
-    return None
 
 
 def call_linux_makefile(target, extra_env="", extra_variables="",
@@ -440,6 +444,8 @@ def files_for_selected_features(features, arch, subarch):
     files = set()
     dirs = set()
     for line in make_result:
+        # these lines indicate error and warning messages
+        if '***' in line: continue
         l = line.split()
         try:
             if line.endswith("/"):
