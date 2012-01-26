@@ -62,13 +62,13 @@ I: loaded rsf model for xtensa
 I: found 23 rsf models
 I: Using x86 as primary model
 I: creating omapfb_main-structure.c.B0.kconfig.globally.dead
-I: creating omapfb_main-structure.c.B2.kconfig.globally.dead
+I: creating omapfb_main-structure.c.B2.missing.globally.dead
 I: creating omapfb_main-structure.c.B4.kconfig.globally.dead
 I: creating omapfb_main-structure.c.B5.kconfig.globally.dead
 I: creating omapfb_main-structure.c.B6.kconfig.globally.dead
 I: creating omapfb_main-structure.c.B7.kconfig.globally.dead
 I: creating omapfb_main-structure.c.B8.kconfig.globally.dead
-I: creating omapfb_main-structure.c.B10.kconfig.globally.dead
+I: creating omapfb_main-structure.c.B10.missing.globally.dead
 I: creating omapfb_main-structure.c.B11.kconfig.globally.dead
 I: creating omapfb_main-structure.c.B13.kconfig.globally.dead
 I: creating omapfb_main-structure.c.B14.kconfig.globally.dead

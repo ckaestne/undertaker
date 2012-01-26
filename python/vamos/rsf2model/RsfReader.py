@@ -144,6 +144,9 @@ class Option (tools.Repr):
     def omnipresent(self):
         return self._omnipresent
 
+    def set_omnipresent(self, value):
+        self._omnipresent = value
+
     def tristate(self):
         return self._tristate
 
@@ -187,17 +190,30 @@ class Option (tools.Repr):
         except BoolParserException:
             return ""
 
+    def has_depends(self):
+        depends = self.rsf.depends()
+
+        if not self.name in depends or len(depends[self.name]) == 0:
+            return False
+        return True
+
     def __unicode__(self):
         return u"<Option %s, tri: %s>" % (self.name, str(self.tristate()))
 
 class Choice(Option):
     def __init__(self, rsf, name, tristate, required):
+        Option.__init__(self, rsf, name, tristate, False)
+
+        ## In case of no dependencies::
         # Boolean tristates are always on, when choice is tristate, we
         # have a ChoiceMeta option in the symbol dict
-        omnipresent = not tristate
-        Option.__init__(self, rsf, name, tristate, omnipresent)
+        self.set_omnipresent(not tristate and not self.has_depends())
 
         self._required = required
+
+    def required(self):
+        return self._required
+
     def insert_forward_references(self):
         """Insert dependencies SYMBOL -> CHOICE"""
         items = self.rsf.collect("ChoiceItem", 1, True)
@@ -249,8 +265,9 @@ class Choice(Option):
 
 class ChoiceMeta(Option):
     def __init__(self, choice):
-        Option.__init__(self, choice.rsf, choice.name + "_META", tristate=False, omnipresent=True)
         self.choice = choice
+        Option.__init__(self, choice.rsf, choice.name + "_META", tristate=False, omnipresent=False)
+        self.set_omnipresent(not choice.has_depends())
 
     def dependency(self, eval_to_module = True):
         return "((%s && !%s_MODULE) || (!%s && %s_MODULE))" % \
