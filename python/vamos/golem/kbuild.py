@@ -80,7 +80,7 @@ def guess_source_for_target(target):
 
     return None if no source file could be found
     """
-    for suffix in ('.c', '.S'):
+    for suffix in ('.c', '.S', '.s', '.l', '.y', '.ppm'):
         sourcefile = target[:-2] + suffix
         if os.path.exists(sourcefile):
             return sourcefile
