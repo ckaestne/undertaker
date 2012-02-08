@@ -248,7 +248,7 @@ void process_file_coverage_helper(const char *filename) {
 void process_file_coverage (const char *filename) {
     boost::thread t(process_file_coverage_helper, filename);
 
-    if (!t.timed_join(boost::posix_time::seconds(300)))
+    if (!t.timed_join(boost::posix_time::seconds(120)))
         logger << error << "timeout passed while processing " << filename
                << std::endl;
 }
@@ -455,7 +455,7 @@ void process_file_dead_helper(const char *filename) {
 void process_file_dead(const char *filename) {
     boost::thread t(process_file_dead_helper, filename);
 
-    if (!t.timed_join(boost::posix_time::seconds(300)))
+    if (!t.timed_join(boost::posix_time::seconds(120)))
         logger << error << "timeout passed while processing " << filename
                << std::endl;
 }
