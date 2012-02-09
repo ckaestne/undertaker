@@ -300,6 +300,8 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
     """
 
     cmd = "make"
+    njobs = int(os.sysconf('SC_NPROCESSORS_ONLN') * 1.20 + 0.5)
+
     if extra_env and "ARCH=" in extra_env or extra_variables and "ARCH=" in extra_variables:
         logging.debug("Detected manual (SUB)ARCH override in extra arguments '(%s, %s)'",
                       extra_env, extra_variables)
@@ -332,8 +334,9 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
         if vamos.kernelversion:
             extra_env += ' KERNELVERSION="%s"' % vamos.kernelversion
 
-    cmd = "env %(extra_env)s make %(target)s %(extra_variables)s " % \
-        { 'extra_env': extra_env,
+    cmd = "env %(extra_env)s make -j%(njobs)s %(target)s %(extra_variables)s " % \
+        { 'njobs': njobs,
+          'extra_env': extra_env,
           'target': target,
           'extra_variables': extra_variables }
 
