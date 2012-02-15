@@ -390,6 +390,8 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
     typedef std::map<std::string, state> SelectionType;
     SelectionType selection, other_variables;
 
+    logger << debug << "---- Dumping new assignment map" << std::endl;
+
     for (AssignmentMap::iterator it = begin(); it != end(); it++) {
         static const boost::regex item_regexp("^CONFIG_(.*[^.])$", boost::regex::perl);
         static const boost::regex module_regexp("^CONFIG_(.*)_MODULE$", boost::regex::perl);
@@ -413,6 +415,8 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
         } else if (boost::regex_match(name, what, item_regexp)) {
             ConfigurationModel *model = ModelContainer::lookupMainModel();
             const std::string &item_name = what[1];
+
+            logger << debug << "considering " << item_name << std::endl;
 
             if (missingSet.find(what[0]) != missingSet.end()) {
                 logger << debug << "Ignoring 'missing' item " << what[0] << std::endl;

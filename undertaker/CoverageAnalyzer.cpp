@@ -74,6 +74,8 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
         }
     }
 
+    logger << debug << "baseFileExpression: " << formula.join("\n&& ") << std::endl;
+
     return formula.join(" && ");
 }
 
