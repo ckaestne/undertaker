@@ -145,20 +145,26 @@ void process_file_coverage_helper(const char *filename) {
     ModelContainer *f = ModelContainer::getInstance();
     ConfigurationModel *model = f->lookupMainModel();
 
+    // HACK: make B00 a 'regular' block
+    file.push_front(file.topBlock());
+
     SimpleCoverageAnalyzer simple_analyzer(&file);
     MinimizeCoverageAnalyzer minimize_analyzer(&file);
     CoverageAnalyzer *analyzer = 0;
-    if (coverageOperationMode == COVERAGE_OP_MINIMIZE)
+    if (coverageOperationMode == COVERAGE_OP_MINIMIZE) {
+        logger << debug << "Calculating configurations using the 'greedy' approach" << std::endl;
         analyzer = &minimize_analyzer;
-    else if (coverageOperationMode == COVERAGE_OP_SIMPLE)
+    } else if (coverageOperationMode == COVERAGE_OP_SIMPLE) {
+        logger << debug << "Calculating configurations using the 'simple' approach" << std::endl;
         analyzer = &simple_analyzer;
-    else
+    } else
         assert(false);
 
     solution = analyzer->blockCoverage(model);
 
     if (coverageOutputMode == COVERAGE_MODE_STDOUT) {
         SatChecker::pprintAssignments(std::cout, solution, model, missingSet);
+        file.pop_front();
         return;
     }
 
@@ -173,8 +179,7 @@ void process_file_coverage_helper(const char *filename) {
 
     if (0 == file.size()) {
         logger << info << filename
-               << "does not contain any conditional block" << std::endl;
-        return;
+               << " does not contain any conditional block" << std::endl;
     }
 
     int config_count = 1;
@@ -243,6 +248,9 @@ void process_file_coverage_helper(const char *filename) {
            << "Found Solutions: " << solution.size() << ", " // #found solutions
            << "Coverage: " << enabled_blocks << "/" << file.size() << " blocks enabled "
            << "(" << ratio <<  "%)" << std::endl;
+
+    // undo hack to avoid de-allocation failures
+    file.pop_front();
 }
 
 void process_file_coverage (const char *filename) {

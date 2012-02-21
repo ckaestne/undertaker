@@ -1,7 +1,7 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 #include "Logging.h"
 
 /* c'tor */
-CoverageAnalyzer::CoverageAnalyzer(CppFile *file) : file(file) {};
+CoverageAnalyzer::CoverageAnalyzer(const CppFile *file) : file(file) {};
 
 std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model,
                                                  std::set<ConditionalBlock *> *blocks) {
@@ -57,7 +57,7 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
     if (model) {
         std::set<std::string> missingSet;
         std::string kconfig_formula;
-        model->doIntersect(code_formula, file->getChecker(), 
+        model->doIntersect(code_formula, file->getChecker(),
                            missingSet, kconfig_formula);
         formula.push_back(kconfig_formula);
         /* only add missing items if we can assume the model is
@@ -88,13 +88,13 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
 
     try {
         BaseExpressionSatChecker sc(base_formula.c_str());
-        for(CppFile::iterator i  = file->begin(); i != file->end(); ++i) {
-            ConditionalBlock *block = *i;
 
+        for(CppFile::const_iterator i  = file->begin(); i != file->end(); ++i) {
+            ConditionalBlock *block = *i;
             SatChecker::AssignmentMap current_solution;
 
             if (blocks_set.find(block->getName()) == blocks_set.end()) {
-                /* does the new contributes to the set of configurations? */
+                /* does this block contribute to the set of configurations? */
                 bool new_solution = false;
 
                 // unsolvable, i.e. we have found some defect!
@@ -170,7 +170,7 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
                 const std::string &block_name = it->first;
                 static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
 
-                if (boost::regex_match(block_name, block_regexp) && block_name != "B00") {
+                if (boost::regex_match(block_name, block_regexp)) {
                     configuration.insert(block_name);
                     blocks_set.insert(block_name);
                 }
@@ -181,7 +181,7 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
         // For the first round, configuration size will be non-zero at
         // this point
         while (blocks_set.size() < file->size()) {
-            for(CppFile::iterator i  = file->begin(); i != file->end(); ++i) {
+            for(CppFile::const_iterator i  = file->begin(); i != file->end(); ++i) {
                 std::string block_name = (*i)->getName();
                 ConditionalBlock *actual_block = *i;
                 // Was already enabled in an other configuration

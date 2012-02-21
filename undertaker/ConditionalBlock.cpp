@@ -35,7 +35,7 @@ CppFile::CppFile(const char *f) : top_block(0), checker(this) {
     if (strncmp("./", f, 2))
         filename = f;
     else
-        filename = f+2; // skip starting './'
+        filename = f+2; // skip leading './'
     top_block = ConditionalBlockImpl::parse(f, this);
 }
 

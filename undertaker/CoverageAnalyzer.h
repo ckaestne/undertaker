@@ -2,6 +2,7 @@
  *   undertaker - analyze preprocessor blocks in code
  *
  * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +27,7 @@
 
 class CoverageAnalyzer {
  public:
-    CoverageAnalyzer(CppFile *);
+    CoverageAnalyzer(const CppFile *);
 
     virtual std::list<SatChecker::AssignmentMap>
         blockCoverage(ConfigurationModel *) = 0;
@@ -34,7 +35,7 @@ class CoverageAnalyzer {
 protected:
     std::string baseFileExpression(const ConfigurationModel *model,
                                    std::set<ConditionalBlock *> *blocks = 0);
-    CppFile * file;
+    const CppFile * file;
 };
 
 class SimpleCoverageAnalyzer : public CoverageAnalyzer {
