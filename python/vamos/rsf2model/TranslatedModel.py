@@ -20,6 +20,7 @@
 from vamos.rsf2model import tools
 from vamos.rsf2model.RsfReader import Choice
 from vamos.rsf2model import BoolRewriter
+from vamos.rsf2model.helper import BoolParserException
 
 class TranslatedModel(tools.UnicodeMixin):
     def __init__(self, rsf):
@@ -47,7 +48,7 @@ class TranslatedModel(tools.UnicodeMixin):
                 if option:
                     try:
                         self.translate_default(option, default)
-                    except BoolRewriter.BoolParserException:
+                    except BoolParserException:
                         # Parsing expression failed, just ignore it
                         pass
         for (item, select_set) in self.rsf.collect("ItemSelects", 0, True).items():
@@ -56,7 +57,7 @@ class TranslatedModel(tools.UnicodeMixin):
                 if option:
                     try:
                         self.translate_select(option, select)
-                    except BoolRewriter.BoolParserException:
+                    except BoolParserException:
                         # Parsing of a substring failed, just ignore it
                         pass
 

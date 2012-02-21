@@ -2,6 +2,7 @@
 #   rsf2model - extracts presence implications from kconfig dumps
 #
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,123 +18,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import ast
-import re
 from vamos.rsf2model import tools
-
-
-class BoolParserException(Exception):
-    def __init__(self, value):
-        Exception.__init__(self, value)
-
-    def __unicode__(self):
-        return "ERROR: " + self.value
-    __repr__ = __unicode__
-
-class BoolParser (ast.NodeTransformer):
-    AND = "and"
-    OR  = "or"
-    NOT = "not"
-    EQUAL = "=="
-    NEQUAL = "!="
-
-    def __init__(self, bool_expr):
-        ast.NodeTransformer.__init__(self)
-
-        try:
-            expr = bool_expr.replace("&&", " and ").replace("||", "or")
-            expr = re.sub("!(?=[^=])", " not ", expr)
-            expr = re.sub("(?<=[^!])=", " == ", expr)
-            expr = re.sub("((?<=[( &|])|^)(?=[0-9])", "VAMOS_MAGIC_", expr)
-            expr = re.sub("^ *", "", expr)
-            self.tree = ast.parse(expr)
-        except:
-            raise BoolParserException("Parsing failed: '" + expr + "'")
-
-        if self.tree.__class__ != ast.Module \
-                or len(self.tree.body) > 1 \
-                or self.tree.body[0].__class__ != ast.Expr:
-            raise BoolParserException("No valid boolean expression")
-        self.tree = self.tree.body[0]
-
-    @staticmethod
-    def new_node(node_type, childs):
-        return [node_type] + childs
-
-    def visit_Expr(self, node):
-        return self.visit(node.value)
-
-    def visit_BoolOp(self, node):
-        if type(node.op) == ast.And:
-            return self.new_node(self.AND, map(self.visit, node.values))
-        if type(node.op) == ast.Or:
-            return self.new_node(self.OR,  map(self.visit, node.values))
-        raise BoolParserException("Unkown boolean expression")
-
-    def visit_UnaryOp(self, node):
-        if type(node.op) == ast.Not:
-            return self.new_node(self.NOT, [self.visit(node.operand)])
-        raise BoolParserException("Unkown unary operation")
-
-    def visit_Compare(self, node):
-        if len(node.ops) == 1 and len(node.comparators) == 1:
-            if type(node.ops[0]) in [ast.Eq, ast.NotEq]:
-                left = self.visit(node.left)
-                right = self.visit(node.comparators[0])
-                if type(left) != str or type(right) != str:
-                    raise BoolParserException("Too complex comparison")
-                if type(node.ops[0]) == ast.Eq:
-                    return self.new_node(self.EQUAL, [left, right])
-                else:
-                    return self.new_node(self.NEQUAL, [left, right])
-        raise BoolParserException("Unkown compare operation")
-
-    @staticmethod
-    def visit_Name(node):
-        if node.id.startswith("VAMOS_MAGIC_"):
-            return node.id[len("VAMOS_MAGIC_"):]
-        return node.id
-
-    def visit(self, node):
-        func = "visit_" + node.__class__.__name__
-        if hasattr(self, func):
-            return (getattr(self, func))(node)
-        else:
-            raise BoolParserException("Boolean Parsing failed, unkown expression: " + repr(node))
-    def to_bool(self):
-        return self.visit(self.tree)
-
-
-class BoolRewriterException(Exception):
-    def __init__(self, value):
-        Exception.__init__(self)
-        self.value = value
-
-    def __unicode__(self):
-        return "ERROR: " + self.value
-    __repr__ = __unicode__
-
-def tree_change(func, tree):
-    """
-    Calls func on every subtree and replaces it with the result if
-    not None, otherwise we need to go deeper
-    """
-
-    if not type(tree) in (list, tuple) or len(tree) < 1:
-        return tree
-    a = func(tree)
-    if a != None:
-        return a
-    i = 1
-
-    while i < len(tree):
-        b = tree_change(func, tree[i])
-        if b == []:
-            del tree[i]
-        else:
-            tree[i] = b
-            i+= 1
-    return tree
+from vamos.rsf2model.BoolParser import BoolParser
+from vamos.rsf2model.helper import tree_change, BoolRewriterException
 
 class BoolRewriter(tools.UnicodeMixin):
     ELEMENT = "in"
