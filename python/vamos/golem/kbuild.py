@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from vamos.Config import Config
 from vamos.tools import execute, CommandFailed, execute
 from tempfile import mkstemp
 
@@ -267,6 +268,26 @@ def guess_arch_from_filename(filename):
             subarch = 'x86_64'
     else:
         assert(arch==subarch)
+
+    forced_64bit = False
+    forced_32bit = False
+
+    if arch =='x86' and '.config' in filename:
+        c = Config(filename)
+        if c.valueOf('CONFIG_X86_64') == 'y' or c.valueOf('CONFIG_64BIT') == 'y':
+            subarch = 'x86_64'
+            logging.debug("Config %s forces subarch x86_64", filename)
+            forced_64bit = True
+
+        if c.valueOf('CONFIG_X86_64') == 'n' or c.valueOf('CONFIG_64BIT') == 'n' \
+                or c.valueOf('CONFIG_X86_32') == 'y':        
+            subarch = 'i386'
+            logging.debug("Config %s forces subarch i386", filename)
+            forced_32bit = True
+
+    if forced_32bit and forced_64bit:
+        logging.error("%s is inconsistent: cannot enable 64bit and 32bit together (using %s)",
+                      filename, subarch)
 
     return (arch, subarch)
 
