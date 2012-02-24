@@ -435,6 +435,18 @@ void process_file_dead_helper(const char *filename) {
 
     ConfigurationModel *model = ModelContainer::lookupMainModel();
 
+    try {
+        const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(file.topBlock(), model);
+        if (defect) {
+            defect->writeReportToFile();
+            delete defect;
+        }
+    } catch (SatCheckerError &e) {
+        logger << error << "Couldn't process " << filename << ":B00: "
+               << e.what() << std::endl;
+    }
+
+
     /* Iterate over all Blocks */
     for (CppFile::iterator c = file.begin(); c != file.end(); c++) {
         ConditionalBlock *block = *c;

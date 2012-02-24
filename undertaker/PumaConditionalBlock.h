@@ -47,7 +47,7 @@ class PumaConditionalBlock : public ConditionalBlock {
     Puma::Token *_start, *_end;
 
     const Puma::PreTree *_current_node;
-    
+
     bool _isIfBlock;
     PumaConditionalBlockBuilder &_builder;
     // For some reason, getting the expression string fails on
@@ -71,10 +71,18 @@ public:
 
     //! location related accessors
     virtual const char *filename()   const { return cpp_file->getFilename().c_str(); };
-    virtual unsigned int lineStart() const { return _start->location().line();   };
-    virtual unsigned int colStart()  const { return _start->location().column(); };
-    virtual unsigned int lineEnd()   const { return _end  ->location().line();   };
-    virtual unsigned int colEnd()    const { return _end  ->location().column(); };
+    virtual unsigned int lineStart() const {
+        return getParent() ? _start->location().line() : 0;
+    };
+    virtual unsigned int colStart()  const {
+        return getParent() ? _start->location().column() : 0;
+    };
+    virtual unsigned int lineEnd()   const {
+        return getParent() ? _end  ->location().line() : 0;
+    };
+    virtual unsigned int colEnd()    const {
+        return getParent() ? _end  ->location().column() : 0;
+    };
     /// @}
 
     Puma::Token *pumaStartToken() const { return _start; };
