@@ -18,7 +18,8 @@
 #
 
 import shlex
-from vamos.rsf2model.BoolRewriter import BoolRewriter, BoolParserException
+from vamos.rsf2model.BoolRewriter import BoolRewriter
+from vamos.rsf2model.helper import BoolParserException
 from vamos.rsf2model import tools
 
 class RsfReader:
