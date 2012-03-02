@@ -114,8 +114,7 @@ class KbuildBuildFramework(BuildFramework):
         for c in glob.glob(filename + ".config*"):
             config_obj = LinuxConfiguration(self, c, expansion_strategy=self.expansion_strategy)
             config_obj.switch_to()
-            (arch, subarch) = guess_arch_from_filename(c)
-            if file_in_current_configuration(filename) != "n":
+            if file_in_current_configuration(filename, config_obj.arch, config_obj.subarch) != "n":
                 logging.info("Configuration '%s' is actually compiled", c)
                 ret.add(config_obj)
             else:

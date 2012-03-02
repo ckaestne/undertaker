@@ -31,7 +31,6 @@ from vamos.tools import setup_logging, execute
 from vamos.vampyr.utils import get_conditional_blocks, get_loc_coverage
 from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError, PredatorError
 
-import glob
 import shutil
 
 from optparse import OptionParser
@@ -358,8 +357,8 @@ def vamos_coverage(filename, results, options):
 
 
 def configurations(filename):
-    l = glob.glob(filename + ".config[0-9]")
-    l += (glob.glob(filename + ".config[0-9][0-9]"))
+    l  = glob(filename + ".config[0-9]")
+    l += glob(filename + ".config[0-9][0-9]")
     return sorted(l)
 
 

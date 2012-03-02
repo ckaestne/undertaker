@@ -22,6 +22,7 @@
 from vamos.Config import Config
 from vamos.tools import execute, CommandFailed, execute
 from tempfile import mkstemp
+from glob import glob
 
 import logging
 import os
@@ -146,7 +147,7 @@ def files_for_current_configuration(arch=None, subarch=None, how=False):
     return files
 
 
-def file_in_current_configuration(filename):
+def file_in_current_configuration(filename, arch=None, subarch=None):
     """
     to be run in a Linux source tree.
 
@@ -156,6 +157,9 @@ def file_in_current_configuration(filename):
         "y" - statically compiled
         "m" - compiled as module
         "n" - not compiled into the kernel
+
+    NB: this function expects the current configuration to be already
+        applied with the apply_configuration() function
 
     """
 
@@ -169,22 +173,27 @@ def file_in_current_configuration(filename):
     basename = filename.rsplit(".", 1)[0]
     logging.debug("checking file %s", basename)
 
-    apply_configuration(filename=filename)
-
     make_args = "-f %(basedir)s/Makefile.list UNDERTAKER_SCRIPTS=%(basedir)s compiled='%(filename)s'" % \
         { 'basedir' : scriptsdir,
           'filename': filename.replace("'", "\'")}
 
     (make_result, _) = call_linux_makefile('list',
                                            filename=filename,
+                                           arch=arch,
+                                           subarch=subarch,
                                            failok=False,
                                            extra_variables=make_args)
 
     for line in make_result:
         # these lines indicate error and warning messages
         if '***' in line: continue
+        if line == '': continue
         if line.startswith(basename):
-            return line.split(" ")[1]
+            try:
+                return os.path.normpath(line.split(" ")[1])
+            except IndexError:
+                logging.error("Failed to parse line: '%s'",  line)
+                return "n"
 
     return "n"
 
@@ -196,43 +205,44 @@ def determine_buildsystem_variables(arch=None):
     if arch:
         cmd = r"find . \( -name Kbuild -o -name Makefile \) " + \
               r"\( ! -path './arch/*' -o -path './arch/%(arch)s/*' \) " + \
-              r"-exec sed -n '/-\$(CONFIG_/p' {} \+"
+              r"-exec sed -n '/CONFIG_' {} \+"
         cmd = cmd % {'arch': arch}
-
     else:
-        cmd = r"find . \( -name Kbuild -o -name Makefile \) -exec sed -n '/-\$(CONFIG_/p' {} \+"
+        cmd = r"find . \( -name Kbuild -o -name Makefile \) -exec sed -n '/CONFIG_/p' {} \+"
     find_result = execute(cmd, failok=False)
 
     ret = set()
     # line might look like this:
     # obj-$(CONFIG_MODULES)           += microblaze_ksyms.o module.o
     for line in find_result[0]:
-        m = re.search(r'-\$\(CONFIG_(\w+)\)', line)
-        if not m: continue
-        config_variable = m.group(1)
-        if (config_variable):
+        for m in re.finditer(r'CONFIG_(?P<feature>[A-Za-z0-9_]+)', line):
+            config_variable = m.group('feature')
             ret.add(config_variable)
     return ret
 
+
 def determine_buildsystem_variables_in_directory(directory):
+    filenames = []
     kbuild = os.path.join(directory, "Kbuild")
     makefile = os.path.join(directory, "Makefile")
-    if os.path.exists(kbuild):
-        filename = kbuild
-    elif os.path.exists(makefile):
-        filename = makefile
-    else:
-        return set()
 
-    fd = open(filename)
+    if os.path.exists(kbuild):
+        filenames.append(kbuild)
+
+    if os.path.exists(makefile):
+        filenames.append(makefile)
+
+    if os.path.exists(kbuild + ".platforms"):
+        filenames.append(kbuild + ".platforms")
+        filenames += glob(directory + "/*/Platform")
+
     ret = set()
 
-    with open(filename) as fd:
-        for line in fd:
-            m = re.search(r'-\$\(CONFIG_(\w+)\)', line)
-            if m:
-                config_variable = m.group(1)
-                if (config_variable):
+    for filename in filenames:
+        with open(filename) as fd:
+            for line in fd:
+                for m in re.finditer(r'CONFIG_(?P<feature>[A-Za-z0-9_]+)', line):
+                    config_variable = m.group('feature')
                     ret.add("CONFIG_" + config_variable)
 
     return ret
@@ -280,7 +290,7 @@ def guess_arch_from_filename(filename):
             forced_64bit = True
 
         if c.valueOf('CONFIG_X86_64') == 'n' or c.valueOf('CONFIG_64BIT') == 'n' \
-                or c.valueOf('CONFIG_X86_32') == 'y':        
+                or c.valueOf('CONFIG_X86_32') == 'y':
             subarch = 'i386'
             logging.debug("Config %s forces subarch i386", filename)
             forced_32bit = True
