@@ -24,7 +24,7 @@ include $(if $(wildcard $(kbuild-dir)/Kbuild), $(kbuild-dir)/Kbuild, $(kbuild-di
 # Figure out what we need to build from the various variables
 # ==========================================================================
 
-__subdir-y	:= $(patsubst %/,%,$(filter %/, $(obj-y)))
+__subdir-y	:= $(patsubst %/,%,$(filter %/, $(obj-y) $(lib-y)))
 subdir-y	+= $(__subdir-y)
 __subdir-m	:= $(patsubst %/,%,$(filter %/, $(obj-m)))
 subdir-m	+= $(__subdir-m)
@@ -35,7 +35,6 @@ subdir-		+= $(__subdir-)
 
 # Subdirectories we need to descend into
 subdir-ym	:= $(sort $(subdir-y) $(subdir-m))
-subdir-ymn      := $(sort $(subdir-ym) $(subdir-n) $(subdir-))
 
 include scripts/Makefile.lib
 
@@ -44,11 +43,19 @@ ifneq ($(print_dirs),)
 	@echo $(obj)/
 endif
 ifneq ($(print_files),)
+
 ifneq ($(strip $(real-objs-y)),)
 	@for a in $(real-objs-y); do \
 		echo $$a y; \
 	done
 endif
+
+ifneq ($(strip $(lib-y)),)
+	@for a in $(lib-y); do \
+		echo $$a l; \
+	done
+endif
+
 ifneq ($(strip $(real-objs-m)),)
 	@for a in $(real-objs-m); do \
 		echo $$a m; \

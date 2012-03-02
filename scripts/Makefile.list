@@ -18,6 +18,24 @@
 
 list:
 
+# The problem here is, that include Makefile would include the
+# auto.conf of the configured kernel itself. To prevent this, we fake
+# the makecommand to `tags', because there no auto.conf is
+# included. The name of the variable in $(srcdir)/Makefile is
+# no-dot-config-targets.
+
+# So we prevent the linux makefile from including it's own Makefile,
+# and do this for ourselfs before.
+
+MAKECMDGOALS := tags
+# Read auto.conf if it exists, otherwise ignore
+ifeq ($(auto_conf),)
+-include include/config/auto.conf
+else
+include $(auto_conf)
+endif
+
+# The linux toplevel makefile
 include Makefile
 
 list-dirs      := $(addprefix _list_, . $(vmlinux-alldirs))

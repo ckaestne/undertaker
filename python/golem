@@ -2,8 +2,8 @@
 #
 #   golem - analyze feature dependencies in Linux makefiles
 #
-# Copyright (C) 2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
-# Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -57,13 +57,22 @@ def do_inference(args, arch, subarch):
     inferencer.calculate()
 
 
-def find_variables_in_directories(args):
+def find_variables_in_directories(arch, subarch, args):
+    modelfile = 'models/%s.model' % arch
+    logging.info("loading model %s", modelfile)
+    if not os.path.exists(modelfile):
+        logging.error("%s not found, please generate models using undertaker-kconfigdump",
+                      modelfile)
+
     for d in args:
         if not os.path.isdir(d):
             logging.warning("Skipping %s, not a directory", d)
             continue
         variables = determine_buildsystem_variables_in_directory(d)
         logging.info("Detected %d Kconfig variables in subdir %s", len(variables), d)
+        inferencer = FileSymbolInferencer(Model(modelfile), arch=arch, subarch=subarch)
+        s = inferencer.check_subdir(d, set())
+        logging.debug("found %d items in check_subdir result: %s", len(s), s)
         for v in sorted(variables):
             print 'CONFIG_' + v
 
@@ -117,7 +126,7 @@ def main():
         sys.exit(0)
 
     if opts.do_directory:
-        find_variables_in_directories(args)
+        find_variables_in_directories(arch, subarch, args)
         sys.exit(0)
 
     if opts.do_list:

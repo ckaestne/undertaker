@@ -59,15 +59,11 @@ class FileSymbolInferencer:
         self.subarch = subarch
         self.model = model
 
-        apply_configuration(arch=self.arch, subarch=self.subarch)
-
+        # declaration only
         self.empty_selection = Selection()
-        self.empty_fileset = FileSet(self.empty_selection, arch=arch, subarch=subarch)
+        self.empty_fileset = None
 
         self.file_selections = {}
-
-        for filename in self.empty_fileset.files:
-            self.file_selections[filename] = None
 
         # Directories that caused a recursion loop
         self.visited_dirs = set()
@@ -77,7 +73,16 @@ class FileSymbolInferencer:
 
 
     def calculate(self):
+        apply_configuration(arch=self.arch, subarch=self.subarch)
+
+        self.empty_fileset = FileSet(self.empty_selection, arch=self.arch,
+                                     subarch=self.subarch)
+
+        for filename in self.empty_fileset.files:
+            self.file_selections[filename] = None
+
         directories = self.empty_fileset.dirs
+        directories.add("arch/%s" % self.arch)
 
         for directory in directories:
             symbol_slice = determine_buildsystem_variables_in_directory(directory)
@@ -121,7 +126,7 @@ class FileSymbolInferencer:
         return False
 
 
-    def __check_subdir(self, subdir, symbols):
+    def check_subdir(self, subdir, symbols):
         """
         @return a set of new symbols found in subdir
         """
@@ -134,9 +139,15 @@ class FileSymbolInferencer:
         # symbol
         to_be_removed = set()
         to_be_added = set()
-        for symbol in symbols:
+        for symbol in new_symbols:
+            # Normalize feartures
+            if symbol.endswith("_MODULE"):
+                symbol = symbol[:-len("_MODULE")]
+
+            # Add _MODULE symbols
             if (symbol + "_MODULE") in self.model:
                 to_be_added.add(symbol + "_MODULE")
+
             # Remove missing items in the first place
             if not symbol in self.model:
                 to_be_removed.add(symbol)
@@ -144,7 +155,6 @@ class FileSymbolInferencer:
         new_symbols = (new_symbols - to_be_removed).union(to_be_added)
 
         return new_symbols
-
 
     def __copy_selections(self, directory, base_symbols, current_selection, current_fileset):
         """
@@ -190,7 +200,7 @@ class FileSymbolInferencer:
                 # add all symbols which are mentioned within the
                 # directories Kbuild/Makefile
                 for subdir in new_subdirectories:
-                    new_symbols = self.__check_subdir(subdir, new_selection.symbols)
+                    new_symbols = self.check_subdir(subdir, new_selection.symbols)
                     recursive_selections.append( tuple([subdir,
                                                         new_symbols,
                                                         new_selection,
