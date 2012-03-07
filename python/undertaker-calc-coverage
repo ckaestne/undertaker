@@ -2,7 +2,7 @@
 #
 #   undertaker-calc-coverage - configuration coverage analysis on Linux
 #
-# Copyright (C) 2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,8 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
 from vamos.golem.kbuild import *
 from vamos.model import Model
 from vamos.tools import setup_logging, execute
+from vamos.vampyr.utils import get_conditional_blocks, get_loc_coverage
+from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError, PredatorError
 
 import glob
 import shutil
@@ -37,20 +39,6 @@ from optparse import OptionParser
 model = None
 
 std_configs = ["allyesconfig"]
-
-
-class ExpansionError(RuntimeError):
-    """ Base class of all sort of Expansion errors """
-    pass
-
-
-class ExpansionSanityCheckError(ExpansionError):
-    """ Internal kernel config sanity checks failed, like `make silentoldconfig` """
-    pass
-
-
-class PredatorError(RuntimeError):
-    pass
 
 
 def switch_config(config):
@@ -298,61 +286,6 @@ def selected_items(partial_config):
                     selected += 1
 
     return selected
-
-
-autoconf = None
-def find_autoconf():
-    """ returns the path to the autoconf.h file in this linux tree
-    """
-    global autoconf
-    if autoconf == None:
-        switch_config('allyesconfig')
-        (autoconf, _) = execute("find include -name autoconf.h", failok=False)
-        autoconf = filter(lambda x: len(x) > 0, autoconf)
-        if len(autoconf) != 1:
-            logging.error("Not exactly one autoconf.h was found (%s)",
-                          ", ".join(autoconf))
-            raise RuntimeError("Not exactly one autoconf.h was found")
-    return autoconf[0]
-
-
-def get_conditional_blocks(filename, selected_only=False):
-    """
-    Counts the conditional blocks in the given source file
-
-    The calculation is done using the 'predator' binary from the system
-    path.  If the parameter 'actually_selected' is set, then the source
-    file is preprocessed with 'cpp' while using current configuration as
-    per 'include/generated/autoconf.h'
-
-    @return a non-empty list of blocks found in the source file
-
-    """
-
-    if selected_only:
-        cmd = 'predator "%s" | cpp -include %s' % (filename, find_autoconf())
-    else:
-        cmd = 'predator "%s"' % filename
-    (blocks, rc) = execute(cmd, echo=True, failok=True)
-
-    blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
-    if rc != 0:
-        logging.warning("predator/cpp failed with exitcode: %d", rc)
-    return blocks
-
-
-def get_loc_coverage(filename):
-    """
-    Returns LOC of the given file taking the current configuration into account
-    """
-
-    assert(os.path.exists(filename))
-    cmd = "grep -v -E '^\s*#\s*include' %s | cpp -include %s" % \
-        (filename, find_autoconf())
-    (lines, _) = execute(cmd, echo=True, failok=True)
-    # we ignore the exitcode here as we are not interested in failing
-    # for #error directives and similar.
-    return len(lines)
 
 
 def vamos_coverage(filename, results, options):
