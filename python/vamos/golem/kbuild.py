@@ -3,6 +3,7 @@
 #
 # Copyright (C) 2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Andreas Ruprecht <rupran@einserver.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -366,32 +367,31 @@ def get_linux_version():
     if not os.path.exists('Makefile'):
         raise NotALinuxTree("No 'Makefile' found")
 
-    extra_vars = "-f %(basedir)s/Makefile.version UNDERTAKER_SCRIPTS=%(basedir)s" % \
-        { 'basedir' : scriptsdir }
-
-    (output, ret) = call_linux_makefile('', extra_variables=extra_vars)
-    if ret > 0:
-        raise NotALinuxTree("Makefile does not indicate a Linux version")
-
-    version = output[-1] # use last line, if not configured we get additional warning messages
     if os.path.isdir('.git'):
         cmd = "git describe"
         (output, ret) = execute(cmd)
         git_version = output[0]
         if (ret > 0):
-            return 'v' + version
+            git_version = ""
+            logging.info("Execution of '%s' command failed, analyzing the Makefile instead" % \
+                            cmd);
 
-        if (not git_version.startswith('v')):
-            raise NotALinuxTree("Git does not indicate a Linux version ('%s')" % \
-                                    git_version)
-
-        if git_version[1:].startswith(version[0:3]):
+        # 'standard' Linux repository descriptions start with v
+        if git_version.startswith(("v3.", "v2.6")):
             return git_version
-        else:
-            raise NotALinuxTree("Git version does not look like a Linux version ('%s' vs '%s')" % \
-                                    (git_version, version))
+
+    extra_vars = "-f %(basedir)s/Makefile.version UNDERTAKER_SCRIPTS=%(basedir)s" % \
+        { 'basedir' : scriptsdir }
+
+    (output, ret) = call_linux_makefile('', extra_variables=extra_vars)
+    if ret > 0:
+        raise NotALinuxTree("The call to Makefile.version failed")
+
+    version = output[-1] # use last line, if not configured we get additional warning messages
+    if not version.startswith(("3.", "2.6")):
+        raise NotALinuxTree("Only Linux versions 2.6 and 3.x are supported")
     else:
-        return 'v' + version
+        return version
 
 
 def find_scripts_basedir():
