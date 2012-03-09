@@ -373,8 +373,7 @@ def get_linux_version():
         git_version = output[0]
         if (ret > 0):
             git_version = ""
-            logging.info("Execution of '%s' command failed, analyzing the Makefile instead" % \
-                            cmd);
+            logging.info("Execution of '%s' command failed, analyzing the Makefile instead", cmd)
 
         # 'standard' Linux repository descriptions start with v
         if git_version.startswith(("v3.", "v2.6")):
