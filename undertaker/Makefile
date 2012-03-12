@@ -15,7 +15,7 @@ LDFLAGS =
 BOOST_LIBS = -lboost_system -lboost_regex -lboost_filesystem -lboost_thread
 LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) -lpicosat -lboost_wave-mt -lPuma $(LDCOV)
 
-PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o\
+PARSEROBJ = RsfReader.o KconfigWhitelist.o PresetList.o ConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
 		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o \
 		Logging.o
@@ -23,7 +23,7 @@ PARSEROBJ = RsfReader.o KconfigWhitelist.o ConfigurationModel.o\
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
 PROGS = undertaker predator
-TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel
+TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel test-PresetList
 
 all: $(PROGS) $(TESTPROGS)
 
