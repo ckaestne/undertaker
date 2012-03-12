@@ -3,7 +3,7 @@
 #   vampyr - analyzes feature dependencies in Linux source files
 #
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
-# Copyright (C) 2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -75,14 +75,16 @@ def do_checks(options, filename, configs):
 
 def handle_file(options, filename):
 
-    frameworks = { 'bare'   : BuildFrameworks.BareBuildFramework }
+    frameworks = {'kbuild' : BuildFrameworks.KbuildBuildFramework,
+                  'linux'  : BuildFrameworks.KbuildBuildFramework,
+                  'bare'   : BuildFrameworks.BareBuildFramework}
 
     if options['framework'] in frameworks:
-        builder = frameworks[options['framework']](options)
+        framework = frameworks[options['framework']](options)
     else:
         raise RuntimeError("Build framework '%s' not found" % options['framework'])
 
-    configs = builder.calculate_configurations(filename)
+    configs = framework.calculate_configurations(filename)
     if len(configs) == 0:
         logging.error("File %s did not contain any configurations", filename)
         return
@@ -139,7 +141,7 @@ def main():
                       help="suppress warnings in '#included' source files")
     parser.add_option("-f", '--framwork', dest='framework', action='store', type="string",
                       default="bare",
-                      help="select build framework")
+                      help="select build framework (one of 'bare', 'kbuild')")
 
     (opts, args) = parser.parse_args()
 

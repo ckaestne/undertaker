@@ -2,7 +2,7 @@
 #   BuildFrameworks - utility classes for working in source trees
 #
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
-# Copyright (C) 2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,9 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from vamos.vampyr.Configuration import BareConfiguration
+from vamos.vampyr.Configuration import BareConfiguration, LinuxConfiguration
+from vamos.golem.kbuild import file_in_current_configuration, guess_arch_from_filename
 from vamos.tools import execute
 
+import glob
+import os.path
+import logging
 
 class BuildFramework:
     """ Base class for all Build System Frameworks"""
@@ -49,6 +53,8 @@ class BuildFramework:
             if options['args']:
                 assert(isinstance(options['args'], dict))
             self.options = options
+        else:
+            self.options = None
 
     def calculate_configurations(self, filename):
         raise NotImplementedError
@@ -61,7 +67,7 @@ class BareBuildFramework(BuildFramework):
         BuildFramework.__init__(self, options)
 
     def calculate_configurations(self, filename):
-        undertaker = "undertaker -j coverage -O cpp -q"
+        undertaker = "undertaker -q -j coverage -C min -O cpp"
         if 'undertaker' in self.options['args']:
             undertaker += " " + self.options['args']['undertaker']
         undertaker += " '" + filename + "'"
@@ -69,3 +75,50 @@ class BareBuildFramework(BuildFramework):
         flags_list = filter(lambda x: not x.startswith("I:"), output)
         configs = [BareConfiguration(self, x) for x in flags_list]
         return configs
+
+
+class KbuildBuildFramework(BuildFramework):
+    """ For use with Linux, considers Kconfig constraints """
+
+    def __init__(self, options=None, expansion_strategy='alldefconfig', coverage_strategy='min'):
+        BuildFramework.__init__(self, options)
+        self.expansion_strategy=expansion_strategy
+        self.coverage_strategy=coverage_strategy
+
+    def calculate_configurations(self, filename):
+        """Calculate configurations for a given file with Kconfig output mode"""
+
+        (arch, _) = guess_arch_from_filename(filename)
+        cmd = "undertaker -q -j coverage -C %s -O kconfig" % self.coverage_strategy
+        if os.path.isdir("models"):
+            cmd += " -m models/%s.model" % arch
+        else:
+            logging.info("No models directory found, running without models")
+
+        logging.info("Calculating configurations for '%s'", filename)
+        if self.options:
+            if 'undertaker' in self.options['args']:
+                cmd += " " + self.options['args']['undertaker']
+
+        cmd += " '%s'" % filename.replace("'", "\\'")
+        (output, statuscode) = execute(cmd, failok=True)
+        if statuscode != 0 or any([l.startswith("E:") for l in output]):
+            logging.error("Running undertaker failed: %s", cmd)
+            print "--"
+            for i in output:
+                logging.error(i)
+            return set()
+
+        logging.info("Testing which configurations are actually being compiled")
+        ret = set()
+        for c in glob.glob(filename + ".config*"):
+            config_obj = LinuxConfiguration(self, c, expansion_strategy=self.expansion_strategy)
+            config_obj.switch_to()
+            (arch, subarch) = guess_arch_from_filename(c)
+            if file_in_current_configuration(filename) != "n":
+                logging.info("Configuration '%s' is actually compiled", c)
+                ret.add(config_obj)
+            else:
+                logging.info("Configuration '%s' is *not* compiled", c)
+
+        return ret
