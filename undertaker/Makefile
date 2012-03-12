@@ -92,9 +92,10 @@ clean-check:
 	                 -o -name "*.c.error.got" \
 	                 -o -name "*.c.error.diff" \
 	                 -o -name "*.c.config*" \
-	                 -o -name "*.c.?.config" \
-	                 -o -name "*.c.?.config.src" \
+	                 -o -name "*.c:[0-9].config" \
+	                 -o -name "*.c:[0-9][0-9].config" \
 	                 -o -name "*.dead" \
+	                 -o -name "_block.config" \
 	                 -o -name "*.undead" \
 	                 \) -exec rm {} \;
 docs:
