@@ -2,6 +2,9 @@
  *   undertaker - analyze preprocessor blocks in code
  *
  * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
+ * Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
+ * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -94,7 +97,6 @@ public:
     virtual bool isIfBlock() const { return _isIfBlock; }
     virtual bool isIfndefine() const;
     virtual const std::string getName() const;
-
 
     static ConditionalBlock *parse(const char *filename, CppFile *cppfile);
 

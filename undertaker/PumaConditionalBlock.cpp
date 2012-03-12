@@ -2,6 +2,9 @@
  *   undertaker - analyze preprocessor blocks in code
  *
  * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
+ * Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
+ * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,9 +71,14 @@ Puma::Unit * remove_cpp_statements(Puma::Unit *unit) {
 
 const std::string PumaConditionalBlock::getName() const {
     std::stringstream ss;
-    if (!_parent) return "B00"; // top level block, represents file
-    ss << "B" <<  _number;
-    return ss.str();
+    if (!_parent)
+        return "B00"; // top level block, represents file
+    else {
+        ss << "B" <<  _number;
+        if (useBlockWithFilename)
+            ss << "_" << this->normalize_filename(this->filename());
+        return ss.str();
+    }
 }
 
 ConditionalBlock *PumaConditionalBlock::parse(const char *filename,

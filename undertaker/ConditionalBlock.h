@@ -2,6 +2,9 @@
  *   undertaker - analyze preprocessor blocks in code
  *
  * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
+ * Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
+ * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -97,7 +100,18 @@ class ConditionalBlock : public CondBlockList {
     virtual const char * ExpressionStr() const = 0;
     virtual bool isIfBlock() const            = 0; //!< is if or ifdef block
     virtual bool isIfndefine() const          = 0; //!< is ifndef
-    virtual const std::string getName() const = 0; //<! unique identifier for block
+    virtual const std::string getName() const = 0; //!< unique identifier for block
+
+    /**
+     * This function doesn't affect the logic of the CPPPC algorithm, but changes
+     * the presentation of blocks in the generated formulas
+     * With 'verbose_blocks' set, all block names in the generated formulas 
+     * additionally encode the complete (normalized) filename.
+     * This allows to combine formulas for blocks from different files.
+     * \param verbose_blocks if set, normalized filenames are appended to the block name
+     */
+    static void setBlocknameWithFilename(bool verbose_blocks){ useBlockWithFilename = verbose_blocks; }
+    static std::string normalize_filename(const char *); //!< replaces slashes in name
 
     /* None virtual functions follow */
 
@@ -137,6 +151,7 @@ protected:
     CppFile * cpp_file;
     const ConditionalBlock *_parent, *_prev;
     std::list<CppDefine *> _defines;
+    static bool useBlockWithFilename; //!< if set blocknames of getName() are extended with a normalized filename
 
 private:
     std::string _exp;

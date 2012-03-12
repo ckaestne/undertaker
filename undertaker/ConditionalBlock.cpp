@@ -31,6 +31,8 @@ typedef PumaConditionalBlock ConditionalBlockImpl;
 #include <boost/regex.hpp>
 #include <set>
 
+bool ConditionalBlock::useBlockWithFilename = false;
+
 CppFile::CppFile(const char *f) : top_block(0), checker(this) {
     if (strncmp("./", f, 2))
         filename = f;
@@ -167,6 +169,15 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
    return join ? and_clause->join(" && ") : "";
 }
 
+std::string ConditionalBlock::normalize_filename(const char * name){
+    std::string normalized(name);
+
+    for (std::string::iterator i = normalized.begin();
+         i != normalized.end(); i++)
+        if ((*i) == '/' || (*i) == '-')
+            *i = '_';
+    return normalized;
+}
 
 std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                                                  std::set<ConditionalBlock *> *visited) {
@@ -174,15 +185,9 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
     std::stringstream fi; // file identifier
     ModelContainer *mc = ModelContainer::getInstance();
     bool join = false;
-    std::string normalized_filename(this->filename());
-
-    for (std::string::iterator i = normalized_filename.begin();
-         i != normalized_filename.end(); i++)
-        if ((*i) == '/' || (*i) == '-')
-            *i = '_';
 
     fi << "FILE_";
-    fi << normalized_filename;
+    fi << normalize_filename(this->filename());
 
 
     if (!and_clause) {
