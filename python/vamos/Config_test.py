@@ -59,14 +59,14 @@ CONFIG_M=n""")
 
         self.assertTrue(confA.conflict(confB))
 
-    def test_showConflicts(self):
+    def test_getConflicts(self):
         confA = Config()
         confA.readConfigFile(self.configA.name)
 
         confB = Config()
         confB.readConfigFile(self.configB.name)
 
-        conflicts = confA.showConflicts(confB)
+        conflicts = confA.getConflicts(confB)
         self.assertIn("CONFIG_B",conflicts)
         self.assertIn("CONFIG_C",conflicts)
         self.assertIn("CONFIG_M",conflicts)

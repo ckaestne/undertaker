@@ -64,9 +64,9 @@ class Config(dict):
                 if self.valueOf(key) != other.valueOf(key):
                     return True
 
-    def showConflicts(self, other):
+    def getConflicts(self, other):
         """
-        Returna list of conflicting features in both configs.
+        Return a list of conflicting features in both configs.
         """
         res = []
         for key in self.keys():
