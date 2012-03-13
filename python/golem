@@ -45,9 +45,6 @@ import os.path
 
 def do_inference(args, arch, subarch):
     path = ""
-    if not arch:
-        logging.warning("Environment variable $ARCH not set, defaulting to 'x86'")
-        arch = 'x86'
     if len(args) > 0 and os.path.isdir(args[0]):
         path = os.path.normpath(args[0])
         logging.info("Limiting the constraints interferencing to subdirectory '%s'", path)
@@ -224,6 +221,12 @@ def main():
         for v in variables:
             print 'CONFIG_' + v
         sys.exit(0)
+
+    # do_opt and do_directory work fine without ARCH being set. The other modes do not
+    if not arch:
+        logging.warning("Environment variable $ARCH not set, defaulting to 'x86'")
+        arch = 'x86'
+        subarch = 'i386'
 
     if opts.do_directory:
         find_variables_in_directories(arch, subarch, args)
