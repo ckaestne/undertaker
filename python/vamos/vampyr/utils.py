@@ -3,6 +3,7 @@
 #   vampyr - extracts presence implications from kconfig dumps
 #
 # Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -54,7 +55,8 @@ def find_autoconf():
     return vamos.vampyr.autoconf_h
 
 
-def get_conditional_blocks(filename, selected_only=False, configuration_blocks=True):
+def get_conditional_blocks(filename, selected_only=False, configuration_blocks=True,
+                           strip_linums = True):
     """
     Counts the conditional blocks in the given source file
 
@@ -90,11 +92,30 @@ def get_conditional_blocks(filename, selected_only=False, configuration_blocks=T
     (blocks, rc) = execute(cmd, echo=True, failok=True)
 
     blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
+    # With never versions of zizler line numbers for each block are
+    # also printed. By default they are stripped, to retain backward
+    # compatibility
+    #  "B00 23" -> "B00"
+    if strip_linums and len(blocks) > 0 and " " in blocks[0]:
+        blocks = [x.split(" ",1)[0] for x in blocks]
     if rc != 0:
         logging.warning("'%s' signals exitcode: %d", cmd, rc)
         if rc == 127:
             raise CommandFailed(cmd, 127)
     return blocks
+
+
+def get_block_to_linum_map(filename):
+    """Returns a map from configuration controlled block name to a
+    line count within the block"""
+
+    blocks = get_conditional_blocks(filename, selected_only=False, configuration_blocks = True,
+                                    strip_linums = False)
+
+    d = dict([tuple(x.split(" ")) for x in blocks])
+    for key in d:
+        d[key] = int(d[key])
+    return d
 
 
 def get_loc_coverage(filename):

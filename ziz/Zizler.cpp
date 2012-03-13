@@ -1,7 +1,9 @@
 /*
  *   libziz - parse c preprocessor files
+ *
  * Copyright (C) 2010 Frank Blendinger <fb@intoxicatedmind.net>
  * Copyright (C) 2010 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -201,8 +203,13 @@ static int subtree_CONFIG_blocks(BlockContainer const &parent, Block const &b) {
     return blocks;
 }
 
+std::vector<int> code_lines_stack;
+
+
 std::ostream & operator*(std::ostream &stream, File const * p_f)
 {
+    code_lines_stack.push_back(0);
+
     std::vector<Block*>::const_iterator it;
 
     assert(p_f != NULL);
@@ -213,7 +220,10 @@ std::ostream & operator*(std::ostream &stream, File const * p_f)
             continue;
         stream * **it;
     }
-    stream << std::endl;
+    stream << "B00 " << code_lines_stack.back() << std::endl;
+    code_lines_stack.pop_back();
+    assert (code_lines_stack.size() == 0);
+
     return stream;
 }
 
@@ -231,12 +241,15 @@ std::ostream & operator*(std::ostream &stream, Block const &b)
     return stream;
 }
 
+
+
 std::ostream & operator*(std::ostream &stream, ConditionalBlock const &b)
 {
+    code_lines_stack.push_back(0);
     std::list<std::string> found;
 
-    stream << b.Header();
-    stream << "B" << b.Id() << std::endl;
+    stream << b.Header() << std::endl;
+
     std::vector<Block*>::const_iterator it;
     for (it = b.begin(); it != b.end(); ++it) {
         if (remove_non_CONFIG_blocks
@@ -244,10 +257,15 @@ std::ostream & operator*(std::ostream &stream, ConditionalBlock const &b)
             continue;
         stream * **it;
     }
+    stream << "B" << b.Id() << " " << code_lines_stack.back() << std::endl;
+
+    code_lines_stack.pop_back();
+
     stream << b.Footer() << std::endl;
 
     return stream;
 }
+
 
 std::ostream & operator*(std::ostream &stream, CodeBlock const &b)
 {
@@ -261,11 +279,15 @@ std::ostream & operator*(std::ostream &stream, CodeBlock const &b)
                             boost::regex::perl);
 
 
+    int lines = 0;
     while (getline (content, line)) {
+        lines ++;
         if (boost::regex_search(line, cpp_regexp)) {
             stream << line << std::endl;
         }
     }
+
+    code_lines_stack.back() += lines;
 
     return stream;
 }
@@ -494,8 +516,11 @@ int main(int argc, char **argv)
         fileArg++;
         mode = Convert;
         remove_non_CONFIG_blocks = true;
+    } else if (arg.compare("-cC") == 0 || arg.compare("--convert-configurable") == 0) {
+        fileArg++;
+        mode = Convert;
+        remove_non_CONFIG_blocks = true;
     }
-
 
     int fail = 0;
     for (int i = fileArg; i < argc; i++) {
