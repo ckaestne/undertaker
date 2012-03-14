@@ -74,8 +74,10 @@ if [ ! -f arch/x86/Kconfig ]; then
     exit 1
 fi
 
+ALLARCHS="$(ls arch/*/Kconfig | cut -d '/' -f 2) um"
+
 if [ -z "$1" ]; then
-    ARCHS="$(ls arch/*/Kconfig | cut -d '/' -f 2) um"
+    ARCHS=$ALLARCHS
 else
     ARCHS="$@"
 fi
@@ -122,7 +124,7 @@ function do_convert() {
     rsf2model "$MODELS/$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
 
   # Add CONFIG_$i -> !CONFIG_* for every architecture
-    echo $ARCHS | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | \
+    echo $ALLARCHS | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | \
         sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
         >> "$MODELS/$ARCH.model"
 }
