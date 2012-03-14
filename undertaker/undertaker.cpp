@@ -943,6 +943,7 @@ int main (int argc, char ** argv) {
             break;
         case 'V':
             logger << info << "undertaker " << version << std::endl;
+            exit(0);
             break;
         case 'q':
             loglevel = loglevel + 10;
