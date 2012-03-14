@@ -19,6 +19,7 @@
 #
 
 from vamos.golem.kbuild import files_for_selected_features
+import logging
 
 class FileSet:
     """
@@ -29,7 +30,13 @@ class FileSet:
         self.arch = arch
         self.subarch = subarch
         self.selection = selection
-        (self.files, self.dirs) = files_for_selected_features(selection.features(), arch, subarch)
+        try:
+            (self.files, self.dirs) = files_for_selected_features(selection.features(), arch, subarch)
+        except RuntimeError as e:
+            logging.error("Failed to determine fileset, continuing anyways: %s", e)
+            self.files = set()
+            self.dirs = set()
+            return
         self.files = self.files
         self.dirs = self.dirs
 
