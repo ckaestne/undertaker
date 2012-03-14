@@ -205,7 +205,7 @@ def determine_buildsystem_variables(arch=None):
     if arch:
         cmd = r"find . \( -name Kbuild -o -name Makefile \) " + \
               r"\( ! -path './arch/*' -o -path './arch/%(arch)s/*' \) " + \
-              r"-exec sed -n '/CONFIG_' {} \+"
+              r"-exec sed -n '/CONFIG_/p' {} \+"
         cmd = cmd % {'arch': arch}
     else:
         cmd = r"find . \( -name Kbuild -o -name Makefile \) -exec sed -n '/CONFIG_/p' {} \+"
