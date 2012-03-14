@@ -5,9 +5,6 @@
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
- * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
- * Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
- * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +35,6 @@
 #include <boost/thread.hpp>
 
 #include "KconfigWhitelist.h"
-#include "PresetList.h"
 #include "ModelContainer.h"
 #include "PumaConditionalBlock.h"
 #include "ConditionalBlock.h"
@@ -91,9 +87,7 @@ void usage(std::ostream &out, const char *error) {
     out << "  -q  decrease the log level (less verbose)\n";
     out << "  -m  specify the model(s) (directory or file)\n";
     out << "  -M  specify the main model\n";
-    out << "  -w  specify a whitelist for ignored items\n";
-    out << "  -W  specify a whitelist for necessary item\n";
-    out << "  -B  specify a blacklist for forbidden items\n";
+    out << "  -w  specify a whitelist\n";
     out << "  -b  specify a worklist (batch mode)\n";
     out << "  -t  specify count of parallel processes\n";
     out << "  -I  add an include path for #include directives\n";
@@ -106,8 +100,6 @@ void usage(std::ostream &out, const char *error) {
     out << "      - symbolpc: Symbol precondition (format <symbol>)\n";
     out << "      - checkexpr: Find a configuration that satisfies expression\n";
     out << "      - interesting: Find related items (negated items are not in the model)\n";
-    out << "      - blockconf: Find configuration enabling specified block (format: <file>:<line>)\n";
-    out << "      - mergeblockconf: Find configuration enabling specified blocks in the given file\n";
     out << "\nCoverage Options:\n";
     out << "  -O: specify the output mode of generated configurations\n";
     out << "      - kconfig: generated partial kconfig configuration (default)\n";
@@ -138,159 +130,6 @@ int rm_pattern(const char *pattern) {
 
     globfree(&globbuf);
     return nr;
-}
-
-bool process_blockconf_helper(StringJoiner &sj, const char *filename) {
-    // used by process_blockconf and process_mergedblockconf
-
-    // get preconditions for given block
-    std::string fname = std::string(filename);
-    std::string file, position;
-    size_t colon_pos = fname.find_first_of(':');
-
-    if (colon_pos == fname.npos) {
-        logger << error << "invalid format for block precondition" << std::endl;
-        return false;
-    }
-
-    file = fname.substr(0, colon_pos);
-    position = fname.substr(colon_pos + 1);
-
-    CppFile cpp(file.c_str());
-    if (!cpp.good()) {
-        logger << error << "failed to open file: `" << filename << "'" << std::endl;
-        return false;
-    }
-
-    // get block at given position
-    ConditionalBlock * block = cpp.getBlockAtPosition(filename);
-
-    if (block == 0) {
-        logger << info << "No block at " << filename << " was found." << std::endl;
-        return false;
-    }
-
-    ConfigurationModel *model = ModelContainer::lookupMainModel();
-    const BlockDefectAnalyzer *defect = 0;
-    try {
-        defect = BlockDefectAnalyzer::analyzeBlock(block, model);
-    } catch (SatCheckerError &e) {
-        logger << error << "Couldn't process " << filename << ":" << block->getName() << ": "
-               << e.what() << std::endl;
-    }
-
-    // /* Get the Precondition */
-    DeadBlockDefect dead(block);
-    std::string precondition = dead.getBlockPrecondition(model);
-
-
-    std::string defect_string = "no";
-    if (defect) {
-        defect_string = defect->getSuffix() + "/" + defect->defectTypeToString();
-    }
-
-    logger << info << "Block " << block->getName()
-           << " | Defect: " << defect_string
-           << " | Global: " << (defect != 0 ? defect->isGlobal() : 0)<< std::endl;
-
-    // concatenate preconditions with intersection from current model
-    try {
-        ModelContainer *f = ModelContainer::getInstance();
-        std::string code_formula = block->getCodeConstraints();
-        sj.push_back(precondition);
-        sj.push_back(code_formula);
-
-        if (f && f->size() > 0) {
-            std::set<std::string> missingSet;
-            model->doIntersect(code_formula, NULL, missingSet, code_formula);
-            sj.push_back(code_formula);
-        }
-
-    } catch (std::runtime_error &e) {
-        logger << error << "failed: " << e.what() << std::endl;
-        return false;
-    }
-    return true;
-}
-
-void process_mergeblockconf(const char *filepath) {
-    std::vector<std::string> workfiles;
-    /* Read files from worklist */
-    std::ifstream workfile(filepath);
-    std::string line;
-    if (! workfile.good()) {
-        usage(std::cout, "worklist was not found");
-        exit(EXIT_FAILURE);
-    }
-    /* set extended Blockname */
-    ConditionalBlock::setBlocknameWithFilename(true);
-    /* Collect all files that should be worked on */
-    while(std::getline(workfile, line)) {
-        workfiles.push_back(line);
-    }
-    StringJoiner sj;
-    for (unsigned int i = 0; i < workfiles.size(); i++) {
-        if (!process_blockconf_helper(sj, workfiles[i].c_str())){
-            std::string fname = std::string(workfiles[i].c_str());
-            size_t colon_pos = fname.find_first_of(':');
-            if (colon_pos == fname.npos) {
-                logger << error << "invalid format for block precondition" << std::endl;
-            }
-            else {
-                int offset = strncmp("./", fname.c_str(), 2)?0:2;
-                std::stringstream fi;
-                fi << "B00 && ( B00 <-> FILE_" << ConditionalBlock::normalize_filename(fname.substr(offset, colon_pos-offset).c_str()) << ") " ;
-                sj.push_back(fi.str());
-            }
-        }
-    }
-    // join with white- and blacklist
-    sj.push_back(PresetList::getInstance()->toSatStr());
-
-    std::stringstream outfstream;
-    outfstream << "_block.config";
-    std::ofstream outf;
-    outf.open(outfstream.str().c_str(), std::ios_base::trunc);
-
-    SatChecker sc(sj.join("\n&&\n"));
-    MissingSet missingSet;
-
-    if(sc()) {
-        logger << info << "Solution found, result was written to _block.config" << std::endl;
-        SatChecker::AssignmentMap current_solution = sc.getAssignment();
-        stringstream configstream;
-        current_solution.formatKconfig(configstream, missingSet);
-        outf << configstream.str();
-        logger << info << "Content of '_block.config':\n" << configstream.str() << std::endl;
-    }
-    else
-        logger << error << "Wasn't able to generate a valid configuration" << std::endl;
-
-    outf.close();
-}
-
-
-void process_blockconf(const char *filename) {
-    StringJoiner sj;
-    std::string fname = std::string(filename);
-    if (!process_blockconf_helper(sj, filename))
-        return;
-    SatChecker sc(sj.join("\n&&\n"));
-    std::stringstream outfstream;
-    outfstream << fname << ".config";
-    std::ofstream outf;
-    outf.open(outfstream.str().c_str(), std::ios_base::trunc);
-
-    MissingSet missingSet;
-    if(sc()) {
-        std::cout << fname << ".config" << std::endl;
-        SatChecker::AssignmentMap current_solution = sc.getAssignment();
-        stringstream configstream;
-        current_solution.formatKconfig(configstream, missingSet);
-        outf << configstream.str();
-        logger << info << "Content of '"<< fname << ".config':\n" << configstream.str() << std::endl;
-    }
-    outf.close();
 }
 
 void process_file_coverage_helper(const char *filename) {
@@ -420,7 +259,6 @@ void process_file_coverage_helper(const char *filename) {
     // undo hack to avoid de-allocation failures
     file.pop_front();
 }
-
 
 void process_file_coverage (const char *filename) {
     boost::thread t(process_file_coverage_helper, filename);
@@ -623,6 +461,7 @@ void process_file_dead_helper(const char *filename) {
                << e.what() << std::endl;
     }
 
+
     /* Iterate over all Blocks */
     for (CppFile::iterator c = file.begin(); c != file.end(); c++) {
         ConditionalBlock *block = *c;
@@ -764,10 +603,6 @@ process_file_cb_t parse_job_argument(const char *arg) {
         return process_file_checkexpr;
     } else if (strcmp(arg, "symbolpc") == 0) {
         return process_file_symbolpc;
-    } else if (strcmp(arg, "blockconf") == 0) {
-        return process_blockconf;
-    } else if (strcmp(arg, "mergeblockconf") == 0) {
-        return process_mergeblockconf;
     }
     return NULL;
 }
@@ -827,9 +662,7 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
 int main (int argc, char ** argv) {
     int opt;
     char *worklist = NULL;
-    char *satwhitelist = NULL;
-    char *mergeblacklist = NULL;
-    char *mergewhitelist = NULL;
+    char *whitelist = NULL;
 
     long threads = 1;
     std::list<std::string> models;
@@ -856,16 +689,10 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:w:W:B:j:O:C:I:Vhvq")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:C:I:Vhvq")) != -1) {
         switch (opt) {
         case 'w':
-            satwhitelist = strdup(optarg);
-            break;
-        case 'W':
-            mergewhitelist = strdup(optarg);
-            break;
-        case 'B':
-            mergeblacklist = strdup(optarg);
+            whitelist = strdup(optarg);
             break;
         case 'b':
             worklist = strdup(optarg);
@@ -960,6 +787,8 @@ int main (int argc, char ** argv) {
         }
     }
 
+    logger << debug << "undertaker " << version << std::endl;
+
     if (!worklist && optind >= argc) {
         usage(std::cout, "please specify a file to scan or a worklist");
         return EXIT_FAILURE;
@@ -972,42 +801,16 @@ int main (int argc, char ** argv) {
         f->loadModels(*i);
     }
 
-    if (satwhitelist) {
+    if (whitelist) {
         KconfigWhitelist *wl = KconfigWhitelist::getInstance();
-        int n = wl->loadWhitelist(satwhitelist);
+        int n = wl->loadWhitelist(whitelist);
         if (n >= 0) {
             logger << info << "loaded " << n << " items to whitelist" << std::endl;
         } else {
             logger << error << "couldn't load whitelist" << std::endl;
             exit(-1);
         }
-        free(satwhitelist);
-    }
-
-    if (mergeblacklist) {
-        PresetList *bl = PresetList::getInstance();
-        std::ifstream blacklistfile(mergeblacklist);
-        int n = bl->loadBlacklist(blacklistfile);
-        if (n >= 0) {
-            logger << info << "loaded " << n << " items to merge blacklist" << std::endl;
-        } else {
-            logger << error << "couldn't load merge blacklist" << std::endl;
-            exit(-1);
-        }
-        free(mergeblacklist);
-    }
-
-    if (mergewhitelist) {
-        PresetList *bl = PresetList::getInstance();
-        std::ifstream whitelistfile(mergewhitelist);
-        int n = bl->loadWhitelist(whitelistfile);
-        if (n >= 0) {
-            logger << info << "loaded " << n << " items to merge whitelist" << std::endl;
-        } else {
-            logger << error << "couldn't load merge whitelist" << std::endl;
-            exit(-1);
-        }
-        free(mergewhitelist);
+        free(whitelist);
     }
 
     std::vector<std::string> workfiles;
@@ -1096,6 +899,7 @@ int main (int argc, char ** argv) {
                 return EXIT_FAILURE;
             } else { /* Father process */
                 wait_for_forked_child(pid, threads, workfiles[i].c_str());
+
             }
         }
         /* Wait unitl fork count reaches zero */
