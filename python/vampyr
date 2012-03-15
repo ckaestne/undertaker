@@ -18,9 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import sys
+
+import glob
 import logging
 import pprint
+import tempfile
 
 from os.path import join, dirname
 
@@ -30,10 +34,12 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
                      + sys.path
 
-from vamos.tools import setup_logging, calculate_worklist, check_tool
+from vamos.tools import setup_logging, calculate_worklist, check_tool, execute, \
+    get_online_processors
 from vamos.vampyr.BuildFrameworks import select_framework
 from vamos.vampyr.Configuration import Configuration, ExpansionError
 from vamos.vampyr.Messages import MessageContainer
+from vamos.golem.kbuild import guess_arch_from_filename
 
 
 def do_checks(options, filename, configs):
@@ -132,9 +138,49 @@ def format_errors(errors):
 def analyze_variability(source_files, options):
     bf = options['framework']
 
+    # If there is no fixed architecture, then have to guess the 'best'
+    # architecture for each file individually. However, the user might
+    # request checking for files for which the best architecture may
+    # vary. Therefore, we need to group up the worklists by their
+    # architecture, as we need to run undertaker's dead analysis on each
+    # architecture individually.
+    wl_dict = dict()
+    reset_arch = False
+    for f in source_files:
+        if not options.has_key('arch') or not options['arch']:
+            # NB: In that case we have to explicitly unset the architecture
+            #     in the buildframework each time we analyze a new file!
+            logging.info("Guessing architecture for %s", f)
+            arch, _ = guess_arch_from_filename(f)
+            reset_arch = True
+        else:
+            arch = options['arch']
+        if not wl_dict.has_key(arch):
+            wl_dict[arch] = set()
+        wl_dict[arch].add(f)
+        for dead in glob.glob("%s*dead" % f):
+            logging.debug("Removing stale defect file %s", dead)
+            os.unlink(dead)
+
+    for arch in wl_dict.keys():
+        if not os.path.exists('models/%s.model' % arch):
+            logging.error("No model found for architecture %s", arch)
+            continue
+        with tempfile.NamedTemporaryFile() as tmpfile:
+            tmpfile.write("\n".join(wl_dict[arch]))
+            tmpfile.flush()
+            execute("undertaker -j dead -m models/%s.model -t %d -b %s" \
+                        % (arch, options['threads'], tmpfile.name),
+                    failok=False)
+
     for f in source_files:
         logging.info("Analyzing %s", f)
+        if reset_arch:
+            bf.options['arch'], bf.options['subarch'] = None, None
         results = bf.analyze_configuration_coverage(f, None)
+        # add dead/undead statistics
+        results['dead blocks']   = [x.split(".")[-4] for x in glob.glob("%s*.dead" % f)]
+        results['undead blocks'] = [x.split(".")[-4] for x in glob.glob("%s*.undead" % f)]
         reportname = f + ".coverage"
         if 'arch' in options and options['arch']:
             reportname += '.' + options['arch']
@@ -142,9 +188,23 @@ def analyze_variability(source_files, options):
             fd.write(pprint.pformat(results))
             print "coverage report dumped to " + reportname
 
-        print "%s: Covered %d/%d blocks, %d/%d lines" % (f,
-             len(results['blocks_covered']), len(results['blocks_total']),
-             results['lines_covered'], results['lines_total'])
+        print "%s: Covered %d/%d blocks, %d/%d lines, %d deads" % \
+            (f, len(results['blocks_covered']), len(results['blocks_total']),
+             results['lines_covered'], results['lines_total'],
+             len(results["dead blocks"]))
+
+        if len(results['blocks_covered'] - results['blocks_total']) > 0:
+            logging.error("File %s covered more blocks than available: %d > %d",
+                          f, len(results['blocks_covered']), len(results['blocks_total']))
+
+        if results['lines_covered'] > results['lines_total']:
+            logging.error("File %s covered more lines than available: %d > %d",
+                          f, results['lines_covered'], results['lines_total'])
+
+        for dead in results['dead blocks']:
+            if dead in results['blocks_covered']:
+                logging.error("Block %s in %s is dead but still covered", dead, f)
+
 
 def expand_partial_configurations(framework, source_files):
     success = set()
@@ -197,6 +257,9 @@ def main():
                       help="try to expand the given partial configuration")
     parser.add_option('-b', '--batch', dest='batch_mode', action='store_true', default=False,
                       help="operate in batch mode, read filenames from given worklists")
+    parser.add_option('-t', '--threads', dest='threads', action='store', type='int',
+                      default=0,
+                      help="Number of parallel threads for undertaker dead analysis")
 
     (opts, args) = parser.parse_args()
 
@@ -208,6 +271,7 @@ def main():
         sys.exit(1)
 
     options = { 'args': {},
+                'threads': get_online_processors() if opts.threads == 0 else opts.threads,
                 'exclude_others': opts.exclude_others,
                 'loglevel': logging.getLogger().getEffectiveLevel()}
 

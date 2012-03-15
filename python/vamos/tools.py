@@ -141,3 +141,17 @@ def check_tool(tool):
         return False
 
     return True
+
+def get_online_processors():
+    """
+    tries to determine how many processors are currently online
+    """
+
+    threads = 1
+    try:
+        output, _= execute("getconf _NPROCESSORS_ONLN", failok=False)
+        threads = int(output[0])
+    except StandardError:
+        logging.error("Unable to determine number of online processors, " +\
+                          "assuming 1")
+    return threads

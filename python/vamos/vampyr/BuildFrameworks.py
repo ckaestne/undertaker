@@ -91,9 +91,15 @@ class BuildFramework:
             'blocks': {},
             'lines': {}}
 
-        total_blocks = set(get_conditional_blocks(filename))
+        total_blocks = set(get_conditional_blocks(filename, None,
+                                                  configuration_blocks=False))
         total_blocks.add("B00")
         return_dict['blocks_total'] = total_blocks
+
+        conf_blocks = set(get_conditional_blocks(filename, None,
+                                                 configuration_blocks=True))
+        conf_blocks.add("B00")
+        return_dict['configuration_blocks'] = conf_blocks
 
         covered_blocks = set()
         configs = self.calculate_configurations(filename)
@@ -108,7 +114,9 @@ class BuildFramework:
                 config.switch_to()
                 old_len = len(covered_blocks)
                 return_dict['blocks'][config.config] = \
-                    set(get_conditional_blocks(filename, autoconf_h)) | set(["B00"])
+                    set(get_conditional_blocks(filename, autoconf_h,
+                                               configuration_blocks=False)) \
+                                               | set(["B00"])
                 covered_blocks |= return_dict['blocks'][config.config]
 
                 print "Config %s added %d additional blocks" % \
@@ -286,7 +294,8 @@ class KbuildBuildFramework(BuildFramework):
         if file_in_current_configuration(filename,
                             arch=self.options['arch'], subarch=self.options['subarch']) != "n":
             return_dict['blocks_allyesconfig'] = \
-                set(get_conditional_blocks(filename, autoconf_h)) | set(["B00"])
+                set(get_conditional_blocks(filename, autoconf_h, configuration_blocks=False)) \
+                    | set(["B00"])
         else:
             return_dict['blocks_allyesconfig'] = set()
 

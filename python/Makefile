@@ -1,5 +1,5 @@
 PYTHONFILES=golem rsf2model undertaker-calc-coverage vampyr $(wildcard vamos/*/*.py) $(wildcard vamos/*.py)
-SEARCHPATH="$(CURDIR)/../undertaker:$(CURDIR):$(PATH)"
+SEARCHPATH="$(CURDIR)/../undertaker:$(CURDIR)/../ziz:$(CURDIR):$(PATH)"
 
 all:
 

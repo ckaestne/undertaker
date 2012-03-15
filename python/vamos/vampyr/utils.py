@@ -34,16 +34,13 @@ class ExpansionSanityCheckError(ExpansionError):
     """ Internal kernel config sanity checks failed, like `make silentoldconfig` """
     pass
 
-class PredatorError(RuntimeError):
-    pass
-
 
 def get_conditional_blocks(filename, autoconf_h=None, configuration_blocks=True,
                            strip_linums=True):
     """
     Counts the conditional blocks in the given source file
 
-    The calculation is done using the 'predator' binary from the system
+    The calculation is done using the 'zizler' binary from the system
     path.
 
     If the parameter 'autoconf_h' is set to an existing file, then the
@@ -54,8 +51,7 @@ def get_conditional_blocks(filename, autoconf_h=None, configuration_blocks=True,
 
     If the parameter configuration_blocks is set to true, only
     configuration control conditional blocks will be counted, otherwise
-    all blocks. This function will use the 'zizler' tool in the former
-    case, and 'predator in the latter case.
+    all blocks.
 
     @return a non-empty list of blocks found in the source file
 
@@ -64,7 +60,7 @@ def get_conditional_blocks(filename, autoconf_h=None, configuration_blocks=True,
     if configuration_blocks:
         normalizer = 'zizler -cC "%s"' % filename
     else:
-        normalizer = 'predator "%s"' % filename
+        normalizer = 'zizler -c "%s"' % filename
 
     if autoconf_h and os.path.exists(autoconf_h):
         cmd = '%s | cpp -include %s' % (normalizer, autoconf_h)
@@ -86,12 +82,13 @@ def get_conditional_blocks(filename, autoconf_h=None, configuration_blocks=True,
     return blocks
 
 
-def get_block_to_linum_map(filename):
+def get_block_to_linum_map(filename, configuration_blocks=False):
     """Returns a map from configuration controlled block name to a
     line count within the block"""
 
-    blocks = get_conditional_blocks(filename, autoconf_h=False, configuration_blocks = True,
-                                    strip_linums = False)
+    blocks = get_conditional_blocks(filename, autoconf_h=False,
+                                    configuration_blocks=configuration_blocks,
+                                    strip_linums=False)
 
     d = dict([tuple(x.split(" ")) for x in blocks])
     for key in d:

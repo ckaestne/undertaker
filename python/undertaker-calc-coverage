@@ -29,7 +29,7 @@ from vamos.golem.kbuild import *
 from vamos.model import Model
 from vamos.tools import setup_logging, execute
 from vamos.vampyr.utils import get_conditional_blocks, get_loc_coverage
-from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError, PredatorError
+from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
 
 import shutil
 
@@ -463,8 +463,6 @@ def do_work(filenames, options):
                         pass
 
 
-        except PredatorError as error:
-            continue
         except RuntimeError as error:
             logging.error(error.__str__())
             logging.error("Skipping file " + filename)
