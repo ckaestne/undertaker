@@ -328,15 +328,16 @@ SatChecker::SatChecker(const char *sat, int debug)
 SatChecker::SatChecker(const std::string sat, int debug)
     : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
 
-bool SatChecker::operator()() throw (SatCheckerError) {
+bool SatChecker::operator()(SATMode mode) throw (SatCheckerError) {
     /* Clear the debug parser, if we are called multiple times */
     debug_parser.clear();
     debug_parser_indent = 0;
 
     try {
         Picosat::picosat_init();
-        // try to enable as many features as possible
-        Picosat::picosat_set_global_default_phase(1);
+        /* Configure picosat to the given mode, default is 1 (trying to enable
+         * as many features as possible) */
+        Picosat::picosat_set_global_default_phase(mode);
 
         fillSatChecker(_sat);
 
