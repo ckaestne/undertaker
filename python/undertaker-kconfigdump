@@ -4,6 +4,7 @@
 #
 # Copyright (C) 2009-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud,uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -102,16 +103,21 @@ function do_convert() {
   # special case for user mode linux
   # Note that upstream commit 5c48b108ecbf6505d929e64d50dace13ac2bdf34 renamed
   # arch/{um/Kconfig.x86 => x86/um/Kconfig}
+  # get the right file even in historic linux trees.
     SUBARCH=$ARCH
     KCONFIG=Kconfig
     if [ x"$ARCH" = x"um" ]; then
         SUBARCH=x86
-        KCONFIG=Kconfig.x86
+        if [ -r arch/um/Kconfig ]; then
+            KCONFIG=Kconfig
+        else
+            KCONFIG=Kconfig.um
+        fi
     fi
 
     test -f arch/$ARCH/$KCONFIG || {
        echo "ERROR: Architecture $ARCH not found";
-       exit 1
+       return
     }
 
   # dumpconf, remove all the comments because they will confuse rsf2model
@@ -137,6 +143,6 @@ do
 done
 
 while [ $(jobs -r | wc -l) -gt 0 ]; do
-	sleep 0.5
+    sleep 0.5
 done
 
