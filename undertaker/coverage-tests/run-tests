@@ -42,6 +42,15 @@ else
     passed=$(( $passed + 1 ))
 fi
 
+# test formatCommented functionality
+total=$(( $total + 1 ))
+undertaker -q -j coverage -O exec:cat coverage-cat.c > coverage-cat.c.got
+if ! diff -q coverage-cat.c.got coverage-cat.c.expected; then
+    echo "FAILED: output for coverage-cat.c differs"
+else
+    passed=$(( $passed + 1 ))
+fi
+
 
 echo "$passed/$total checks passed"
 [ $passed -eq $total ] || exit 1

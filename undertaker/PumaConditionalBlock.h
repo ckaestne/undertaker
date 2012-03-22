@@ -90,7 +90,8 @@ public:
 
     Puma::Token *pumaStartToken() const { return _start; };
     Puma::Token *pumaEndToken() const { return _end; };
-
+    Puma::Unit  *unit() const { return _current_node->startToken() ?
+            _current_node->startToken()->unit() : 0; }
 
     //! \return original untouched expression
     virtual const char * ExpressionStr() const;
@@ -117,6 +118,7 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     Puma::ErrorStream _err;
     Puma::CProject *_project;
     Puma::CParser _parser;
+    Puma::Unit *_unit; // the unit we are working on
 
     static std::list<std::string> _includePaths;
 

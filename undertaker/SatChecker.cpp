@@ -547,7 +547,12 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
     sighandler_t oldaction;
 
     PumaConditionalBlock *top = (PumaConditionalBlock *) file.topBlock();
-    Puma::Unit *unit = top->pumaStartToken()->unit();
+    Puma::Unit *unit = top->unit();
+    if (!unit) {
+        // in this case we have lost. this can happen e.g. on an empty
+        // file, such as /dev/null
+        return 0;
+    }
 
 	/* If the child process terminates before reading all of stdin
 	 * undertaker gets a SIGPIPE which we don't want to handle
@@ -570,21 +575,24 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
 
             next = block->pumaEndToken();
             flag_map[next] = false;
-            do { next = unit->next(next); } while (next->text()[0] != '\n');
-            flag_map[next] = true;
+            do { next = unit->next(next); } while ( next && next->text()[0] != '\n');
+            if (next)
+                flag_map[next] = true;
         } else {
             // Block is disabled in this assignment
             next = block->pumaStartToken();
             flag_map[next] = false;
             do {
                 next = unit->next(next);
-            } while (next->text()[0] != '\n');
-            flag_map[next] = false;
+            } while (next && next->text()[0] != '\n');
+            if (next)
+                flag_map[next] = false;
             next = block->pumaEndToken();
             do {
                 next = unit->next(next);
-            } while (next->text()[0] != '\n');
-            flag_map[next] = true;
+            } while (next && next->text()[0] != '\n');
+            if (next)
+                flag_map[next] = true;
         }
     }
 

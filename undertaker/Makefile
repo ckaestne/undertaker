@@ -98,6 +98,9 @@ clean-check:
 	                 -o -name "_block.config" \
 	                 -o -name "*.undead" \
 	                 \) -exec rm {} \;
+
+	rm -vf coverage-tests/coverage-cat.c.got
+
 docs:
 	doxygen
 

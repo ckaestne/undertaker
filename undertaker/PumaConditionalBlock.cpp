@@ -180,13 +180,13 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
         return NULL;
     }
 
-    unit = remove_cpp_statements(unit);
+    _unit = remove_cpp_statements(unit);
 
-    CTranslationUnit *tu = new CTranslationUnit (*unit, *_project);
+    CTranslationUnit *tu = new CTranslationUnit (*_unit, *_project);
 
     // prepare C preprocessor
     TokenStream stream;           // linearize tokens from several files
-    stream.push (unit);
+    stream.push (_unit);
     _project->unitManager ().init ();
 
     _cpp = new PreprocessorParser(&_err, &_project->unitManager(), &tu->local_units(), std::cerr);
@@ -196,14 +196,14 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
 
     /* Resolve all #include statements, must be done after _cpp
        initialization */
-    unit = resolve_includes(unit);
+    _unit = resolve_includes(_unit);
     stream.reset();
     stream.push(unit);
 
     _cpp->silentMode ();
     _cpp->parse ();
     /* After parsing we have to reset the macro manager */
-    reset_MacroManager(unit);
+    reset_MacroManager(_unit);
 
     Puma::PreTree *ptree = _cpp->syntaxTree();
     if (!ptree) {
@@ -235,7 +235,7 @@ PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
 
 #if 0
 #define TRACECALL \
-    logger << debug << __PRETTY_FUNCTION__ << ": "                   \
+    logger << error << __PRETTY_FUNCTION__ << ": "                   \
               << "Start: " << node->startToken()->location().line() << ", "       \
               << "End: " << node->endToken()->location().line() \
               << std::endl
@@ -249,9 +249,13 @@ PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
 #endif
 
 void PumaConditionalBlockBuilder::visitPreProgram_Pre (PreProgram *node) {
-    TRACECALL;
+    if (node->startToken()) {
+        TRACECALL;
+    }
 
     assert (!_current);
+    assert (_unit);
+
     _nodeNum = 0;
     _current = new PumaConditionalBlock(_file, NULL, NULL, node, 0, *this);
     _current->_isIfBlock = true;
@@ -261,7 +265,9 @@ void PumaConditionalBlockBuilder::visitPreProgram_Pre (PreProgram *node) {
 }
 
 void PumaConditionalBlockBuilder::visitPreProgram_Post (__unused PreProgram *node ) {
-    TRACECALL;
+    if (node->startToken()) {
+        TRACECALL;
+    }
     _condBlockStack.pop();
 }
 
