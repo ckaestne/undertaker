@@ -622,7 +622,7 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
     }
 
     while (running_processes >= threads) {
-        int state;
+        int state = 0;
         pid_t pid = waitpid(-1, &state, 0);
         if (pid == -1) break;
 
@@ -632,12 +632,15 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
                 arguments.erase(pid);
             } else {
                 process_stats.failed ++;
-                logger << error << "Process (" << arguments[pid]
-                       << ") failed with exitcode " << WEXITSTATUS(state) << std::endl;
+                logger << error << "Process (pid: " << pid
+                       << ", args: " << arguments[pid]
+                       << ") failed with exitcode "
+                       << WEXITSTATUS(state) << std::endl;
             }
         } else if (WIFSIGNALED(state)) {
             process_stats.signaled++;
-            logger << error << "Process (" << arguments[pid]
+            logger << error << "Process (pid: " << pid
+                   << ", args: " << arguments[pid]
                    << ") failed with signal " << WTERMSIG(state) << std::endl;
         } else {
             continue;
@@ -888,22 +891,25 @@ int main (int argc, char ** argv) {
                 process_file(line.c_str());
         }
     } else {
-        for (unsigned int i = 0; i < workfiles.size(); i++) {
-            pid_t pid = fork();
-            if (pid == 0) { /* child */
-                /* calling the function pointer */
-                process_file(workfiles[i].c_str());
-                return RETVALUE;
-            } else if (pid < 0) {
-                logger << error << "forking failed. Exiting." << std::endl;
-                return EXIT_FAILURE;
-            } else { /* Father process */
-                wait_for_forked_child(pid, threads, workfiles[i].c_str());
-
+        if (workfiles.size() > 1) {
+            for (unsigned int i = 0; i < workfiles.size(); i++) {
+                pid_t pid = fork();
+                if (pid == 0) { /* child */
+                    /* calling the function pointer */
+                    process_file(workfiles[i].c_str());
+                    return RETVALUE;
+                } else if (pid < 0) {
+                    logger << error << "forking failed. Exiting." << std::endl;
+                    return EXIT_FAILURE;
+                } else { /* Father process */
+                    wait_for_forked_child(pid, threads, workfiles[i].c_str());
+                }
             }
+            /* Wait until fork count reaches zero */
+            wait_for_forked_child(0, 0, 0, threads > 1);
+        } else {
+            process_file(workfiles[0].c_str());
         }
-        /* Wait unitl fork count reaches zero */
-        wait_for_forked_child(0, 0, 0, threads > 1);
     }
     return RETVALUE;
 }
