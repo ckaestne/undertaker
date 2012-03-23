@@ -18,8 +18,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage
-from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError, find_autoconf
-from vamos.golem.kbuild import guess_arch_from_filename, call_linux_makefile, apply_configuration
+from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
+from vamos.golem.kbuild import guess_arch_from_filename, call_linux_makefile, \
+    apply_configuration, find_autoconf
 from vamos.tools import execute
 from vamos.model import Model
 from vamos.Config import Config
@@ -154,7 +155,7 @@ class LinuxConfiguration(Configuration):
 
         (files, _) = execute("find include -name autoconf.h -print -delete", failok=False)
         if len(files) > 1:
-            logging.error("Deleted spurious configuration files: %s" + ", ".join(files))
+            logging.error("Deleted spurious configuration files: %s", ", ".join(files))
 
         target = self.expansion_strategy
         extra_var = 'KCONFIG_ALLCONFIG="%s"' % self.config

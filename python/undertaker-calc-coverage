@@ -136,7 +136,7 @@ def default_configs(filename, results):
     for config in std_configs:
         logging.info("Switching to configuration preset " + config)
         switch_config(config)
-        results[filename][config] = len(get_conditional_blocks(filename, selected_only=True))
+        results[filename][config] = len(get_conditional_blocks(filename, find_autoconf()))
     return results
 
 # e.g. taken from the makefiles
@@ -331,7 +331,7 @@ def vamos_coverage(filename, results, options):
 
         results[filename][config]['value_errors'] = value_errors
         results[filename][config]['selected_items'] = selected_items(config)
-        results[filename][config]['loc_coverage'] = get_loc_coverage(filename)
+        results[filename][config]['loc_coverage'] = get_loc_coverage(filename, autoconf_h=find_autoconf())
 
         if options.run_sparse:
             (warnings, errors) = run_sparse_on_config(filename, config)
@@ -343,7 +343,7 @@ def vamos_coverage(filename, results, options):
 
         # now check what blocks are actually set
         old_len = len(covered)
-        covered_blocks = set(get_conditional_blocks(filename, selected_only=True))
+        covered_blocks = set(get_conditional_blocks(filename, find_autoconf()))
         covered |= covered_blocks
         logging.info("Config %s added %d additional blocks",
                      config, len(covered) - old_len)
@@ -427,7 +427,7 @@ def do_work(filenames, options):
         print "expanded_source: %s" % options.expanded_source
         print "kconfig: %s"  % (options.model is not None)
         print "min_strategy: %s" % (options.strategy == "minimal")
-        print "loc: %d" % get_loc_coverage(filename)
+        print "loc: %d" % get_loc_coverage(filename, autoconf_h=find_autoconf())
         print "total_blocks: %d"     % len(results[filename]['total_blocks'])
         print "allyes_coverage: %d" % results[filename]['allyesconfig']
 

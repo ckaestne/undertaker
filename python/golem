@@ -36,7 +36,7 @@ from vamos.golem.inference import FileSymbolInferencer
 from vamos.golem.kbuild import determine_buildsystem_variables, \
     file_in_current_configuration, files_for_current_configuration, \
     determine_buildsystem_variables_in_directory, apply_configuration, \
-    get_linux_version, NotALinuxTree, TreeNotConfigured
+    get_linux_version, NotALinuxTree, TreeNotConfigured, find_autoconf
 from vamos.vampyr.Configuration import ExpansionError
 from vamos.vampyr.BuildFrameworks import KbuildBuildFramework
 from vamos.vampyr.utils import get_conditional_blocks
@@ -113,6 +113,7 @@ def analyze_configuration_coverage(source_files, arch, subarch, do_expansion=Tru
 
         total_blocks = set(get_conditional_blocks(f))
         total_blocks.add("B00")
+        autoconf_h = find_autoconf()
 
         if do_expansion:
             configs = bf.calculate_configurations(f)
@@ -121,7 +122,7 @@ def analyze_configuration_coverage(source_files, arch, subarch, do_expansion=Tru
                 try:
                     config.expand()
                     old_len = len(covered_blocks)
-                    covered_blocks |= set(get_conditional_blocks(f, selected_only=True))
+                    covered_blocks |= set(get_conditional_blocks(f, autoconf_h=autoconf_h))
                     covered_blocks.add("B00")
                     print "Config %s added %d additional blocks" % \
                         (config.config, len(covered_blocks) - old_len)
@@ -130,7 +131,7 @@ def analyze_configuration_coverage(source_files, arch, subarch, do_expansion=Tru
         else:
             apply_configuration(arch=arch, subarch=subarch)
             if file_in_current_configuration(f) != "n":
-                covered_blocks = set(get_conditional_blocks(f, selected_only=True))
+                covered_blocks = set(get_conditional_blocks(f, autoconf_h=autoconf_h))
                 covered_blocks.add("B00")
             else:
                 logging.warning("File %s is not in current configuration", f)

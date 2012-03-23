@@ -21,6 +21,7 @@
 
 from vamos.Config import Config
 from vamos.tools import execute, CommandFailed, execute
+
 from tempfile import mkstemp
 from glob import glob
 
@@ -39,6 +40,23 @@ class TreeNotConfigured(RuntimeError):
 class NotALinuxTree(RuntimeError):
     """ Indicates we are not in a Linux tree """
     pass
+
+
+def find_autoconf():
+    """ returns the path to the autoconf.h file in this linux tree
+    """
+
+    if vamos.golem.autoconf_h:
+        return vamos.golem.autoconf_h
+
+    (autoconf, _) = execute("find include -name autoconf.h", failok=False)
+    autoconf = filter(lambda x: len(x) > 0, autoconf)
+    if len(autoconf) != 1:
+        logging.error("Found %d autoconf.h files (%s)",
+                      len(autoconf), ", ".join(autoconf))
+        raise RuntimeError("Not exactly one autoconf.h was found")
+    vamos.golem.autoconf_h = autoconf[0]
+    return vamos.golem.autoconf_h
 
 
 def apply_configuration(arch=None, subarch=None, filename=None):

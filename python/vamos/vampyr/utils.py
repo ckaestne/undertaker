@@ -23,8 +23,6 @@ from vamos.tools import execute, CommandFailed
 import logging
 import os
 
-import vamos.vampyr
-
 class ExpansionError(RuntimeError):
     """ Base class of all sort of Expansion errors """
     pass
@@ -38,32 +36,19 @@ class PredatorError(RuntimeError):
     pass
 
 
-def find_autoconf():
-    """ returns the path to the autoconf.h file in this linux tree
-    """
-
-    if vamos.vampyr.autoconf_h:
-        return vamos.vampyr.autoconf_h
-
-    (autoconf, _) = execute("find include -name autoconf.h", failok=False)
-    autoconf = filter(lambda x: len(x) > 0, autoconf)
-    if len(autoconf) != 1:
-        logging.error("Found %d autoconf.h files (%s)",
-                      len(autoconf), ", ".join(autoconf))
-        raise ExpansionSanityCheckError("Not exactly one autoconf.h was found")
-    vamos.vampyr.autoconf_h = autoconf[0]
-    return vamos.vampyr.autoconf_h
-
-
-def get_conditional_blocks(filename, selected_only=False, configuration_blocks=True,
-                           strip_linums = True):
+def get_conditional_blocks(filename, autoconf_h=None, configuration_blocks=True,
+                           strip_linums=True):
     """
     Counts the conditional blocks in the given source file
 
     The calculation is done using the 'predator' binary from the system
-    path.  If the parameter 'actually_selected' is set, then the source
-    file is preprocessed with 'cpp' while using current configuration as
-    per 'include/generated/autoconf.h'
+    path.
+
+    If the parameter 'autoconf_h' is set to an existing file, then the
+    source file is preprocessed with 'cpp' with the given
+    configuration. Usually, this will be some 'autoconf.h'. For Linux,
+    this can be detected with the method find_autoconf() from the golem
+    package.
 
     If the parameter configuration_blocks is set to true, only
     configuration control conditional blocks will be counted, otherwise
@@ -79,14 +64,8 @@ def get_conditional_blocks(filename, selected_only=False, configuration_blocks=T
     else:
         normalizer = 'predator "%s"' % filename
 
-    if selected_only:
-        try:
-            cmd = '%s | cpp -include %s' % (normalizer, find_autoconf())
-        except ExpansionSanityCheckError:
-            # maybe we need to do something more aggressive or clever here
-            (files, _) = execute("find include -name autoconf.h -print -delete", failok=False)
-            logging.warning("Deleted spurious configuration files: %s", ", ".join(files))
-            raise
+    if autoconf_h and os.path.exists(autoconf_h):
+        cmd = '%s | cpp -include %s' % (normalizer, autoconf_h)
     else:
         cmd = normalizer
     (blocks, rc) = execute(cmd, echo=True, failok=True)
@@ -109,7 +88,7 @@ def get_block_to_linum_map(filename):
     """Returns a map from configuration controlled block name to a
     line count within the block"""
 
-    blocks = get_conditional_blocks(filename, selected_only=False, configuration_blocks = True,
+    blocks = get_conditional_blocks(filename, autoconf_h=False, configuration_blocks = True,
                                     strip_linums = False)
 
     d = dict([tuple(x.split(" ")) for x in blocks])
@@ -118,14 +97,32 @@ def get_block_to_linum_map(filename):
     return d
 
 
-def get_loc_coverage(filename):
+def get_loc_coverage(filename, autoconf_h=None):
     """
     Returns LOC of the given file taking the current configuration into account
+
+    If the parameter 'autoconf_h' is set to an existing file, then the
+    source file is preprocessed with 'cpp' with the given
+    configuration. Usually, this will be some 'autoconf.h'. For Linux,
+    configuration. Usually, this will be some 'autoconf.h'. If it is not
+    set, then the file will not be preprocessed at all.
+
+    The given filename is stripped from '#include' directives, and
+    (optionally) configured with a configuration file.
+
+    ..note: For Linux, use the method 'find_autoconf()' from the
+            vamos.golem.kbuild package to find a suitable autoconf_h
+
+    ..note: Use '/dev/null' for an empty configuration
+
     """
 
     assert(os.path.exists(filename))
-    cmd = "grep -v -E '^\s*#\s*include' %s | cpp -include %s" % \
-        (filename, find_autoconf())
+    cmd = "grep -v -E '^\s*#\s*include' %s " % filename
+
+    if autoconf_h and os.path.exists(autoconf_h):
+        cmd += ' | cpp -include %s' % autoconf_h
+
     (lines, _) = execute(cmd, echo=True, failok=True)
     # we ignore the exitcode here as we are not interested in failing
     # for #error directives and similar.
