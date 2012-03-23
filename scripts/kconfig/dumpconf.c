@@ -221,7 +221,7 @@ void my_print_symbol(FILE *out, struct menu *menu)
                     fprintf(out, "\"\n");
                     break;
                 case P_SELECT:
-                    fprintf(out, "#select\t%s\t\"", sym->name);                                                  
+                    fprintf(out, "#select\t%s\t\"", sym->name);
                     expr_fprint(prop->expr, out);
                     fprintf(out, "\"\t\"");
                     expr_fprint(prop->visible.expr, out);
@@ -278,6 +278,7 @@ int main(int ac, char **av)
 	setlocale(LC_ALL, "");
 	bindtextdomain(PACKAGE, LOCALEDIR);
 	textdomain(PACKAGE);
+
 	if (stat(av[1], &tmpstat) != 0) {
 		fprintf(stderr, "could not open %s\n", av[1]);
 		exit(EXIT_FAILURE);
