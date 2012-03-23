@@ -23,10 +23,15 @@ if test "`ls -1 sb1250-mac.c.config? | wc -l`" -eq 2; then
     passed=$(( $passed + 1 ))
 fi
 
-if test "`ls -1 sb1250-mac.c.config?.src | wc -l`" -eq 2; then
+if test "`ls -1 sb1250-mac.c.source? | wc -l`" -eq 2; then
     passed=$(( $passed + 1 ))
 fi
-total=$(( $total + 2 ))
+
+if test "`ls -1 sb1250-mac.c.cppflags? | wc -l`" -eq 2; then
+    passed=$(( $passed + 1 ))
+fi
+
+total=$(( $total + 3 ))
 
 total=$(( $total + 1 ))
 if diff -q sb1250-mac.c.config?; then
@@ -36,7 +41,7 @@ else
 fi
 
 total=$(( $total + 1 ))
-if diff -q sb1250-mac.c.config?.src; then
+if diff -q sb1250-mac.c.source?; then
     echo "FAILED: sources for sb1250-mac.c must be different"
 else
     passed=$(( $passed + 1 ))
@@ -51,6 +56,12 @@ else
     passed=$(( $passed + 1 ))
 fi
 
+total=$(( $total + 1 ))
+if diff -q sb1250-mac.c.cppflags?; then
+    echo "FAILED: cppflags for sb1250-mac.c must be different"
+else
+    passed=$(( $passed + 1 ))
+fi
 
 echo "$passed/$total checks passed"
 [ $passed -eq $total ] || exit 1

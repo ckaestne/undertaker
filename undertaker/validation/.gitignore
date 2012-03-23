@@ -6,3 +6,5 @@
 *.dead
 *.undead
 *.c.config*
+*.c.cppflags*
+*.c.source*

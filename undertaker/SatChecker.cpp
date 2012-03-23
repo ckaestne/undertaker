@@ -619,16 +619,25 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
     return size();
 }
 
-int SatChecker::AssignmentMap::formatCombined(const CppFile &file, const ConfigurationModel *model, unsigned number) {
+int SatChecker::AssignmentMap::formatCombined(const CppFile &file, const ConfigurationModel *model,
+                                              const MissingSet& missingSet, unsigned number) {
     std::stringstream s;
-    s << file.getFilename() << ".config" << number;
+    s << file.getFilename() << ".cppflags" << number;
 
     std::ofstream modelstream(s.str().c_str());
     formatCPP(modelstream, model);
 
-    s << ".src";
+    s.str("");
+    s.clear();
+    s << file.getFilename() << ".source" << number;
     std::ofstream commented(s.str().c_str());
     formatCommented(commented, file);
+
+    s.str("");
+    s.clear();
+    s << file.getFilename() << ".config" << number;
+    std::ofstream kconfig(s.str().c_str());
+    formatKconfig(kconfig, missingSet);
 
     return size();
 }

@@ -203,17 +203,19 @@ public:
         int formatCommented(std::ostream &out, const CppFile &file);
 
         /**
-         * \brief combination of formatCPP and formatCommented.
+         * \brief combination of formatCPP, formatCommented and formatKconfig.
          *
-         * This output format uses both formatCPP and
-         * formatCommented. Unlike the other methods, this mode produces
-         * two additional files with the content.
+         * This output format uses all of formatCPP,
+         * formatCommented and formatKconfig. Unlike the other methods, this mode
+         * produces three additional files with the content.
          *
          * \param file passed to formatCommented
          * \param model passed to formatCPP
+         * \param missingSet passwd to formatKconfig
          * \param number a running numer that is encoded in the filename
          */
-        int formatCombined(const CppFile &file, const ConfigurationModel *model, unsigned number);
+        int formatCombined(const CppFile &file, const ConfigurationModel *model,
+                           const MissingSet& missingSet, unsigned number);
     };
 
     /**

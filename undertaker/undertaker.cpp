@@ -65,7 +65,8 @@ enum CoverageOutputMode {
     COVERAGE_MODE_CPP,     // prints all cpp items as cpp cmd-line arguments
     COVERAGE_MODE_EXEC,    // pipe file for every configuration to cmd
     COVERAGE_MODE_ALL,     // prints all items and blocks
-    COVERAGE_MODE_COMBINED,// create files for both configuration and modified source file
+    COVERAGE_MODE_COMBINED,// create files for configuration, kconfig and modified source file
+    COVERAGE_MODE_COMMENTED,    // creates file contining modified source
 } coverageOutputMode;
 
 enum CoverageOperationMode {
@@ -174,8 +175,16 @@ void process_file_coverage_helper(const char *filename) {
     logger << info << "Entries in missingSet: " << missingSet.size() << std::endl;
 
     std::string pattern(filename);
-    pattern.append(".config*");
+    pattern.append(".cppflags*");
     int r = rm_pattern(pattern.c_str());
+
+    pattern = filename;
+    pattern.append(".source*");
+    rm_pattern(pattern.c_str());
+
+    pattern = filename;
+    pattern.append(".config*");
+    rm_pattern(pattern.c_str());
 
     logger << info << "Removed " << r << " old configurations matching " << pattern
            << std::endl;
@@ -233,7 +242,11 @@ void process_file_coverage_helper(const char *filename) {
             (*it).formatExec(file, coverage_exec_cmd);
             break;
         case COVERAGE_MODE_COMBINED:
-            (*it).formatCombined(file, model, current);
+            (*it).formatCombined(file, model, missingSet, current);
+            break;
+        case COVERAGE_MODE_COMMENTED:
+            // TODO creates preprocessed source in *.config$n
+            (*it).formatCommented(outf, file);
             break;
         default:
             assert(false);
@@ -714,6 +727,8 @@ int main (int argc, char ** argv) {
                 coverageOutputMode = COVERAGE_MODE_CPP;
             else if (0 == strcmp(optarg, "all"))
                 coverageOutputMode = COVERAGE_MODE_ALL;
+            else if (0 == strcmp(optarg, "commented"))
+                coverageOutputMode = COVERAGE_MODE_COMMENTED;
             else if (0 == strcmp(optarg, "combined"))
                 coverageOutputMode = COVERAGE_MODE_COMBINED;
             else if (0 == strncmp(optarg, "exec", 4)) {
