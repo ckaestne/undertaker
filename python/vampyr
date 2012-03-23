@@ -20,7 +20,7 @@
 
 import sys
 import logging
-from os.path import join, dirname, exists
+from os.path import join, dirname
 
 from optparse import OptionParser
 
@@ -28,7 +28,7 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
                      + sys.path
 
-from vamos.tools import setup_logging
+from vamos.tools import setup_logging, calculate_worklist
 from vamos.vampyr import BuildFrameworks
 from vamos.vampyr.Configuration import Configuration
 from vamos.vampyr.Messages import MessageContainer
@@ -142,6 +142,8 @@ def main():
     parser.add_option("-f", '--framework', dest='framework', action='store', type="string",
                       default="bare",
                       help="select build framework (one of 'bare', 'kbuild')")
+    parser.add_option('-b', '--batch', dest='batch_mode', action='store_true',
+                      help="operate in batch mode, read filenames from given worklists")
 
     (opts, args) = parser.parse_args()
 
@@ -183,10 +185,7 @@ def main():
         if (call == 'sparse' and 'sparse' not in options['args']):
             options['args']['sparse'] = "-Wsparse-all"
 
-    for fn in args:
-        if not exists(fn):
-            logging.critical("File not found %s", fn)
-            continue
+    for fn in calculate_worklist(args, batch_mode=opts.batch_mode):
         handle_file(options, fn)
 
 

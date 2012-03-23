@@ -29,7 +29,7 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      + sys.path
 
 
-from vamos.tools import setup_logging
+from vamos.tools import setup_logging, calculate_worklist
 from vamos.model import Model
 
 from vamos.golem.inference import FileSymbolInferencer
@@ -138,34 +138,6 @@ def analyze_configuration_coverage(source_files, arch, subarch, do_expansion=Tru
 
         print "%s: Covered %d/%d blocks" % (f, len(covered_blocks), len(total_blocks))
 
-def calculate_worklist(batch_mode, args):
-    worklist = set()
-
-    if batch_mode:
-        for worklist_file in args:
-            oldlen = len(worklist)
-            try:
-                with open(worklist_file) as fd:
-                    for line in fd:
-                        f = os.path.normpath(line.rstrip())
-                        if os.path.exists(f):
-                            worklist.add(f)
-                        else:
-                            logging.warning("Skipping non-existent file %s", f)
-            except IOError:
-                logging.warning("failed to process worklist %s", worklist_file)
-            logging.info("Added %d files from worklist %s",
-                         len(worklist) - oldlen, worklist_file)
-    else:
-        for filename in args:
-            f = os.path.normpath(filename)
-            if os.path.exists(f):
-                worklist.add(f)
-            else:
-                logging.warning("Skipping non-existent file %s", f)
-    logging.info("Processing %d files in total", len(worklist))
-    return worklist
-
 
 def main():
     parser = OptionParser(usage="%prog [options]\n\n"
@@ -233,13 +205,13 @@ def main():
         sys.exit(0)
 
     if opts.do_analyze:
-        worklist = calculate_worklist(opts.batch_mode, args)
+        worklist = calculate_worklist(args, batch_mode=opts.batch_mode)
         analyze_configuration_coverage(worklist, arch, subarch, opts.do_expansion)
         sys.exit(0)
 
     if opts.do_expansion:
         bf = KbuildBuildFramework(expansion_strategy='alldefconfig', coverage_strategy='min')
-        worklist = calculate_worklist(opts.batch_mode, args)
+        worklist = calculate_worklist(args, batch_mode=opts.batch_mode)
         success, fail = expand_partial_configurations(bf, worklist)
         print "Total OK: %d, Total FAIL: %d" % (len(success), len(fail))
         sys.exit(0)

@@ -80,3 +80,47 @@ def execute(command, echo=True, failok=True):
         stdout = stdout[:-1]
     return (stdout.__str__().rsplit('\n'), p.returncode)
 
+
+def calculate_worklist(args, batch_mode=False):
+    """
+    Calculates a sanitizes worklist from a list of given arguments
+
+    This method is intended to be passed lists from the command line. It
+    is passed a list of filenames, which are tested individually for
+    existance. Non-existing filenames are skipped with a warning.
+
+    Optionally, the given files can be interpreted as worklist. In this
+    case, each line in the given files is tested for existance and
+    considered for the worklist.
+
+    In any case, the caller can rely on a set of filenames which are
+    good for processing.
+    """
+
+    worklist = set()
+
+    if batch_mode:
+        for worklist_file in args:
+            oldlen = len(worklist)
+            try:
+                with open(worklist_file) as fd:
+                    for line in fd:
+                        f = os.path.normpath(line.rstrip())
+                        if os.path.exists(f):
+                            worklist.add(f)
+                        else:
+                            logging.warning("Skipping non-existent file %s", f)
+            except IOError:
+                logging.warning("failed to process worklist %s", worklist_file)
+            logging.info("Added %d files from worklist %s",
+                         len(worklist) - oldlen, worklist_file)
+    else:
+        for filename in args:
+            f = os.path.normpath(filename)
+            if os.path.exists(f):
+                worklist.add(f)
+            else:
+                logging.warning("Skipping non-existent file %s", f)
+    logging.info("Processing %d files in total", len(worklist))
+
+    return worklist
