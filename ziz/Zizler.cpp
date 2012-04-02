@@ -516,10 +516,6 @@ int main(int argc, char **argv)
         fileArg++;
         mode = Convert;
         remove_non_CONFIG_blocks = true;
-    } else if (arg.compare("-cC") == 0 || arg.compare("--convert-configurable") == 0) {
-        fileArg++;
-        mode = Convert;
-        remove_non_CONFIG_blocks = true;
     }
 
     int fail = 0;
