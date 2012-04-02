@@ -139,7 +139,7 @@ def main():
     parser.add_option("", '--exclude-others', dest='exclude_others', action='store_true',
                       default=False,
                       help="suppress warnings in '#included' source files")
-    parser.add_option("-f", '--framwork', dest='framework', action='store', type="string",
+    parser.add_option("-f", '--framework', dest='framework', action='store', type="string",
                       default="bare",
                       help="select build framework (one of 'bare', 'kbuild')")
 
