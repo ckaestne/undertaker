@@ -57,6 +57,7 @@ install: all $(MANPAGES)
 	@install -v python/undertaker-kconfigdump $(DESTDIR)$(BINDIR)
 	@install -v python/vampyr-spatch-wrapper $(DESTDIR)$(BINDIR)
 	@install -v python/fakecc $(DESTDIR)$(BINDIR)
+	@install -v python/busybox-kconfigdump $(DESTDIR)$(BINDIR)
 
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(LIBDIR)/undertaker
 
@@ -64,6 +65,7 @@ install: all $(MANPAGES)
 	@install -v undertaker/undertaker $(DESTDIR)$(BINDIR)
 	@install -v undertaker/undertaker-linux-tree $(DESTDIR)$(BINDIR)
 	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(BINDIR)
+	@install -v undertaker/undertaker-busybox-tree $(DESTDIR)$(BINDIR)
 
 	@install -v ziz/zizler $(DESTDIR)$(BINDIR)
 

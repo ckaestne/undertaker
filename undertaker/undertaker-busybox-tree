@@ -1,0 +1,117 @@
+#!/bin/bash -e
+#
+# Runs undertaker on a busybox source tree
+#
+# Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud.uni-erlangen.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# This script is indented to run the undertaker on a whole busybox
+# tree. It will determine which files to be processed and how many
+# threads can be started according to the count of processors your
+# machine has. It assumes, that you have run busybox-kconfigdump
+# before, in order to create the models.
+#
+
+# scan for deads by default
+MODE="scan-deads"
+
+while getopts :m:t:cvh OPT; do
+    case $OPT in
+        m)
+            MODELS="$OPTARG"
+            ;;
+        t)
+            PROCESSORS="$OPTARG"
+            ;;
+        c)
+            MODE="calc-coverage"
+            ;;
+        v)
+            echo "undertaker-busybox-tree"
+            exit
+            ;;
+        h)
+            echo "\`undertaker-busybox-tree' drives the undertaker over a whole busybox-tree"
+            echo
+            echo "Usage: ${0##*/} [-m DIR] [-t PROCS] [-c]"
+            echo " -m <modeldir>  Specify the directory for the models"
+            echo "           (default: models)"
+            echo " -t <count>   Number of analyzing processes"
+            echo "        (default: _NPROCESSORS_ONLN)"
+            echo " -c  Do coverage analysis instead of dead block search"
+            exit
+            ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+OPTIND=1
+
+MODELS=${MODELS:-models}
+PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
+
+if [ ! -f Config.in ]; then
+    echo "Not run in an busybox tree. Please run inside an busybox tree without arguments"
+    exit 1
+else
+    echo "Running on Busybox Version $(git describe || echo '(no git)')"
+fi
+
+if ! which  undertaker > /dev/null; then
+    echo "No undertaker binary found."
+    exit 1
+fi
+
+if ! ls "$MODELS"/busybox.model >/dev/null 2>&1; then
+    echo "No models found, please call undertaker-kconfigdump"
+    exit
+fi
+
+if [ "$MODE" = "calc-coverage" ]; then
+    find -type f -name '*.c' \
+        ! -regex '^./scripts.*' -print > undertaker-coverage-worklist
+
+    files=`wc -l <undertaker-coverage-worklist`
+    echo "Calculating partial configurations (greedy variant) on $files files"
+
+    undertaker -v -j coverage -C min -t "$PROCESSORS" -b undertaker-coverage-worklist \
+        -m "$MODELS" 2>&1 |
+            grep '^I: ./' > coverage.txt
+
+    if [ ! -s coverage.txt ]; then
+        echo "Coverage analysis failed!"
+        exit 1
+    fi
+
+    echo "TOP 50 variable files:"
+    awk -F'I: ' '/^I: / { print $2 }' < coverage.txt |
+            awk -F, '/Found Solutions/ { printf "%s %s\n", $2, $1 }' |
+            sort -n -r |
+            head -n 50 | tee coverage.stats
+fi
+
+if [ "$MODE" = "scan-deads" ]; then
+    find -type f -name "*.[hcS]" \
+        ! -regex '^./scripts.*' \
+        -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-worklist
+
+    # delete potentially confusing .dead files first
+    find . -type f -name '*dead' -delete
+
+    echo "Analyzing $(wc -l < undertaker-worklist) files with $PROCESSORS threads."
+    undertaker -v -t "$PROCESSORS" -b undertaker-worklist # -m "$MODELS"
+    printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
+    exit 0
+fi
