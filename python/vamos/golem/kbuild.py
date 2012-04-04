@@ -69,8 +69,13 @@ def apply_configuration(arch=None, subarch=None, filename=None):
         logging.warning("No architecture selected. Defaulting to x86")
         arch = 'x86'
 
+    # this catches unset defaults. Since boolean and tristate have
+    # implicit defaults, this can effectively only happen for integer
+    # and hex items. Both are fine with a setting of '0'
+    execute('sed -i s,=$,=0,g .config', failok=False)
     try:
-        call_linux_makefile('silentoldconfig', arch=arch, subarch=subarch)
+        call_linux_makefile('silentoldconfig', arch=arch, subarch=subarch,
+                            failok=False)
     except CommandFailed as e:
         if e.returncode == 2:
             raise TreeNotConfigured("target 'silentoldconfig' failed")
@@ -138,7 +143,8 @@ def files_for_current_configuration(arch=None, subarch=None, how=False):
                 # try to guess the source filename
                 sourcefile = guess_source_for_target(objfile)
                 if not sourcefile:
-                    logging.warning("Failed to guess source file for %s", objfile)
+                    logging.warning("Failed to guess source file for %s",
+                                    objfile)
                 else:
                     files.add(sourcefile)
         except IndexError:
@@ -371,10 +377,6 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
           'extra_env': extra_env,
           'target': target,
           'extra_variables': extra_variables }
-
-    # simulate interactive (re-)configuring by pressing a lot of enter
-    if 'oldconfig' in target:
-        cmd = 'yes '' | ' + cmd
 
     if dryrun:
         return (cmd, 0)

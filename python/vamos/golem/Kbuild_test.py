@@ -87,7 +87,7 @@ class testTools(t.TestCase):
 
         (cmd, rc) = call_linux_makefile('silentoldconfig', dryrun=True)
         self.assertEqual(rc, 0)
-        for needle in ('yes', '|', 'make', 'silentoldconfig', ' ARCH=x86'):
+        for needle in ('make', 'silentoldconfig', ' ARCH=x86'):
             self.assertIn(needle, cmd)
 
         (cmd, rc) = call_linux_makefile('', filename='./arch/x86/init.o', dryrun=True)
