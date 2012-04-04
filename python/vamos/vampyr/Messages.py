@@ -50,6 +50,9 @@ class SparseMessage:
             if 'originally declared here' in line:
                 continue
 
+            if '***' in line:
+                continue
+
             if last_prefix != None and line.startswith(last_prefix) \
                and len(m.group(2)) > 1:
                 result[-1] += " | " + m.group(3)
