@@ -232,10 +232,10 @@ void my_print_symbol(FILE *out, struct menu *menu)
 		    expr_fprint(prop->visible.expr, out);
 		    fprintf(out, "\n");
 		    break;
-		default:
-			fprintf(out, "  unknown prop %d!\n", prop->type);
-			break;
 #endif
+		default:
+//			fprintf(out, "  unknown prop %d!\n", prop->type);
+			break;
 		}
 	}
 }
