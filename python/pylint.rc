@@ -42,7 +42,8 @@ load-plugins=
 #  W0603: Using the global statement
 #  W0141: Using builting function 'filter', 'map', etc.
 #  W0614: Unused imports
-disable=C,W0401,W0603,W0141,W0614,R0903,R0904
+#  I0011: Locally disabling of messages
+disable=C,W0401,W0603,W0141,W0614,R0903,R0904,I0011
 
 
 [REPORTS]

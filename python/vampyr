@@ -20,6 +20,8 @@
 
 import sys
 import logging
+import pprint
+
 from os.path import join, dirname
 
 from optparse import OptionParser
@@ -30,7 +32,7 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
 
 from vamos.tools import setup_logging, calculate_worklist, check_tool
 from vamos.vampyr.BuildFrameworks import select_framework
-from vamos.vampyr.Configuration import Configuration
+from vamos.vampyr.Configuration import Configuration, ExpansionError
 from vamos.vampyr.Messages import MessageContainer
 
 
@@ -120,7 +122,53 @@ def format_errors(errors):
             print "  -------------"
 
 
+def analyze_variability(source_files, options):
+    bf = options['framework']
+
+    for f in source_files:
+        logging.info("Analyzing %s", f)
+        results = bf.analyze_configuration_coverage(f, None)
+        reportname = f + ".coverage"
+        if 'arch' in options and options['arch']:
+            reportname += '.' + options['arch']
+        with open(reportname, "w+") as fd:
+            fd.write(pprint.pformat(results))
+            print "coverage report dumped to " + reportname
+
+        print "%s: Covered %d/%d blocks, %d/%d lines" % (f,
+             len(results['blocks_covered']), len(results['blocks_total']),
+             results['lines_covered'], results['lines_total'])
+
+def expand_partial_configurations(framework, source_files):
+    success = set()
+    fail = set()
+
+    for f in source_files:
+        # santity check for allowing 'golem sched/kernel.c.config*'
+        # without stumbling over .expanded files
+        if f.endswith('.expanded'):
+            logging.info("Ignoring %s", f)
+            continue
+
+        configs = framework.calculate_configurations(f)
+        logging.info("%s: processing %d configurations", f, len(configs))
+
+        for config in configs:
+            logging.debug("Checking Config %s", config.filename())
+            try:
+                config.expand(verify=True)
+                success.add(config)
+                logging.info("OK:   " + config.filename())
+            except ExpansionError:
+                fail.add(config)
+                logging.info("FAIL: " + config.filename())
+
+    return (success, fail)
+
+
 def main():
+    # this method has too many branches
+    # pylint: disable=R0912
     parser = OptionParser(usage="%prog [options] <filename>")
     parser.add_option('-v', '--verbose', dest='verbose', action='count',
                       help="increase verbosity (specify multiple times for more)")
@@ -136,6 +184,10 @@ def main():
     parser.add_option("-f", '--framework', dest='framework', action='store', type="string",
                       default=None,
                       help="select build framework (one of 'bare', 'kbuild')")
+    parser.add_option('-a', '--analyze', dest='do_analyze', action='store_true', default=False,
+                      help="analyze variability")
+    parser.add_option('-e', '--expand', dest='do_expansion', action='store_true',
+                      help="try to expand the given partial configuration")
     parser.add_option('-b', '--batch', dest='batch_mode', action='store_true', default=False,
                       help="operate in batch mode, read filenames from given worklists")
 
@@ -160,6 +212,18 @@ def main():
         options['args'][key] = value
 
     options['framework'] = select_framework(opts.framework, options)
+
+    if opts.do_analyze:
+        source_files = calculate_worklist(args, opts.batch_mode)
+        analyze_variability(source_files, options)
+        sys.exit(0)
+
+    if opts.do_expansion:
+        bf = options['framework']
+        worklist = calculate_worklist(args, batch_mode=opts.batch_mode)
+        success, fail = expand_partial_configurations(bf, worklist)
+        print "Total OK: %d, Total FAIL: %d" % (len(success), len(fail))
+        sys.exit(0)
 
     options['call'] = []
 

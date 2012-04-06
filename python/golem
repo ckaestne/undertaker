@@ -20,26 +20,23 @@
 
 import logging
 import sys
-from os.path import join, dirname
 
 from optparse import OptionParser
+from os.path import join, dirname
 
 sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
                      + sys.path
 
 
-from vamos.tools import setup_logging, calculate_worklist
+from vamos.tools import setup_logging
 from vamos.model import Model
 
 from vamos.golem.inference import FileSymbolInferencer
 from vamos.golem.kbuild import determine_buildsystem_variables, \
     file_in_current_configuration, files_for_current_configuration, \
-    determine_buildsystem_variables_in_directory, apply_configuration, \
-    get_linux_version, NotALinuxTree, TreeNotConfigured, find_autoconf
-from vamos.vampyr.Configuration import ExpansionError
-from vamos.vampyr.BuildFrameworks import KbuildBuildFramework
-from vamos.vampyr.utils import get_conditional_blocks
+    determine_buildsystem_variables_in_directory, \
+    get_linux_version, NotALinuxTree, TreeNotConfigured
 
 import os.path
 
@@ -75,71 +72,6 @@ def find_variables_in_directories(arch, subarch, args):
         for v in sorted(variables):
             print 'CONFIG_' + v
 
-def expand_partial_configurations(framework, source_files):
-    success = set()
-    fail = set()
-
-    for f in source_files:
-        # santity check for allowing 'golem sched/kernel.c.config*'
-        # without stumbling over .expanded files
-        if f.endswith('.expanded'):
-            logging.info("Ignoring %s", f)
-            continue
-
-        configs = framework.calculate_configurations(f)
-        logging.info("%s: processing %d configurations", f, len(configs))
-
-        for config in configs:
-            logging.debug("Checking Config %s", config.filename())
-            try:
-                config.expand(verify=True)
-                success.add(config)
-                logging.info("OK:   " + config.filename())
-            except ExpansionError:
-                fail.add(config)
-                logging.info("FAIL: " + config.filename())
-    
-    return (success, fail)
-
-def analyze_configuration_coverage(source_files, arch, subarch, do_expansion=True):
-    bf = KbuildBuildFramework()
-
-    for f in source_files:
-        covered_blocks = set()
-
-        if not os.path.exists(f):
-            logging.error("File %s does not exist, skipping")
-            continue
-
-        total_blocks = set(get_conditional_blocks(f))
-        total_blocks.add("B00")
-        apply_configuration(arch=arch, subarch=subarch)
-        autoconf_h = find_autoconf()
-
-        if do_expansion:
-            configs = bf.calculate_configurations(f)
-            logging.info("%s: found %d configurations", f, len(configs))
-            for config in configs:
-                try:
-                    config.expand()
-                    old_len = len(covered_blocks)
-                    covered_blocks |= set(get_conditional_blocks(f, autoconf_h=autoconf_h))
-                    covered_blocks.add("B00")
-                    print "Config %s added %d additional blocks" % \
-                        (config.config, len(covered_blocks) - old_len)
-                except RuntimeError as e:
-                    logging.error("Failed to process config '%s': %s", f, e)
-        else:
-            apply_configuration(arch=arch, subarch=subarch)
-            if file_in_current_configuration(f) != "n":
-                covered_blocks = set(get_conditional_blocks(f, autoconf_h=autoconf_h))
-                covered_blocks.add("B00")
-            else:
-                logging.warning("File %s is not in current configuration", f)
-                covered_blocks = set()
-
-        print "%s: Covered %d/%d blocks" % (f, len(covered_blocks), len(total_blocks))
-
 
 def main():
     parser = OptionParser(usage="%prog [options]\n\n"
@@ -163,11 +95,6 @@ def main():
                       +" symbols given as arguments")
     parser.add_option('-d', '--directory', dest='do_directory', action='store_true',
                       help="print variables in a subdirectory, uses '.' if none given")
-    parser.add_option('-e', '--expand', dest='do_expansion', action='store_true',
-                      help="try to expand the given partial configuration")
-    parser.add_option('-a', '--analyze', dest='do_analyze', action='store_true',
-                      help="analyze config coverage. " \
-                           "With -e, additionally calculate and expand partial configurations")
     parser.add_option('-b', '--batch', dest='batch_mode', action='store_true',
                       help="operate in batch mode, read filenames from given worklists")
 
@@ -204,18 +131,6 @@ def main():
 
     if opts.do_directory:
         find_variables_in_directories(arch, subarch, args)
-        sys.exit(0)
-
-    if opts.do_analyze:
-        worklist = calculate_worklist(args, batch_mode=opts.batch_mode)
-        analyze_configuration_coverage(worklist, arch, subarch, opts.do_expansion)
-        sys.exit(0)
-
-    if opts.do_expansion:
-        bf = KbuildBuildFramework()
-        worklist = calculate_worklist(args, batch_mode=opts.batch_mode)
-        success, fail = expand_partial_configurations(bf, worklist)
-        print "Total OK: %d, Total FAIL: %d" % (len(success), len(fail))
         sys.exit(0)
 
     if opts.do_list:

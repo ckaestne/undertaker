@@ -18,9 +18,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from vamos.vampyr.Configuration import BareConfiguration, LinuxConfiguration
-from vamos.vampyr.utils import find_configurations
-from vamos.golem.kbuild import file_in_current_configuration, \
+from vamos.vampyr.utils import find_configurations, \
+    get_conditional_blocks, get_block_to_linum_map
+from vamos.golem.kbuild import apply_configuration, file_in_current_configuration, \
     guess_arch_from_filename, guess_subarch_from_arch, \
+    call_linux_makefile, find_autoconf, \
     get_linux_version, NotALinuxTree
 from vamos.tools import execute
 
@@ -60,6 +62,81 @@ class BuildFramework:
 
     def calculate_configurations(self, filename):
         raise NotImplementedError
+
+    def analyze_configuration_coverage(self, filename, autoconf_h):
+        """
+        Analyzes the given file 'filename' for its configuration coverage.
+
+        This method also includes statistics about blocks covered by 'allyeconfig'
+
+        returns a dict with the following members:
+         - lines_total: the total number of LOC in the file
+         - lines_covered: the number of covered LOC in all configurations
+         - lines_conditional_total: the number of LOC in #ifdef blocks
+         - lines_conditional_covered: the number of LOC in selected #ifdef blocks
+         - linum_map: the map as returned by 'get_block_to_linum_map(filename)'
+         - blocks: a dict of configuration to the set of cond. blocks it contains
+         - blocks_total: contains a set of all blocks in the file
+         - blocks_covered: contains the set of all covered blocks over all configurations
+         - blocks_uncovered: contains the set of blocks that are not in any configuration
+
+        ..note: the dict blocks contains the configuration name as
+                key. The name has the form 'configN', with N being a
+                running number. The length if this dict is equal to the
+                number of found confiurations of this file.
+
+        """
+
+        return_dict = {
+            'blocks': {},
+            'lines': {}}
+
+        total_blocks = set(get_conditional_blocks(filename))
+        total_blocks.add("B00")
+        return_dict['blocks_total'] = total_blocks
+
+        covered_blocks = set()
+        configs = self.calculate_configurations(filename)
+        logging.info("%s: found %d configurations", filename, len(configs))
+
+        return_dict['all_configs'] = find_configurations(filename)
+        return_dict['all_config_count'] = len(return_dict['all_configs'])
+        return_dict['expandable_configs'] = len(configs)
+
+        for config in configs:
+            try:
+                config.switch_to()
+                old_len = len(covered_blocks)
+                return_dict['blocks'][config.config] = \
+                    set(get_conditional_blocks(filename, autoconf_h)) | set(["B00"])
+                covered_blocks |= return_dict['blocks'][config.config]
+
+                print "Config %s added %d additional blocks" % \
+                    (config.config, len(covered_blocks) - old_len)
+
+            except RuntimeError as e:
+                logging.error("Failed to process config '%s': %s", filename, e)
+
+        return_dict['blocks_covered'] = covered_blocks
+        return_dict['blocks_uncovered'] = total_blocks - covered_blocks
+
+        linum_map = get_block_to_linum_map(filename)
+        return_dict['linum map'] = linum_map
+
+        total_lines = sum(linum_map.values())
+        covered_lines = 0
+        for block in covered_blocks:
+            covered_lines += linum_map[block]
+
+        return_dict['lines_total'] = total_lines
+        return_dict['lines_covered'] = covered_lines
+        return_dict['lines_conditional total'] = total_lines - linum_map["B00"]
+        if "B00" in covered_blocks:
+            return_dict['lines_conditional covered'] = covered_lines - linum_map["B00"]
+        else:
+            return_dict['lines_conditional covered'] = 0
+
+        return return_dict
 
 
 class BareBuildFramework(BuildFramework):
@@ -155,6 +232,65 @@ class KbuildBuildFramework(BuildFramework):
                 logging.info("Configuration '%s' is *not* compiled", cfgfile)
 
         return configs
+
+    def analyze_configuration_coverage(self, filename, autoconf_h=None):
+        """
+        Analyzes the given file 'filename' for its configuration coverage.
+
+        This method also includes statistics about blocks covered by 'allyeconfig'
+
+        returns a dict with the following members:
+         - arch: the analyzed architecture
+         - subarch: the analyzed subarchitecture
+         - lines_total: the total number of LOC in the file
+         - lines_covered: the number of covered LOC in all configurations
+         - lines_conditional_total: the number of LOC in #ifdef blocks
+         - lines_conditional_covered: the number of LOC in selected #ifdef blocks
+         - linum_map: the map as returned by 'get_block_to_linum_map(filename)'
+         - blocks: a dict of configuration to the set of cond. blocks it contains
+         - blocks_allyesconfig: contains the set of blocks 'allyesconfig' contains
+         - blocks_total: contains a set of all blocks in the file
+         - blocks_covered: contains the set of all covered blocks over all configurations
+         - blocks_uncovered: contains the set of blocks that are not in any configuration
+
+        ..note: the dict blocks contains the configuration name as
+                key. The name has the form 'configN', with N being a
+                running number. The length if this dict is equal to the
+                number of found confiurations of this file.
+
+        """
+
+        if self.options['arch'] is None:
+            oldsubarch = self.options['subarch']
+            self.guess_arch_from_filename(filename)
+            if oldsubarch is not None:
+                # special case: if only subarch is set, restore it
+                self.options['subarch'] = oldsubarch
+
+        if autoconf_h is None:
+            # sanity check: remove existing configuration to ensure consistent behavior
+            if os.path.exists(".config"):
+                os.unlink(".config")
+            apply_configuration(arch=self.options['arch'], subarch=self.options['subarch'])
+            assert os.path.exists('.config')
+            autoconf_h=find_autoconf()
+
+        return_dict = BuildFramework.analyze_configuration_coverage(self, filename, autoconf_h)
+        return_dict['arch'] = self.options['arch']
+        return_dict['subarch'] = self.options['subarch']
+
+        # generate the configuration for 'allyesconfig'
+        call_linux_makefile("allyesconfig", failok=False,
+                            arch=self.options['arch'], subarch=self.options['subarch'])
+
+        if file_in_current_configuration(filename,
+                            arch=self.options['arch'], subarch=self.options['subarch']) != "n":
+            return_dict['blocks_allyesconfig'] = \
+                set(get_conditional_blocks(filename, autoconf_h)) | set(["B00"])
+        else:
+            return_dict['blocks_allyesconfig'] = set()
+
+        return return_dict
 
 
 def select_framework(identifier, options):
