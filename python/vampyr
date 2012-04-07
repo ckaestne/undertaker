@@ -65,13 +65,20 @@ def do_checks(options, filename, configs):
             if tool not in errors:
                 errors[tool] = MessageContainer()
 
-            for msg in msgs:
-                # Discard messages from other files
-                if options['exclude_others']:
-                    if not filename in msg.location:
-                        logging.debug("Discarded error messge (--exclude-others): %s", repr(msg))
-                        continue
-                errors[tool].add_message(c, msg)
+            reportfilename = c.filename() + '.report.' + tool
+            logging.info("%s: detected %d errors with tool '%s'", reportfilename, len(msgs), tool)
+
+            with open(reportfilename, 'w') as reportfile:
+                report = set()
+                for msg in msgs:
+                    # Discard messages from other files
+                    if options['exclude_others']:
+                        if not filename in msg.location:
+                            logging.debug("Discarded error messge (--exclude-others): %s", repr(msg))
+                            continue
+                    errors[tool].add_message(c, msg)
+                    report.add(msg.get_message())
+                reportfile.write("\n".join(sorted(report)))
 
     return errors
 

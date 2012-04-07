@@ -9,3 +9,4 @@
 *.c.cppflags*
 *.c.source*
 *.plist
+config?.report.*

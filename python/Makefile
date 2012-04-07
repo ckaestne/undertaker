@@ -27,6 +27,7 @@ clean-check:
                      -o -name "*.dead" \
                      -o -name "*.undead" \
                      -o -name "*.plist" \
+                     -o -name "*config*.report.*" \
                      \) -delete
 
 FORCE:
