@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+#
+#   fakecc - a compile-to-/dev/null c compiler
+#
+# Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import subprocess
+
+from optparse import OptionParser, BadOptionError, AmbiguousOptionError
+
+class PassThroughOptionParser(OptionParser):
+    """
+    An unknown option pass-through implementation of OptionParser.
+
+    When unknown arguments are encountered, bundle with largs and try again,
+    until rargs is depleted.
+
+    sys.exit(status) will still be called if a known argument is passed
+    incorrectly (e.g. missing arguments or bad argument types, etc.)
+    """
+    def _process_args(self, largs, rargs, values):
+        while rargs:
+            try:
+                OptionParser._process_args(self, largs, rargs, values)
+            except (BadOptionError, AmbiguousOptionError), exception:
+                largs.append(exception.opt_str)
+
+def main(argv):
+    parser = PassThroughOptionParser(usage="%prog [options] <filename>")
+    parser.add_option('-v', '--verbose', dest='verbose', action='count')
+    parser.add_option("-o", '--output', dest='output', action='store',
+                      type="string", default=None)
+    parser.add_option('-c', '--compile', dest='compile', action='store_true',
+                      default=False)
+    parser.add_option("-W", dest='wflag', action='append', type="string",
+                      default=None)
+    parser.add_option('-p', dest='p_opt', action='append', default=[])
+
+    (opts, args) = parser.parse_args()
+
+    files = []
+    objects = []
+
+    if len(argv) == 1:
+        # no arguments given
+        print "usage: see gcc manual"
+        sys.exit(0)
+
+    if opts.p_opt:
+        for flag in opts.p_opt:
+            if flag.startswith('rint-file-name=include'):
+                subprocess.call(["gcc"] + argv[1:])
+                return
+            elif flag.startswith('ipe'):
+                continue
+            elif flag.startswith('g'):
+                continue
+            else:
+                print "Ignoring unhandled option %s" % flag
+
+    if opts.output:
+        objects.append(opts.output)
+    elif opts.compile and args[0].endswith('.c'):
+        objects.append('%s.o' % args[0][:-2])
+    else:
+        objects.append('a.out')
+
+    if opts.wflag:
+        for flag in opts.wflag:
+            if flag.startswith('p,-MD,'):
+                files.append(flag.split(',', 3)[2])
+
+    for filename in objects:
+        os.system("gcc -x c -c /dev/null -o %s" % filename)
+
+    for filename in files:
+        with open(filename, 'w') as f:
+            f.write('')
+
+if __name__ == '__main__':
+    import sys
+    main(sys.argv)

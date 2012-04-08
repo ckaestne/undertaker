@@ -28,7 +28,7 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
                      + sys.path
 
-from vamos.tools import setup_logging, calculate_worklist
+from vamos.tools import setup_logging, calculate_worklist, check_tool
 from vamos.vampyr import BuildFrameworks
 from vamos.vampyr.Configuration import Configuration
 from vamos.vampyr.Messages import MessageContainer
@@ -178,12 +178,23 @@ def main():
         else:
             options['call'].append(call)
 
+        # check if the specified tools are available in the default search path
+        if call == 'gcc' and not check_tool('gcc --version'):
+            sys.exit(1)
+
+        if call == 'sparse' and not check_tool('sparse'):
+            sys.exit(1)
+
         # add default options if not set by user
         if (call == 'gcc' and 'gcc' not in options['args']):
             options['args']['gcc'] = "-Wall -Wextra"
 
         if (call == 'sparse' and 'sparse' not in options['args']):
             options['args']['sparse'] = "-Wsparse-all"
+
+    for tool in ("fakecc", "make --version"):
+        if not check_tool(tool):
+            sys.exit(1)
 
     for fn in calculate_worklist(args, batch_mode=opts.batch_mode):
         handle_file(options, fn)

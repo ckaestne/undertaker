@@ -48,12 +48,13 @@ check:
 
 install: all $(MANPAGES)
 	@install -d -v $(DESTDIR)$(BINDIR)
-	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker 
+	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker
 	@install -d -v $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
 	@install -d -v $(DESTDIR)$(MANDIR)/man1
 
 	@install -v python/undertaker-calc-coverage $(DESTDIR)$(BINDIR)
 	@install -v python/undertaker-kconfigdump $(DESTDIR)$(BINDIR)
+	@install -v python/fakecc $(DESTDIR)$(BINDIR)
 
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(LIBDIR)/undertaker
 

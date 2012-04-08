@@ -288,7 +288,7 @@ class LinuxConfiguration(Configuration):
         if 'sparse' in self.framework.options['args']:
             sparse += " " + self.framework.options['args']['sparse']
 
-        (CC, CHECK) = self.__call_make(on_file, "C=2 CHECK='%s'" % sparse.replace("'", "\\'"))
+        (CC, CHECK) = self.__call_make(on_file, "C=2 CC='fakecc' CHECK='%s'" % sparse.replace("'", "\\'"))
 
         # GCC messages
         messages = GccMessage.preprocess_messages(CC)

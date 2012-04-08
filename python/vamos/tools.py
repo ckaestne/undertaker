@@ -124,3 +124,20 @@ def calculate_worklist(args, batch_mode=False):
     logging.info("Processing %d files in total", len(worklist))
 
     return worklist
+
+
+def check_tool(tool):
+    """
+    checks if the specified tool is available and executable
+
+    NB: the specified command will be executed and should therefore not
+    have any side effects. For gcc or make pass an option such as '--version'.
+    """
+
+    try:
+        execute(tool, failok=False)
+    except CommandFailed:
+        logging.error("Failed to locate %s, check your installation", tool)
+        return False
+
+    return True
