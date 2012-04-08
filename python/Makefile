@@ -1,4 +1,5 @@
 PYTHONFILES=golem rsf2model undertaker-calc-coverage vampyr $(wildcard vamos/*/*.py) $(wildcard vamos/*.py)
+SEARCHPATH="$(CURDIR)/../undertaker:$(CURDIR):$(PATH)"
 
 all:
 
@@ -9,9 +10,9 @@ check: all
 	$(MAKE) -s clean-check
 	@for test in vamos/*/*_test.py vamos/*_test.py; do \
 	   echo "Running python unittest $$test"; \
-	   env PATH="$(CURDIR)/../undertaker:$(PATH)" PYTHONPATH=$(CURDIR) python "$$test"; \
+	   env PATH="$(SEARCHPATH)" PYTHONPATH=$(CURDIR) python "$$test"; \
 	done
-	cd validation && env PATH="$(CURDIR)/../undertaker:$(PATH)" ./test-suite
+	cd validation && env PATH="$(SEARCHPATH)" ./test-suite
 	$(MAKE) -s pylint
 
 clean: clean-check
