@@ -29,7 +29,7 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      + sys.path
 
 from vamos.tools import setup_logging, calculate_worklist, check_tool
-from vamos.vampyr import BuildFrameworks
+from vamos.vampyr.BuildFrameworks import select_framework
 from vamos.vampyr.Configuration import Configuration
 from vamos.vampyr.Messages import MessageContainer
 
@@ -73,17 +73,10 @@ def do_checks(options, filename, configs):
 
     return errors
 
+
 def handle_file(options, filename):
 
-    frameworks = {'kbuild' : BuildFrameworks.KbuildBuildFramework,
-                  'linux'  : BuildFrameworks.KbuildBuildFramework,
-                  'bare'   : BuildFrameworks.BareBuildFramework}
-
-    if options['framework'] in frameworks:
-        framework = frameworks[options['framework']](options)
-    else:
-        raise RuntimeError("Build framework '%s' not found" % options['framework'])
-
+    framework = options['framework']
     configs = framework.calculate_configurations(filename)
     if len(configs) == 0:
         logging.error("File %s did not contain any configurations", filename)
@@ -118,6 +111,7 @@ def handle_file(options, filename):
 
     print "Found %d configuration dependent errors" % config_dependent_messages
 
+
 def format_errors(errors):
     for tool in errors.keys():
         if len(errors[tool]) > 0:
@@ -140,9 +134,9 @@ def main():
                       default=False,
                       help="suppress warnings in '#included' source files")
     parser.add_option("-f", '--framework', dest='framework', action='store', type="string",
-                      default="bare",
+                      default=None,
                       help="select build framework (one of 'bare', 'kbuild')")
-    parser.add_option('-b', '--batch', dest='batch_mode', action='store_true',
+    parser.add_option('-b', '--batch', dest='batch_mode', action='store_true', default=False,
                       help="operate in batch mode, read filenames from given worklists")
 
     (opts, args) = parser.parse_args()
@@ -156,7 +150,6 @@ def main():
 
     options = { 'args': {},
                 'exclude_others': opts.exclude_others,
-                'framework': opts.framework,
                 'loglevel': logging.getLogger().getEffectiveLevel()}
 
     for arg in opts.args:
@@ -165,6 +158,8 @@ def main():
             sys.exit(-1)
         (key, value) = arg.split(",", 1)
         options['args'][key] = value
+
+    options['framework'] = select_framework(opts.framework, options)
 
     options['call'] = []
 

@@ -276,6 +276,26 @@ def determine_buildsystem_variables_in_directory(directory):
     return ret
 
 
+def guess_subarch_from_arch(arch):
+    """
+    For the given architecture, try to guess the best matching subarchitecture.
+
+    This choice is not so obvious for architectures like 'x86', where valid
+    values include 'x86_64' for 64bit CPUs and 'i386' for 32bit CPUs.
+    """
+
+    subarch = arch
+    if arch == 'x86' or arch == 'um':
+        if vamos.prefer_32bit:
+            subarch = 'i386'
+        else:
+            subarch = 'x86_64'
+    else:
+        assert(arch==subarch)
+
+    return subarch
+
+
 def guess_arch_from_filename(filename):
     """
     Guesses the 'best' architecture for the given filename.
@@ -298,14 +318,7 @@ def guess_arch_from_filename(filename):
     else:
         arch = vamos.default_architecture
 
-    subarch = arch
-    if arch == 'x86' or arch == 'um':
-        if vamos.prefer_32bit:
-            subarch = 'i386'
-        else:
-            subarch = 'x86_64'
-    else:
-        assert(arch==subarch)
+    subarch = guess_subarch_from_arch(arch)
 
     forced_64bit = False
     forced_32bit = False

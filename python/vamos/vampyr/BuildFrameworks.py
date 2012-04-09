@@ -18,7 +18,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from vamos.vampyr.Configuration import BareConfiguration, LinuxConfiguration
-from vamos.golem.kbuild import file_in_current_configuration, guess_arch_from_filename
+from vamos.golem.kbuild import file_in_current_configuration, \
+    guess_arch_from_filename, guess_subarch_from_arch, \
+    get_linux_version, NotALinuxTree
 from vamos.tools import execute
 
 import glob
@@ -121,3 +123,35 @@ class KbuildBuildFramework(BuildFramework):
                 logging.info("Configuration '%s' is *not* compiled", c)
 
         return ret
+
+
+def select_framework(identifier, options):
+
+    frameworks = {'kbuild' : KbuildBuildFramework,
+                  'linux'  : KbuildBuildFramework,
+                  'bare'   : BareBuildFramework}
+
+    if identifier is None:
+        identifier='bare'
+        try:
+            logging.info("Detected Linux version %s, selecting kbuild framework",
+                         get_linux_version())
+            identifier='linux'
+        except NotALinuxTree:
+            pass
+
+    if os.environ.has_key('ARCH'):
+        options['arch'] = os.environ['ARCH']
+
+        if os.environ.has_key('SUBARCH'):
+            options['subarch'] = os.environ['SUBARCH']
+        else:
+            options['subarch'] = guess_subarch_from_arch(options['arch'])
+
+    if identifier in frameworks:
+        bf = frameworks[identifier](options)
+    else:
+        raise RuntimeError("Build framework '%s' not found" % \
+                               options['framework'])
+    return bf
+
