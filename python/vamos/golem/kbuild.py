@@ -165,8 +165,8 @@ def files_for_current_configuration(arch=None, subarch=None, how=False):
                 # try to guess the source filename
                 sourcefile = guess_source_for_target(objfile)
                 if not sourcefile:
-                    logging.warning("Failed to guess source file for %s",
-                                    objfile)
+                    logging.debug("Failed to guess source file for %s",
+                                  objfile)
                 else:
                     files.add(sourcefile)
         except IndexError:
