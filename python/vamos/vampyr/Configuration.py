@@ -285,7 +285,7 @@ class LinuxConfiguration(Configuration):
         if "SPARSE" in self.result_cache:
             return self.result_cache["SPARSE"]
 
-        sparse = "sparse"
+        sparse = "ulimit -t 30; sparse"
         if 'sparse' in self.framework.options['args']:
             sparse += " " + self.framework.options['args']['sparse']
 
