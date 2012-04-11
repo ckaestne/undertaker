@@ -22,7 +22,7 @@ import logging
 import os
 
 from vamos.golem.kbuild import determine_buildsystem_variables_in_directory, \
-    apply_configuration, guess_source_for_target
+    apply_configuration, guess_source_for_target, call_linux_makefile
 
 from vamos.selection import Selection
 from vamos.golem.FileSet import FileSet, FileSetCache
@@ -73,6 +73,7 @@ class FileSymbolInferencer:
 
 
     def calculate(self):
+        call_linux_makefile('allnoconfig', arch=self.arch, subarch=self.subarch)
         apply_configuration(arch=self.arch, subarch=self.subarch)
 
         self.empty_fileset = FileSet(self.empty_selection, arch=self.arch,

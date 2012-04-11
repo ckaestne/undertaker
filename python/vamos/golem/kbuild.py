@@ -45,9 +45,10 @@ def apply_configuration(arch=None, subarch=None, filename=None):
     """
     Applies the current configuration
 
-    Expects a complete configuration in '.config'. Updates
-    'include/config/auto.conf' and 'include/generated/autoconf.h' to
-    match the current configuration.
+    This method updates 'include/config/auto.conf' and
+    'include/generated/autoconf.h' to match the current configuration.
+    Expects a complete configuration in '.config'. If it does not exist,
+    the standard configuration 'allyesconfig' is configured.
 
     If not applying for the default architecture 'x86', the optional
     parameters "arch" (and possibly "subarch") need to be specified.
@@ -68,6 +69,9 @@ def apply_configuration(arch=None, subarch=None, filename=None):
     if not arch:
         logging.warning("No architecture selected. Defaulting to x86")
         arch = 'x86'
+
+    if not os.path.exists(".config"):
+        call_linux_makefile("allyesconfig", arch=arch, subarch=subarch)
 
     # this catches unset defaults. Since boolean and tristate have
     # implicit defaults, this can effectively only happen for integer
