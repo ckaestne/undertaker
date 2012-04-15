@@ -44,6 +44,7 @@ docs:
 
 check:
 	$(MAKE) -C undertaker $@
+	$(MAKE) -C ziz $@
 	$(MAKE) -C python $@
 
 install: all $(MANPAGES)

@@ -1,12 +1,12 @@
 <code>
-START BLOCK 1 [T=PP_IFDEF] [E=A] [H=#ifdef A] [F=] [P=<none>] [PS=<none>]
+START BLOCK 0 [T=PP_IFDEF] [E=A] [H=#ifdef A] [F=] [P=<none>] [PS=<none>]
+<code>
+END BLOCK 0
+START BLOCK 1 [T=PP_ELSE] [E=] [H=#else] [F=#endif] [P=<none>] [PS=0]
 <code>
 END BLOCK 1
-START BLOCK 3 [T=PP_ELSE] [E=] [H=#else] [D=B ] [F=#endif] [P=<none>] [PS=1]
 <code>
-END BLOCK 3
+START BLOCK 2 [T=PP_IF] [E=B] [H=#if B] [F=#endif] [P=<none>] [PS=<none>]
 <code>
-START BLOCK 6 [T=PP_IF] [E=B] [H=#if B] [D=B ] [F=#endif] [P=<none>] [PS=<none>]
-<code>
-END BLOCK 6
+END BLOCK 2
 <code>

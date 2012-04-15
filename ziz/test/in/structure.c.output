@@ -1,46 +1,58 @@
 #if CONFIG_BAR
-B0
+
+B0 0
 #endif
 
 #ifdef CONFIG_BAR
-B4
+
+B2 0
 
 #else
-B5
+
+B3 0
 #endif
 
 #ifdef HOLLA
-B7
+
+B4 0
 
 #elif CONFIG_BAR
-B8
+
+B5 0
 #endif
 
 #ifdef A
-B10
+
 #ifdef B
-B11
+
 #if CONFIG_C
-B12
+
+B8 0
 #endif
 
+B7 0
 #endif
 
+B6 0
 #endif
 
 #if A
-B15
+
 #if B
-B16
+
 #if CONFIG_FOO
-B17
+
+B12 0
 
 #elif HALLO
-B18
+
+B13 0
 #endif
 
+B11 0
 #endif
 
+B10 0
 #endif
 
-
+B00 6

@@ -1,13 +1,13 @@
 <code>
-START BLOCK 1 [T=PP_IFDEF] [E=X] [H=#ifdef X] [F=#endif] [P=<none>] [PS=<none>]
+START BLOCK 0 [T=PP_IFDEF] [E=X] [H=#ifdef X] [F=#endif] [P=<none>] [PS=<none>]
 <code>
-START BLOCK 3 [T=PP_IFDEF] [E=Y] [H=#ifdef Y] [F=#endif] [P=1] [PS=<none>]
+START BLOCK 1 [T=PP_IFDEF] [E=Y] [H=#ifdef Y] [F=#endif] [P=0] [PS=<none>]
 <code>
-START BLOCK 5 [T=PP_IFDEF] [E=Z] [H=#ifdef Z] [F=#endif] [P=3] [PS=<none>]
+START BLOCK 2 [T=PP_IFDEF] [E=Z] [H=#ifdef Z] [F=#endif] [P=1] [PS=<none>]
 <code>
-END BLOCK 5
-<code>
-END BLOCK 3
+END BLOCK 2
 <code>
 END BLOCK 1
+<code>
+END BLOCK 0
 <code>
