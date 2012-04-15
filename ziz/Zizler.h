@@ -1,3 +1,4 @@
+// -*- mode: C++ -*-
 /*
  *   libziz - parse c preprocessor files
  * Copyright (C) 2010 Frank Blendinger <fb@intoxicatedmind.net>

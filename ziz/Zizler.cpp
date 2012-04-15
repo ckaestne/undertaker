@@ -28,6 +28,7 @@
 #include <boost/regex.hpp>
 
 using namespace Ziz;
+
 static bool print_include = false;
 static bool remove_non_CONFIG_blocks = false;
 
@@ -55,8 +56,7 @@ std::list<std::string> search_defs(Block const &b) {
 // output operators
 
 // + short output (--short mode)
-std::ostream & operator+(std::ostream &stream, File const * p_f)
-{
+std::ostream & operator+(std::ostream &stream, File const * p_f) {
     std::vector<Block*>::const_iterator it;
 
     assert(p_f != NULL);
@@ -66,8 +66,7 @@ std::ostream & operator+(std::ostream &stream, File const * p_f)
     return stream;
 }
 
-std::ostream & operator+(std::ostream &stream, Block const &b)
-{
+std::ostream & operator+(std::ostream &stream, Block const &b) {
     if (b.BlockType() == Code) {
         stream << "<code>\n";
     } else if (b.BlockType() == Conditional) {
@@ -80,8 +79,7 @@ std::ostream & operator+(std::ostream &stream, Block const &b)
     return stream;
 }
 
-std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b)
-{
+std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b) {
     std::list<std::string> found;
 
     stream << "START BLOCK " << b.Id() << " [T=" << b.TokenStr() << "] ";
@@ -194,7 +192,6 @@ static int subtree_CONFIG_blocks(BlockContainer const &parent, Block const &b) {
             }
         }
 
-
     } else if (b.BlockType() == DefineBlock) {
         return 1;
     } else {
@@ -206,8 +203,7 @@ static int subtree_CONFIG_blocks(BlockContainer const &parent, Block const &b) {
 std::vector<int> code_lines_stack;
 
 
-std::ostream & operator*(std::ostream &stream, File const * p_f)
-{
+std::ostream & operator*(std::ostream &stream, File const * p_f) {
     code_lines_stack.push_back(0);
 
     std::vector<Block*>::const_iterator it;
@@ -227,8 +223,7 @@ std::ostream & operator*(std::ostream &stream, File const * p_f)
     return stream;
 }
 
-std::ostream & operator*(std::ostream &stream, Block const &b)
-{
+std::ostream & operator*(std::ostream &stream, Block const &b) {
     if (b.BlockType() == Code) {
         stream * dynamic_cast<CodeBlock const &>(b);
     } else if (b.BlockType() == Conditional) {
@@ -241,10 +236,7 @@ std::ostream & operator*(std::ostream &stream, Block const &b)
     return stream;
 }
 
-
-
-std::ostream & operator*(std::ostream &stream, ConditionalBlock const &b)
-{
+std::ostream & operator*(std::ostream &stream, ConditionalBlock const &b) {
     code_lines_stack.push_back(0);
     std::list<std::string> found;
 
@@ -266,9 +258,7 @@ std::ostream & operator*(std::ostream &stream, ConditionalBlock const &b)
     return stream;
 }
 
-
-std::ostream & operator*(std::ostream &stream, CodeBlock const &b)
-{
+std::ostream & operator*(std::ostream &stream, CodeBlock const &b) {
     std::list<std::string> found;
     std::stringstream content (b.Content());
     std::string line;
@@ -292,11 +282,8 @@ std::ostream & operator*(std::ostream &stream, CodeBlock const &b)
     return stream;
 }
 
-
-
 // << normal output (default mode)
-std::ostream & operator<<(std::ostream &stream, File const * p_f)
-{
+std::ostream & operator<<(std::ostream &stream, File const * p_f) {
     assert(p_f != NULL);
     std::vector<Block*>::const_iterator it;
     for (it = p_f->begin(); it != p_f->end(); ++it)
@@ -304,8 +291,7 @@ std::ostream & operator<<(std::ostream &stream, File const * p_f)
     return stream;
 }
 
-std::ostream & operator<<(std::ostream &stream, Block const &b)
-{
+std::ostream & operator<<(std::ostream &stream, Block const &b) {
     if (b.BlockType() == Code) {
         stream << dynamic_cast<CodeBlock const &>(b);
     } else if (b.BlockType() == Conditional) {
@@ -318,8 +304,7 @@ std::ostream & operator<<(std::ostream &stream, Block const &b)
     return stream;
 }
 
-std::ostream & operator<<(std::ostream &stream, CodeBlock const &b)
-{
+std::ostream & operator<<(std::ostream &stream, CodeBlock const &b) {
     std::list<std::string> found;
 
     stream << "START CODE BLOCK " << b.Id() << "\n";
@@ -335,8 +320,7 @@ std::ostream & operator<<(std::ostream &stream, CodeBlock const &b)
     return stream;
 }
 
-std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
-{
+std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b) {
     stream << "START CONDITIONAL BLOCK " << b.Id() << "\n";
     stream << "token="      << b.TokenStr()    << "\n";
     stream << "header="     << b.Header()      << "\n";
@@ -351,10 +335,8 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b)
     return stream;
 }
 
-
 // >> verbose output (--long mode)
-std::ostream & operator>>(std::ostream &stream, File const * p_f)
-{
+std::ostream & operator>>(std::ostream &stream, File const * p_f) {
     assert(p_f != NULL);
     std::cout << "File has " << p_f->size() << " outer blocks\n\n";
     std::vector<Block*>::const_iterator it;
@@ -363,8 +345,7 @@ std::ostream & operator>>(std::ostream &stream, File const * p_f)
     return stream;
 }
 
-std::ostream & operator>>(std::ostream &stream, Block const &b)
-{
+std::ostream & operator>>(std::ostream &stream, Block const &b) {
     if (b.BlockType() == Code) {
         stream >> dynamic_cast<CodeBlock const &>(b);
     } else if (b.BlockType() == Conditional) {
@@ -377,8 +358,7 @@ std::ostream & operator>>(std::ostream &stream, Block const &b)
     return stream;
 }
 
-std::ostream & operator>>(std::ostream &stream, CodeBlock const &b)
-{
+std::ostream & operator>>(std::ostream &stream, CodeBlock const &b) {
     std::string indent = Indent(b.Depth());
     stream << indent
            << "-[" << b.Id() << "]---------------  START CODE BLOCK  "
@@ -404,8 +384,7 @@ std::ostream & operator>>(std::ostream &stream, CodeBlock const &b)
     return stream;
 }
 
-std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
-{
+std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b) {
     std::string indent = Indent(b.Depth());
     stream << indent
            << "=[" << b.Id() << "]============  START CONDITIONAL BLOCK  "
@@ -439,8 +418,7 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b)
 
 // helpers
 
-void chomp (std::string &s)
-{
+void chomp (std::string &s) {
     size_t nlpos = s.find("\n");
     while (nlpos != std::string::npos) {
         s.replace(nlpos, 1, "");
@@ -448,8 +426,7 @@ void chomp (std::string &s)
     }
 }
 
-std::string Indent(int depth)
-{
+std::string Indent(int depth) {
     std::stringstream ss;
     ss << "|";
     for (int i=0; i < depth; i++)
@@ -458,8 +435,7 @@ std::string Indent(int depth)
 }
 
 
-bool ziztest(std::string file, Mode mode)
-{
+bool ziztest(std::string file, Mode mode) {
     if (mode != Convert)
         std::cerr << "Testing " << file << std::endl;
     Ziz::Parser parser;
@@ -488,8 +464,7 @@ bool ziztest(std::string file, Mode mode)
     return true;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     if (argc < 2) {
         std::cerr << "Usage: " << std::string(argv[0])
                   << " [-s|--short|-l|--long|-c|--convert|-cI|--convert-include|-cC|--convert-configurable] FILE [FILES]" << std::endl;

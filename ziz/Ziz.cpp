@@ -30,8 +30,7 @@ using namespace Ziz;
 
 // Ziz
 
-File* Parser::Parse(const std::string file)
-{
+File* Parser::Parse(const std::string file) {
     // Open and read in the specified input file.
     std::ifstream instream(file.c_str());
     if (!instream.is_open())
@@ -114,9 +113,7 @@ File* Parser::Parse(const std::string file)
     return _p_file;
 }
 
-
-void Parser::HandleOpeningCondBlock(lexer_type& lexer)
-{
+void Parser::HandleOpeningCondBlock(lexer_type& lexer) {
     assert(_p_curBlockContainer != NULL);
 
     FinishSaveCurrentCodeBlock();
@@ -129,8 +126,7 @@ void Parser::HandleOpeningCondBlock(lexer_type& lexer)
     _condBlockStack.push(pBlock);
 }
 
-void Parser::HandleElseBlock(lexer_type& lexer)
-{
+void Parser::HandleElseBlock(lexer_type& lexer) {
     assert(_p_curBlockContainer != NULL);
 
     FinishSaveCurrentCodeBlock();
@@ -159,51 +155,41 @@ void Parser::HandleElseBlock(lexer_type& lexer)
     ConditionalBlock* pElseBlock =
         _p_file->CreateConditionalBlock(_condBlockStack.size(), _curPos,
                                         _p_curBlockContainer, lexer);
-    pElseBlock->SetPrevSibling(pPrevIfBlock); 
+    pElseBlock->SetPrevSibling(pPrevIfBlock);
     _p_curBlockContainer = pElseBlock;
-    _condBlockStack.push(pElseBlock); 
+    _condBlockStack.push(pElseBlock);
 }
 
-
-void Parser::HandleIF(lexer_type& lexer)
-{
+void Parser::HandleIF(lexer_type& lexer) {
     HandleOpeningCondBlock(lexer);
 }
 
-void Parser::HandleIFDEF(lexer_type& lexer)
-{
+void Parser::HandleIFDEF(lexer_type& lexer) {
     HandleOpeningCondBlock(lexer);
 }
 
-void Parser::HandleIFNDEF(lexer_type& lexer)
-{
+void Parser::HandleIFNDEF(lexer_type& lexer) {
     HandleOpeningCondBlock(lexer);
 }
 
-void Parser::HandleELSE(lexer_type& lexer)
-{
+void Parser::HandleELSE(lexer_type& lexer) {
     HandleElseBlock(lexer);
 }
 
-void Parser::HandleELIF(lexer_type& lexer)
-{
+void Parser::HandleELIF(lexer_type& lexer) {
     HandleElseBlock(lexer);
 }
 
-void Parser::HandleDEFINE(lexer_type& lexer)
-{
+void Parser::HandleDEFINE(lexer_type& lexer) {
     HandleDefines(true,lexer);
 }
 
-void Parser::HandleUNDEF(lexer_type& lexer)
-{
+void Parser::HandleUNDEF(lexer_type& lexer) {
     HandleDefines(false, lexer);
 }
 
-void Parser::HandleDefines(bool define, lexer_type& lexer)
-{ 
-
-    /* needed: 
+void Parser::HandleDefines(bool define, lexer_type& lexer) {
+    /* needed:
      *  id (File._defines),
      *  _flag (next token),
      *  _position (current position),
@@ -261,8 +247,7 @@ void Parser::HandleDefines(bool define, lexer_type& lexer)
 #endif
 }
 
-void Parser::HandleENDIF(lexer_type& lexer)
-{
+void Parser::HandleENDIF(lexer_type& lexer) {
     //std::cerr << "HandleENDIF() " << lexer->get_value() << std::endl;
 
     FinishSaveCurrentCodeBlock();
@@ -270,8 +255,7 @@ void Parser::HandleENDIF(lexer_type& lexer)
 }
 
 
-void Parser::HandleToken(lexer_type& lexer)
-{
+void Parser::HandleToken(lexer_type& lexer) {
     assert(_p_curBlockContainer != NULL);
 
     /*
@@ -288,8 +272,7 @@ void Parser::HandleToken(lexer_type& lexer)
 }
 
 
-void Parser::FinishSaveCurrentCodeBlock()
-{
+void Parser::FinishSaveCurrentCodeBlock() {
     assert(_p_curBlockContainer != NULL);
 
     if (_p_curCodeBlock == NULL)
@@ -300,8 +283,7 @@ void Parser::FinishSaveCurrentCodeBlock()
     _p_curCodeBlock = NULL;
 }
 
-void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
-{
+void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer) {
     assert(_p_curBlockContainer != NULL);
 
     if (_condBlockStack.empty()) {
@@ -344,20 +326,17 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer)
 }
 
 
-
 // File
 
 CodeBlock*
-File::CreateCodeBlock(int depth, position_type startPos, BlockContainer* pbc)
-{
+File::CreateCodeBlock(int depth, position_type startPos, BlockContainer* pbc) {
     assert(pbc != NULL);
     return new CodeBlock(_blocks++, depth, startPos, pbc);
 }
 
 ConditionalBlock*
 File::CreateConditionalBlock(int depth, position_type startPos,
-                             BlockContainer* pbc, lexer_type& lexer)
-{
+                             BlockContainer* pbc, lexer_type& lexer) {
     assert(pbc != NULL);  // a parent block container is always needed
 
     lexer_type end = lexer_type();
@@ -396,11 +375,9 @@ File::CreateConditionalBlock(int depth, position_type startPos,
     return pCurBlock;
 }
 
-void
-File::CreateDefine(int depth, std::string flag, position_type pos, BlockContainer* block, bool define)
-{
-    Define* r =  new Define(_defines++, depth, pos, block,
-                            flag, define);
+void File::CreateDefine(int depth, std::string flag, position_type pos,
+                        BlockContainer* block, bool define) {
+    Define* r =  new Define(_defines++, depth, pos, block, flag, define);
     _defines_map[flag].push_back(r);
     block->push_back(r);
 }
@@ -408,38 +385,35 @@ File::CreateDefine(int depth, std::string flag, position_type pos, BlockContaine
 
 // ConditionalBlock
 
-condblock_type ConditionalBlock::CondBlockType() const
-{
+condblock_type ConditionalBlock::CondBlockType() const {
     boost::wave::token_id id = boost::wave::token_id(_type);
     std::string tstr(boost::wave::get_token_name(id).c_str());
 
     if (tstr.compare("PP_IF") == 0)
-	return Ifdef;
+        return Ifdef;
 
     if (tstr.compare("PP_IFDEF") == 0)
-	return Ifdef;
+        return Ifdef;
 
     if (tstr.compare("PP_IFNDEF") == 0)
-	return Ifndef;
+        return Ifndef;
 
     if (tstr.compare("PP_ELIF") == 0)
-	return Elif;
+        return Elif;
 
     if (tstr.compare("PP_ELSE") == 0)
-	return Else;
+        return Else;
 
     std::cerr << "unknown type: " << tstr.c_str() << std::endl;
     assert(false);
 }
 
-std::string ConditionalBlock::TokenStr() const
-{
+std::string ConditionalBlock::TokenStr() const {
     boost::wave::token_id id = boost::wave::token_id(_type);
     return std::string(boost::wave::get_token_name(id).c_str());
 }
 
-std::string ConditionalBlock::ExpressionStr() const
-{
+std::string ConditionalBlock::ExpressionStr() const {
     std::stringstream ss;
     std::vector<token_type>::const_iterator tit; // for _t_oken _it_erator ;-)
 
@@ -460,4 +434,3 @@ ConditionalBlock *ConditionalBlock::ParentCondBlock() const {
     BlockContainer *p = Parent();
     return dynamic_cast<ConditionalBlock*>(p);
 }
-
