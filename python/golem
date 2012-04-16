@@ -101,8 +101,8 @@ def expand_partial_configurations(framework, source_files):
     
     return (success, fail)
 
-def analyze_configuration_coverage(source_files, arch, subarch, do_expansion=True, coverage_strategy='min', expansion_strategy='alldefconfig'):
-    bf = KbuildBuildFramework(coverage_strategy=coverage_strategy, expansion_strategy=expansion_strategy)
+def analyze_configuration_coverage(source_files, arch, subarch, do_expansion=True):
+    bf = KbuildBuildFramework()
 
     for f in source_files:
         covered_blocks = set()
@@ -113,6 +113,7 @@ def analyze_configuration_coverage(source_files, arch, subarch, do_expansion=Tru
 
         total_blocks = set(get_conditional_blocks(f))
         total_blocks.add("B00")
+        apply_configuration(arch=arch, subarch=subarch)
         autoconf_h = find_autoconf()
 
         if do_expansion:
@@ -211,7 +212,7 @@ def main():
         sys.exit(0)
 
     if opts.do_expansion:
-        bf = KbuildBuildFramework(expansion_strategy='alldefconfig', coverage_strategy='min')
+        bf = KbuildBuildFramework()
         worklist = calculate_worklist(args, batch_mode=opts.batch_mode)
         success, fail = expand_partial_configurations(bf, worklist)
         print "Total OK: %d, Total FAIL: %d" % (len(success), len(fail))

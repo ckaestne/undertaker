@@ -26,14 +26,13 @@ from vamos.model import Model
 from vamos.Config import Config
 
 import logging
-import os
+import os.path
 import re
 import shutil
 
-
 class Configuration:
-    def __init__(self):
-        pass
+    def __init__(self, config):
+        self.config = config
 
     def switch_to(self):
         raise NotImplementedError
@@ -41,10 +40,14 @@ class Configuration:
     def call_sparse(self, on_file):
         raise NotImplementedError
 
+    def filename(self):
+        return self.config
+
 
 class BareConfiguration(Configuration):
-    def __init__(self, framework, cpp_flags):
-        Configuration.__init__(self)
+
+    def __init__(self, framework, config, cpp_flags):
+        Configuration.__init__(self, config)
 
         self.cpp_flags = cpp_flags
         self.framework = framework
@@ -104,6 +107,9 @@ class BareConfiguration(Configuration):
         messages = map(lambda x: ClangMessage(self, x), messages)
         return messages
 
+    def expand(self, verify=True):
+        pass
+
 
 class LinuxConfiguration(Configuration):
     """
@@ -120,10 +126,10 @@ class LinuxConfiguration(Configuration):
     method on demand.
 
     """
-    def __init__(self, framework, config, expansion_strategy='alldefconfig'):
-        Configuration.__init__(self)
+    def __init__(self, framework, config, arch=None, subarch=None,
+                 expansion_strategy='alldefconfig'):
+        Configuration.__init__(self, config)
 
-        self.config = config
         self.expanded = None
         self.framework = framework
         self.expansion_strategy = expansion_strategy
@@ -133,15 +139,23 @@ class LinuxConfiguration(Configuration):
         except OSError:
             pass
 
-        self.arch, self.subarch = guess_arch_from_filename(self.config)
-        self.result_cache = {}
+        if arch:
+            self.arch = arch
 
+            if subarch:
+                self.subarch = subarch
+            else:
+                self.subarch = guess_subarch_from_arch(arch)
+        else:
+            oldsubarch = subarch
+            self.arch, self.subarch = guess_arch_from_filename(self.config)
+            if oldsubarch:
+                self.subarch = oldsubarch
+
+        self.result_cache = {}
 
     def __repr__(self):
         return '<LinuxConfiguration "' + self.config + '">'
-
-    def filename(self):
-        return self.config
 
     def expand(self, verify=False):
         """
