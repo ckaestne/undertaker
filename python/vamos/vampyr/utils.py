@@ -20,8 +20,10 @@
 
 from vamos.tools import execute, CommandFailed
 
+import glob
 import logging
 import os
+import re
 
 class ExpansionError(RuntimeError):
     """ Base class of all sort of Expansion errors """
@@ -127,3 +129,16 @@ def get_loc_coverage(filename, autoconf_h=None):
     # we ignore the exitcode here as we are not interested in failing
     # for #error directives and similar.
     return len(lines)
+
+
+def find_configurations(filename):
+    """
+    Collects all configurations that undertaker has created
+
+    To be called right after invoking undertaker's coverage mode.
+    """
+    ret = list()
+    for c in glob.glob(filename + ".config*"):
+        if re.match(r".*\.config\d+$", c):
+            ret.append(c)
+    return sorted(ret)

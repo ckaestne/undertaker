@@ -20,7 +20,7 @@
 from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage
 from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
 from vamos.golem.kbuild import guess_arch_from_filename, call_linux_makefile, \
-    apply_configuration, find_autoconf
+    apply_configuration, find_autoconf, guess_subarch_from_arch
 from vamos.tools import execute
 from vamos.model import Model
 from vamos.Config import Config

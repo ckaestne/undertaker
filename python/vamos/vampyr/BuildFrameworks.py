@@ -18,12 +18,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from vamos.vampyr.Configuration import BareConfiguration, LinuxConfiguration
+from vamos.vampyr.utils import find_configurations
 from vamos.golem.kbuild import file_in_current_configuration, \
     guess_arch_from_filename, guess_subarch_from_arch, \
     get_linux_version, NotALinuxTree
 from vamos.tools import execute
 
-import glob
 import os.path
 import logging
 
@@ -69,13 +69,19 @@ class BareBuildFramework(BuildFramework):
         BuildFramework.__init__(self, options)
 
     def calculate_configurations(self, filename):
-        undertaker = "undertaker -q -j coverage -C min -O cpp"
+        undertaker = "undertaker -q -j coverage -C min -O combined"
         if 'undertaker' in self.options['args']:
             undertaker += " " + self.options['args']['undertaker']
         undertaker += " '" + filename + "'"
-        (output, _) = execute(undertaker, failok=False)
-        flags_list = filter(lambda x: not x.startswith("I:"), output)
-        configs = [BareConfiguration(self, '<stdin>', x) for x in flags_list]
+        execute(undertaker, failok=False)
+
+        configs = list()
+        for cfgfile in find_configurations(filename):
+            assert '.config' in cfgfile
+            cppflagsfile = cfgfile.replace('.config', '.cppflags')
+            with open(cppflagsfile) as f:
+                flags = " ".join([s.rstrip() for s in f.readlines()])
+            configs.append(BareConfiguration(self, cfgfile, flags))
         return configs
 
 
@@ -115,7 +121,7 @@ class KbuildBuildFramework(BuildFramework):
                 # special case: if only subarch is set, restore it
                 self.options['subarch'] = oldsubarch
 
-        cmd = "undertaker -q -j coverage -C %s -O kconfig" % self.options['coverage_strategy']
+        cmd = "undertaker -q -j coverage -C %s -O combined" % self.options['coverage_strategy']
         if os.path.isdir("models"):
             cmd += " -m models/%s.model" % self.options['arch']
         else:
@@ -136,17 +142,19 @@ class KbuildBuildFramework(BuildFramework):
             return set()
 
         logging.info("Testing which configurations are actually being compiled")
-        ret = set()
-        for c in glob.glob(filename + ".config*"):
-            config_obj = LinuxConfiguration(self, c)
+        configs = list()
+        for cfgfile in find_configurations(filename):
+            config_obj = LinuxConfiguration(self, cfgfile,
+                                            arch=self.options['arch'], subarch=self.options['subarch'],
+                                            expansion_strategy=self.options['expansion_strategy'])
             config_obj.switch_to()
             if file_in_current_configuration(filename, config_obj.arch, config_obj.subarch) != "n":
-                logging.info("Configuration '%s' is actually compiled", c)
-                ret.add(config_obj)
+                logging.info("Configuration '%s' is actually compiled", cfgfile)
+                configs.append(config_obj)
             else:
-                logging.info("Configuration '%s' is *not* compiled", c)
+                logging.info("Configuration '%s' is *not* compiled", cfgfile)
 
-        return ret
+        return configs
 
 
 def select_framework(identifier, options):
