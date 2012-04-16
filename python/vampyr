@@ -4,6 +4,7 @@
 #
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -321,6 +322,9 @@ def main():
                       help="Additionally use the given default configuration."+\
                            "Forces kbuild framework, can be one of 'allyesconfig', 'allnoconfig', "+\
                            "'allmodconfig', 'alldefconfig'")
+    parser.add_option("-T", "--tests-dir", dest='testsdir', action='store', type='string',
+                      default="scripts/coccinelle",
+                      help="directory containing the tests that should be run with the program")
 
     (opts, args) = parser.parse_args()
 
@@ -397,12 +401,24 @@ def main():
         if call == 'sparse' and not check_tool('sparse'):
             sys.exit(1)
 
+        if call == 'spatch' and not (check_tool('vampyr-spatch-wrapper --help') and
+                                     check_tool("spatch")):
+            sys.exit(1)
+
         # add default options if not set by user
         if (call == 'gcc' and 'gcc' not in options['args']):
             options['args']['gcc'] = "-Wno-unused"
 
         if (call == 'sparse' and 'sparse' not in options['args']):
             options['args']['sparse'] = "-Wsparse-all"
+
+        if (call == 'spatch' and 'spatch' not in options['args']):
+            # For debugging -very_quiet should be removed but no usefull output in that case
+            options['args']['spatch'] = "-very_quiet -no_show_diff -D report -ignore-unknown-options"
+
+
+    spatches, _ = execute("find %s -name '*.cocci'" % opts.testsdir)
+    options['test'] = sorted(spatches)
 
     for tool in ("fakecc", "make --version"):
         if not check_tool(tool):

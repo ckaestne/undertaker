@@ -3,6 +3,7 @@
 #
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage
+from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage, SpatchMessage
 from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
 from vamos.golem.kbuild import guess_arch_from_filename, call_linux_makefile, \
     apply_configuration, find_autoconf, guess_subarch_from_arch, \
@@ -81,7 +82,6 @@ class Configuration:
         """
         return self.config_h
 
-
 class BareConfiguration(Configuration):
 
     def __init__(self, framework, basename, nth):
@@ -104,7 +104,6 @@ class BareConfiguration(Configuration):
             raise RuntimeError(compiler + " not found on this system?")
         else:
             return (out, returncode)
-
 
     def call_sparse(self, on_file):
         (messages, statuscode) = self.__call_compiler("sparse", "", on_file)
@@ -141,6 +140,17 @@ class BareConfiguration(Configuration):
 
     def expand(self, verify=True):
         pass
+
+    def call_spatch(self, on_file):
+        messages = []
+        for test in self.framework.options['test']:
+            (out, _) = self.__call_compiler("spatch", "-sp_file %s" % test, self.source)
+
+            if len(out) > 1 or out[0] != '':
+                out = SpatchMessage.preprocess_messages(out)
+                messages += map(lambda x: SpatchMessage(self, x, on_file, test), out)
+
+        return messages
 
 
 class LinuxConfiguration(Configuration):
@@ -370,6 +380,34 @@ class LinuxConfiguration(Configuration):
 
         return messages
 
+    def call_spatch(self, on_file):
+        """Call Spatch on the given file"""
+        if "SPATCH" in self.result_cache:
+            return self.result_cache["SPATCH"]
+
+        messages = []
+
+        for test in self.framework.options['test']:
+            spatch = 'vampyr-spatch-wrapper "%s" "%s" -sp_file "%s"' % (on_file, self.source, test)
+            if 'spatch' in self.framework.options['args']:
+                spatch += " " + self.framework.options['args']['spatch']
+
+            (CC, CHECK) = self.__call_make(on_file, "C=2 CHECK='%s' CC=fakecc" % spatch.replace("'", "\\'"))
+
+            # GCC messages
+            if "CC" not in self.result_cache:
+                messages = GccMessage.preprocess_messages(CC)
+                messages = map(lambda x: GccMessage(self, x), messages)
+                self.result_cache["CC"] = messages
+
+            if len(CHECK) > 1 or (len(CHECK) > 0 and CHECK[0] != ''):
+                # Sparse messages
+                out = SpatchMessage.preprocess_messages(CHECK)
+                messages += map(lambda x: SpatchMessage(self, x, on_file, test), out)
+
+        self.result_cache["SPATCH"] = messages
+        return messages
+
 
 class LinuxPartialConfiguration(LinuxConfiguration):
     """
@@ -424,7 +462,7 @@ class LinuxStdConfiguration(LinuxConfiguration):
                                     basename=basename, nth=configuration)
 
         self.cppflags = '/dev/null'
-        self.source   = '/dev/null'
+        self.source   = basename
         self.kconfig  = '/dev/null'
 
     def expand(self, verify=False):

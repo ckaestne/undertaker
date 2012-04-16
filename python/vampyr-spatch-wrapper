@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+#   vampyr-spatch-wrapper - proxies spatch calls from Kbuild CHECK mechanism
+#
+# Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+if [ "$1" == "--help" ];then
+    echo "$0 original_filename preprocessed_filename ..."
+    exit 0
+fi
+
+if [ "$#" -le 2 ]; then
+	echo "$0 original_filename preprocessed_filename ..."
+	exit 1
+fi
+
+origfile="$1"
+shift
+newfile="$1"
+shift
+
+declare -a args=( "$@" )
+declare -a newargs=( )
+
+for (( i = 0; i < ${#args[@]}; i++ )); do
+    if [ "${args[$i]}" == "$origfile" ]; then
+        newargs=( "${newargs[@]}" "$newfile" );
+        found=1
+    elif [ "${args[$i]}" == "-isystem" -o "${args[$i]}" == "-include" ]; then
+        i=$((i+1))
+    elif [ "${args[$i]}" == "-sp_file" ]; then
+        newargs=( "${newargs[@]}" "${args[$i]}" );
+        i=$((i+1))
+        patch="${args[$i]}"
+        newargs=( "${newargs[@]}" "${args[$i]}" );
+    else
+        newargs=( "${newargs[@]}" "${args[$i]}" );
+    fi
+done
+
+if ! grep -q '^virtual report$' $patch &>/dev/null; then
+    exit 0
+fi
+
+extraargs="$(sed -n 's,^//[[:space:]]*Options:[[:space:]]*,,gp' $patch)"
+
+if [ "$found" == "1" ] ; then
+    ulimit -t 360
+    exec spatch "${newargs[@]}" $extraargs
+else
+    exit 0
+fi

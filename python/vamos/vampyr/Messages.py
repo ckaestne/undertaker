@@ -2,7 +2,8 @@
 #   utility classes for working in source trees
 #
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
-# Copyright (C) 2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +20,7 @@
 
 import re
 import logging
-
+import os.path
 
 class MessageContainer(set):
     def add_message(self, configuration, message):
@@ -163,3 +164,36 @@ class ClangMessage(SparseMessage):
         self.message = message[2]
 
         self.in_configurations = set([self.configuration])
+
+
+class SpatchMessage(SparseMessage):
+    @staticmethod
+    def preprocess_messages(lines):
+        # Remove unwanted, boring lines
+        lines = filter(lambda x: len(x) > 0, lines)
+        lines = filter(lambda x: not x.startswith("  "), lines)
+        lines = filter(lambda x: not "***" in x, lines)
+        lines = filter(lambda x: not "Killed" == x , lines)        
+        return lines
+
+    def __init__(self, configuration, line, filename, test):
+        self.location = re.sub('.source([\d]+)$', '', filename)
+        self.test = test
+        SparseMessage.__init__(self, configuration,
+                               re.sub('.source([\d]+)', '', line))
+
+    def parse(self):
+        try:
+            _, information = self.bare_message.split(":", 1)
+            line, message = information.split(" ", 1)
+            self.location = "%s:%s" % (self.location, line)
+            self.message = message
+        except ValueError:
+            self.message = ""
+
+    def get_message(self):
+        return "%s [%s]" % (self.bare_message, os.path.basename(self.test))
+
+    def get_report(self):
+        return self.bare_message + " [%s]\n  in %d configs. e.g. in %s" \
+               % ( self.test, len(self.in_configurations), str(self.configuration))
