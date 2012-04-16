@@ -8,3 +8,4 @@
 *.c.config*
 *.c.cppflags*
 *.c.source*
+*.plist

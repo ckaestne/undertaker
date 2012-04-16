@@ -26,6 +26,7 @@ clean-check:
                      -o -name "*.error.got" \
                      -o -name "*.dead" \
                      -o -name "*.undead" \
+                     -o -name "*.plist" \
                      \) -delete
 
 FORCE:

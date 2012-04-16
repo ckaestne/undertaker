@@ -170,4 +170,4 @@ class ClangMessage(SparseMessage):
         self.location = message[0]
         self.message = message[2]
 
-        self.in_configurations = set([self])
+        self.in_configurations = set([self.configuration])

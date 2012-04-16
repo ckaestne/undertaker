@@ -43,6 +43,12 @@ class Configuration:
     def filename(self):
         return self.config
 
+    def __copy__(self):
+        raise RuntimeError("Object <%s> is not copyable" % self)
+
+    def __deepcopy__(self):
+        raise RuntimeError("Object <%s> is not copyable" % self)
+
 
 class BareConfiguration(Configuration):
 
