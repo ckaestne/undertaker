@@ -1,9 +1,9 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
- * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -213,6 +213,36 @@ START_TEST(format_config_items_module_not_valid_in_kconfig)
 }
 END_TEST
 
+START_TEST(assignmentmap_test)
+{
+    //NB: This test mimics the usage of undertaker.cpp, which hackishly
+    //    inserts B00 before B0 in CPPFile.
+    SatChecker::AssignmentMap m;
+    m["B00"] = true;            // whole file
+    m["B0"]  = true;            // enabled block
+    m["B1"]  = false;           // disabled block
+
+    std::vector<bool> result(3, false), reference;
+
+    // reference vector
+    reference.push_back(true);         // B00
+    reference.push_back(true);         // B0
+    reference.push_back(false);        // B1
+
+    m.setEnabledBlocks(result);
+    //m.formatAll(std::cout);
+
+    for (unsigned int i = 0; i < reference.size(); i++) {
+        fail_unless(result[i] == reference[i],
+                    "result[%d]=%d != reference[%d]=%d",
+                    i, (int)result[i], i, (int)reference[i]);
+    }
+
+    ck_assert_int_eq(result.size(), reference.size());
+    fail_unless(result==reference);
+}
+END_TEST
+
 Suite *
 satchecker_suite(void) {
     Suite *s  = suite_create("SatChecker");
@@ -223,6 +253,7 @@ satchecker_suite(void) {
     tcase_add_test(tc, format_config_items_simple);
     tcase_add_test(tc, format_config_items_module);
     tcase_add_test(tc, format_config_items_module_not_valid_in_kconfig);
+    tcase_add_test(tc, assignmentmap_test);
 
     suite_add_tcase(s, tc);
 

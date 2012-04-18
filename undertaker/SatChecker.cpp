@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
- * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -384,7 +384,16 @@ void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
         if (!valid || !boost::regex_match(name, what, block_regexp))
             continue;
 
-        int blockno = boost::lexical_cast<int>(what[1]);
+        // Follow hack from commit e1e7f90addb15257520937c7782710caf56d4101
+
+        if (what[1] == "00") {
+            // B00 is first and means the whole block
+            blocks[0] = true;
+            continue;
+        }
+
+        // B0 starts at index 1
+        int blockno = 1 + boost::lexical_cast<int>(what[1]);
         blocks[blockno] = true;
     }
 }
