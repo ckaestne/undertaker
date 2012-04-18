@@ -40,18 +40,21 @@ class Configuration:
         self.config_h = '%s.config%s.h' % (basename, nth)
         self.framework = framework
         self.basename = basename
+        self.write_config_h(self.config_h)
 
-        with open(self.config_h, 'w') as fd:
+    def write_config_h(self, config_h):
+        with open(config_h, 'w') as fd:
             cppflags = self.get_cppflags()
             flags = cppflags.split("-D")
-            logging.debug("Generating %s, found %d items", self.config_h, len(flags))
+            logging.debug("Generating %s, found %d items",
+                          config_h, len(flags))
             for f in flags:
                 if f == '': continue # skip empty fields
                 try:
                     name, value = f.split('=')
                     fd.write("#define %s %s\n" % (name, value))
                 except ValueError:
-                    logging.error("%s: Failed to parse flag '%s'", self.config_h, f)
+                    logging.error("%s: Failed to parse flag '%s'", config_h, f)
 
     def switch_to(self):
         raise NotImplementedError
@@ -210,9 +213,7 @@ class LinuxConfiguration(Configuration):
                             failok=False)
         apply_configuration(arch=self.arch, subarch=self.subarch)
 
-        expanded_config = self.kconfig + '.expanded'
-        shutil.copy('.config', expanded_config)
-        self.expanded = expanded_config
+        self.expanded = self.save_expanded('.config')
 
         if verify:
             if not self.model:
@@ -220,13 +221,19 @@ class LinuxConfiguration(Configuration):
                 self.model = Model(modelf)
                 logging.info("Loaded %d items from %s", len(self.model), modelf)
 
-            all_items, violators = self.verify(expanded_config)
+            all_items, violators = self.verify(self.expanded)
             if len(violators) > 0:
-                for v in violators:
-                    logging.debug("violating item: %s", v)
                 logging.warning("%d/%d mismatched items", len(violators), len(all_items))
-                raise ExpansionError("Config %s failed to expand" % self.kconfig)
+                for v in violators:
+                    logging.info("violating item: %s", v)
+                raise ExpansionError("Config %s failed to expand properly" % self.kconfig)
+            else:
+                logging.info("All items are set correctly")
 
+    def save_expanded(self, config):
+        expanded_config = self.kconfig + '.expanded'
+        shutil.copy(config, expanded_config)
+        return expanded_config
 
     def verify(self, expanded_config='.config'):
         """
@@ -359,9 +366,42 @@ class LinuxConfiguration(Configuration):
         return messages
 
 
+class LinuxPartialConfiguration(LinuxConfiguration):
+    """
+    This class creates a configuration object for a partial Linux
+    Configuration. This works on arbitrary partial configurations, like
+    "trolled" ones.
+
+    NB: the self.cppflags and self.source is set to "/dev/null"
+    """
+
+    def __init__(self, framework, filename, arch, subarch,
+                 expansion_strategy='alldefconfig'):
+        assert arch
+        logging.debug("arch: %s, subarch: %s", arch, subarch)
+        LinuxConfiguration.__init__(self, framework,
+                                    arch=arch, subarch=subarch,
+                                    basename=filename, nth="",
+                                    expansion_strategy=expansion_strategy)
+
+        self.cppflags = '/dev/null'
+        self.source   = '/dev/null'
+        self.kconfig  = filename
+
+    def write_config_h(self, dummy):
+        pass
+
+    def filename(self):
+        return self.basename
+
+    def save_expanded(self, config):
+        # do not copy expanded configs around
+        return '.config'
+
+
 class LinuxStdConfiguration(LinuxConfiguration):
     """
-    This option creates a configuration object for a standard Linux
+    This class creates a configuration object for a standard Linux
     configuration, such as 'allyesconfig' or 'allnoconfig'.
 
     Instantiating this class will not change the current working tree,

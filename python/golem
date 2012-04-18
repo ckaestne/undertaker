@@ -4,6 +4,7 @@
 #
 # Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 # Copyright (C) 2011-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Valentin Rothberg <valentinrothberg@googlemail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,6 +38,9 @@ from vamos.golem.kbuild import determine_buildsystem_variables, \
     file_in_current_configuration, files_for_current_configuration, \
     determine_buildsystem_variables_in_directory, \
     get_linux_version, NotALinuxTree, TreeNotConfigured
+from vamos.vampyr.Configuration import LinuxPartialConfiguration
+from vamos.vampyr.BuildFrameworks import KbuildBuildFramework
+from vamos.vampyr.utils import ExpansionError
 
 import os.path
 
@@ -74,6 +78,9 @@ def find_variables_in_directories(arch, subarch, args):
 
 
 def main():
+    # this method has too many branches and statements
+    # pylint: disable=R0912
+    # pylint: disable=R0915
     parser = OptionParser(usage="%prog [options]\n\n"
                           "This tool is meant to be run in a Linux source tree.\n"
                           "It is sensitive to the environment variables $ARCH and $SUBARCH.\n"
@@ -84,6 +91,13 @@ def main():
     parser.add_option('-l', '--list', dest='do_list', action='store_true',
                       help="list all object files that would be built"\
                           +" in the current configuration")
+    parser.add_option('-e', '--expand', dest='partialconfig', action='store',
+                      default=None,
+                      help="expand given partial configuration"\
+                          +" in the current configuration")
+    parser.add_option('-s', '--strategy', dest='strategy', action='store',
+                      default='alldefconfig',
+                      help="select how partial configurations get expanded")
     parser.add_option('-o', '--options', dest='do_opt', action='store_true', default=False,
                       help="list configuration options mentioned in Linux makefiles.")
     parser.add_option('-c', '--compiled', dest='compiled', action='append',
@@ -132,7 +146,23 @@ def main():
     if opts.do_directory:
         find_variables_in_directories(arch, subarch, args)
         sys.exit(0)
-
+    if opts.partialconfig:
+        if not os.path.exists(opts.partialconfig):
+            logging.error("Partial config %s does not exist", opts.partialconfig)
+            sys.exit(1)
+        framework_exp = KbuildBuildFramework()
+        config_exp = LinuxPartialConfiguration(framework_exp,
+                                               opts.partialconfig,
+                                               arch, subarch,
+                                               opts.strategy)
+        if not os.path.exists("models/%s.model" % arch):
+            logging.info("Model for arch %s absent, skipping verification", arch)
+            config_exp.expand(verify=False)
+        else:
+            try:
+                config_exp.expand(verify=True)
+            except ExpansionError as e:
+                logging.warning(str(e))
     if opts.do_list:
         how = opts.verbose > 0
         try:
@@ -156,7 +186,7 @@ def main():
     elif opts.inference:
         do_inference(args, arch=arch, subarch=subarch)
         sys.exit(0)
-    else:
+    elif not opts.partialconfig:
         print "No option given"
         parser.print_help()
         sys.exit(1)
