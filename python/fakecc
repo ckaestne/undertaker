@@ -4,6 +4,7 @@
 #
 # Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,7 +41,19 @@ class PassThroughOptionParser(OptionParser):
             except (BadOptionError, AmbiguousOptionError), exception:
                 largs.append(exception.opt_str)
 
+def invoke_gcc(argv):
+    # strip off all -m calls, they will most likely break on foreign
+    # architectures
+    argv = [o for o in argv[1:] if not o.startswith("-m")]
+    print "calling gcc %s" % " ".join(argv)
+    os.execvp("gcc", ["gcc"] + argv)
+
 def main(argv):
+    for special in ("kernel/bounds.c", "scripts/mod/empty.c", "-",
+                    "-print-file-name=include"):
+        if special in argv:
+            invoke_gcc(argv)
+
     parser = PassThroughOptionParser(usage="%prog [options] <filename>")
     parser.add_option('-v', '--verbose', dest='verbose', action='count')
     parser.add_option("-o", '--output', dest='output', action='store',
@@ -63,10 +76,7 @@ def main(argv):
 
     if opts.p_opt:
         for flag in opts.p_opt:
-            if flag.startswith('rint-file-name=include'):
-                subprocess.call(["gcc"] + argv[1:])
-                return
-            elif flag.startswith('ipe'):
+            if flag.startswith('ipe'):
                 continue
             elif flag.startswith('g'):
                 continue
