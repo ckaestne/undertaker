@@ -23,10 +23,10 @@ int main(void) {
  * check-command: vampyr -f bare -Cgcc -Ogcc,-Wunused-variable  $file
  * check-output-start
 Checking 1 configuration(s):
-" -DCONFIG_A=1":	1 errors
+"-DCONFIG_A=1":	1 errors
   ---- gcc: ----
 coverage-4.c:5: warning: unused variable 'a'
-  in 1 configs. e.g. in " -DCONFIG_A=1"
+  in 1 configs. e.g. in "-DCONFIG_A=1"
   -------------
  * check-output-end
  */

@@ -15,10 +15,10 @@ int main(void) {
  * check-command: vampyr -f bare -Csparse --exclude-others $file
  * check-output-start
 Checking 1 configuration(s):
-" -DCONFIG_A=1":	1 errors
+"-DCONFIG_A=1":	1 errors
   ---- sparse: ----
 coverage-3.c:8: warning: incorrect type in return expression (different base types) | expected int | got char static *<noident>
-  in 1 configs. e.g. in " -DCONFIG_A=1"
+  in 1 configs. e.g. in "-DCONFIG_A=1"
   -------------
  * check-output-end
  */

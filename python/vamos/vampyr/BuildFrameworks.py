@@ -3,6 +3,7 @@
 #
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -113,14 +114,14 @@ class BuildFramework:
             try:
                 config.switch_to()
                 old_len = len(covered_blocks)
-                return_dict['blocks'][config.config] = \
+                return_dict['blocks'][config.kconfig] = \
                     set(get_conditional_blocks(filename, autoconf_h,
                                                configuration_blocks=False)) \
                                                | set(["B00"])
-                covered_blocks |= return_dict['blocks'][config.config]
+                covered_blocks |= return_dict['blocks'][config.kconfig]
 
                 print "Config %s added %d additional blocks" % \
-                    (config.config, len(covered_blocks) - old_len)
+                    (config.kconfig, len(covered_blocks) - old_len)
 
             except RuntimeError as e:
                 logging.error("Failed to process config '%s': %s", filename, e)
@@ -162,11 +163,12 @@ class BareBuildFramework(BuildFramework):
 
         configs = list()
         for cfgfile in find_configurations(filename):
+            # here, we rely on the fact that find_configurations returns filenames such as
+            # 'kernel/sched.c.config42' (i.e., filenames end on the number)
             assert '.config' in cfgfile
-            cppflagsfile = cfgfile.replace('.config', '.cppflags')
-            with open(cppflagsfile) as f:
-                flags = " ".join([s.rstrip() for s in f.readlines()])
-            configs.append(BareConfiguration(self, cfgfile, flags))
+            basename, ext = os.path.splitext(cfgfile)
+            nth = int(ext[len('.config'):])
+            configs.append(BareConfiguration(self, basename, nth))
         return configs
 
 
@@ -229,7 +231,12 @@ class KbuildBuildFramework(BuildFramework):
         logging.info("Testing which configurations are actually being compiled")
         configs = list()
         for cfgfile in find_configurations(filename):
-            config_obj = LinuxConfiguration(self, cfgfile,
+            # here, we rely on the fact that find_configurations returns filenames such as
+            # 'kernel/sched.c.config42' (i.e., filenames end on the number)
+            assert '.config' in cfgfile
+            basename, ext = os.path.splitext(cfgfile)
+            nth = int(ext[len('.config'):])
+            config_obj = LinuxConfiguration(self, basename, nth,
                                             arch=self.options['arch'], subarch=self.options['subarch'],
                                             expansion_strategy=self.options['expansion_strategy'])
             config_obj.switch_to()

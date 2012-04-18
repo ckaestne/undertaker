@@ -31,8 +31,11 @@ import re
 import shutil
 
 class Configuration:
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, framework, basename, nth):
+        self.cppflags = '%s.cppflags%s' % (basename, nth)
+        self.source   = '%s.source%s' % (basename, nth)
+        self.kconfig  = '%s.config%s' % (basename, nth)
+        self.framework = framework
 
     def switch_to(self):
         raise NotImplementedError
@@ -40,8 +43,12 @@ class Configuration:
     def call_sparse(self, on_file):
         raise NotImplementedError
 
+    def get_cppflags(self):
+        with open(self.cppflags, 'r') as fd:
+            return fd.read().strip()
+
     def filename(self):
-        return self.config
+        return self.kconfig
 
     def __copy__(self):
         raise RuntimeError("Object <%s> is not copyable" % self)
@@ -52,26 +59,20 @@ class Configuration:
 
 class BareConfiguration(Configuration):
 
-    def __init__(self, framework, config, cpp_flags):
-        Configuration.__init__(self, config)
-
-        self.cpp_flags = cpp_flags
-        self.framework = framework
-
+    def __init__(self, framework, basename, nth):
+        Configuration.__init__(self, framework, basename, nth)
 
     def __repr__(self):
-        return '"' + self.cpp_flags + '"'
-
+        return '"' + self.get_cppflags() + '"'
 
     def switch_to(self):
         pass
-
 
     def __call_compiler(self, compiler, args, on_file):
         cmd = compiler + " " + args
         if compiler in self.framework.options['args']:
             cmd += " " + self.framework.options['args'][compiler]
-        cmd += " " + self.cpp_flags
+        cmd += " " + self.get_cppflags()
         cmd += " '" + on_file + "'"
         (out, returncode) = execute(cmd, failok=True)
         if returncode == 127:
@@ -132,16 +133,16 @@ class LinuxConfiguration(Configuration):
     method on demand.
 
     """
-    def __init__(self, framework, config, arch=None, subarch=None,
+    def __init__(self, framework, basename, nth,
+                 arch=None, subarch=None,
                  expansion_strategy='alldefconfig'):
-        Configuration.__init__(self, config)
+        Configuration.__init__(self, framework, basename, nth)
 
         self.expanded = None
-        self.framework = framework
         self.expansion_strategy = expansion_strategy
         self.model = None
         try:
-            os.unlink(self.config + '.expanded')
+            os.unlink(self.kconfig + '.expanded')
         except OSError:
             pass
 
@@ -154,37 +155,37 @@ class LinuxConfiguration(Configuration):
                 self.subarch = guess_subarch_from_arch(arch)
         else:
             oldsubarch = subarch
-            self.arch, self.subarch = guess_arch_from_filename(self.config)
+            self.arch, self.subarch = guess_arch_from_filename(self.kconfig)
             if oldsubarch:
                 self.subarch = oldsubarch
 
         self.result_cache = {}
 
     def __repr__(self):
-        return '<LinuxConfiguration "' + self.config + '">'
+        return '<LinuxConfiguration "' + self.kconfig + '">'
 
     def expand(self, verify=False):
         """
         @raises ExpansionError if verify=True and expanded config does
                                not patch all requested items
         """
-        logging.debug("Trying to expand configuration " + self.config)
+        logging.debug("Trying to expand configuration " + self.kconfig)
 
-        if not os.path.exists(self.config):
-            raise RuntimeError("Partial configuration %s does not exist" % self.config)
+        if not os.path.exists(self.kconfig):
+            raise RuntimeError("Partial configuration %s does not exist" % self.kconfig)
 
         (files, _) = execute("find include -name autoconf.h -print -delete", failok=False)
         if len(files) > 1:
             logging.error("Deleted spurious configuration files: %s", ", ".join(files))
 
         target = self.expansion_strategy
-        extra_var = 'KCONFIG_ALLCONFIG="%s"' % self.config
+        extra_var = 'KCONFIG_ALLCONFIG="%s"' % self.kconfig
         call_linux_makefile(target, extra_variables=extra_var,
                             arch=self.arch, subarch=self.subarch,
                             failok=False)
         apply_configuration(arch=self.arch, subarch=self.subarch)
 
-        expanded_config = self.config + '.expanded'
+        expanded_config = self.kconfig + '.expanded'
         shutil.copy('.config', expanded_config)
         self.expanded = expanded_config
 
@@ -201,7 +202,7 @@ class LinuxConfiguration(Configuration):
                 for v in violators:
                     logging.debug("violating item: %s", v)
                 logging.warning("%d/%d mismatched items", len(violators), len(all_items))
-                raise ExpansionError("Config %s failed to expand" % self.config)
+                raise ExpansionError("Config %s failed to expand" % self.kconfig)
 
 
     def verify(self, expanded_config='.config'):
@@ -214,7 +215,7 @@ class LinuxConfiguration(Configuration):
           violators: list of items that violate the partial selection
         """
 
-        partial_config = Config(self.config)
+        partial_config = Config(self.kconfig)
         config = Config(expanded_config)
         conflicts = config.getConflicts(partial_config)
 
@@ -223,7 +224,7 @@ class LinuxConfiguration(Configuration):
 
     def switch_to(self):
         if not self.expanded:
-            logging.debug("Expanding partial configuration %s", self.config)
+            logging.debug("Expanding partial configuration %s", self.kconfig)
             self.expand()
             return
 
@@ -259,12 +260,15 @@ class LinuxConfiguration(Configuration):
         CHECK = []
 
         while len(messages) > 0:
-            if re.match("^\s*CC\s*" + on_object, messages[0]):
+            if re.match("^\s*CC\s*(\[M\]\s*)?" + on_object, messages[0]):
                 state = "CC"
                 del messages[0]
                 continue
-            if re.match("^\s*CHECK\s*" + on_file, messages[0]):
+            if re.match("^\s*CHECK\s*(\[M\]\s*)?" + on_file, messages[0]):
                 state = "CHECK"
+                del messages[0]
+                continue
+            if re.match("fixdep: [\S]* is empty", messages[0]):
                 del messages[0]
                 continue
 
@@ -284,6 +288,10 @@ class LinuxConfiguration(Configuration):
         if statuscode != 0:
             logging.error("Running checker %s on file %s failed", extra_args, on_file)
 
+        logging.debug("contents of CC:")
+        logging.debug(CC)
+        logging.debug("contents of CHECK:")
+        logging.debug(CHECK)
         return (CC, CHECK)
 
 
@@ -301,7 +309,7 @@ class LinuxConfiguration(Configuration):
 
 
     def call_sparse(self, on_file):
-        """Call Gcc on the given file"""
+        """Call Sparse on the given file"""
         if "SPARSE" in self.result_cache:
             return self.result_cache["SPARSE"]
 
