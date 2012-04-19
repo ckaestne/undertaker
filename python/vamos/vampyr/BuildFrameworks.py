@@ -18,7 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from vamos.vampyr.Configuration import BareConfiguration, LinuxConfiguration
+from vamos.vampyr.Configuration \
+    import BareConfiguration, LinuxConfiguration, LinuxStdConfiguration
 from vamos.vampyr.utils import find_configurations, \
     get_conditional_blocks, get_block_to_linum_map
 from vamos.golem.kbuild import apply_configuration, file_in_current_configuration, \
@@ -216,6 +217,24 @@ class KbuildBuildFramework(BuildFramework):
                 # special case: if only subarch is set, restore it
                 self.options['subarch'] = oldsubarch
 
+        ret = set()
+
+        if self.options.has_key('stdconfig'):
+            if self.options.has_key('stdconfig_files') \
+                    and not filename in self.options['stdconfig_files']:
+                logging.info("Skipping %s because stdconfig '%s' does not build it",
+                             filename, self.options['stdconfig'])
+                return ret
+
+            c  = LinuxStdConfiguration(self, basename=filename,
+                                       arch=self.options['arch'],
+                                       subarch=self.options['subarch'])
+            c.switch_to()
+            if file_in_current_configuration(filename, c.arch, c.subarch) != "n":
+                ret.add(c)
+            return ret
+
+
         cmd = "undertaker -q -j coverage -C %s -O combined" % self.options['coverage_strategy']
         if os.path.isdir("models"):
             cmd += " -m models/%s.model" % self.options['arch']
@@ -302,6 +321,11 @@ class KbuildBuildFramework(BuildFramework):
 
         return_dict['arch'] = self.options['arch']
         return_dict['subarch'] = self.options['subarch']
+
+
+        if self.options.has_key('configfile'):
+            logging.info("Skipping analysis of allyesconfig, since we analyze %s",
+                         self.options['configfile'])
 
         # generate the configuration for 'allyesconfig'
         call_linux_makefile("allyesconfig", failok=False,

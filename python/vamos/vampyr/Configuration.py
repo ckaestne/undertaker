@@ -20,7 +20,8 @@
 from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage
 from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
 from vamos.golem.kbuild import guess_arch_from_filename, call_linux_makefile, \
-    apply_configuration, find_autoconf, guess_subarch_from_arch
+    apply_configuration, find_autoconf, guess_subarch_from_arch, \
+    files_for_current_configuration
 from vamos.tools import execute
 from vamos.model import Model
 from vamos.Config import Config
@@ -38,6 +39,8 @@ class Configuration:
         # Note, undertaker will clean up ".config*", which matches self.config_h
         self.config_h = '%s.config%s.h' % (basename, nth)
         self.framework = framework
+        self.basename = basename
+
         with open(self.config_h, 'w') as fd:
             cppflags = self.get_cppflags()
             flags = cppflags.split("-D")
@@ -350,3 +353,50 @@ class LinuxConfiguration(Configuration):
         self.result_cache["SPARSE"] = messages
 
         return messages
+
+
+class LinuxStdConfiguration(LinuxConfiguration):
+    """
+    This option creates a configuration object for a standard Linux
+    configuration, such as 'allyesconfig' or 'allnoconfig'.
+
+    Instantiating this class will not change the current working tree,
+    immediately.
+    """
+
+    def __init__(self, framework, basename, arch, subarch):
+        assert framework.options.has_key('stdconfig')
+        assert arch
+        assert subarch
+        logging.debug("arch: %s, subarch: %s", arch, subarch)
+        configuration = ".%s" % framework.options['stdconfig']
+        LinuxConfiguration.__init__(self, framework,
+                                    arch=arch, subarch=subarch,
+                                    basename=basename, nth=configuration)
+
+        self.cppflags = '/dev/null'
+        self.source   = '/dev/null'
+        self.kconfig  = '/dev/null'
+
+    def expand(self, verify=False):
+
+        arch    = self.framework.options['arch']
+        subarch = self.framework.options['subarch']
+
+        call_linux_makefile(self.framework.options['stdconfig'],
+                            arch=arch, subarch=subarch,
+                            failok=False)
+
+        if not self.framework.options.has_key('stdconfig_files'):
+            self.framework.options['stdconfig_files'] \
+                = set(files_for_current_configuration(arch, subarch))
+        else:
+            apply_configuration(arch=self.arch, subarch=self.subarch)
+        self.kconfig = '.vampyr.' + self.framework.options['stdconfig']
+        shutil.copy('.config', self.kconfig)
+
+    def get_cppflags(self):
+        return ""
+
+    def filename(self):
+        return self.basename + '.' + self.framework.options['stdconfig']

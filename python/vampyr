@@ -94,7 +94,7 @@ def handle_file(options, filename):
     framework = options['framework']
     configs = framework.calculate_configurations(filename)
     if len(configs) == 0:
-        logging.error("File %s did not contain any configurations", filename)
+        logging.info("File %s is not compiled in any configuration", filename)
         return
 
     errors = do_checks(options, filename, configs)
@@ -263,6 +263,11 @@ def main():
                       help="Number of parallel threads for undertaker dead analysis")
     parser.add_option('-c', '--config', dest='configfile',
                       help="Analyze a given configuration in config.h format")
+    parser.add_option('', '--stdconfig', dest='stdconfig',
+                      default=None,
+                      help="Avoid calculating configuration; use given default configuration instead."+\
+                           "Forces kbuild framework, can be one of 'allyesconfig', 'allnoconfig', "+\
+                           "'allmodconfig', 'alldefconfig'")
 
     (opts, args) = parser.parse_args()
 
@@ -284,6 +289,17 @@ def main():
             sys.exit(-1)
         (key, value) = arg.split(",", 1)
         options['args'][key] = value
+
+    if opts.stdconfig:
+        opts.framework='kbuild'
+        if not opts.stdconfig in ('allyesconfig', 'allnoconfig', 'allmodconfig', 'alldefconfig'):
+            logging.error("Invalid or Unknown standard configuration")
+            sys.exit(1)
+        logging.info("Setting default configuration %s", opts.stdconfig)
+        options['stdconfig'] = opts.stdconfig
+        if opts.configfile:
+            logging.error("Trying to set a standard config together with a configuration file, aborting")
+            sys.exit(1)
 
     options['framework'] = select_framework(opts.framework, options)
 
