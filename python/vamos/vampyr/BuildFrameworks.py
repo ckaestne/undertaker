@@ -64,7 +64,7 @@ class BuildFramework:
     def calculate_configurations(self, filename):
         raise NotImplementedError
 
-    def analyze_configuration_coverage(self, filename, autoconf_h):
+    def analyze_configuration_coverage(self, filename):
         """
         Analyzes the given file 'filename' for its configuration coverage.
 
@@ -103,28 +103,36 @@ class BuildFramework:
         return_dict['configuration_blocks'] = conf_blocks
 
         covered_blocks = set()
-        configs = self.calculate_configurations(filename)
-        logging.info("%s: found %d configurations", filename, len(configs))
 
-        return_dict['all_configs'] = find_configurations(filename)
-        return_dict['all_config_count'] = len(return_dict['all_configs'])
-        return_dict['expandable_configs'] = len(configs)
+        if self.options.has_key('configfile'):
+            config_h = self.options['configfile']
+            logging.info("Analyzing Configuration %s", config_h)
+            covered_blocks = return_dict['blocks'][config_h] = \
+                set(get_conditional_blocks(filename, config_h)) | set(["B00"])
+        else:
+            configs = self.calculate_configurations(filename)
+            logging.info("%s: found %d configurations", filename, len(configs))
 
-        for config in configs:
-            try:
-                config.switch_to()
-                old_len = len(covered_blocks)
-                return_dict['blocks'][config.kconfig] = \
-                    set(get_conditional_blocks(filename, autoconf_h,
-                                               configuration_blocks=False)) \
-                                               | set(["B00"])
-                covered_blocks |= return_dict['blocks'][config.kconfig]
+            return_dict['all_configs'] = find_configurations(filename)
+            return_dict['all_config_count'] = len(return_dict['all_configs'])
+            return_dict['expandable_configs'] = len(configs)
 
-                print "Config %s added %d additional blocks" % \
-                    (config.kconfig, len(covered_blocks) - old_len)
+            for config in configs:
+                try:
+                    config.switch_to()
+                    autoconf_h=config.get_config_h()
+                    old_len = len(covered_blocks)
+                    return_dict['blocks'][config.kconfig] = \
+                        set(get_conditional_blocks(filename, autoconf_h,
+                                                   configuration_blocks=False)) \
+                                                   | set(["B00"])
+                    covered_blocks |= return_dict['blocks'][config.kconfig]
 
-            except RuntimeError as e:
-                logging.error("Failed to process config '%s': %s", filename, e)
+                    print "Config %s added %d additional blocks" % \
+                        (config.kconfig, len(covered_blocks) - old_len)
+
+                except RuntimeError as e:
+                    logging.error("Failed to process config '%s': %s", filename, e)
 
         return_dict['blocks_covered'] = covered_blocks
         return_dict['blocks_uncovered'] = total_blocks - covered_blocks
@@ -248,7 +256,8 @@ class KbuildBuildFramework(BuildFramework):
 
         return configs
 
-    def analyze_configuration_coverage(self, filename, autoconf_h=None):
+
+    def analyze_configuration_coverage(self, filename):
         """
         Analyzes the given file 'filename' for its configuration coverage.
 
@@ -282,15 +291,15 @@ class KbuildBuildFramework(BuildFramework):
                 # special case: if only subarch is set, restore it
                 self.options['subarch'] = oldsubarch
 
-        if autoconf_h is None:
-            # sanity check: remove existing configuration to ensure consistent behavior
-            if os.path.exists(".config"):
-                os.unlink(".config")
-            apply_configuration(arch=self.options['arch'], subarch=self.options['subarch'])
-            assert os.path.exists('.config')
-            autoconf_h=find_autoconf()
+        # sanity check: remove existing configuration to ensure consistent behavior
+        if os.path.exists(".config"):
+            os.unlink(".config")
+        apply_configuration(arch=self.options['arch'], subarch=self.options['subarch'])
+        assert os.path.exists('.config')
+        autoconf_h=find_autoconf()
 
-        return_dict = BuildFramework.analyze_configuration_coverage(self, filename, autoconf_h)
+        return_dict = BuildFramework.analyze_configuration_coverage(self, filename)
+
         return_dict['arch'] = self.options['arch']
         return_dict['subarch'] = self.options['subarch']
 

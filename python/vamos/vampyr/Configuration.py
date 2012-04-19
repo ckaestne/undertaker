@@ -35,7 +35,20 @@ class Configuration:
         self.cppflags = '%s.cppflags%s' % (basename, nth)
         self.source   = '%s.source%s' % (basename, nth)
         self.kconfig  = '%s.config%s' % (basename, nth)
+        # Note, undertaker will clean up ".config*", which matches self.config_h
+        self.config_h = '%s.config%s.h' % (basename, nth)
         self.framework = framework
+        with open(self.config_h, 'w') as fd:
+            cppflags = self.get_cppflags()
+            flags = cppflags.split("-D")
+            logging.debug("Generating %s, found %d items", self.config_h, len(flags))
+            for f in flags:
+                if f == '': continue # skip empty fields
+                try:
+                    name, value = f.split('=')
+                    fd.write("#define %s %s\n" % (name, value))
+                except ValueError:
+                    logging.error("%s: Failed to parse flag '%s'", self.config_h, f)
 
     def switch_to(self):
         raise NotImplementedError
@@ -55,6 +68,12 @@ class Configuration:
 
     def __deepcopy__(self):
         raise RuntimeError("Object <%s> is not copyable" % self)
+
+    def get_config_h(self):
+        """
+        Returns the path to a config.h like configuration file
+        """
+        return self.config_h
 
 
 class BareConfiguration(Configuration):
@@ -161,6 +180,9 @@ class LinuxConfiguration(Configuration):
 
         self.result_cache = {}
 
+    def get_config_h(self):
+        return find_autoconf()
+
     def __repr__(self):
         return '<LinuxConfiguration "' + self.kconfig + '">'
 
@@ -188,8 +210,6 @@ class LinuxConfiguration(Configuration):
         expanded_config = self.kconfig + '.expanded'
         shutil.copy('.config', expanded_config)
         self.expanded = expanded_config
-
-        logging.debug("autoconf detected at %s", find_autoconf())
 
         if verify:
             if not self.model:

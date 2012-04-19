@@ -177,7 +177,7 @@ def analyze_variability(source_files, options):
         logging.info("Analyzing %s", f)
         if reset_arch:
             bf.options['arch'], bf.options['subarch'] = None, None
-        results = bf.analyze_configuration_coverage(f, None)
+        results = bf.analyze_configuration_coverage(f)
         # add dead/undead statistics
         results['dead blocks']   = [x.split(".")[-4] for x in glob.glob("%s*.dead" % f)]
         results['undead blocks'] = [x.split(".")[-4] for x in glob.glob("%s*.undead" % f)]
@@ -234,8 +234,9 @@ def expand_partial_configurations(framework, source_files):
 
 
 def main():
-    # this method has too many branches
+    # this method has too many branches and statements
     # pylint: disable=R0912
+    # pylint: disable=R0915
     parser = OptionParser(usage="%prog [options] <filename>")
     parser.add_option('-v', '--verbose', dest='verbose', action='count',
                       help="increase verbosity (specify multiple times for more)")
@@ -260,6 +261,8 @@ def main():
     parser.add_option('-t', '--threads', dest='threads', action='store', type='int',
                       default=0,
                       help="Number of parallel threads for undertaker dead analysis")
+    parser.add_option('-c', '--config', dest='configfile',
+                      help="Analyze a given configuration in config.h format")
 
     (opts, args) = parser.parse_args()
 
@@ -283,6 +286,14 @@ def main():
         options['args'][key] = value
 
     options['framework'] = select_framework(opts.framework, options)
+
+    if opts.configfile:
+        if os.path.exists(opts.configfile):
+            logging.info("Restricting Analysis to %s", opts.configfile)
+            options['configfile'] = opts.configfile
+        else:
+            logging.error("Configfile %s does not exist, aborting")
+            sys.exit(1)
 
     if opts.do_analyze:
         source_files = calculate_worklist(args, opts.batch_mode)
