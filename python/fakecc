@@ -45,6 +45,13 @@ def invoke_gcc(argv):
     # strip off all -m calls, they will most likely break on foreign
     # architectures
     argv = [o for o in argv[1:] if not o.startswith("-m")]
+    argv = [o for o in argv if not o.startswith("-Wa,-m")] # assembler options
+    if "-G" in argv:
+        # x86 gcc does not undertand the -G option, eat it and its paramo
+        index = argv.index("-G")
+        del argv[index+1]
+        del argv[index]
+    argv = [o for o in argv if not o.startswith("-G")] # score e.g. uses -G0
     print "calling gcc %s" % " ".join(argv)
     os.execvp("gcc", ["gcc"] + argv)
 
@@ -63,6 +70,7 @@ def main(argv):
     parser.add_option("-W", dest='wflag', action='append', type="string",
                       default=None)
     parser.add_option('-p', dest='p_opt', action='append', default=[])
+    parser.add_option('-G', dest='g_opt', action='store', default="")
 
     (opts, args) = parser.parse_args()
 
