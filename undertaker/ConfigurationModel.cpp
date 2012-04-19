@@ -62,6 +62,26 @@ ConfigurationModel::~ConfigurationModel() {
     delete _model_stream;
 }
 
+void ConfigurationModel::addFeatureToWhitelist(const std::string feature) {
+    const std::string magic("ALWAYS_ON");
+    _model->addMetaValue(magic, feature);
+}
+
+const StringList *ConfigurationModel::getWhitelist() const {
+    const std::string magic("ALWAYS_ON");
+    return _model->getMetaValue(magic);
+}
+
+void ConfigurationModel::addFeatureToBlacklist(const std::string feature) {
+    const std::string magic("ALWAYS_OFF");
+    _model->addMetaValue(magic, feature);
+}
+
+const StringList *ConfigurationModel::getBlacklist() const {
+    const std::string magic("ALWAYS_OFF");
+    return _model->getMetaValue(magic);
+}
+
 std::set<std::string> ConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initialItems) const {
     std::set<std::string> item_set, result;
     std::stack<std::string> workingStack;

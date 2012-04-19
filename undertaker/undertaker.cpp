@@ -89,8 +89,8 @@ void usage(std::ostream &out, const char *error) {
     out << "  -m  specify the model(s) (directory or file)\n";
     out << "  -M  specify the main model\n";
     out << "  -i  specify a ignorelist\n";
-    out << "  -W  specify a whitelist (currently no effect!)\n";
-    out << "  -B  specify a blacklist (currently no effect!)\n";
+    out << "  -W  specify a whitelist\n";
+    out << "  -B  specify a blacklist\n";
     out << "  -b  specify a worklist (batch mode)\n";
     out << "  -t  specify count of parallel processes\n";
     out << "  -I  add an include path for #include directives\n";
@@ -150,6 +150,24 @@ void process_file_coverage_helper(const char *filename) {
 
     ModelContainer *f = ModelContainer::getInstance();
     ConfigurationModel *model = f->lookupMainModel();
+
+    // add whitelisted features to model
+    if (model) {
+        KconfigWhitelist *wl = KconfigWhitelist::getWhitelist();
+        std::list<std::string>::iterator it;
+        for (it = wl->begin(); (KconfigWhitelist *) !wl->empty() && it != wl->end(); it++) {
+            model->addFeatureToWhitelist(*it);
+        }
+    }
+
+    // add blacklisted features to model
+    if (model) {
+        KconfigWhitelist *bl = KconfigWhitelist::getBlacklist();
+        std::list<std::string>::iterator it;
+        for (it = bl->begin(); !bl->empty() && it != bl->end(); it++) {
+            model->addFeatureToBlacklist(*it);
+        }
+    }
 
     // HACK: make B00 a 'regular' block
     file.push_front(file.topBlock());

@@ -28,13 +28,21 @@ CoverageAnalyzer::CoverageAnalyzer(const CppFile *file) : file(file) {};
 std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model,
                                                  std::set<ConditionalBlock *> *blocks) {
     const StringList *always_on = NULL;
+    const StringList *always_off = NULL;
 
     if (model) {
-        const std::string magic("ALWAYS_ON");
-        always_on = model->getMetaValue(magic);
+        const std::string magic1("ALWAYS_ON");
+        const std::string magic2("ALWAYS_OFF");
+        always_on = model->getMetaValue(magic1);
         if (always_on && !blocks) {
             logger << info << always_on->size()
                    << " Items have been forcefully set" << std::endl;
+        }
+
+        always_off = model->getMetaValue(magic2);
+        if (always_off && !blocks) {
+            logger << info << always_off->size()
+                   << " Items have been forcefully unset" << std::endl;
         }
     }
 
@@ -73,6 +81,12 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
             formula.push_back(*sli);
         }
     }
+    if (always_off) {
+        for (StringList::const_iterator sli = always_off->begin(); sli != always_off->end(); ++sli) {
+            formula.push_back("!" + *sli);
+        }
+    }
+
 
     logger << debug << "baseFileExpression: " << formula.join("\n&& ") << std::endl;
 

@@ -24,13 +24,14 @@
 
 START_TEST(getTypes) {
     ConfigurationModel *x86 = ModelContainer::loadModels("kconfig-dumps/models/x86.model");
+    fail_unless(x86 != NULL);
 
     fail_unless(x86->inConfigurationSpace("CONFIG_64BIT"));
     fail_unless(x86->inConfigurationSpace("CONFIG_ACPI_BLACKLIST_YEAR"));
     fail_unless(x86->inConfigurationSpace("CONFIG_ARM"));
     fail_unless(x86->inConfigurationSpace("CONFIG_CGROUP_DEBUG"));
     fail_unless(x86->inConfigurationSpace("CONFIG_IKCONFIG"));
-    
+
     fail_if(x86->isBoolean("ARM"), "ARM must not be present nor a boolean");
     fail_if(x86->isTristate("ARM"), "ARM must not be present nor a tristate");
     fail_if(x86->isBoolean("ACPI_BLACKLIST_YEAR"), "ACPI_BLACKLIST_YEAR must not be present nor a boolean");
@@ -42,11 +43,61 @@ START_TEST(getTypes) {
 
 } END_TEST;
 
+START_TEST(whitelistManagement) {
+    ConfigurationModel *model = ModelContainer::loadModels("kconfig-dumps/models/x86.model");
+    const StringList *always_on;
+    bool needle = false;
+    fail_unless (model != NULL);
+
+    always_on = model->getWhitelist();
+    fail_unless (always_on != NULL);
+
+    fail_unless (always_on->size() == 39,
+                 "Whitelist size: %d", always_on->size());
+    model->addFeatureToWhitelist("CONFIG_SHINY_FEATURE");
+
+    always_on = model->getWhitelist();
+    fail_unless (always_on->size() == 40,
+                 "Whitelist size: %d", always_on->size());
+
+    for (StringList::const_iterator it = always_on->begin();
+         it != always_on->end(); it++) {
+        if (0 == (*it).compare("CONFIG_SHINY_FEATURE"))
+            needle = true;
+    }
+    fail_unless(needle);
+} END_TEST;
+
+START_TEST(blacklistManagement) {
+    ConfigurationModel *model = ModelContainer::loadModels("kconfig-dumps/models/x86.model");
+    const StringList *always_off;
+    bool needle = false;
+    fail_unless (model != NULL);
+
+    always_off = model->getBlacklist();
+    fail_unless (always_off == NULL);
+
+    model->addFeatureToBlacklist("CONFIG_SHINY_FEATURE");
+
+    always_off = model->getBlacklist();
+    fail_unless (always_off->size() == 1,
+                 "Blacklist size: %d", always_off->size());
+
+    for (StringList::const_iterator it = always_off->begin();
+         it !=  always_off->end(); it++) {
+        if (0 == (*it).compare("CONFIG_SHINY_FEATURE"))
+            needle = true;
+    }
+    fail_unless(needle);
+} END_TEST;
+
 Suite *cond_block_suite(void) {
 
     Suite *s  = suite_create("Suite");
     TCase *tc = tcase_create("ConfigurationModel");
     tcase_add_test(tc, getTypes);
+    tcase_add_test(tc, whitelistManagement);
+    tcase_add_test(tc, blacklistManagement);
 
     suite_add_tcase(s, tc);
     return s;

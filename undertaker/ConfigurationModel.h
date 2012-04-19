@@ -57,6 +57,29 @@ public:
     //! destructor
     ~ConfigurationModel();
 
+    //! add feature to whitelist ('ALWAYS_ON')
+    void addFeatureToWhitelist(const std::string feature);
+
+    //! gets the current feature whitelist ('ALWAYS_ON')
+    /*!
+     * NB: The referenced list gets invalidated by addFeatureToWhitelist!
+     *
+     * The referenced object must not be freed, the model class manages it.
+     */
+    const StringList *getWhitelist() const;
+
+    //! add feature to blacklist ('ALWAYS_OFF')
+    /*!
+     * NB: This invalidates possibly returned StringList objects
+     * referenced by getWhitelist(). Be sure to call getWhitelist()
+     * again after using this method.
+     */
+    void addFeatureToBlacklist(const std::string feature);
+
+    //!< gets the current feature blacklist ('ALWAYS_OFF')
+    const StringList *getBlacklist() const;
+
+
     int doIntersect(const std::string exp,
                     const ConfigurationModel::Checker *c,
                     std::set<std::string> &missing,

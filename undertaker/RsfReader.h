@@ -44,6 +44,8 @@ public:
     const std::string *getValue(const std::string &key) const;
     const StringList *getMetaValue(const std::string &key) const;
 
+    //! adds value to key in meta_information
+    void addMetaValue(const std::string &key, const std::string &value); 
     void print_contents(std::ostream &out);
 
 protected:

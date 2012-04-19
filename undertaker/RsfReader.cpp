@@ -136,6 +136,17 @@ const StringList *RsfReader::getMetaValue(const std::string &key) const {
     return &((*i).second);
 }
 
+void RsfReader::addMetaValue(const std::string &key, const std::string &value) {
+    StringList values;
+    std::map<std::string, StringList>::const_iterator i = meta_information.find(key);
+    if (i != meta_information.end()) {
+        values = (*i).second;
+        meta_information.erase(key);
+    }
+    values.push_back(value);
+    meta_information.insert(make_pair(key, values));
+}
+
 ItemRsfReader::ItemRsfReader(std::istream &f) : RsfReader() {
     read_rsf(f);
 }

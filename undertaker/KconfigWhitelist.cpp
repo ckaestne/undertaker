@@ -85,4 +85,3 @@ int KconfigWhitelist::loadWhitelist(const char *file) {
     }
     return n;
 }
-

@@ -60,10 +60,10 @@ bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
 int SatChecker::stringToSymbol(const std::string &key) {
     KconfigWhitelist *il = KconfigWhitelist::getIgnorelist();
 
-    /* If whitelisted do always return a new symbol, so these items
-       are free variables */
-
-    if (il->isWhitelisted(key.c_str())) {
+    /* If ignorelisted, return a new, free symbol so that this item does
+       not constrain the forumula at all. This allows to ignore certain
+       CPP Variables that should not result to defects. */
+    if (il->isWhitelisted(key)) {
         return newSymbol();
     }
 
@@ -563,9 +563,9 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
         return 0;
     }
 
-	/* If the child process terminates before reading all of stdin
-	 * undertaker gets a SIGPIPE which we don't want to handle
-	 */
+        /* If the child process terminates before reading all of stdin
+         * undertaker gets a SIGPIPE which we don't want to handle
+         */
     oldaction = signal(SIGPIPE, SIG_IGN);
 
     flag_map[top->pumaStartToken()] = true;
