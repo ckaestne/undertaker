@@ -53,13 +53,12 @@ class SparseMessage:
             if '***' in line:
                 continue
 
-            if last_prefix != None and line.startswith(last_prefix) \
-               and len(m.group(2)) > 1:
+            if last_prefix != None and m.group(1) == last_prefix:
                 result[-1] += " | " + m.group(3)
                 continue
-
             last_prefix = m.group(1)
             result.append(line)
+
         return result
 
 
