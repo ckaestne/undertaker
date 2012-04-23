@@ -344,7 +344,7 @@ def main():
 
         # add default options if not set by user
         if (call == 'gcc' and 'gcc' not in options['args']):
-            options['args']['gcc'] = "-Wall -Wextra"
+            options['args']['gcc'] = "-Wno-unused"
 
         if (call == 'sparse' and 'sparse' not in options['args']):
             options['args']['sparse'] = "-Wsparse-all"

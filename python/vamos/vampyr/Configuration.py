@@ -323,7 +323,8 @@ class LinuxConfiguration(Configuration):
         if "CC" in self.result_cache:
             return self.result_cache["CC"]
 
-        (CC, _) = self.__call_make(on_file, "")
+        extra_args = "KCFLAGS='%s'" % self.framework.options['args']['gcc']
+        (CC, _) = self.__call_make(on_file, extra_args)
 
         messages = GccMessage.preprocess_messages(CC)
         messages = [GccMessage(self, x) for x in messages]
