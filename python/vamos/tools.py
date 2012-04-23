@@ -69,6 +69,7 @@ def execute(command, echo=True, failok=True):
      2. the exitcode
     """
     os.environ["LC_ALL"] = "C"
+    os.environ["LC_MESSAGES"] = "C"
 
     if echo:
         logging.debug("executing: " + command)
