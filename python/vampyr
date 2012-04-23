@@ -246,6 +246,9 @@ def main():
     parser.add_option("-C", '--call', dest='call', action='append', type="string",
                       default=[],
                       help="add static analyzers to call stack, like -C gcc -C sparse")
+    parser.add_option("", '--cross-prefix', dest='cross_prefix', type='string',
+                      default="",
+                      help="Use a cross-toolchain, (e.g. 'arm-linux-gnueabi-'")
     parser.add_option("", '--exclude-others', dest='exclude_others', action='store_true',
                       default=False,
                       help="suppress warnings in '#included' source files")
@@ -279,6 +282,7 @@ def main():
         sys.exit(1)
 
     options = { 'args': {},
+                'cross_prefix': opts.cross_prefix,
                 'threads': get_online_processors() if opts.threads == 0 else opts.threads,
                 'exclude_others': opts.exclude_others,
                 'loglevel': logging.getLogger().getEffectiveLevel()}

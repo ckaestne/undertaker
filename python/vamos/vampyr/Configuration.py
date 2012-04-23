@@ -324,6 +324,9 @@ class LinuxConfiguration(Configuration):
             return self.result_cache["CC"]
 
         extra_args = "KCFLAGS='%s'" % self.framework.options['args']['gcc']
+        if self.framework.options.has_key('cross_prefix') and \
+                len(self.framework.options['cross_prefix']) > 0:
+            extra_args += " CROSS_COMPILE=%s" % self.framework.options['cross_prefix']
         (CC, _) = self.__call_make(on_file, extra_args)
 
         messages = GccMessage.preprocess_messages(CC)
