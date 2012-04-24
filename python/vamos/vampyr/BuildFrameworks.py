@@ -217,24 +217,6 @@ class KbuildBuildFramework(BuildFramework):
                 # special case: if only subarch is set, restore it
                 self.options['subarch'] = oldsubarch
 
-        ret = set()
-
-        if self.options.has_key('stdconfig'):
-            if self.options.has_key('stdconfig_files') \
-                    and not filename in self.options['stdconfig_files']:
-                logging.info("Skipping %s because stdconfig '%s' does not build it",
-                             filename, self.options['stdconfig'])
-                return ret
-
-            c  = LinuxStdConfiguration(self, basename=filename,
-                                       arch=self.options['arch'],
-                                       subarch=self.options['subarch'])
-            c.switch_to()
-            if file_in_current_configuration(filename, c.arch, c.subarch) != "n":
-                ret.add(c)
-            return ret
-
-
         cmd = "undertaker -q -j coverage -C %s -O combined" % self.options['coverage_strategy']
         if os.path.isdir("models"):
             cmd += " -m models/%s.model" % self.options['arch']
@@ -272,6 +254,24 @@ class KbuildBuildFramework(BuildFramework):
                 configs.append(config_obj)
             else:
                 logging.info("Configuration '%s' is *not* compiled", cfgfile)
+
+        if self.options.has_key('stdconfig'):
+            if self.options.has_key('stdconfig_files') \
+                    and not filename in self.options['stdconfig_files']:
+                logging.info("Skipping %s because stdconfig '%s' does not build it",
+                             filename, self.options['stdconfig'])
+                return configs
+
+            c  = LinuxStdConfiguration(self, basename=filename,
+                                       arch=self.options['arch'],
+                                       subarch=self.options['subarch'])
+            c.switch_to()
+            if file_in_current_configuration(filename, c.arch, c.subarch) != "n":
+                logging.info("Also including configuration '%s'", self.options['stdconfig'])
+                configs.append(c)
+            else:
+                logging.info("configuration '%s' does not build '%s'",
+                             self.options['stdconfig'], filename)
 
         return configs
 

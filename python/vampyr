@@ -268,7 +268,7 @@ def main():
                       help="Analyze a given configuration in config.h format")
     parser.add_option('', '--stdconfig', dest='stdconfig',
                       default=None,
-                      help="Avoid calculating configuration; use given default configuration instead."+\
+                      help="Additionally use the given default configuration."+\
                            "Forces kbuild framework, can be one of 'allyesconfig', 'allnoconfig', "+\
                            "'allmodconfig', 'alldefconfig'")
 
