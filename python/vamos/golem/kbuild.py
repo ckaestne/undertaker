@@ -346,6 +346,7 @@ def guess_arch_from_filename(filename):
 def call_linux_makefile(target, extra_env="", extra_variables="",
                         filename=None, arch=None, subarch=None,
                         failok=True, dryrun=False):
+    # pylint: disable=R0912
     """
     Invokes 'make' in a Linux Buildtree.
 
@@ -396,7 +397,15 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
     if not subarch:
         subarch = arch
 
-    extra_env += " ARCH=%s" % arch
+    if arch == 'x86':
+        # x86 is special
+        if subarch == 'i386' or vamos.prefer_32bit:
+            variant = 'i386'
+        else:
+            variant = 'x86_64'
+        extra_env += " ARCH=%s" % variant
+    else:
+        extra_env += " ARCH=%s" % arch
     extra_env += " SUBARCH=%s" % subarch
 
     if not 'KERNELVERSION=' in extra_variables:

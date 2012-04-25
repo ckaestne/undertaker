@@ -77,22 +77,22 @@ class testTools(t.TestCase):
 
         (cmd, rc) = call_linux_makefile('', dryrun=True)
         self.assertEqual(rc, 0)
-        for needle in ('make', 'ARCH=x86'):
+        for needle in ('make', ' ARCH=i386', 'SUBARCH=i386'):
             self.assertIn(needle, cmd)
 
         (cmd, rc) = call_linux_makefile('allnoconfig', dryrun=True)
         self.assertEqual(rc, 0)
-        for needle in ('make', 'allnoconfig', ' ARCH=x86'):
+        for needle in ('make', 'allnoconfig', ' ARCH=i386', 'SUBARCH=i386'):
             self.assertIn(needle, cmd)
 
         (cmd, rc) = call_linux_makefile('silentoldconfig', dryrun=True)
         self.assertEqual(rc, 0)
-        for needle in ('make', 'silentoldconfig', ' ARCH=x86'):
+        for needle in ('make', 'silentoldconfig', 'ARCH=i386', 'SUBARCH=i386'):
             self.assertIn(needle, cmd)
 
         (cmd, rc) = call_linux_makefile('', filename='./arch/x86/init.o', dryrun=True)
         self.assertEqual(rc, 0)
-        for needle in ('make', ' ARCH=x86', 'SUBARCH=i386'):
+        for needle in ('make', 'ARCH=i386', 'SUBARCH=i386'):
             self.assertIn(needle, cmd)
 
         (cmd, rc) = call_linux_makefile('', filename='./arch/um/init.o', dryrun=True)
@@ -112,7 +112,7 @@ class testTools(t.TestCase):
         vamos.prefer_32bit = False
         (cmd, rc) = call_linux_makefile('', filename='./arch/x86/init.o', dryrun=True)
         self.assertEqual(rc, 0)
-        for needle in ('make', ' ARCH=x86', 'SUBARCH=x86_64'):
+        for needle in ('make', ' ARCH=x86_64', 'SUBARCH=x86_64'):
             self.assertIn(needle, cmd)
 
         (cmd, rc) = call_linux_makefile('', filename='./arch/um/init.o', dryrun=True)
