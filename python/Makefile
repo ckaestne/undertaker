@@ -10,7 +10,9 @@ check: all
 	$(MAKE) -s clean-check
 	@for test in vamos/*/*_test.py vamos/*_test.py; do \
 	   echo "Running python unittest $$test"; \
-	   env PATH="$(SEARCHPATH)" PYTHONPATH=$(CURDIR) python "$$test"; \
+	   if ! env PATH="$(SEARCHPATH)" PYTHONPATH=$(CURDIR) python "$$test"; then \
+	       echo "FAIL: $$test"; exit 1; \
+	   fi; \
 	done
 	cd validation && env PATH="$(SEARCHPATH)" ./test-suite
 	$(MAKE) -s pylint
