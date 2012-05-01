@@ -28,10 +28,18 @@
 #include <string>
 
 /**
- * \brief Manages the whitelist of Kconfig Items
+ * \brief Manages Lists of Kconfig Items
+ *
+ * This class manages three lists: a whitelist, a blacklist and an ignorelist.
+ * Each of these lists can be accessed individually.
+ *
+ * This class follows the singleton pattern, but manages three
+ * instances, one for each list.
  */
 struct KconfigWhitelist : protected std::list<std::string> {
-    static KconfigWhitelist *getInstance(); //!< accessor for this singleton
+    static KconfigWhitelist *getIgnorelist(); //!< ignorelist
+    static KconfigWhitelist *getWhitelist(); //!< whitelist
+    static KconfigWhitelist *getBlacklist(); //!< blacklist
     bool empty(); //!< checks if the whitelist is empty
     bool isWhitelisted(const char*) const; //!< checks if the given item is in the whitelist
     void addToWhitelist(const std::string); //!< adds an item to the whitelist

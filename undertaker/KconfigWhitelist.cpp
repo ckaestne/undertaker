@@ -40,7 +40,22 @@ void KconfigWhitelist::addToWhitelist(const std::string item) {
         push_back(item);
 }
 
-KconfigWhitelist *KconfigWhitelist::getInstance() {
+KconfigWhitelist *KconfigWhitelist::getIgnorelist() {
+    static KconfigWhitelist *instance;
+    if (!instance) {
+        instance = new KconfigWhitelist();
+    }
+    return instance;
+}
+
+KconfigWhitelist *KconfigWhitelist::getWhitelist() {
+    static KconfigWhitelist *instance;
+    if (!instance) {
+        instance = new KconfigWhitelist();
+    }
+    return instance;
+}
+KconfigWhitelist *KconfigWhitelist::getBlacklist() {
     static KconfigWhitelist *instance;
     if (!instance) {
         instance = new KconfigWhitelist();

@@ -88,7 +88,9 @@ void usage(std::ostream &out, const char *error) {
     out << "  -q  decrease the log level (less verbose)\n";
     out << "  -m  specify the model(s) (directory or file)\n";
     out << "  -M  specify the main model\n";
-    out << "  -w  specify a whitelist\n";
+    out << "  -i  specify a ignorelist\n";
+    out << "  -W  specify a whitelist (currently no effect!)\n";
+    out << "  -B  specify a blacklist (currently no effect!)\n";
     out << "  -b  specify a worklist (batch mode)\n";
     out << "  -t  specify count of parallel processes\n";
     out << "  -I  add an include path for #include directives\n";
@@ -678,7 +680,6 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
 int main (int argc, char ** argv) {
     int opt;
     char *worklist = NULL;
-    char *whitelist = NULL;
 
     long threads = 1;
     std::list<std::string> models;
@@ -705,10 +706,39 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:w:j:O:C:I:Vhvq")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:i:B:W:j:O:C:I:Vhvq")) != -1) {
         switch (opt) {
-        case 'w':
-            whitelist = strdup(optarg);
+            int n;
+            KconfigWhitelist *wl;
+        case 'i':
+            wl = KconfigWhitelist::getIgnorelist();
+            n = wl->loadWhitelist(optarg);
+            if (n >= 0) {
+                logger << info << "loaded " << n << " items to ignorelist" << std::endl;
+            } else {
+                logger << error << "couldn't load ignorelist" << std::endl;
+                exit(-1);
+            }
+            break;
+        case 'W':
+            wl = KconfigWhitelist::getWhitelist();
+            n = wl->loadWhitelist(optarg);
+            if (n >= 0) {
+                logger << info << "loaded " << n << " items to whitelist" << std::endl;
+            } else {
+                logger << error << "couldn't load whitelist" << std::endl;
+                exit(-1);
+            }
+            break;
+        case 'B':
+            wl = KconfigWhitelist::getBlacklist();
+            n = wl->loadWhitelist(optarg);
+            if (n >= 0) {
+                logger << info << "loaded " << n << " items to blacklist" << std::endl;
+            } else {
+                logger << error << "couldn't load blacklist" << std::endl;
+                exit(-1);
+            }
             break;
         case 'b':
             worklist = strdup(optarg);
@@ -817,18 +847,6 @@ int main (int argc, char ** argv) {
     /* Load all specified models */
     for (std::list<std::string>::const_iterator i = models.begin(); i != models.end(); ++i) {
         f->loadModels(*i);
-    }
-
-    if (whitelist) {
-        KconfigWhitelist *wl = KconfigWhitelist::getInstance();
-        int n = wl->loadWhitelist(whitelist);
-        if (n >= 0) {
-            logger << info << "loaded " << n << " items to whitelist" << std::endl;
-        } else {
-            logger << error << "couldn't load whitelist" << std::endl;
-            exit(-1);
-        }
-        free(whitelist);
     }
 
     std::vector<std::string> workfiles;

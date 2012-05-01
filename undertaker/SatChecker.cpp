@@ -58,12 +58,12 @@ bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
 
 /* Got the impression from normal lisp implementations */
 int SatChecker::stringToSymbol(const std::string &key) {
-    KconfigWhitelist *wl = KconfigWhitelist::getInstance();
+    KconfigWhitelist *il = KconfigWhitelist::getIgnorelist();
 
     /* If whitelisted do always return a new symbol, so these items
        are free variables */
 
-    if (wl->isWhitelisted(key.c_str())) {
+    if (il->isWhitelisted(key.c_str())) {
         return newSymbol();
     }
 

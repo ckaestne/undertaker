@@ -279,7 +279,7 @@ EXPORT_SYMBOL_GPL(rcuhead_debug_descr);
 
 /*
  * check-name: Full text of kernel/rcupdate.c.c from Linux v2.6.37-rc1-542-g0143832
- * check-command: undertaker -j dead -m models -w /dev/null $file
+ * check-command: undertaker -j dead -m models -i /dev/null $file
  * check-output-start
 I: loaded rsf model for alpha
 I: loaded rsf model for arm
@@ -305,7 +305,7 @@ I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 rsf models
-I: loaded 0 items to whitelist
+I: loaded 0 items to ignorelist
 I: Using x86 as primary model
 I: creating rcupdate.c.B4.kconfig.globally.dead
 I: creating rcupdate.c.B5.kconfig.globally.undead
