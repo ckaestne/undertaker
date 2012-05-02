@@ -5,6 +5,9 @@
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
+ * Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
+ * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -104,6 +107,8 @@ void usage(std::ostream &out, const char *error) {
     out << "      - symbolpc: Symbol precondition (format <symbol>)\n";
     out << "      - checkexpr: Find a configuration that satisfies expression\n";
     out << "      - interesting: Find related items (negated items are not in the model)\n";
+    out << "      - blockconf: Find configuration enabling specified block (format: <file>:<line>)\n";
+    out << "      - mergeblockconf: Find configuration enabling specified blocks in the given file\n";
     out << "\nCoverage Options:\n";
     out << "  -O: specify the output mode of generated configurations\n";
     out << "      - kconfig: generated partial kconfig configuration (default)\n";
@@ -134,6 +139,159 @@ int rm_pattern(const char *pattern) {
 
     globfree(&globbuf);
     return nr;
+}
+
+bool process_blockconf_helper(StringJoiner &sj,
+                              std::map<std::string,bool> &filesolvable,
+                              const char *locationname) {
+    // used by process_blockconf and process_mergedblockconf
+    ConfigurationModel *model = ModelContainer::lookupMainModel();
+
+    std::string location = std::string(locationname);
+    boost::regex regex("(.*):[0-9]+");
+    boost::smatch results;
+    if (!boost::regex_match(location, results, regex)) {
+        logger << error << "invalid format for block precondition" << std::endl;
+        return false;
+    }
+
+    std::string file = results[1];
+
+    CppFile cpp(file.c_str());
+    if (!cpp.good()) {
+        logger << error << "failed to open file: `" << file << "'" << std::endl;
+        return false;
+    }
+
+    int offset = strncmp("./", file.c_str(), 2)?0:2;
+    std::stringstream fileCondition;
+    fileCondition << "FILE_";
+    fileCondition <<  ConditionalBlock::normalize_filename(file.substr(offset).c_str());
+    std::string fileVar(fileCondition.str());
+
+    // if file precondition has already been tested...
+    if(filesolvable.find(fileVar) != filesolvable.end()) {
+        // and conflicts with user defined lists, don't add it to formula
+        if(!filesolvable[fileVar]) {
+            logger << error << "File " << file << " not included - " <<
+                "conflict with white-/blacklist" << std::endl;
+            return false;
+        }
+    } else {
+    // ...otherwise test it and remember the result
+        if (model) {
+            std::set<std::string> missing;
+            std::string intersected;
+
+            model->doIntersect("(" + fileCondition.str() + ")", NULL, missing, intersected);
+            if (!intersected.empty()) {
+                fileCondition << " && " << intersected;
+            }
+
+            SatChecker fileChecker(fileCondition.str());
+            if(!fileChecker()) {
+                filesolvable[fileVar] = false;
+                logger << error << "File condition for location " << locationname
+                    << " conflicting with black-/whitelist - not added"
+                    << std::endl;
+                return false;
+            } else {
+                filesolvable[fileVar] = true;
+                sj.push_back(intersected);
+            }
+        }
+        sj.push_back(fileVar);
+    }
+
+    ConditionalBlock * block = cpp.getBlockAtPosition(locationname);
+    if (block == 0) {
+        logger << info << "No block found at " << locationname << std::endl;
+        return false;
+    }
+
+    // Get the precondition for current block
+    DeadBlockDefect dead(block);
+    std::string precondition = dead.getBlockPrecondition(model);
+
+    logger << info << "Processing block " << block->getName() << std::endl;
+
+    // check for satisfiability of block precondition before joining it
+    try {
+        SatChecker constraintChecker(precondition);
+        if(!constraintChecker()) {
+            logger << error << "Code constraints for " << block->getName() <<
+                " not satisfiable - override by black-/whitelist" << std::endl;
+            return false;
+        } else {
+            sj.push_back(precondition);
+        }
+    } catch (std::runtime_error &e) {
+        logger << error << "failed: " << e.what() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void process_mergeblockconf(const char *filepath) {
+    /* Read files from worklist */
+    std::ifstream workfile(filepath);
+    std::string line;
+    if (!workfile.good()) {
+        usage(std::cout, "worklist was not found");
+        exit(EXIT_FAILURE);
+    }
+
+    /* set extended Blockname */
+    ConditionalBlock::setBlocknameWithFilename(true);
+
+    StringJoiner sj;
+    std::map<std::string,bool> filesolvable;
+    while(std::getline(workfile, line)) {
+        process_blockconf_helper(sj, filesolvable, line.c_str());
+    }
+
+    KconfigWhitelist *whitelist = KconfigWhitelist::getWhitelist();
+    for(std::list<std::string>::const_iterator iterator = (*whitelist).begin(),
+            end = (*whitelist).end(); iterator != end; ++iterator) {
+        sj.push_back(*iterator);
+    }
+
+    KconfigWhitelist *blacklist = KconfigWhitelist::getBlacklist();
+    for(std::list<std::string>::const_iterator iterator = (*blacklist).begin(),
+            end = (*blacklist).end(); iterator != end; ++iterator) {
+        sj.push_back("!"+(*iterator));
+    }
+
+    SatChecker sc(sj.join("\n&&\n"));
+    MissingSet missingSet;
+
+    // We want minimal configs, so we try to get many 'n's from the sat checker
+    if(sc(Picosat::SAT_MIN)) {
+        logger << info << "Solution found, result:" << std::endl;
+        SatChecker::AssignmentMap current_solution = sc.getAssignment();
+        stringstream configstream;
+        current_solution.formatKconfig(configstream, missingSet);
+        std::cout << configstream.str();
+    } else {
+        logger << error << "Wasn't able to generate a valid configuration" << std::endl;
+    }
+}
+
+void process_blockconf(const char *locationname) {
+    StringJoiner sj;
+    std::map<std::string,bool> filesolvable;
+
+    process_blockconf_helper(sj, filesolvable, locationname);
+
+    SatChecker sc(sj.join("\n&&\n"));
+
+    MissingSet missingSet;
+    if(sc(Picosat::SAT_MIN)) {
+        SatChecker::AssignmentMap current_solution = sc.getAssignment();
+        stringstream configstream;
+        current_solution.formatKconfig(configstream, missingSet);
+        std::cout << configstream.str();
+    }
 }
 
 void process_file_coverage_helper(const char *filename) {
@@ -431,7 +589,6 @@ void process_file_blockpc(const char *filename) {
         return;
     }
 
-
     ConfigurationModel *model = ModelContainer::lookupMainModel();
     const BlockDefectAnalyzer *defect = 0;
     try {
@@ -478,7 +635,6 @@ void process_file_dead_helper(const char *filename) {
                << e.what() << std::endl;
     }
 
-
     /* Iterate over all Blocks */
     for (CppFile::iterator c = file.begin(); c != file.end(); c++) {
         ConditionalBlock *block = *c;
@@ -504,7 +660,6 @@ void process_file_dead(const char *filename) {
                << std::endl;
 }
 
-
 void process_file_interesting(const char *filename) {
     RsfConfigurationModel *model = dynamic_cast<RsfConfigurationModel *> (ModelContainer::lookupMainModel());
 
@@ -512,7 +667,6 @@ void process_file_interesting(const char *filename) {
         logger << error << "for finding interessting items a (rsf based) model must be loaded" << std::endl;
         return;
     }
-
 
     assert(model != NULL); // there should always be a main model loaded
 
@@ -623,6 +777,10 @@ process_file_cb_t parse_job_argument(const char *arg) {
         return process_file_checkexpr;
     } else if (strcmp(arg, "symbolpc") == 0) {
         return process_file_symbolpc;
+    } else if (strcmp(arg, "blockconf") == 0) {
+        return process_blockconf;
+    } else if (strcmp(arg, "mergeblockconf") == 0) {
+        return process_mergeblockconf;
     }
     return NULL;
 }
@@ -681,11 +839,9 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
     }
 }
 
-
 int main (int argc, char ** argv) {
     int opt;
     char *worklist = NULL;
-
     long threads = 1;
     std::list<std::string> models;
     std::string main_model = "x86";
