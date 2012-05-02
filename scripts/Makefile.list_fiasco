@@ -1,0 +1,9 @@
+srcdir=$(CURDIR)/src
+objbase=$(CURDIR)/build
+
+include ${auto_conf}
+-include $(CURDIR)/src/Modules.${CONFIG_XARCH}
+
+_list:
+	@echo PREPROCESS_PARTS ${PREPROCESS_PARTS}
+	@echo MAKEFILE_LIST ${MAKEFILE_LIST}

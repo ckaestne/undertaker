@@ -23,9 +23,8 @@ import logging
 import sys
 
 from optparse import OptionParser
-from os.path import join, dirname
-
-sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
+import os
+sys.path = [os.path.join(os.path.dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
                      + sys.path
 
@@ -33,7 +32,8 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
 from vamos.tools import setup_logging
 from vamos.model import Model
 
-from vamos.golem.inference import FileSymbolInferencer
+from vamos.golem.inference import Inferencer
+from vamos.golem.inference_atoms import *
 from vamos.golem.kbuild import determine_buildsystem_variables, \
     file_in_current_configuration, files_for_current_configuration, \
     determine_buildsystem_variables_in_directory, \
@@ -42,22 +42,37 @@ from vamos.vampyr.Configuration import LinuxPartialConfiguration
 from vamos.vampyr.BuildFrameworks import KbuildBuildFramework
 from vamos.vampyr.utils import ExpansionError
 
-import os.path
 
 def do_inference(args, arch, subarch):
     path = ""
     if len(args) > 0 and os.path.isdir(args[0]):
         path = os.path.normpath(args[0])
         logging.info("Limiting the constraints interferencing to subdirectory '%s'", path)
-    modelfile = 'models/%s.model' % arch
-    logging.info("loading model %s", modelfile)
-    if not os.path.exists(modelfile):
-        logging.error("%s not found, please generate models using undertaker-kconfigdump",
-                      modelfile)
-    inferencer = FileSymbolInferencer(Model(modelfile), arch=arch, subarch=subarch, subdir=path)
+
+    atoms = None
+    if os.path.exists("src/Modules.ia32"):
+        atoms = FiascoInferenceAtoms()
+    elif os.path.exists("arch/x86/Kconfig"):
+        # do_opt and do_directory work fine without ARCH being set. The other modes do not
+        if not arch:
+            logging.warning("Environment variable $ARCH not set, defaulting to 'x86'")
+            arch = 'x86'
+            subarch = 'i386'
+
+        try:
+            logging.info("using Linux version %s", get_linux_version())
+        except NotALinuxTree as e:
+            logging.error("Failed to determine Linux version: %s", e)
+            sys.exit(1)
+        atoms = LinuxInferenceAtoms(arch, subarch, path)
+    else:
+        logging.error("No primitive operations found (Not in a fiasco or linux tree?)")
+        sys.exit(-1)
+
+    inferencer = Inferencer(atoms)
     inferencer.calculate()
 
-def find_variables_in_directories(arch, subarch, args):
+def find_variables_in_directories(arch, args):
     modelfile = 'models/%s.model' % arch
     logging.info("loading model %s", modelfile)
     if not os.path.exists(modelfile):
@@ -70,8 +85,9 @@ def find_variables_in_directories(arch, subarch, args):
             continue
         variables = determine_buildsystem_variables_in_directory(d)
         logging.info("Detected %d Kconfig variables in subdir %s", len(variables), d)
-        inferencer = FileSymbolInferencer(Model(modelfile), arch=arch, subarch=subarch)
-        s = inferencer.check_subdir(d, set())
+        model = Model(modelfile)
+        s = [x for x in variables if x in model]
+        s += [x + "_MODULE" for x in s if (x+"_MODULE") in model]
         logging.debug("found %d items in check_subdir result: %s", len(s), s)
         for v in sorted(variables):
             print 'CONFIG_' + v
@@ -124,6 +140,18 @@ def main():
     if os.environ.has_key('SUBARCH'):
         subarch = os.environ['SUBARCH']
 
+
+    if opts.inference:
+        do_inference(args, arch=arch, subarch=subarch)
+        sys.exit(0)
+
+    # do_opt and do_directory work fine without ARCH being set. The other modes do not
+    if not arch:
+        logging.warning("Environment variable $ARCH not set, defaulting to 'x86'")
+        arch = 'x86'
+        subarch = 'i386'
+
+
     try:
         logging.info("using Linux version %s", get_linux_version())
     except NotALinuxTree as e:
@@ -137,14 +165,9 @@ def main():
             print 'CONFIG_' + v
         sys.exit(0)
 
-    # do_opt and do_directory work fine without ARCH being set. The other modes do not
-    if not arch:
-        logging.warning("Environment variable $ARCH not set, defaulting to 'x86'")
-        arch = 'x86'
-        subarch = 'i386'
 
     if opts.do_directory:
-        find_variables_in_directories(arch, subarch, args)
+        find_variables_in_directories(arch, args)
         sys.exit(0)
     if opts.partialconfig:
         if not os.path.exists(opts.partialconfig):
@@ -182,9 +205,6 @@ def main():
         except TreeNotConfigured:
             logging.error("Your Linux tree is not configured, please configure it first")
             sys.exit(1)
-        sys.exit(0)
-    elif opts.inference:
-        do_inference(args, arch=arch, subarch=subarch)
         sys.exit(0)
     elif not opts.partialconfig:
         print "No option given"

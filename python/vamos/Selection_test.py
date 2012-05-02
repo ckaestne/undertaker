@@ -1,4 +1,4 @@
-# Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,14 +21,16 @@ from vamos.selection import Selection
 class testSelection(t.TestCase):
     def setUp(self):
         self.empty = Selection()
-        self.one_item = Selection([set(["CONFIG_PM"])])
-        self.numa_item = Selection([set(["CONFIG_NUMA"])])
-        self.two_item = Selection([set(["CONFIG_PM"]), set(["CONFIG_ACPI"])])
-        self.two_item_module = Selection([set(["CONFIG_PM"]), set(["CONFIG_ACPI_MODULE"])])
+        self.one_item = Selection([[("CONFIG_PM", "y")]])
+        self.numa_item = Selection([[("CONFIG_NUMA", "y")]])
+        self.two_item = Selection([[("CONFIG_PM", "y")], [("CONFIG_ACPI", "y")]])
+        self.two_item_module = Selection([[("CONFIG_PM", "y")], [("CONFIG_ACPI", "m")]])
 
-        self.alternative = Selection([set(["CONFIG_PM"]), set(["CONFIG_ACPI", "CONFIG_SOUND"])])
+        self.alternative   = Selection([[("CONFIG_PM", "y")], [("CONFIG_ACPI", "y"), ("CONFIG_SOUND", "y")]])
+        self.alternative_2 = Selection([[("CONFIG_PM", "y")], [("CONFIG_ACPI", "y"), ("CONFIG_SOUND", "m")]])
 
-        self.not_better_than_one_item = Selection([set(["CONFIG_X86"]), set(["CONFIG_SOUND"])])
+
+        self.not_better_than_one_item = Selection([[("CONFIG_X86", "y")], [("CONFIG_SOUND", "y")]])
 
 
     def test_equal(self):
@@ -39,14 +41,13 @@ class testSelection(t.TestCase):
         self.assertNotEqual(self.one_item, self.two_item)
         self.assertNotEqual(self.one_item, None)
         # can only compare to other selections
-        self.assertNotEqual(Selection([set(["CONFIG_FOO"])]), "CONFIG_FOO")
-
+        self.assertNotEqual(Selection([[("CONFIG_FOO","y")]]), "CONFIG_FOO")
 
 
     def test_to_str(self):
-        self.assertEqual(str(self.one_item), "CONFIG_PM")
-        self.assertEqual(str(self.two_item), "CONFIG_ACPI && CONFIG_PM")
-        self.assertEqual(str(self.alternative), "(CONFIG_ACPI || CONFIG_SOUND) && CONFIG_PM")
+        self.assertEqual(str(self.one_item), "CONFIG_PM=y")
+        self.assertEqual(str(self.two_item), "CONFIG_ACPI=y && CONFIG_PM=y")
+        self.assertEqual(str(self.alternative), "(CONFIG_ACPI=y || CONFIG_SOUND=y) && CONFIG_PM=y")
 
 
     def test_better_than(self):
@@ -60,38 +61,34 @@ class testSelection(t.TestCase):
         # Two unmergable expressions
         self.assertEqual(self.two_item.merge(self.not_better_than_one_item), None)
 
+        self.assertEqual(str(self.two_item.merge(self.two_item)), str(self.two_item))
+
         merged = self.two_item.merge(self.two_item_module)
         self.assertNotEqual(merged, None)
-        self.assertEqual(str(merged), "(CONFIG_ACPI || CONFIG_ACPI_MODULE) && CONFIG_PM")
+        self.assertEqual(str(merged), "(CONFIG_ACPI=m || CONFIG_ACPI=y) && CONFIG_PM=y")
         failedmerge = self.one_item.merge(self.two_item)
         self.assertEqual(failedmerge, None)
 
+        merged = self.alternative.merge(self.alternative_2)
+        self.assertEqual(str(merged), "(CONFIG_ACPI=y || CONFIG_SOUND=m || CONFIG_SOUND=y) && CONFIG_PM=y")
+
     def test_features(self):
-        self.assertEqual(self.empty.features(), {})
-        self.assertEqual(self.one_item.features(), {'CONFIG_PM': 'y'})
-        self.assertEqual(self.two_item.features(), {'CONFIG_PM': 'y', 'CONFIG_ACPI':'y'})
-        self.assertEqual(self.two_item_module.features(), {'CONFIG_PM': 'y', 'CONFIG_ACPI':'m'})
-
-        alternate = self.alternative.features()
-        self.assertTrue( alternate == {'CONFIG_PM': 'y', 'CONFIG_SOUND':'y'} or \
-                         alternate == {'CONFIG_PM': 'y', 'CONFIG_ACPI':'y'})
-
+        self.assertTrue(self.two_item.feature_in_selection("CONFIG_ACPI"))
         self.assertTrue(self.two_item_module.feature_in_selection("CONFIG_ACPI"))
-        self.assertTrue(self.two_item_module.feature_in_selection("CONFIG_ACPI_MODULE"))
 
     def test_alternatives(self):
-        newitem = self.one_item
-        newitem.add_alternative("CONFIG_NUMA")
-        self.assertEqual(str(newitem), "(CONFIG_NUMA || CONFIG_PM)")
+        newitem = Selection(self.one_item)
+        newitem.add_alternative("CONFIG_NUMA", "y")
+        self.assertEqual(str(newitem), "(CONFIG_NUMA=y || CONFIG_PM=y)")
         newitem.push_down()
-        newitem.add_alternative("CONFIG_ACPI")
-        self.assertEqual(str(newitem), "(CONFIG_NUMA || CONFIG_PM) && CONFIG_ACPI")
+        newitem.add_alternative("CONFIG_ACPI", "y")
+        self.assertEqual(str(newitem), "(CONFIG_NUMA=y || CONFIG_PM=y) && CONFIG_ACPI=y")
 
     def test_selection_invariance(self):
-        a = Selection([set(["CONFIG_BARFOO"])])
+        a = Selection([[("CONFIG_BARFOO", "y")]])
         self.assertEqual(a.symbols, set(["CONFIG_BARFOO"]))
 
-        self.assertEqual(self.two_item_module.symbols, set(["CONFIG_PM", "CONFIG_ACPI_MODULE"]))
+        self.assertEqual(self.two_item_module.symbols, set(["CONFIG_PM", "CONFIG_ACPI"]))
 
 
 if __name__ == '__main__':

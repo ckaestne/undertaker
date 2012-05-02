@@ -1,7 +1,7 @@
 #
 #   vamos - common auxiliary functionality
 #
-# Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -20,6 +20,12 @@
 
 import copy
 
+def unique(seq):
+    # order preserving
+    noDupes = []
+    _ = [noDupes.append(i) for i in seq if not noDupes.count(i)]
+    return noDupes
+
 class Selection:
     """A selection is a selection of symbols (derived from kconfig
     features). """
@@ -29,14 +35,14 @@ class Selection:
         selection. So this is somewhat like a copy constructor in c++.
 
         other_selection == None: empty selection
-        other_selection == [(),()]: selection from tuple
+        other_selection == [{},{}]: selection from tuple
         other_selection == Selection(..): copy selection from other selection"""
 
         # expr == (SYMBOL || SYMBOL) && (SYMBOL || SYMBOL)
         # inner sets: alternatives
         # outer list: conjugations
 
-        self.expr = [set([])]
+        self.expr = []
 
         # All mentioned symbols in this selection
         self.symbols = set([])
@@ -50,44 +56,25 @@ class Selection:
 
         for or_expr in self.expr:
             for symbol in or_expr:
-                self.symbols.add(symbol)
+                self.symbols.add(symbol[0])
 
     def push_down(self):
         """Add a new level of or_expressions to the conjugation"""
-        self.expr.append(set([]))
+        self.expr.append([])
 
 
-    def add_alternative(self, alternative):
+    def add_alternative(self, alternative, value):
         """Add an alternative to the current "top of stack" or expression"""
-        self.expr[-1].add(alternative)
+        self.expr[-1].append((alternative, value))
         self.symbols.add(alternative)
-
-
-    def features(self):
-        """From a list of symbols determine the features and their selection:
-
-        CONFIG_BAR -> CONFIG_BAR=y
-        CONFIG_FOO_MODULE -> CONFIG_FOO=m"""
-        features = {}
-        for or_expr in self.expr:
-            if len(or_expr) == 0:
-                continue
-            symbol = list(or_expr)[0]
-            value = "y"
-            if symbol.endswith("_MODULE"):
-                symbol = symbol[:-len("_MODULE")]
-                value = "m"
-            features[symbol] = value
-        return features
 
 
     def feature_in_selection(self, feature):
         """ Tests if feature ({,_MODULE}) is already in this selection"""
-        if feature.endswith("_MODULE"):
-            feature = feature[:-len("_MODULE")]
-        return feature in self.symbols or \
-               feature + "_MODULE" in self.symbols
+        return feature in self.symbols
 
+    def __len__(self):
+        return len(self.expr)
 
     def __str__(self):
         """Format the selection to a (normalized) propositional formula
@@ -96,10 +83,11 @@ class Selection:
         for or_expr in self.expr:
             if len(or_expr) == 0:
                 continue
-            elif len(or_expr) == 1:
-                or_exprs.append(list(or_expr)[0])
+            features = sorted(["%s=%s" % x for x in or_expr])
+            if len(or_expr) == 1:
+                or_exprs.append(features[0])
             else:
-                or_exprs.append("(" + " || ".join(sorted(list(or_expr))) + ")")
+                or_exprs.append("(" + " || ".join(features) + ")")
 
         if len(or_exprs) > 0:
             return " && ".join(sorted(or_exprs))
@@ -108,6 +96,17 @@ class Selection:
 
     __repr__ = __str__
 
+    def __hash__(self):
+        return hash(str(self))
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+    def to_dict(self):
+        ret = {}
+        for or_expr in self.expr:
+            for f in or_expr:
+                ret[f[0]] = f[1]
+        return ret
 
     def better_than(self, other_selection):
         """One Selection is better than another if it is a subset of
@@ -121,7 +120,7 @@ class Selection:
             for or_expr in self.expr:
                 within = False
                 for or_expr_1 in other_selection.expr:
-                    if or_expr_1 == or_expr:
+                    if set(or_expr_1) == set(or_expr):
                         within = True
                 if within == False:
                     return False
@@ -138,27 +137,28 @@ class Selection:
 
         new_expr = []
         differences = 0
-        different_or_expr = set()
+        different_or_expr = []
 
         for or_expr in self.expr:
             within = False
             for or_expr_1 in other.expr:
-                if or_expr_1 == or_expr:
+                if set(or_expr_1) == set(or_expr):
                     new_expr.append(or_expr)
                     within = True
             if not within:
                 differences += 1
-                different_or_expr = different_or_expr.union(or_expr)
+                different_or_expr = unique(different_or_expr + or_expr)
             if differences > 1:
                 return None
+
 
         for or_expr in other.expr:
             within = False
             for or_expr_1 in self.expr:
-                if or_expr_1 == or_expr:
+                if set(or_expr_1) == set(or_expr):
                     within = True
             if not within:
-                different_or_expr = different_or_expr.union(or_expr)
+                different_or_expr = unique(different_or_expr + or_expr)
 
         new_expr.append(different_or_expr)
 

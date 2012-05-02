@@ -20,12 +20,17 @@
 
 import logging
 import os
-
-from vamos.golem.kbuild import determine_buildsystem_variables_in_directory, \
-    apply_configuration, guess_source_for_target, call_linux_makefile
+import copy
+import Queue
+import threading
+import thread
+import time
 
 from vamos.selection import Selection
-from vamos.golem.FileSet import FileSet, FileSetCache
+from vamos.tools import get_online_processors
+from vamos.golem.FileSet import FileSetCache
+from vamos.golem.inference_atoms import *
+
 
 def objects_in_dir(directory):
     """
@@ -46,201 +51,184 @@ def objects_in_dir(directory):
             ret[0].add(name)
     return ret
 
+def all_variations(seq_SEQ):
+    if len(seq_SEQ) == 0:
+        return [[]]
+    rest = all_variations(seq_SEQ[1:])
+    ret = []
+    for i in seq_SEQ[0]:
+        for r in rest:
+            ret.append([i] + r)
+    return ret
 
-class FileSymbolInferencer:
-    def __init__(self, model, arch, subarch=None, subdir=""):
-        """
-        subdir is used to limit the subdirectories, on which the
-        inference algorithm operates.
+class Counter:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.int = 0
+    def inc(self):
+        with self.lock:
+            self.int += 1
+    def dec(self):
+        with self.lock:
+            self.int -= 1
+    def isZero(self):
+        with self.lock:
+            return self.int == 0
 
-        """
 
-        self.arch = arch
-        self.subarch = subarch
-        self.model = model
+class Inferencer:
+    def __init__(self, atoms):
+        # The atom
+        self.atoms = atoms
+        self.cache = FileSetCache(self.atoms)
+        self.lock = threading.Lock()
 
-        # declaration only
-        self.empty_selection = Selection()
-        self.empty_fileset = None
+        self.visited_povs = {}
+        self.var_impl_selections = {}
 
-        self.file_selections = {}
+        self.pov_queue = Queue.Queue()
+        self.work_queue = Queue.Queue()
 
-        # Directories that caused a recursion loop
-        self.visited_dirs = set()
-        self.directory_prefix = subdir
+        self.on_the_run = Counter()
+        self.running = True
 
-        self.file_set_cache = FileSetCache(arch=arch, subarch=subarch)
+    def observer(self):
+        while not self.on_the_run.isZero():
+            time.sleep(0.2)
+        with self.lock:
+            self.running = False
 
+
+    def work_queue_worker(self):
+        while self.running:
+            try:
+                args = self.work_queue.get(True, 1)
+                self.__test_selection(*args)
+                self.on_the_run.dec()
+            except Queue.Empty:
+                pass
+            except Exception as e:
+                self.running = False
+                logging.error(str(e))
+                raise
+
+    def generate_variations(self, base_select, pov):
+        var_ints = self.atoms.OP_features_in_pov(pov)
+        ret = []
+        for var_group in var_ints:
+            group = []
+            for var_int in var_group:
+                if type(var_int) == tuple:
+                    group.append([var_int])
+                else:
+                    values = self.atoms.OP_domain_of_variability_intention(var_int) \
+                        - set([self.atoms.OP_default_value_of_variability_intention(var_int)])
+                    group.append([(var_int, value) for value in values])
+
+            base_select_dict = base_select.to_dict()
+            for variation in all_variations(group):
+                d = dict(variation)
+                skip = False
+                delete_from_var = []
+                for i in d:
+                    base_select_value = base_select_dict.get(i, None)
+                    if base_select_value != None:
+                        if base_select_value != d[i]:
+                            skip = True
+                        else:
+                            delete_from_var.append(i)
+
+                variation = filter(lambda (var_int, value): not var_int in delete_from_var, variation)
+
+                if not skip:
+                    ret.append(variation)
+        return ret
 
     def calculate(self):
-        call_linux_makefile('allnoconfig', arch=self.arch, subarch=self.subarch)
-        apply_configuration(arch=self.arch, subarch=self.subarch)
+        empty_selection = Selection()
+        base_var_impl = self.cache.get_fileset(empty_selection)
+        empty_var_impl = copy.deepcopy(base_var_impl)
+        empty_var_impl.var_impl = set()
+        for var_impl in base_var_impl.var_impl:
+            self.var_impl_selections[var_impl] = [empty_selection]
 
-        self.empty_fileset = FileSet(self.empty_selection, arch=self.arch,
-                                     subarch=self.subarch)
+        for pov in empty_var_impl.pov:
+            self.on_the_run.inc()
+            self.pov_queue.put(tuple([empty_selection, base_var_impl, pov]))
 
-        for filename in self.empty_fileset.files:
-            self.file_selections[filename] = None
+        thread.start_new_thread(self.observer, tuple())
 
-        directories = self.empty_fileset.dirs
-        directories.add("arch/%s" % self.arch)
+        for i in range(0, int(get_online_processors() * 1.5)):
+            thread.start_new_thread(self.work_queue_worker, tuple())
 
-        for directory in directories:
-            symbol_slice = determine_buildsystem_variables_in_directory(directory)
-            self.__calculate(directory, symbol_slice,
-                             self.empty_selection,
-                             self.empty_fileset)
-
-        for objfile in self.file_selections:
-            sourcefile = guess_source_for_target(objfile)
-            if not sourcefile:
-                logging.warning("Failed to guess source file for %s", objfile)
-                sourcefile = objfile # makes these cases easier to identify
-            if self.file_selections[objfile]:
-                print "FILE_%s \"%s\"" % (sourcefile, self.file_selections[objfile])
-            else:
-                print "FILE_%s" % sourcefile
-
-    def __subdirectory_is_worth_working_on(self, directory):
-        """
-        Determine if it is worth to work on a specific directory,
-        or if all object files and all directories within are already visited
-        """
-
-        (objects, dirs) = objects_in_dir(directory)
-
-        if not directory.startswith(self.directory_prefix):
-            logging.info("Skipping %s, not in scope", directory)
-            return False
-
-        # Are all objects visited?
-        for obj in objects:
-            if not obj in self.file_selections:
-                return True
-
-        # Are all directories visited
-        for dirname in dirs:
-            if not dirname in self.visited_dirs:
-                return True
-
-        logging.info("Skipping %s, already processed", directory)
-        return False
-
-
-    def check_subdir(self, subdir, symbols):
-        """
-        @return a set of new symbols found in subdir
-        """
-
-        new_symbols = set()
-        new_symbols.update(determine_buildsystem_variables_in_directory(subdir))
-        new_symbols.update(symbols)
-
-        # For tristate features also add the _MODULE
-        # symbol
-        to_be_removed = set()
-        to_be_added = set()
-        for symbol in new_symbols:
-            # Normalize feartures
-            if symbol.endswith("_MODULE"):
-                symbol = symbol[:-len("_MODULE")]
-
-            # Add _MODULE symbols
-            if (symbol + "_MODULE") in self.model:
-                to_be_added.add(symbol + "_MODULE")
-
-            # Remove missing items in the first place
-            if not symbol in self.model:
-                to_be_removed.add(symbol)
-                to_be_removed.add(symbol + "_MODULE")
-        new_symbols = (new_symbols - to_be_removed).union(to_be_added)
-
-        return new_symbols
-
-    def __copy_selections(self, directory, base_symbols, current_selection, current_fileset):
-        """
-        @return a list of tulples: (subdir, symbols, selection, fileset)
-        """
-        file_selections = {}
-        recursive_selections = []
-        new_visited_dirs = self.visited_dirs
-
-        for symbol in base_symbols:
-
-            if symbol in current_selection.symbols:
+        while self.running:
+            try:
+                (base_select, base_var_impl, pov) = self.pov_queue.get(True, 1)
+            except Queue.Empty:
                 continue
 
-            if not symbol in self.model:
-                continue
+            base_select_is_superset = any([x.better_than(base_select) for x in self.visited_povs.get(pov, [])])
 
-            # Copy Selection
-            new_selection = Selection(current_selection)
-            new_selection.push_down()
-            new_selection.add_alternative(symbol)
-            new_fileset = self.file_set_cache.get_fileset(new_selection)
+            if not base_select_is_superset and self.atoms.pov_worth_working_on(pov):
+                if not pov in self.visited_povs:
+                    self.visited_povs[pov] = []
+                self.visited_povs[pov].append(base_select)
+                logging.info("Visiting POV: %s", pov)
 
-            ((f_added, _), (d_added, _)) = new_fileset.compare_to_base(current_fileset)
+                for variation in self.generate_variations(base_select, pov):
+                    new_selection = Selection(base_select)
+                    for (var_int, value) in variation:
+                        new_selection.push_down()
+                        new_selection.add_alternative(var_int, value)
 
-            for filename in f_added: # f_added
-                if not filename in file_selections:
-                    file_selections[filename] = Selection(new_selection)
-                else:
-                    file_selections[filename].add_alternative(symbol)
+                    self.on_the_run.inc()
+                    self.work_queue.put(tuple([pov, new_selection, base_var_impl]))
 
-            # Is there a directory we haven't done recursion on yet,
-            # so lets do a recursion step here.
-            # We only consider subdirectories of the current directory
-            new_subdirectories = d_added - self.visited_dirs
-            new_subdirectories = set([dirname for dirname in new_subdirectories
-                                      if dirname.startswith(directory) and
-                                      dirname.startswith(self.directory_prefix)])
-            if len(new_subdirectories) > 0:
-                new_visited_dirs = new_visited_dirs.union(set(new_subdirectories))
+            self.on_the_run.dec()
 
-                # If we want to go down recursive in a directory, we
-                # add all symbols which are mentioned within the
-                # directories Kbuild/Makefile
-                for subdir in new_subdirectories:
-                    new_symbols = self.check_subdir(subdir, new_selection.symbols)
-                    recursive_selections.append( tuple([subdir,
-                                                        new_symbols,
-                                                        new_selection,
-                                                        new_fileset]))
+        # Cleanup bad alternatives
+        for var_impl in self.var_impl_selections:
+            selection = self.var_impl_selections[var_impl]
+            i = 0
+            for i in range(0, len(selection)):
+                for x in range(0, len(selection)):
+                    if x != i and selection[i] and selection[x] \
+                            and selection[i].better_than(selection[x]):
+                        selection[x] = None
 
-        self.visited_dirs = new_visited_dirs
+            again = True
+            while again:
+                again = False
+                for i in range(0, len(selection)):
+                    for x in range(0, len(selection)):
+                        if x != i and selection[i] and selection[x]:
+                            m = selection[i].merge(selection[x])
+                            if m:
+                                again = True
+                                selection[i] = m
+                                selection[x] = None
 
-        return (recursive_selections, file_selections)
+            self.var_impl_selections[var_impl] = filter(lambda x: x, selection)
 
-
-    def __calculate(self, directory, base_symbols, current_selection, current_fileset):
-        """
-        The heart of the inferencer, here the recursion is done.
-        """
-
-        if not self.__subdirectory_is_worth_working_on(directory):
-            return
-
-        logging.info("Starting __calculate on %s with %d symbols (%d files so far)",
-                     directory, len(base_symbols), len(self.file_selections))
-
-        (recursive_selections, file_selections) =  \
-            self.__copy_selections(directory, base_symbols,
-                                   current_selection, current_fileset)
-
-        # Collection phase
-        for (filename, selection) in file_selections.items():
-            if not filename in self.file_selections:
-                self.file_selections[filename] = selection
+        for i in self.var_impl_selections:
+            if len(self.var_impl_selections[i]) > 0:
+                print '%s "%s"' % (self.atoms.format_var_impl(i),
+                                   self.atoms.format_selections(self.var_impl_selections[i]))
             else:
-                if selection.better_than(self.file_selections[filename]):
-                    self.file_selections[filename] = selection
-                else:
-                    # Sometimes Expressions can be merged if they only
-                    # differ in one or_expression
-                    merged = self.file_selections[filename].merge(selection)
-                    if merged:
-                        self.file_selections[filename] = merged
+                print self.atoms.format_var_impl(i)
 
-        # RECURSION!
-        for (subdir, symbols, selection, fileset) in recursive_selections:
-            self.__calculate(subdir, symbols, selection, fileset)
+    def __test_selection(self, pov, current_selection, base_var_impl):
+        new_var_impl = self.cache.get_fileset(current_selection)
+
+        ((var_impl_added, _), (pov_added, _)) = new_var_impl.compare_to_base(base_var_impl)
+
+        with self.lock:
+            for var_impl in var_impl_added:
+                if not var_impl in self.var_impl_selections:
+                    self.var_impl_selections[var_impl] = [current_selection]
+                else:
+                    self.var_impl_selections[var_impl].append(current_selection)
+
+        for pov in pov_added:
+            self.on_the_run.inc()
+            self.pov_queue.put(tuple([current_selection, new_var_impl, pov]))

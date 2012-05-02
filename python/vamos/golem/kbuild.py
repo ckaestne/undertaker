@@ -345,7 +345,7 @@ def guess_arch_from_filename(filename):
 
 def call_linux_makefile(target, extra_env="", extra_variables="",
                         filename=None, arch=None, subarch=None,
-                        failok=True, dryrun=False):
+                        failok=True, dryrun=False, njobs=None):
     # pylint: disable=R0912
     """
     Invokes 'make' in a Linux Buildtree.
@@ -374,7 +374,8 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
     """
 
     cmd = "make"
-    njobs = int(os.sysconf('SC_NPROCESSORS_ONLN') * 1.20 + 0.5)
+    if njobs is None:
+        njobs = int(os.sysconf('SC_NPROCESSORS_ONLN') * 1.20 + 0.5)
 
     if extra_env and "ARCH=" in extra_env or extra_variables and "ARCH=" in extra_variables:
         logging.debug("Detected manual (SUB)ARCH override in extra arguments '(%s, %s)'",
@@ -473,7 +474,7 @@ def get_linux_version():
 def find_scripts_basedir():
     executable = os.path.realpath(sys.argv[0])
     base_dir   = os.path.dirname(executable)
-    for d in [ '../lib', '../scripts']:
+    for d in [ '../lib', '../scripts', '../../scripts', '../../../scripts']:
         f = os.path.join(base_dir, d, 'Makefile.list')
         if os.path.exists(f):
             return os.path.realpath(os.path.join(base_dir, d))
@@ -515,7 +516,8 @@ def files_for_selected_features(features, arch, subarch):
                                                arch=arch,
                                                subarch=subarch,
                                                failok=False,
-                                               extra_variables=make_args)
+                                               extra_variables=make_args,
+                                               njobs=1)
     except:
         os.unlink(tempfile)
         raise
