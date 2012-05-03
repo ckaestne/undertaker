@@ -22,11 +22,9 @@ int main(void) {
  *       messages to remain compatible with gcc4.4 in this unit-test
  * check-command: vampyr -f bare -Cgcc -Ogcc,-Wunused-variable  $file
  * check-output-start
-Checking 1 configuration(s):
-"-DCONFIG_A=1":	1 errors
-  ---- gcc: ----
-coverage-4.c:5: warning: unused variable 'a'
-  in 1 configs. e.g. in "-DCONFIG_A=1"
-  -------------
+coverage-4.c: Checking 1 configuration(s): coverage-4.c.config0
+  ---- Found 1 relevant messages with gcc in coverage-4.c ----
+coverage-4.c:5: warning: unused variable 'a' (in configs: coverage-4.c.config0)
+  --------------------------------------------------
  * check-output-end
  */

@@ -37,7 +37,8 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
 from vamos.tools import setup_logging, calculate_worklist, check_tool, execute, \
     get_online_processors
 from vamos.vampyr.BuildFrameworks import select_framework
-from vamos.vampyr.Configuration import Configuration, ExpansionError
+from vamos.vampyr.Configuration import Configuration, ExpansionError, \
+    LinuxStdConfiguration
 from vamos.vampyr.Messages import MessageContainer
 from vamos.golem.kbuild import guess_arch_from_filename
 
@@ -46,7 +47,8 @@ def do_checks(options, filename, configs):
     """returns a dictionary with errors"""
     errors = dict()
 
-    print "Checking %d configuration(s):" % len(configs)
+    print "%s: Checking %d configuration(s): %s" \
+        % (filename, len(configs), ", ".join([c.filename() for c in configs]))
     for c in configs:
         # for kconfig, this will automatically try to expand the configuration
         # for bare, this will be a noop
@@ -72,7 +74,7 @@ def do_checks(options, filename, configs):
                 errors[tool] = MessageContainer()
 
             reportfilename = c.filename() + '.report.' + tool
-            logging.info("%s: detected %d errors with tool '%s'", reportfilename, len(msgs), tool)
+            logging.debug("%s: detected %d messages with tool '%s'", reportfilename, len(msgs), tool)
 
             with open(reportfilename, 'w') as reportfile:
                 report = set()
@@ -99,40 +101,85 @@ def handle_file(options, filename):
 
     errors = do_checks(options, filename, configs)
 
-    config_dependent_messages = 0
+    reference_config = None
+
     for c in configs:
         assert(isinstance(c, Configuration))
+
+        # search for the allyesconfig configuration
+        if  options.has_key('stdconfig') and options['stdconfig'] in c.filename():
+            logging.debug("Detected reference config %s", c.filename())
+            reference_config = c
+
         total_errors_for_config = 0
         for tool in errors.keys():
             for message in errors[tool]:
                 if c in message.in_configurations:
                     total_errors_for_config += 1
 
-        print "%s:\t%d errors" % (str(c), total_errors_for_config)
+        logging.info("%s:\t%d errors", c.filename(), total_errors_for_config)
+
+    # check if reference config is just not built?
+    if not reference_config and options.has_key('stdconfig'):
+        reference_config = LinuxStdConfiguration(framework, filename,
+                                                 options['arch'], options['subarch'])
+
+    if reference_config:
+        relevant_errors = evaluate_with_reference(reference_config, errors)
+        assert (isinstance(relevant_errors, dict))
+        logging.info("Found %d relevant errors not in standard config '%s'",
+                     sum([len(v) for v in relevant_errors.values()]), options['stdconfig'])
+    else:
+        relevant_errors = dict()
+        # present all messages if we have exactly one configuration
+        if len(configs) > 1:
+            relevant_errors = evaluate_plain(configs, errors)
+        else:
+            relevant_errors = errors
+        assert (isinstance(relevant_errors, dict))
+        logging.info("Found %d configuration dependent errors",
+                     sum([len(v) for v in relevant_errors.values()]))
+
+    format_errors(relevant_errors, filename)
 
 
-    if len(configs) == 1 or options['loglevel'] < logging.WARNING:
-        format_errors(errors)
+def evaluate_with_reference(reference_config, errors):
+    "check if the found errors are present in allyesconfig as well"
+    ret = dict()
+    for tool in errors.keys():
+        ret[tool] = set()
 
-    if len(configs) == 1:
-        return
+        for message in errors[tool]:
+            if reference_config in message.in_configurations:
+                logging.info("In Reference config %s: %s", reference_config.filename(),
+                             message.get_message())
+            else:
+                ret[tool].add(message)
+
+    return ret
+
+def evaluate_plain(configs, errors):
+    "check for configuration dependent errors, no reference configuration"
+    ret = dict()
 
     for tool in errors.keys():
+        ret[tool] = set()
         for message in errors[tool]:
             is_configuration_dependent = len(message.in_configurations) < len(configs)
             if is_configuration_dependent:
-                print "   Not in all configs: " + message.get_report()
-                config_dependent_messages += 1
+                ret[tool].add(message)
 
-    print "Found %d configuration dependent errors" % config_dependent_messages
+    return ret
 
 
-def format_errors(errors):
+def format_errors(errors, filename):
     for tool in errors.keys():
         if len(errors[tool]) > 0:
-            print "  ---- %s: ----" % tool
-            print "\n\n".join([x.get_report() for x in errors[tool]])
-            print "  -------------"
+            print "  ---- Found %d relevant messages with %s in %s ----" % (len(errors[tool]), tool, filename)
+            for m in errors[tool]:
+                print "%s (in configs: %s)" % \
+                    (m.get_message(), ", ".join([c.filename() for c in m.in_configurations]))
+            print "  --------------------------------------------------"
 
 
 def analyze_variability(source_files, options):

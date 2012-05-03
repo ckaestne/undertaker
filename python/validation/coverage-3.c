@@ -14,11 +14,9 @@ int main(void) {
  * check-name: coverage: exclude messages from other files
  * check-command: vampyr -f bare -Csparse --exclude-others $file
  * check-output-start
-Checking 1 configuration(s):
-"-DCONFIG_A=1":	1 errors
-  ---- sparse: ----
-coverage-3.c:8: warning: incorrect type in return expression (different base types) | expected int | got char static *<noident>
-  in 1 configs. e.g. in "-DCONFIG_A=1"
-  -------------
+coverage-3.c: Checking 1 configuration(s): coverage-3.c.config0
+  ---- Found 1 relevant messages with sparse in coverage-3.c ----
+coverage-3.c:8: warning: incorrect type in return expression (different base types) | expected int | got char static *<noident> (in configs: coverage-3.c.config0)
+  --------------------------------------------------
  * check-output-end
  */
