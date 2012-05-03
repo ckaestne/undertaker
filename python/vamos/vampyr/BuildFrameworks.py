@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import vamos
+
 from vamos.vampyr.Configuration \
     import BareConfiguration, LinuxConfiguration, LinuxStdConfiguration
 from vamos.vampyr.utils import find_configurations, \
@@ -167,8 +169,15 @@ class BareBuildFramework(BuildFramework):
 
     def calculate_configurations(self, filename):
         undertaker = "undertaker -q -j coverage -C min -O combined"
+
+        if self.options.has_key('model') and self.options['model']:
+            undertaker += " -m %s" % self.options['model']
+        else:
+            logging.info("No model specified, running without models")
+
         if self.options.has_key('args') and 'undertaker' in self.options['args']:
             undertaker += " " + self.options['args']['undertaker']
+
         undertaker += " '" + filename + "'"
         execute(undertaker, failok=False)
 
@@ -195,9 +204,9 @@ class KbuildBuildFramework(BuildFramework):
         if not options.has_key('coverage_strategy'):
             options['coverage_strategy'] = 'min'
         if not options.has_key('arch'):
-            options['arch'] = None
+            options['arch'] = vamos.default_architecture
         if not options.has_key('subarch'):
-            options['subarch'] = None
+            options['subarch'] = guess_subarch_from_arch(options['arch'])
 
     def guess_arch_from_filename(self, filename):
         """
@@ -220,10 +229,13 @@ class KbuildBuildFramework(BuildFramework):
                 self.options['subarch'] = oldsubarch
 
         cmd = "undertaker -q -j coverage -C %s -O combined" % self.options['coverage_strategy']
-        if os.path.isdir("models"):
+        if self.options.has_key('model') and self.options['model']:
+            cmd += " -m %s" % self.options['model']
+        elif os.path.isdir("models"):
+            # Fallback
             cmd += " -m models/%s.model" % self.options['arch']
         else:
-            logging.info("No models directory found, running without models")
+            logging.warning("No model specified, running without models")
 
         logging.info("Calculating configurations for '%s'", filename)
         if self.options and self.options.has_key('args'):
@@ -358,5 +370,21 @@ def select_framework(identifier, options):
     else:
         raise RuntimeError("Build framework '%s' not found" % \
                                options['framework'])
+
+    if identifier == 'linux':
+        model = "models/%s.model" % bf.options['arch']
+        if options.has_key('model') and options['model']:
+            logging.error("Ignoring given configration model, using %s instead", model)
+
+    if not options.has_key('model') or options['model'] is None:
+        return bf
+
+    model=options['model']
+    if model and os.path.exists(model):
+        logging.info("Setting model to %s", model)
+        options['model'] = model
+    else:
+        logging.error("Ignoring non-existing model %s", model)
+        options['model'] = None
 
     return bf

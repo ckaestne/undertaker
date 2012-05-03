@@ -255,6 +255,9 @@ def main():
     parser.add_option("-f", '--framework', dest='framework', action='store', type="string",
                       default=None,
                       help="select build framework (one of 'bare', 'kbuild')")
+    parser.add_option("-m", '--model', dest='model', action='store', type="string",
+                      default=None,
+                      help="Use the given model. Only useful with the bare-build framework")
     parser.add_option('-a', '--analyze', dest='do_analyze', action='store_true', default=False,
                       help="analyze variability")
     parser.add_option('-e', '--expand', dest='do_expansion', action='store_true',
@@ -285,6 +288,7 @@ def main():
                 'cross_prefix': opts.cross_prefix,
                 'threads': get_online_processors() if opts.threads == 0 else opts.threads,
                 'exclude_others': opts.exclude_others,
+                'model': opts.model,
                 'loglevel': logging.getLogger().getEffectiveLevel()}
 
     for arg in opts.args:
