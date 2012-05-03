@@ -60,7 +60,7 @@ class BuildFramework:
                 assert(isinstance(options['args'], dict))
             self.options = options
         else:
-            self.options = None
+            self.options = dict()
 
     def calculate_configurations(self, filename):
         raise NotImplementedError
@@ -69,20 +69,28 @@ class BuildFramework:
         """
         Analyzes the given file 'filename' for its configuration coverage.
 
-        This method also includes statistics about blocks covered by 'allyeconfig'
+        If all_cpp_blocks is set to True, all CPP blocks will be considered,
+        only configuration conditional blocks otherwise.
+        This method also includes statistics about blocks covered by 'allyesconfig'
 
         returns a dict with the following members:
          - lines_total: the total number of LOC in the file
          - lines_covered: the number of covered LOC in all configurations
          - lines_conditional_total: the number of LOC in #ifdef blocks
          - lines_conditional_covered: the number of LOC in selected #ifdef blocks
-         - linum_map: the map as returned by 'get_block_to_linum_map(filename)'
-         - blocks: a dict of configuration to the set of cond. blocks it contains
+         - linum_map: the map as returned by 'get_block_to_linum_map(filename, True)'
          - blocks_total: contains a set of all blocks in the file
+         - configuration_blocks: a set of configuration depentend conditional blocks
+                   (i.e., blocks that contain an item starting with 'CONFIG_')
+         - blocks: a dict that maps a configuration to the set of
+                   conditional blocks that it selects
+                   (NB: this contains *all* blocks)
          - blocks_covered: contains the set of all covered blocks over all configurations
          - blocks_uncovered: contains the set of blocks that are not in any configuration
+         - all_configs: a set all of all found configurations, including unexpandable ones
+         - expandable_configs: the set of configuration that expanded successfully
 
-        ..note: the dict blocks contains the configuration name as
+        ..note: the dict 'blocks' contains the configuration name as
                 key. The name has the form 'configN', with N being a
                 running number. The length if this dict is equal to the
                 number of found confiurations of this file.
@@ -90,18 +98,13 @@ class BuildFramework:
         """
 
         return_dict = {
+            'lines': {},
             'blocks': {},
-            'lines': {}}
-
-        total_blocks = set(get_conditional_blocks(filename, None,
-                                                  configuration_blocks=False))
-        total_blocks.add("B00")
-        return_dict['blocks_total'] = total_blocks
-
-        conf_blocks = set(get_conditional_blocks(filename, None,
-                                                 configuration_blocks=True))
-        conf_blocks.add("B00")
-        return_dict['configuration_blocks'] = conf_blocks
+            'blocks_total':
+                set(get_conditional_blocks(filename, all_cpp_blocks=True)),
+            'configuration_blocks':
+                set(get_conditional_blocks(filename, all_cpp_blocks=False)),
+            }
 
         covered_blocks = set()
 
@@ -109,7 +112,7 @@ class BuildFramework:
             config_h = self.options['configfile']
             logging.info("Analyzing Configuration %s", config_h)
             covered_blocks = return_dict['blocks'][config_h] = \
-                set(get_conditional_blocks(filename, config_h)) | set(["B00"])
+                set(get_conditional_blocks(filename, config_h, all_cpp_blocks=True))
         else:
             configs = self.calculate_configurations(filename)
             logging.info("%s: found %d configurations", filename, len(configs))
@@ -125,8 +128,7 @@ class BuildFramework:
                     old_len = len(covered_blocks)
                     return_dict['blocks'][config.kconfig] = \
                         set(get_conditional_blocks(filename, autoconf_h,
-                                                   configuration_blocks=False)) \
-                                                   | set(["B00"])
+                                                   all_cpp_blocks=True))
                     covered_blocks |= return_dict['blocks'][config.kconfig]
 
                     print "Config %s added %d additional blocks" % \
@@ -135,11 +137,11 @@ class BuildFramework:
                 except RuntimeError as e:
                     logging.error("Failed to process config '%s': %s", filename, e)
 
-        return_dict['blocks_covered'] = covered_blocks
-        return_dict['blocks_uncovered'] = total_blocks - covered_blocks
+        return_dict['blocks_covered']   = covered_blocks
+        return_dict['blocks_uncovered'] = return_dict['blocks_total'] - covered_blocks
 
-        linum_map = get_block_to_linum_map(filename)
-        return_dict['linum map'] = linum_map
+        linum_map = get_block_to_linum_map(filename, all_cpp_blocks=True)
+        return_dict['linum_map'] = linum_map
 
         total_lines = sum(linum_map.values())
         covered_lines = 0
@@ -165,7 +167,7 @@ class BareBuildFramework(BuildFramework):
 
     def calculate_configurations(self, filename):
         undertaker = "undertaker -q -j coverage -C min -O combined"
-        if 'undertaker' in self.options['args']:
+        if self.options.has_key('args') and 'undertaker' in self.options['args']:
             undertaker += " " + self.options['args']['undertaker']
         undertaker += " '" + filename + "'"
         execute(undertaker, failok=False)
@@ -282,24 +284,11 @@ class KbuildBuildFramework(BuildFramework):
 
         This method also includes statistics about blocks covered by 'allyeconfig'
 
-        returns a dict with the following members:
+        Returns a dict with all members that the base class returns,
+        plus the following in addition:
          - arch: the analyzed architecture
          - subarch: the analyzed subarchitecture
-         - lines_total: the total number of LOC in the file
-         - lines_covered: the number of covered LOC in all configurations
-         - lines_conditional_total: the number of LOC in #ifdef blocks
-         - lines_conditional_covered: the number of LOC in selected #ifdef blocks
-         - linum_map: the map as returned by 'get_block_to_linum_map(filename)'
-         - blocks: a dict of configuration to the set of cond. blocks it contains
-         - blocks_allyesconfig: contains the set of blocks 'allyesconfig' contains
-         - blocks_total: contains a set of all blocks in the file
-         - blocks_covered: contains the set of all covered blocks over all configurations
-         - blocks_uncovered: contains the set of blocks that are not in any configuration
-
-        ..note: the dict blocks contains the configuration name as
-                key. The name has the form 'configN', with N being a
-                running number. The length if this dict is equal to the
-                number of found confiurations of this file.
+         - blocks_allyesconfig': All blocks that are selected by allyesconfig
 
         """
 
@@ -333,9 +322,8 @@ class KbuildBuildFramework(BuildFramework):
 
         if file_in_current_configuration(filename,
                             arch=self.options['arch'], subarch=self.options['subarch']) != "n":
-            return_dict['blocks_allyesconfig'] = \
-                set(get_conditional_blocks(filename, autoconf_h, configuration_blocks=False)) \
-                    | set(["B00"])
+            return_dict['blocks_allyesconfig'] = set(["B00"]) | \
+                set(get_conditional_blocks(filename, autoconf_h, all_cpp_blocks=True))
         else:
             return_dict['blocks_allyesconfig'] = set()
 
@@ -370,4 +358,5 @@ def select_framework(identifier, options):
     else:
         raise RuntimeError("Build framework '%s' not found" % \
                                options['framework'])
+
     return bf

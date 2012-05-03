@@ -136,7 +136,8 @@ def default_configs(filename, results):
     for config in std_configs:
         logging.info("Switching to configuration preset " + config)
         switch_config(config)
-        results[filename][config] = len(get_conditional_blocks(filename, find_autoconf()))
+        results[filename][config] = len(get_conditional_blocks(filename, find_autoconf(),
+                all_cpp_blocks=False))
     return results
 
 # e.g. taken from the makefiles
@@ -343,7 +344,8 @@ def vamos_coverage(filename, results, options):
 
         # now check what blocks are actually set
         old_len = len(covered)
-        covered_blocks = set(get_conditional_blocks(filename, find_autoconf()))
+        covered_blocks = set(get_conditional_blocks(filename, find_autoconf(),
+                 all_cpp_blocks=False))
         covered |= covered_blocks
         logging.info("Config %s added %d additional blocks",
                      config, len(covered) - old_len)
@@ -419,7 +421,8 @@ def do_work(filenames, options):
         logging.info("processing %s", filename)
 
         default_configs(filename, results)
-        results[filename]['total_blocks'] = set(get_conditional_blocks(filename))
+        results[filename]['total_blocks'] = set(get_conditional_blocks(filename,
+                 all_cpp_blocks=False))
 
         print "\nRESULT"
         print "filename: %s" % filename

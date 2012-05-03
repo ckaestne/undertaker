@@ -35,12 +35,12 @@ class ExpansionSanityCheckError(ExpansionError):
     pass
 
 
-def get_conditional_blocks(filename, autoconf_h=None, configuration_blocks=True,
+def get_conditional_blocks(filename, autoconf_h=None, all_cpp_blocks=False,
                            strip_linums=True):
     """
     Counts the conditional blocks in the given source file
 
-    The calculation is done using the 'zizler' binary from the system
+    The calculation is done using the 'zizler' program from the system
     path.
 
     If the parameter 'autoconf_h' is set to an existing file, then the
@@ -49,18 +49,24 @@ def get_conditional_blocks(filename, autoconf_h=None, configuration_blocks=True,
     this can be detected with the method find_autoconf() from the golem
     package.
 
-    If the parameter configuration_blocks is set to true, only
-    configuration control conditional blocks will be counted, otherwise
-    all blocks.
+    If the parameter all_cpp_blocks is set to false, only configuration
+    controlled conditional blocks will be counted, otherwise all
+    blocks. Configuration controlled conditional blocks are blocks with
+    an CPP expression that contains at least one CPP identifier starting
+    with the 'CONFIG_'.
+
+    Implementation detail: This function will use the 'zizler -cC'
+    command if all_cpp_blocks is set to false, and 'zizler -c' if set to
+    true.
 
     @return a non-empty list of blocks found in the source file
 
     """
 
-    if configuration_blocks:
-        normalizer = 'zizler -cC "%s"' % filename
-    else:
+    if all_cpp_blocks:
         normalizer = 'zizler -c "%s"' % filename
+    else:
+        normalizer = 'zizler -cC "%s"' % filename
 
     if autoconf_h and os.path.exists(autoconf_h):
         cmd = '%s | cpp -include %s' % (normalizer, autoconf_h)
@@ -82,12 +88,12 @@ def get_conditional_blocks(filename, autoconf_h=None, configuration_blocks=True,
     return blocks
 
 
-def get_block_to_linum_map(filename, configuration_blocks=False):
+def get_block_to_linum_map(filename, all_cpp_blocks=True):
     """Returns a map from configuration controlled block name to a
     line count within the block"""
 
     blocks = get_conditional_blocks(filename, autoconf_h=False,
-                                    configuration_blocks=configuration_blocks,
+                                    all_cpp_blocks=all_cpp_blocks,
                                     strip_linums=False)
 
     d = dict([tuple(x.split(" ")) for x in blocks])
