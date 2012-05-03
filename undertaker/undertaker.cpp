@@ -147,27 +147,8 @@ void process_file_coverage_helper(const char *filename) {
     std::map<std::string,std::string> parents;
     MissingSet missingSet;
 
-
     ModelContainer *f = ModelContainer::getInstance();
     ConfigurationModel *model = f->lookupMainModel();
-
-    // add whitelisted features to model
-    if (model) {
-        KconfigWhitelist *wl = KconfigWhitelist::getWhitelist();
-        std::list<std::string>::iterator it;
-        for (it = wl->begin(); (KconfigWhitelist *) !wl->empty() && it != wl->end(); it++) {
-            model->addFeatureToWhitelist(*it);
-        }
-    }
-
-    // add blacklisted features to model
-    if (model) {
-        KconfigWhitelist *bl = KconfigWhitelist::getBlacklist();
-        std::list<std::string>::iterator it;
-        for (it = bl->begin(); !bl->empty() && it != bl->end(); it++) {
-            model->addFeatureToBlacklist(*it);
-        }
-    }
 
     // HACK: make B00 a 'regular' block
     file.push_front(file.topBlock());
@@ -861,10 +842,30 @@ int main (int argc, char ** argv) {
     }
 
     ModelContainer *f = ModelContainer::getInstance();
+    KconfigWhitelist *bl = KconfigWhitelist::getBlacklist();
+    KconfigWhitelist *wl = KconfigWhitelist::getWhitelist();
+
+    if (0 == models.size() && (!bl->empty() || !wl->empty())) {
+        usage(std::cout, "please specify a model to use white- or blacklists");
+        return EXIT_FAILURE;
+    }
 
     /* Load all specified models */
     for (std::list<std::string>::const_iterator i = models.begin(); i != models.end(); ++i) {
-        f->loadModels(*i);
+        ConfigurationModel *model;
+
+        model = f->loadModels(*i);
+        /* Add white- and blacklisted features to model */
+        if (model) {
+            std::list<std::string>::iterator itl;
+            for (itl = bl->begin(); !bl->empty() && itl != bl->end(); itl++) {
+                model->addFeatureToBlacklist(*itl);
+            }
+
+            for (itl = wl->begin(); !wl->empty() && itl != wl->end(); itl++) {
+                model->addFeatureToWhitelist(*itl);
+            }
+        }
     }
 
     std::vector<std::string> workfiles;
