@@ -42,9 +42,9 @@ class SparseMessage:
         # Strip coloumn numbers
         lines = map(lambda x: re.sub(r'(:\d+):\d+: ', r'\1: ', x), lines)
         for line in lines:
-            m = re.match('^([^ \t]+)([ \t]+)(.*)', line)
+            m = re.match('^\s*([^ \t]+)([ \t]+)(.*)', line)
             if not m:
-                logging.error("Sparse: Failed to parse '%s'", line)
+                logging.error("Failed to parse '%s'", line)
                 continue
 
             if 'originally declared here' in line:
@@ -61,7 +61,6 @@ class SparseMessage:
 
         return result
 
-
     def __init__(self, configuration, line):
         self.configuration = configuration
         self.bare_message = line
@@ -71,11 +70,9 @@ class SparseMessage:
         self.parse()
         self.is_error = False
 
-
     def message_is_in_configuration(self, configuration):
         """Tell this message that it is also in another configuration"""
         self.in_configurations.add(configuration)
-
 
     def parse(self):
         message = self.bare_message.split(" ", 2)
@@ -89,7 +86,6 @@ class SparseMessage:
         self.location = message[0]
         self.message = message[2]
 
-
     def __repr__(self):
         return "<CompileMessage: error: " + str(self.is_error) + \
             " loc: " + self.location + " msg: " + self.message + ">"
@@ -97,16 +93,13 @@ class SparseMessage:
     def __hash__(self):
         return hash(self.bare_message)
 
-
     def __eq__(self, other):
         if not isinstance(other, SparseMessage):
             return False
         return self.bare_message == other.bare_message
 
-
     def get_message(self):
         return self.bare_message
-
 
     def get_report(self):
         return self.bare_message + "\n  in %d configs. e.g. in %s" \
