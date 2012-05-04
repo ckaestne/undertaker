@@ -1,5 +1,5 @@
 
-#if FOO( BAR(1,2) 3)
+#if FOO( BAR(1,2), 3)
 #else
 # error nested macro fails to expand
 #endif
@@ -7,7 +7,6 @@
 
 /*
  * check-name: Handle nested macro definitions
- * check-known-to-fail: 1
  * check-output-start:
 I: loaded rsf model for alpha
 I: loaded rsf model for arm

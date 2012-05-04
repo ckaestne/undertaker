@@ -26,8 +26,6 @@
  * check-output-start
 I: Using x86 as primary model
 I: loaded rsf model for x86
-I: Ignoring non-symbol: 0
-I: Ignoring non-symbol: 512
 CONFIG_CGROUP_SCHED, 1, 0, PRESENT, BOOLEAN
 CONFIG_FAIR_GROUP_SCHED, 1, 0, PRESENT, BOOLEAN
 CONFIG_RT_GROUP_SCHED, 1, 0, PRESENT, BOOLEAN

@@ -5,6 +5,7 @@
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Ralf Hackner <sirahack@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,9 +39,13 @@
 
 #include "ModelContainer.h"
 #include "ConfigurationModel.h"
-#include "SatChecker-grammar.t"
 #include "PumaConditionalBlock.h"
 #include "Logging.h"
+
+#include "CNFBuilder.h"
+#include "PicosatCNF.h"
+#include "CNF.h"
+#include "bool.h"
 
 bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     SatChecker c(sat.c_str());
@@ -56,272 +61,6 @@ bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     return false;
 }
 
-/* Got the impression from normal lisp implementations */
-int SatChecker::stringToSymbol(const std::string &key) {
-    KconfigWhitelist *il = KconfigWhitelist::getIgnorelist();
-
-    /* If ignorelisted, return a new, free symbol so that this item does
-       not constrain the forumula at all. This allows to ignore certain
-       CPP Variables that should not result to defects. */
-    if (il->isWhitelisted(key)) {
-        return newSymbol();
-    }
-
-    std::map<std::string, int>::iterator it;
-    if ((it = symbolTable.find(key)) != symbolTable.end()) {
-        return it->second;
-    }
-    int n = newSymbol();
-    symbolTable[key] = n;
-    return n;
-}
-
-int SatChecker::newSymbol(void) {
-    return Picosat::picosat_inc_max_var();
-}
-
-void SatChecker::addClause(int *clause) {
-    for (int *x = clause; *x; x++)
-        Picosat::picosat_add(*x);
-    Picosat::picosat_add(0);
-    _clauses ++;
-}
-
-int SatChecker::notClause(int inner_clause) {
-    int this_clause  = newSymbol();
-
-    int clause1[3] = { this_clause,  inner_clause, 0};
-    int clause2[3] = {-this_clause, -inner_clause, 0};
-
-    addClause(clause1);
-    addClause(clause2);
-
-    return this_clause;
-}
-
-int SatChecker::andClause(int A_clause, int B_clause) {
-    // This function just does binary ands in contradiction to the
-    // andID transform_rec
-    // A & B & ..:
-    // !3 A 0
-    // !3 B 0
-    // 3 !A !B 0
-
-    int this_clause = newSymbol();
-
-    int A[] = {-this_clause, A_clause, 0};
-    int B[] = {-this_clause, B_clause, 0};
-    int last[] = {this_clause, -A_clause, -B_clause, 0};
-
-    addClause(A);
-    addClause(B);
-    addClause(last);
-
-    return this_clause;
-}
-
-int SatChecker::orClause(int A_clause, int B_clause) {
-    // This function just does binary ands in contradiction to the
-    // andID transform_rec
-    // A & B & ..:
-    // 3 !A 0
-    // 3 !B 0
-    // !3 A B 0
-
-    int this_clause = newSymbol();
-
-    int A[] = {this_clause, -A_clause, 0};
-    int B[] = {this_clause, -B_clause, 0};
-    int last[] = {-this_clause, A_clause, B_clause, 0};
-
-    addClause(A);
-    addClause(B);
-    addClause(last);
-
-    return this_clause;
-}
-
-
-int SatChecker::transform_bool_rec(iter_t const& input) {
-    iter_t root_node = input;
-
- beginning_of_function:
-    iter_t iter = root_node->children.begin();
-
-    if (root_node->value.id() == bool_grammar::symbolID) {
-        iter_t inner_node = root_node->children.begin();
-        std::string value (inner_node->value.begin(), inner_node->value.end());
-        _debug_parser("- " + value, false);
-        return stringToSymbol(value);
-    } else if (root_node->value.id() == bool_grammar::not_symbolID) {
-        iter_t inner_node = root_node->children.begin()->children.begin();
-        _debug_parser("- not");
-        int inner_clause = transform_bool_rec(inner_node);
-        _debug_parser();
-
-        return notClause(inner_clause);
-    } else if (root_node->value.id() == bool_grammar::andID) {
-        /* Skip and rule if there is only one child */
-        if (root_node->children.size() == 1) {
-            return transform_bool_rec(iter);
-        }
-
-        int i = 0, end_clause[root_node->children.size() + 2];
-
-        int this_clause = newSymbol();
-        _debug_parser("- and");
-        // A & B & ..:
-        // !3 A 0
-        // !3 B 0
-        // ..
-        // 3 !A !B .. 0
-        end_clause[i++] = this_clause;
-
-        for (; iter != root_node->children.end(); ++iter) {
-            int child_clause = transform_bool_rec(iter);
-            int child[3] = {-this_clause, child_clause, 0};
-            end_clause[i++] = -child_clause;
-
-            addClause(child);
-        }
-        end_clause[i++] = 0;
-
-        addClause(end_clause);
-
-        _debug_parser();
-        return this_clause;
-    } else if (root_node->value.id() == bool_grammar::orID) {
-        /* Skip and rule if there is only one child */
-        if (root_node->children.size() == 1) {
-            return transform_bool_rec(iter);
-        }
-        int i = 0, end_clause[root_node->children.size() + 2];
-
-        int this_clause  = newSymbol();
-        end_clause[i++] = -this_clause;
-        // A | B
-        // 3 !A 0
-        // 3 !B 0
-        // !3 A B 0
-        _debug_parser("- or");
-
-        for (; iter != root_node->children.end(); ++iter) {
-            int child_clause = transform_bool_rec(iter);
-            int child[3] = {this_clause, -child_clause, 0};
-            end_clause[i++] = child_clause;
-
-            addClause(child);
-        }
-        end_clause[i++] = 0;
-
-        addClause(end_clause);
-        _debug_parser();
-
-        return this_clause;
-    } else if (root_node->value.id() == bool_grammar::impliesID) {
-        /* Skip and rule if there is only one child */
-        if (root_node->children.size() == 1) {
-            return transform_bool_rec(iter);
-        }
-        // A -> B
-        // 3 A 0
-        // 3 !B 0
-        // !3 !A B 0
-        // A  ->  B  ->  C
-        // (A -> B)  ->  C
-        //    A      ->  C
-        //          A
-        _debug_parser("- ->");
-        int A_clause = transform_bool_rec(iter);
-        iter ++;
-        for (; iter != root_node->children.end(); iter++) {
-            int B_clause = transform_bool_rec(iter);
-            int this_clause = newSymbol();
-            int c1[] = { this_clause, A_clause, 0};
-            int c2[] = { this_clause, -B_clause, 0};
-            int c3[] = { -this_clause, -A_clause, B_clause, 0};
-            addClause(c1);
-            addClause(c2);
-            addClause(c3);
-            A_clause = this_clause;
-        }
-        _debug_parser();
-        return A_clause;
-    } else if (root_node->value.id() == bool_grammar::iffID) {
-        iter_t iter = root_node->children.begin();
-        /* Skip or rule if there is only one child */
-        if ((iter+1) == root_node->children.end()) {
-            return transform_bool_rec(iter);
-        }
-        // A <-> B
-        // 3 !A  !B 0
-        // 3 A B 0
-        // !3 !A B 0
-        // !3 A !B 0
-        // A  <->  B  <->  C
-        // (A <-> B)  <->  C
-        //    A      <->  C
-        //          A
-        _debug_parser("- <->");
-        int A_clause = transform_bool_rec(iter);
-        iter ++;
-        for (; iter != root_node->children.end(); iter++) {
-            int B_clause = transform_bool_rec(iter);
-            int this_clause = newSymbol();
-            int c1[] = { this_clause,  -A_clause, -B_clause, 0};
-            int c2[] = { this_clause,   A_clause,  B_clause, 0};
-            int c3[] = { -this_clause, -A_clause,  B_clause, 0};
-            int c4[] = { -this_clause,  A_clause, -B_clause, 0};
-            addClause(c1);
-            addClause(c2);
-            addClause(c3);
-            addClause(c4);
-            A_clause = this_clause;
-        }
-        _debug_parser();
-        return A_clause;
-    } else if (root_node->value.id() == bool_grammar::comparatorID) {
-        /* Skip and rule if there is only one child */
-        if (root_node->children.size() == 1) {
-            return transform_bool_rec(iter);
-        }
-        int this_clause  = newSymbol();
-        _debug_parser("- __COMP__N", false);
-        return this_clause;
-
-    } else {
-        /* Just a Container node, we simply go inside and try again. */
-        root_node = root_node->children.begin();
-        goto beginning_of_function;
-    }
-}
-
-int SatChecker::fillSatChecker(std::string expression) throw (SatCheckerError) {
-    static bool_grammar e;
-    tree_parse_info<> info = pt_parse(expression.c_str(), e,
-                                      space_p | ch_p("\n") | ch_p("\r"));
-
-    if (info.full) {
-        return fillSatChecker(info);
-    } else {
-        /* Enable this line to get the position where the parser dies
-        std::cout << std::string(expression.begin(), expression.begin()
-                                 + info.length) << endl;
-        */
-        Picosat::picosat_reset();
-        throw SatCheckerError("SatChecker: Couldn't parse: " + expression);
-    }
-}
-
-int SatChecker::fillSatChecker(tree_parse_info<>& info) {
-    iter_t expression = info.trees.begin()->children.begin();
-    int top_clause = transform_bool_rec(expression);
-
-    /* This adds the last clause */
-    Picosat::picosat_assume(top_clause);
-    return top_clause;
-}
-
 SatChecker::SatChecker(const char *sat, int debug)
     : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
 
@@ -329,37 +68,35 @@ SatChecker::SatChecker(const std::string sat, int debug)
     : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
 
 bool SatChecker::operator()(SATMode mode) throw (SatCheckerError) {
-    /* Clear the debug parser, if we are called multiple times */
-    debug_parser.clear();
-    debug_parser_indent = 0;
 
+    _cnf = new PicosatCNF(mode);
     try {
-        Picosat::picosat_init();
-        /* Configure picosat to the given mode, default is 1 (trying to enable
-         * as many features as possible) */
-        Picosat::picosat_set_global_default_phase(mode);
 
-        fillSatChecker(_sat);
+        BoolExp *exp = BoolExp::parseString(_sat);
 
-        int res = Picosat::picosat_sat(-1);
+        if (!exp) {
+           throw SatCheckerError("SatChecker: Couldn't parse: " + _sat);
+        }
 
-        if (res == PICOSAT_SATISFIABLE) {
+        CNFBuilder builder(true, CNFBuilder::FREE);
+
+        builder.cnf = _cnf;
+        builder.pushClause(exp);
+
+        int res = _cnf->checkSatisfiable();
+        if (res) {
             /* Let's get the assigment out of picosat, because we have to
                reset the sat solver afterwards */
             std::map<std::string, int>::const_iterator it;
-            for (it = symbolTable.begin(); it != symbolTable.end(); ++it) {
-                bool selected = Picosat::picosat_deref(it->second) == 1;
+            for (it = _cnf->getSymbolsItBegin(); it != _cnf->getSymbolsItEnd(); ++it) {
+                bool selected = this->_cnf->deref(it->second);
                 assignmentTable.insert(std::make_pair(it->first, selected));
             }
         }
-
-        Picosat::picosat_reset();
-
-
-    if (res == PICOSAT_UNSATISFIABLE)
-        return false;
-    return true;
-    } catch (std::bad_alloc &exception) {
+        delete _cnf;
+        return res;
+    }
+    catch (std::bad_alloc &exception) {
         throw SatCheckerError("SatChecker: out of memory");
     }
 }
@@ -449,7 +186,6 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
                 other_variables[what[1]] = valid ? yes : no;
                 continue;
             }
-
 
         } else if (boost::regex_match(name, block_regexp))
             // ignore block variables
@@ -547,7 +283,6 @@ int SatChecker::AssignmentMap::formatCPP(std::ostream &out, const ConfigurationM
     out << std::endl;
     return size();
 }
-
 
 int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile &file) {
     std::map<Puma::Token *, bool> flag_map;
@@ -755,43 +490,50 @@ void SatChecker::pprintAssignments(std::ostream& out,
 
 bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSymbols) throw (SatCheckerError) {
     try {
-        /* Assume the top and clause */
-        Picosat::picosat_assume(base_clause);
-
         /* Assume additional all given symbols */
         for (std::set<std::string>::const_iterator it = assumeSymbols.begin();
-             it != assumeSymbols.end(); it++) {
-            Picosat::picosat_assume(stringToSymbol((*it).c_str()));
+                it != assumeSymbols.end(); it++) {
+            std::string a = *it;
+            _cnf->pushAssumption(a, true);
         }
 
-        // try to enable as many features as possible
-        Picosat::picosat_set_global_default_phase(1);
-
-        int res = Picosat::picosat_sat(-1);
-
-        if (res == PICOSAT_SATISFIABLE) {
+        int res = _cnf->checkSatisfiable();
+        if (res) {
             /* Let's get the assigment out of picosat, because we have to
                reset the sat solver afterwards */
             assignmentTable.clear();
             std::map<std::string, int>::const_iterator it;
-            for (it = symbolTable.begin(); it != symbolTable.end(); ++it) {
-                bool selected = Picosat::picosat_deref(it->second) == 1;
+            for (it = _cnf->getSymbolsItBegin(); it != _cnf->getSymbolsItEnd(); ++it) {
+                bool selected = this->_cnf->deref(it->second);
                 assignmentTable.insert(std::make_pair(it->first, selected));
             }
         }
 
-        if (res == PICOSAT_UNSATISFIABLE) {
-            return false;
-        }
-        return true;
-    } catch (std::bad_alloc &exception) {
+        return res;
+    }
+    catch (std::bad_alloc &exception) {
         throw SatCheckerError("SatChecker: out of memory");
     }
     return false;
 }
 
 BaseExpressionSatChecker::BaseExpressionSatChecker(const char *base_expression, int debug)
-    : SatChecker(base_expression, debug) {
-    Picosat::picosat_init();
-    base_clause = fillSatChecker(base_expression);
+: SatChecker(base_expression, debug) {
+
+    _cnf = new PicosatCNF(SatChecker::SAT_MAX);
+    std::string base_expression_s(base_expression);
+    BoolExp *exp = BoolExp::parseString(base_expression_s);
+    if (!exp){
+        throw SatCheckerError("SatChecker: Couldn't parse: " + base_expression_s);
+    }
+
+    CNFBuilder builder(true,CNFBuilder::FREE);
+
+    builder.cnf = _cnf;
+    builder.pushClause(exp);
+
+}
+
+BaseExpressionSatChecker::~BaseExpressionSatChecker() {
+    delete _cnf;
 }

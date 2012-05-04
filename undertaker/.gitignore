@@ -9,3 +9,9 @@ kconfig-dumps/models
 test-*
 !test-*.cpp
 predator
+BoolExpParser.cpp
+BoolExpParser.h
+BoolExpLexer.cpp
+stack.hh
+position.hh
+location.hh

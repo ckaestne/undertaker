@@ -26,7 +26,7 @@
 typedef PumaConditionalBlock ConditionalBlockImpl;
 
 #include "SatChecker.h"
-#include "SatChecker-grammar.t"
+#include "BoolExpSymbolSet.h"
 
 #include <boost/regex.hpp>
 #include <set>
@@ -79,11 +79,10 @@ static int lineFromPosition(std::string line) {
 
 
 std::set<std::string> ConditionalBlock::itemsOfString(const std::string &str) {
-    bool_grammar e;
-    tree_parse_info<> info;
-
-    info = pt_parse(str.c_str(), e, space_p);
-    return e.get_symbols();
+    BoolExp *e = BoolExp::parseString(str);
+    BoolExpSymbolSet symset(e);
+    delete e;
+    return symset.getSymbolSet();
 }
 
 

@@ -7,7 +7,7 @@ NODEPS:=clean clean-check
 # DEBUG = -g3 -DDEBUG
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
-CFLAGS = -Wall -Wextra -O2 $(DEBUG)
+CFLAGS = -Wall -Wextra -O2 $(DEBUG) -I $(CURDIR)/../scripts/kconfig
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
@@ -18,12 +18,17 @@ LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) -lpicosat -lboost_wave-mt -lPuma $(L
 PARSEROBJ = RsfReader.o KconfigWhitelist.o PresetList.o ConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
 		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o \
-		Logging.o
+		Logging.o \
+		bool.o \
+		CNFBuilder.o \
+		PicosatCNF.o \
+		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
 PROGS = undertaker predator
-TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel test-PresetList
+TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel test-PresetList \
+            test-Bool test-CNFBuilder test-BoolExpSymbolSet
 
 all: $(PROGS) $(TESTPROGS)
 
@@ -36,10 +41,26 @@ predator: libparser.a predator.o PredatorVisitor.o
 
 undertaker.d: ../version.h
 
-SatChecker.o test-SatChecker ConditionalBlock.o: SatChecker-grammar.t
+BoolExpLexer.d:
+
+BoolExpParser.d:
+
+BoolExpLexer.cpp: BoolExpParser.cpp BoolExpLexer.l
+	flex -o $@ BoolExpLexer.l
+
+BoolExpParser.cpp: BoolExpParser.y
+	bison -o $@ --defines=BoolExpParser.h $<
+
+stack.hh location.hh postion.hh: BoolExpParser.cpp
+
+bool.o: bool.cpp bool.h BoolExpParser.o 
 
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
+
+zconf.tab.o:
+	$(MAKE) -C $(CURDIR)/.. scripts/kconfig/dumpconf
+	ln -sf ../scripts/kconfig/$@ $@
 
 #Don't create dependencies when we're cleaning, for instance
 ifeq (0, $(words $(findstring $(MAKECMDGOALS), $(NODEPS))))
@@ -54,9 +75,12 @@ endif
 
 clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
+	rm -rf location.hh stack.hh position.hh
+	rm -rf BoolExpParser.cpp BoolExpParser.h BoolExpLexer.cpp 
 
 test-%: test-%.cpp libparser.a
-	$(CXX) $(CXXFLAGS) -g -O0 -o $@ $< -lcheck $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -g -O0 -o $@ $< libparser.a -lcheck $(LDFLAGS) $(LDLIBS)
+
 
 run-libcheck: $(TESTPROGS)
 	@for t in $^; do echo "Executing test $$t"; ./$$t || exit 1; done
@@ -114,4 +138,4 @@ run-lcov:
 	genhtml -o coverage-html coverage-html/undertaker.info
 
 FORCE:
-.PHONY: all clean clean-check FORCE run-% docs validation run-lcov run-coveragecheck
+.PHONY: all clean clean-check FORCE run-% docs validation run-lcov run-coveragecheck zconf.tab.o
