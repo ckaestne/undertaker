@@ -276,10 +276,15 @@ class LinuxConfiguration(Configuration):
 
     def __call_make(self, on_file, extra_args):
         on_object = on_file[:-1] + "o"
-        try:
+
+        # dry compilation to ensure all dependent objects are present,
+        # but only if we are actually interested in the compiler output
+        if not 'CHECK=' in extra_args:
+            call_linux_makefile(on_object, failok=True, arch=self.arch, subarch=self.subarch,
+                                extra_variables=extra_args)
+
+        if os.path.exists(on_object):
             os.unlink(on_object)
-        except OSError:
-            pass
 
         (messages, statuscode) = \
             call_linux_makefile(on_object, failok=True, arch=self.arch, subarch=self.subarch,
