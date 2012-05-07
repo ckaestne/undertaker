@@ -571,7 +571,7 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
     flag_map[top->pumaStartToken()] = true;
     flag_map[top->pumaEndToken()] = false;
 
-    for (CppFile::const_iterator it = file.begin(); it != file.end(); ++it) {
+    for (CppFile::const_iterator it = ++file.begin(); it != file.end(); ++it) {
         PumaConditionalBlock *block = (PumaConditionalBlock *) (*it);
         if ((*this)[block->getName()] == true) {
             // Block is enabled in this assignment
@@ -611,6 +611,8 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
     bool print_flag = true;
     bool after_newline = true;
 
+    int printed_newlines = 1;
+
     while ((next = stream.next())) {
         if (flag_map.find(next) != flag_map.end())
             print_flag = flag_map[next];
@@ -618,7 +620,20 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
         if (!print_flag && after_newline)
             out << "// ";
 
-        out << next->text();
+        for (const char *p = next->text(); *p; p++) {
+            if (*p == '\n') {
+                printed_newlines++;
+                out << "\n";
+                // if (!print_flag)
+                //    out << "// ";
+            } else
+                out << *p;
+        }
+
+        while (after_newline && printed_newlines < next->location().line()) {
+            out << "\n";
+            printed_newlines++;
+        }
 
         after_newline = strchr(next->text(), '\n') != NULL;
     }
