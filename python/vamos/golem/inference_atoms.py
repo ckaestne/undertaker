@@ -187,12 +187,17 @@ class LinuxInferenceAtoms(InferenceAtoms):
         self.subarch = subarch
         self.directory_prefix = directory_prefix
 
-        modelfile = 'models/%s.model' % arch
-        logging.info("loading model %s", modelfile)
-        if not os.path.exists(modelfile):
+        if arch:
+            modelfile = 'models/%s.model' % arch
+        else: modelfile = None
+
+        if modelfile and os.path.exists(modelfile):
+            logging.info("loading model %s", modelfile)
+            self.model = Model(modelfile)
+        else:
             logging.error("%s not found, please generate models using undertaker-kconfigdump",
                           modelfile)
-        self.model = Model(modelfile)
+            self.model = Model('/dev/null')
 
         call_linux_makefile('allnoconfig', arch=self.arch, subarch=self.subarch)
         apply_configuration(arch=self.arch, subarch=self.subarch)
@@ -234,3 +239,12 @@ class LinuxInferenceAtoms(InferenceAtoms):
         string = string.replace("=m", "_MODULE")
         return string
 
+
+class BusyboxInferenceAtoms(LinuxInferenceAtoms):
+    def __init__(self, directory_prefix = ""):
+        LinuxInferenceAtoms.__init__(self, "busybox", None)
+        self.directory_prefix = directory_prefix
+        execute("make gen_build_files", failok=False)
+
+    def OP_domain_of_variability_intention(self, var_int):
+        return set(["n", "y"])

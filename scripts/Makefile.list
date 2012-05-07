@@ -38,7 +38,7 @@ endif
 # The linux toplevel makefile
 include Makefile
 
-list-dirs      := $(addprefix _list_, . $(vmlinux-dirs))
+list-dirs      := $(addprefix _list_, . $(vmlinux-dirs) $(busybox-dirs))
 
 print_files ?= y
 

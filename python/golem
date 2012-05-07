@@ -53,6 +53,8 @@ def do_inference(args, arch, subarch):
     atoms = None
     if os.path.exists("src/Modules.ia32"):
         atoms = FiascoInferenceAtoms()
+    elif os.path.exists("coreutils/df.c"):
+        atoms = BusyboxInferenceAtoms(path)
     elif os.path.exists("arch/x86/Kconfig"):
         assert arch
         assert subarch

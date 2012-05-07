@@ -28,7 +28,7 @@
 # scan for deads by default
 MODE="scan-deads"
 
-while getopts :m:t:cvh OPT; do
+while getopts :m:t:civh OPT; do
     case $OPT in
         m)
             MODELS="$OPTARG"
@@ -38,6 +38,9 @@ while getopts :m:t:cvh OPT; do
             ;;
         c)
             MODE="calc-coverage"
+            ;;
+        i)
+            MODE="inference"
             ;;
         v)
             echo "undertaker-busybox-tree"
@@ -52,6 +55,7 @@ while getopts :m:t:cvh OPT; do
             echo " -t <count>   Number of analyzing processes"
             echo "        (default: _NPROCESSORS_ONLN)"
             echo " -c  Do coverage analysis instead of dead block search"
+            echo " -i  Infer makefile constraints"
             exit
             ;;
     esac
@@ -114,4 +118,11 @@ if [ "$MODE" = "scan-deads" ]; then
     undertaker -v -t "$PROCESSORS" -b undertaker-worklist # -m "$MODELS"
     printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
     exit 0
+fi
+
+if [ "$MODE" = "inference" ]; then
+    ARCH='x86'
+    export ARCH
+    golem -iv > models/busybox.makefile-constraints
+    echo "Extracted $(grep -c ^FILE_ models/x86.makefile-constraints) source file implications for x86"
 fi
