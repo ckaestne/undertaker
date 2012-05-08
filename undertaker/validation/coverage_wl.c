@@ -19,7 +19,7 @@ I: Using coverage_wl.model as primary model
 I: 2 Items have been forcefully set
 I: 1 Items have been forcefully unset
 I: Entries in missingSet: 0
-I: Removed 0 old configurations matching coverage_wl.c.config*
+I: Removed 0 leftovers for coverage_wl.c
 I: coverage_wl.c, Found Solutions: 1, Coverage: 2/4 blocks enabled (50%)
 CONFIG_TO_BE_SET=y
 # FILE_coverage_wl.c=y

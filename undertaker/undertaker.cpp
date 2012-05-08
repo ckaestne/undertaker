@@ -175,20 +175,21 @@ void process_file_coverage_helper(const char *filename) {
 
     logger << info << "Entries in missingSet: " << missingSet.size() << std::endl;
 
+    int cruft = 0;
     std::string pattern(filename);
     pattern.append(".cppflags*");
-    int r = rm_pattern(pattern.c_str());
+    cruft += rm_pattern(pattern.c_str());
 
     pattern = filename;
     pattern.append(".source*");
-    rm_pattern(pattern.c_str());
+    cruft += rm_pattern(pattern.c_str());
 
     pattern = filename;
     pattern.append(".config*");
-    rm_pattern(pattern.c_str());
+    cruft += rm_pattern(pattern.c_str());
 
-    logger << info << "Removed " << r << " old configurations matching " << pattern
-           << std::endl;
+    logger << info << "Removed " << cruft << " leftovers for "
+           << filename << std::endl;
 
     if (0 == file.size()) {
         logger << info << filename

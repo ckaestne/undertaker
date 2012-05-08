@@ -4,6 +4,7 @@ import fnmatch
 import threading
 from subprocess import Popen, PIPE
 import sys
+import glob
 import os
 import difflib
 import getopt
@@ -76,10 +77,16 @@ def run_testcase_helper(test_case, check_name, future):
     command = get_tag(test_case, "check-command", default_command)
     if "$file" in command:
         command = command.replace("$file", test_case)
+    cruftfiles=list()
+    cruftfiles.extend(glob.glob(test_case + ".config*"))
+    cruftfiles.extend(glob.glob(test_case + ".cppflags*"))
+    cruftfiles.extend(glob.glob(test_case + ".source*"))
+    for cruft in cruftfiles:
+        os.unlink(cruft)
 
     command = default_path + "/" + command
 
-    output = "  TEST %s (%s)\n" % (check_name, test_case)
+    output = "  TEST %s (%s, %d leftovers removed)\n" % (check_name, test_case, len(cruftfiles))
 
     failed = False
 
