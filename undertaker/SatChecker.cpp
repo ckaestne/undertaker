@@ -527,7 +527,7 @@ BaseExpressionSatChecker::BaseExpressionSatChecker(const char *base_expression, 
         throw SatCheckerError("SatChecker: Couldn't parse: " + base_expression_s);
     }
 
-    CNFBuilder builder(true,CNFBuilder::FREE);
+    CNFBuilder builder(true, CNFBuilder::BOUND);
 
     builder.cnf = _cnf;
     builder.pushClause(exp);
