@@ -357,7 +357,7 @@ def select_framework(identifier, options):
         except NotALinuxTree:
             pass
 
-    if os.environ.has_key('ARCH'):
+    if not options.has_key('arch') and os.environ.has_key('ARCH'):
         options['arch'] = os.environ['ARCH']
 
         if os.environ.has_key('SUBARCH'):
@@ -365,21 +365,28 @@ def select_framework(identifier, options):
         else:
             options['subarch'] = guess_subarch_from_arch(options['arch'])
 
+    if options.has_key('arch') and (identifier == 'linux' or identifier == 'kbuild'):
+        if options['arch'] == "x86_64":
+            options['arch'] = 'x86'
+            options['subarch'] =  'x86_64'
+            logging.info("overriding arch to %s", options['arch'])
+
+        if options['arch'] == 'i386':
+            options['arch'] = 'x86'
+            options['subarch'] = 'i386'
+            logging.info("overriding arch to %s", options['arch'])
+
     if identifier in frameworks:
         bf = frameworks[identifier](options)
     else:
         raise RuntimeError("Build framework '%s' not found" % \
                                options['framework'])
 
-    if identifier == 'linux':
-        model = "models/%s.model" % bf.options['arch']
-        if options.has_key('model') and options['model']:
-            logging.error("Ignoring given configration model, using %s instead", model)
-
     if not options.has_key('model') or options['model'] is None:
         return bf
 
     model=options['model']
+
     if model and os.path.exists(model):
         logging.info("Setting model to %s", model)
         options['model'] = model

@@ -6,9 +6,15 @@ Attributes:
    kernelversion -- normally determined automatically, but can be overridden here
 """
 
+import os
+
 default_architecture = "x86"
 
-prefer_32bit = True
+if os.environ.has_key("VAMOS_PREFER_64BIT") or \
+        os.environ.has_key('ARCH') and os.environ['ARCH'] == 'x86_64':
+    prefer_32bit = False
+else:
+    prefer_32bit = True
 
 kernelversion = None
 

@@ -28,7 +28,7 @@ sys.path = [os.path.join(os.path.dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
                      + sys.path
 
-
+import vamos
 from vamos.tools import setup_logging
 from vamos.model import Model
 
@@ -37,7 +37,8 @@ from vamos.golem.inference_atoms import *
 from vamos.golem.kbuild import determine_buildsystem_variables, \
     file_in_current_configuration, files_for_current_configuration, \
     determine_buildsystem_variables_in_directory, \
-    get_linux_version, NotALinuxTree, TreeNotConfigured
+    get_linux_version, NotALinuxTree, TreeNotConfigured, \
+    guess_subarch_from_arch
 from vamos.vampyr.Configuration import LinuxPartialConfiguration
 from vamos.vampyr.BuildFrameworks import KbuildBuildFramework
 from vamos.vampyr.utils import ExpansionError
@@ -53,12 +54,8 @@ def do_inference(args, arch, subarch):
     if os.path.exists("src/Modules.ia32"):
         atoms = FiascoInferenceAtoms()
     elif os.path.exists("arch/x86/Kconfig"):
-        # do_opt and do_directory work fine without ARCH being set. The other modes do not
-        if not arch:
-            logging.warning("Environment variable $ARCH not set, defaulting to 'x86'")
-            arch = 'x86'
-            subarch = 'i386'
-
+        assert arch
+        assert subarch
         try:
             logging.info("using Linux version %s", get_linux_version())
         except NotALinuxTree as e:
@@ -140,17 +137,15 @@ def main():
     if os.environ.has_key('SUBARCH'):
         subarch = os.environ['SUBARCH']
 
+    if not arch:
+        arch = vamos.default_architecture
+        subarch = guess_subarch_from_arch(arch)
+        logging.warning("Environment variable $ARCH not set, defaulting to '%s/%s'",
+                        arch, subarch)
 
     if opts.inference:
         do_inference(args, arch=arch, subarch=subarch)
         sys.exit(0)
-
-    # do_opt and do_directory work fine without ARCH being set. The other modes do not
-    if not arch:
-        logging.warning("Environment variable $ARCH not set, defaulting to 'x86'")
-        arch = 'x86'
-        subarch = 'i386'
-
 
     try:
         logging.info("using Linux version %s", get_linux_version())
