@@ -95,7 +95,7 @@ run-coveragecheck: undertaker predator
 	md5sum validation/sched.c.config* | awk '// {print $$1}' | sort | uniq -c \
 		| awk '// { if ($$1 != 1) { print "duplicate solutions found" ; exit 1 } }' \
 		|| md5sum validation/sched.c.config* | sort
-	if grep -q '^CONFIG_IA64' validation/sched.c.config*; then echo "IA64 must not present!"; false ; fi
+	if grep -q '^CONFIG_IA64=y' validation/sched.c.config*; then echo "IA64 must not be enabled!"; false ; fi
 	if grep -q '^CONFIG_CHOICE' validation/sched.c.config*; then echo "must not contain CONFIG_CHOICE*"; false ; fi
 
 check: $(PROGS)

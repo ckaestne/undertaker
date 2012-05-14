@@ -22,8 +22,8 @@ I: Entries in missingSet: 0
 I: Removed 0 leftovers for coverage_wl.c
 I: coverage_wl.c, Found Solutions: 1, Coverage: 2/4 blocks enabled (50%)
 CONFIG_TO_BE_SET=y
+CONFIG_OFF=n
+CONFIG_THAT_IS_ALWAYS_ON=y
 # FILE_coverage_wl.c=y
-# OFF=n
-# THAT_IS_ALWAYS_ON=y
  * check-output-end
  */

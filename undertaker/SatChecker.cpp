@@ -175,8 +175,10 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
             }
 
             // ignore entries if already set (e.g., by the module variant).
-            if (selection.find(item_name) == selection.end())
+            if (selection.find(item_name) == selection.end()) {
                 selection[item_name] = valid ? yes : no;
+                logger << debug << "Setting " << item_name << " to " << valid << std::endl;
+            }
 
             // skip item if it is neither a 'boolean' nor a tristate one
             if (!boost::regex_match(name, module_regexp) && model &&
@@ -198,9 +200,6 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
         const std::string &item = (*s).first;
         const int &state = (*s).second;
 
-        if (other_variables.find(item) != other_variables.end())
-            continue;
-
         out << "CONFIG_" << item << "=";
         if (state == no)
             out << "n";
@@ -215,6 +214,10 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
     for (SelectionType::iterator s = other_variables.begin(); s != other_variables.end(); s++) {
         const std::string &item = (*s).first;
         const int &state = (*s).second;
+
+        if (selection.find(item) != selection.end())
+            continue;
+
         out << "# " << item << "=";
         if (state == no)
             out << "n";
