@@ -146,6 +146,8 @@ do_archstat () {
     CONFIG=$1
     ARCH=$2
     CROSS_COMPILE=
+    # normalize x86
+    if [ "$ARCH" = "x86" ]; then ARCH="i386"; fi
     export ARCH CROSS_COMPILE
 
     if ! make $CONFIG >/dev/null 2>&1; then
