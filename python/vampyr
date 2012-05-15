@@ -38,56 +38,52 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
 from vamos.tools import setup_logging, calculate_worklist, check_tool, execute, \
     get_online_processors
 from vamos.vampyr.BuildFrameworks import select_framework
-from vamos.vampyr.Configuration import Configuration, ExpansionError, \
-    LinuxStdConfiguration
+from vamos.vampyr.Configuration import ExpansionError
 from vamos.vampyr.Messages import MessageContainer
 from vamos.golem.kbuild import guess_arch_from_filename
 
 
-def do_checks(options, filename, configs):
-    """returns a dictionary with errors"""
-    errors = dict()
+def do_checks(options, filename, configs, tool):
+    """returns a Message with errors"""
+    errors = MessageContainer()
 
     print "%s: Checking %d configuration(s): %s" \
         % (filename, len(configs), ", ".join([c.filename() for c in configs]))
+
     for c in configs:
+        if not hasattr(c, "call_" + tool):
+            logging.error(tool + " not supported by this build system")
+            return errors
+
+        try:
+            analyzer = getattr(c, "call_" + tool)
+        except:
+            raise RuntimeError("Couldn't call analyzer '%s'" % tool)
+
         # for kconfig, this will automatically try to expand the configuration
         # for bare, this will be a noop
         c.switch_to()
 
-        for tool in options['call']:
-            if not hasattr(c, "call_" + tool):
-                logging.error(tool + " not supported by this build system")
-                continue
+        try:
+            msgs = analyzer(filename)
+        except RuntimeError as error:
+            logging.error(error)
+            continue
 
-            try:
-                analyzer = getattr(c, "call_" + tool)
-            except:
-                raise RuntimeError("Couldn't call analyzer '%s'" % tool)
+        reportfilename = c.filename() + '.report.' + tool
+        logging.debug("%s: detected %d messages with tool '%s'", reportfilename, len(msgs), tool)
 
-            try:
-                msgs = analyzer(filename)
-            except RuntimeError as error:
-                logging.error(error)
-                continue
-
-            if tool not in errors:
-                errors[tool] = MessageContainer()
-
-            reportfilename = c.filename() + '.report.' + tool
-            logging.debug("%s: detected %d messages with tool '%s'", reportfilename, len(msgs), tool)
-
-            with open(reportfilename, 'w') as reportfile:
-                report = set()
-                for msg in msgs:
-                    # Discard messages from other files
-                    if options['exclude_others']:
-                        if not filename in msg.location:
-                            logging.debug("Discarded error messge (--exclude-others): %s", repr(msg))
-                            continue
-                    errors[tool].add_message(c, msg)
-                    report.add(msg.get_message())
-                reportfile.write("\n".join(sorted(report)))
+        with open(reportfilename, 'w') as reportfile:
+            report = set()
+            for msg in msgs:
+                # Discard messages from other files
+                if options['exclude_others']:
+                    if not filename in msg.location:
+                        logging.debug("Discarded error messge (--exclude-others): %s", repr(msg))
+                        continue
+                errors.add_message(c, msg)
+                report.add(msg.get_message())
+            reportfile.write("\n".join(sorted(report)))
 
     return errors
 
@@ -96,91 +92,55 @@ def handle_file(options, filename):
 
     framework = options['framework']
     configs = framework.calculate_configurations(filename)
-    if len(configs) == 0:
-        logging.info("File %s is not compiled in any configuration", filename)
-        return
-
-    errors = do_checks(options, filename, configs)
-
     reference_config = None
 
-    for c in configs:
-        assert(isinstance(c, Configuration))
+    for tool in options['call']:
+        if tool == 'spatch' and options.has_key('stdconfig'):
+            # for spatch, we always need the std config for filtering out messages
+            # that also appear in this config
+            reference_config = framework.get_stdconfig(filename, verify=False)
+        else:
+            # for other tools, only add if this configuration actually builds it.
+            reference_config = framework.get_stdconfig(filename, verify=True)
 
-        # search for the allyesconfig configuration
-        if  options.has_key('stdconfig') and options['stdconfig'] in c.filename():
-            logging.debug("Detected reference config %s", c.filename())
-            reference_config = c
+        if reference_config:
+            configs.append(reference_config)
 
-        total_errors_for_config = 0
-        for tool in errors.keys():
-            for message in errors[tool]:
+        if framework.identifier() == 'kbuild' and len(configs) < 2:
+            logging.info("File %s has only %d configurations, skipping",
+                         filename, len(configs))
+            continue
+
+        errors = do_checks(options, filename, configs, tool)
+
+        for c in configs:
+            total_errors_for_config = 0
+            for message in errors:
                 if c in message.in_configurations:
                     total_errors_for_config += 1
+            logging.info("%s:\t%d errors", c.filename(), total_errors_for_config)
 
-        logging.info("%s:\t%d errors", c.filename(), total_errors_for_config)
-
-    # check if reference config is just not built?
-    if not reference_config and options.has_key('stdconfig'):
-        reference_config = LinuxStdConfiguration(framework, filename,
-                                                 options['arch'], options['subarch'])
-
-    if reference_config:
-        relevant_errors = evaluate_with_reference(reference_config, errors)
-        assert (isinstance(relevant_errors, dict))
-        logging.info("Found %d relevant errors not in standard config '%s'",
-                     sum([len(v) for v in relevant_errors.values()]), options['stdconfig'])
-    else:
-        relevant_errors = dict()
-        # present all messages if we have exactly one configuration
-        if len(configs) > 1:
-            relevant_errors = evaluate_plain(configs, errors)
+        relevant_errors = set()
+        if framework.identifier() == 'kbuild':
+            for m in errors:
+                if len(m.in_configurations) < len(configs):
+                    relevant_errors.add(m)
         else:
-            relevant_errors = errors
-        assert (isinstance(relevant_errors, dict))
+            # take all for BareBuildFramework 
+            relevant_errors.update(errors)
+
         logging.info("Found %d configuration dependent errors",
-                     sum([len(v) for v in relevant_errors.values()]))
+                     len(relevant_errors))
 
-    format_errors(relevant_errors, filename)
+        format_errors(tool, relevant_errors, filename)
 
-
-def evaluate_with_reference(reference_config, errors):
-    "check if the found errors are present in allyesconfig as well"
-    ret = dict()
-    for tool in errors.keys():
-        ret[tool] = set()
-
-        for message in errors[tool]:
-            if reference_config in message.in_configurations:
-                logging.info("In Reference config %s: %s", reference_config.filename(),
-                             message.get_message())
-            else:
-                ret[tool].add(message)
-
-    return ret
-
-def evaluate_plain(configs, errors):
-    "check for configuration dependent errors, no reference configuration"
-    ret = dict()
-
-    for tool in errors.keys():
-        ret[tool] = set()
-        for message in errors[tool]:
-            is_configuration_dependent = len(message.in_configurations) < len(configs)
-            if is_configuration_dependent:
-                ret[tool].add(message)
-
-    return ret
-
-
-def format_errors(errors, filename):
-    for tool in errors.keys():
-        if len(errors[tool]) > 0:
-            print "  ---- Found %d relevant messages with %s in %s ----" % (len(errors[tool]), tool, filename)
-            for m in errors[tool]:
-                print "%s (in configs: %s)" % \
-                    (m.get_message(), ", ".join([c.filename() for c in m.in_configurations]))
-            print "  --------------------------------------------------"
+def format_errors(tool, errors, filename):
+    if len(errors) > 0:
+        print "  ---- Found %d relevant messages with %s in %s ----" % (len(errors), tool, filename)
+        for m in errors:
+            print "%s (in configs: %s)" % \
+                (m.get_message(), ", ".join([c.filename() for c in m.in_configurations]))
+        print "  --------------------------------------------------"
 
 
 def analyze_variability(source_files, options):
@@ -318,10 +278,10 @@ def main():
     parser.add_option('-c', '--config', dest='configfile',
                       help="Analyze a given configuration in config.h format")
     parser.add_option('', '--stdconfig', dest='stdconfig',
-                      default=None,
-                      help="Additionally use the given default configuration."+\
-                           "Forces kbuild framework, can be one of 'allyesconfig', 'allnoconfig', "+\
-                           "'allmodconfig', 'alldefconfig'")
+                      default='allyesconfig',
+                      help="Use the given default configuration. "+\
+                           "Can be one of 'allyesconfig', 'allnoconfig', "+\
+                           "'allmodconfig', 'alldefconfig'; Defaults to 'allyesconfig'")
     parser.add_option("-T", "--tests-dir", dest='testsdir', action='store', type='string',
                       default="scripts/coccinelle",
                       help="directory containing the tests that should be run with the program")
@@ -349,8 +309,9 @@ def main():
         (key, value) = arg.split(",", 1)
         options['args'][key] = value
 
-    if opts.stdconfig:
-        opts.framework='kbuild'
+    options['framework'] = select_framework(opts.framework, options)
+
+    if opts.stdconfig and options['framework'].identifier() == 'kbuild':
         if not opts.stdconfig in ('allyesconfig', 'allnoconfig', 'allmodconfig', 'alldefconfig'):
             logging.error("Invalid or Unknown standard configuration")
             sys.exit(1)
@@ -359,8 +320,6 @@ def main():
         if opts.configfile:
             logging.error("Trying to set a standard config together with a configuration file, aborting")
             sys.exit(1)
-
-    options['framework'] = select_framework(opts.framework, options)
 
     if opts.configfile:
         if os.path.exists(opts.configfile):

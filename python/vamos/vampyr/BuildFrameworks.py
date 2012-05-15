@@ -67,6 +67,10 @@ class BuildFramework:
     def calculate_configurations(self, filename):
         raise NotImplementedError
 
+    def get_stdconfig(self, filename, verify=True):
+        # pylint: disable=W0613
+        return None
+
     def analyze_configuration_coverage(self, filename):
         """
         Analyzes the given file 'filename' for its configuration coverage.
@@ -167,6 +171,9 @@ class BareBuildFramework(BuildFramework):
     def __init__(self, options=None):
         BuildFramework.__init__(self, options)
 
+    def identifier(self):
+        return "bare"
+
     def calculate_configurations(self, filename):
         undertaker = "undertaker -q -j coverage -C min -O combined"
 
@@ -207,6 +214,9 @@ class KbuildBuildFramework(BuildFramework):
             options['arch'] = vamos.default_architecture
         if not options.has_key('subarch'):
             options['subarch'] = guess_subarch_from_arch(options['arch'])
+
+    def identifier(self):
+        return "kbuild"
 
     def guess_arch_from_filename(self, filename):
         """
@@ -269,26 +279,37 @@ class KbuildBuildFramework(BuildFramework):
             else:
                 logging.info("Configuration '%s' is *not* compiled", cfgfile)
 
-        if self.options.has_key('stdconfig'):
-            if self.options.has_key('stdconfig_files') \
-                    and not filename in self.options['stdconfig_files']:
-                logging.info("Skipping %s because stdconfig '%s' does not build it",
-                             filename, self.options['stdconfig'])
-                return configs
-
-            c  = LinuxStdConfiguration(self, basename=filename,
-                                       arch=self.options['arch'],
-                                       subarch=self.options['subarch'])
-            c.switch_to()
-            if file_in_current_configuration(filename, c.arch, c.subarch) != "n":
-                logging.info("Also including configuration '%s'", self.options['stdconfig'])
-                configs.append(c)
-            else:
-                logging.info("configuration '%s' does not build '%s'",
-                             self.options['stdconfig'], filename)
-
         return configs
 
+    def get_stdconfig(self, filename, verify=True):
+        """ returns a LinuxStdConfiguration object for the given filename.
+        If verify is set to true, only return an object if the stdconfig actually builds it.
+        returns None otherwise."""
+
+        if not self.options.has_key('stdconfig'):
+            logging.info("No reference configuration given")
+            return None
+
+        # cache for speedup, filled by LinuxStdConfiguration.expand()
+        if verify and self.options.has_key('stdconfig_files') and \
+                not filename in self.options['stdconfig_files']:
+            logging.info("stdconfig '%s' does not build %s (cached)",
+                         self.options['stdconfig'], filename)
+            return None
+
+        c  = LinuxStdConfiguration(self, basename=filename,
+                                   arch=self.options['arch'],
+                                   subarch=self.options['subarch'])
+        if not verify:
+            return c
+
+        c.switch_to()
+        if file_in_current_configuration(filename, c.arch, c.subarch) != "n":
+            return c
+        else:
+            logging.info("stdconfig '%s' does not build '%s'",
+                         self.options['stdconfig'], filename)
+            return None
 
     def analyze_configuration_coverage(self, filename):
         """
