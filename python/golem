@@ -142,6 +142,8 @@ def main():
         subarch = guess_subarch_from_arch(arch)
         logging.warning("Environment variable $ARCH not set, defaulting to '%s/%s'",
                         arch, subarch)
+    if not subarch:
+        subarch = guess_subarch_from_arch(arch)
 
     if opts.inference:
         do_inference(args, arch=arch, subarch=subarch)
