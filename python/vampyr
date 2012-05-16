@@ -197,10 +197,22 @@ def analyze_variability(source_files, options):
             fd.write(pprint.pformat(results))
             print "coverage report dumped to " + reportname
 
-        print "%s: Covered %d/%d blocks, %d/%d lines, %d deads" % \
-            (f, len(results['blocks_covered']), len(results['blocks_total']),
-             results['lines_covered'], results['lines_total'],
-             len(results["dead blocks"]))
+        def to_lines(blocks):
+            return sum([results["linum_map"][x] for x in blocks])
+
+        print "%s: Covered %d/%d (%d/%d) blocks, %d/%d (%d/%d) lines, %d (%d) deads" % \
+            (f,
+             len(results['blocks_covered']), len(results['blocks_total']),
+             len(results['blocks_covered'] & results['configuration_blocks']),
+             len(results['blocks_total'] & results['configuration_blocks']),
+
+             to_lines(results["blocks_covered"]),
+             to_lines(results["blocks_total"]),
+             to_lines(results["blocks_covered"] & results["configuration_blocks"]),
+             to_lines(results["blocks_total"] & results["configuration_blocks"]),
+
+             len(results["dead blocks"]),
+             len(set(results["dead blocks"]) & results["configuration_blocks"]))
 
         if len(results['blocks_covered'] - results['blocks_total']) > 0:
             logging.error("File %s covered more blocks than available: %d > %d",
