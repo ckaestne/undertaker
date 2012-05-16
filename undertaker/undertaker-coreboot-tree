@@ -1,0 +1,126 @@
+#!/bin/bash -e
+#
+# Applies the Undertaker tool to a Coreboot source tree
+#
+# Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Stefan Hengelein <stefan.hengelein@informatik.stud.uni-erlangen.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# This script is intended to run the undertaker on a whole coreboot
+# tree. It will determine which files to be processed and how many
+# threads can be started according to the count of processors your
+# machine has. It assumes, that you have run coreboot-kconfigdump
+# before, in order to create the models.
+#
+
+# scan for deads by default
+MODE="scan-deads"
+
+while getopts :t:svh OPT; do
+    case $OPT in
+        t)
+            PROCESSORS="$OPTARG"
+            ;;
+        s)
+            MODE="feature-statistics"
+            ;;
+        v)
+            echo "undertaker-coreboot-tree"
+            exit
+            ;;
+        h)
+            echo "\`undertaker-coreboot-tree' drives the undertaker over a whole coreboot-tree"
+            echo
+            echo "Usage: ${0##*/} [-t PROCS] [-s]"
+            echo " -t <count>   Number of analyzing processes"
+            echo "        (default: _NPROCESSORS_ONLN)"
+            echo " -s  Do feature statistics instead of dead block search"
+            exit
+            ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+OPTIND=1
+
+MODELS=${MODELS:-models}
+DEFAULT_ARCH=${DEFAULT_ARCH:-x86}
+PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
+
+if [ ! -f src/Kconfig ]; then
+    echo "Not run in an coreboot tree. Please run inside a coreboot tree without arguments"
+    exit 1
+else
+    echo "Running on Coreboot Version $(git describe || echo '(no git)')"
+fi
+
+if ! which  undertaker > /dev/null; then
+    echo "No undertaker binary found."
+    exit 1
+fi
+
+if ! ls "$MODELS"/x86.model >/dev/null 2>&1; then
+    echo "No coreboot model found, please call coreboot-kconfigdump"
+    exit
+fi
+
+if [ "$MODE" = "scan-deads" ]; then
+    find -type f -name "*.[hcS]" \
+        ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
+        -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-worklist
+
+    # delete potentially confusing .dead files first
+    find . -type f -name '*dead' -delete
+
+    echo "Analyzing $(wc -l < undertaker-worklist) files with $PROCESSORS threads."
+    undertaker -v -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"
+    printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
+    exit 0
+fi
+
+if [ "$MODE" = "feature-statistics" ]; then
+    allmodels="$(ls models/*.model)"
+    allrsfs="$(ls models/*.rsf)"
+    mkdir -p undertaker-stat
+
+    find -type f -name "*.[hcS]" \
+        ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
+        -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-worklist
+
+    if undertaker -j cppsym -t $PROCESSORS -b undertaker-worklist |
+        grep -v -E '^(E|I|W): '>undertaker-all-cppsym.raw 2>undertaker-cppsym.errors; then
+        awk '
+BEGIN { FS="," }
+
+{
+    references[$1] = references[$1] + $2;
+    rewrites[$1] = rewrites[$1] + $3;
+}
+
+END {
+    for (item in references) {
+        printf "%s, %d, %d\n", item, references[item], rewrites[item]
+    }
+}' < undertaker-all-cppsym.raw > undertaker-all-cppsym
+        echo "Found $(cat undertaker-all-cppsym|wc -l) distinct CPP symbols."
+    else
+        echo "checking for cppsym errors failed, check the error log:"
+        cat undertaker-cppsym.errors
+    fi
+    if ! test -s undertaker-cppsym.errors; then
+        rm -f undertaker-cppsym.errors
+    fi
+    exit 0
+fi
