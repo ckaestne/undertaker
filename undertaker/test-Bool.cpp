@@ -28,14 +28,14 @@ using namespace std;
 void parse_test(std::string input, bool good)
 {
     BoolExp *e = BoolExp::parseString(input);
-    fail_unless(good == (e!=0));
+    fail_unless(good == (e!=0), input.c_str());
     delete e;
 }
 
 //from test-SatChecker
 START_TEST(bool_parser_test)
 {
-	parse_test("", false);
+        parse_test("", false);
     parse_test("A", true);
     parse_test("! A", true);
     parse_test("--0--", false);
@@ -57,6 +57,8 @@ START_TEST(bool_parser_test)
     parse_test("A -> B -> C", true);
     parse_test("A <-> B", true);
     parse_test("( B23 <->  ( B1 )  && ( MAX_DMA_CHANNELS >= 12 ) >> 2 )", true);
+    parse_test("( B0 <-> CONFIG_TTYS0_BASE == 0x2f8 )", true);
+    parse_test("( B172 <-> B0 && (FAMILY_MMIO_BASE_MASK < 0xFFFFFF0000000000ull) )", true);
 }
 
 END_TEST

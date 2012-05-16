@@ -56,10 +56,9 @@ typedef kconfig::BoolExpParser::token_type token_type;
     yylloc->step();
 %}
 
-
-"0"                      return token::TFALSE;
-"1"                      return token::TTRUE;
-[0-9]+                   return token::TTRUE; /* FIXME int type*/
+0x[0-9a-fA-F]+u?l{0,2}   return token::TTRUE; /* FIXME int type*/
+0u?l{0,2}                return token::TFALSE;
+[0-9]+u?l{0,2}           return token::TTRUE; /* FIXME int type*/
 \'.\'                    return token::TTRUE; /* FIXME char type; fixme chars/escapeseq */
 
 [A-Za-z_][A-Za-z0-9_\.]* { yylval->stringVal = new std::string(yytext, yyleng);
