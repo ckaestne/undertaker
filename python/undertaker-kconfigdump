@@ -121,7 +121,8 @@ function do_convert() {
     }
 
   # dumpconf, remove all the comments because they will confuse rsf2model
-    SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | grep -v '^#' > "$MODELS/$ARCH.rsf"
+    SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | sort -u \
+		| grep -v '^#' > "$MODELS/$ARCH.rsf"
 
   # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by
   # a rule that no other architecture can be selected at the same
