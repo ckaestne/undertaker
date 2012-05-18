@@ -59,6 +59,15 @@ namespace kconfig
 
             CNFBuilder(bool useKconfigWhitelist=false, enum ConstantPolicy constPolicy=BOUND);
             /*void pushSymbolInfo(struct symbol * sym);*/
+
+            //! Add clauses from the parsed boolean expression e
+            /**
+             * \param[in,out] e the parsed expression
+             *
+             * Note that this triggers the traversal on the tree e,
+             * which (as every visitor), and therefrore potentially
+             * modifies the CNF variable assignment.
+             */
             void pushClause(BoolExp *e);
 
         protected:

@@ -302,8 +302,18 @@ void build_and_evaluate_strategy(const char *expression,
         fail_if(builder1.cnf->checkSatisfiable(),
                     "%s is satisfiable (strategy: BOUND), should not be", expression);
     delete cnf;
+    delete e;
 
     // now check again with free strategy
+
+    // NB: We need to parse again to start from scratch wrt. CNF
+    // variable numberings.
+    e = BoolExp::parseString(expression);
+    if (!e) {
+        fail("String %s could not be parsed", expression);
+        return;
+    }
+
     cnf = new PicosatCNF();
     CNFBuilder builder2(false, CNFBuilder::FREE);
     builder2.cnf = cnf;
@@ -315,7 +325,44 @@ void build_and_evaluate_strategy(const char *expression,
         fail_if(cnf->checkSatisfiable(),
                     "%s is satisfiable (strategy: FREE), should not be", expression);
     delete cnf;
+    delete e;
 
+    // now bind '0' and '1' to false/true, again
+    e = BoolExp::parseString(expression);
+    if (!e) {
+        fail("String %s could not be parsed", expression);
+        return;
+    }
+    cnf = new PicosatCNF();
+    CNFBuilder builder3(false, CNFBuilder::BOUND);
+    builder3.cnf = cnf;
+    builder3.pushClause(e);
+    if (bound_strategy)
+        fail_unless(cnf->checkSatisfiable(),
+                    "%s is unsatisfiable (strategy: BOUND, pass2), but should be", expression);
+    else
+        fail_if(cnf->checkSatisfiable(),
+                    "%s is satisfiable (strategy: BOUND, pass2), should not be", expression);
+    delete cnf;
+    delete e;
+
+    // now check again with free strategy
+    e = BoolExp::parseString(expression);
+    if (!e) {
+        fail("String %s could not be parsed", expression);
+        return;
+    }
+    cnf = new PicosatCNF();
+    CNFBuilder builder4(false, CNFBuilder::FREE);
+    builder4.cnf = cnf;
+    builder4.pushClause(e);
+    if (free_strategy)
+        fail_unless(cnf->checkSatisfiable(),
+                    "%s is unsatisfiable (strategy: FREE), but should be", expression);
+    else
+        fail_if(cnf->checkSatisfiable(),
+                    "%s is satisfiable (strategy: FREE), should not be", expression);
+    delete cnf;
     delete e;
 }
 

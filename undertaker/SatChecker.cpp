@@ -94,6 +94,7 @@ bool SatChecker::operator()(SATMode mode) throw (SatCheckerError) {
             }
         }
         delete _cnf;
+        delete exp;
         return res;
     }
     catch (std::bad_alloc &exception) {
