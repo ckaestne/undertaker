@@ -280,47 +280,69 @@ START_TEST(buildCNFComplex0)
 
 } END_TEST;
 
+void build_and_evaluate_strategy(const char *expression,
+                                 bool free_strategy, bool bound_strategy) {
+    BoolExp *e = BoolExp::parseString(expression);
+    PicosatCNF *cnf;
+
+    if (!e) {
+        fail("String %s could not be parsed", expression);
+        return;
+    }
+
+    // now bind '0' and '1' to false/true
+    cnf = new PicosatCNF();
+    CNFBuilder builder1(false, CNFBuilder::BOUND);
+    builder1.cnf = cnf;
+    builder1.pushClause(e);
+    if (bound_strategy)
+        fail_unless(builder1.cnf->checkSatisfiable(),
+                    "%s is unsatisfiable (strategy: BOUND), but should be", expression);
+    else
+        fail_if(builder1.cnf->checkSatisfiable(),
+                    "%s is satisfiable (strategy: BOUND), should not be", expression);
+    delete cnf;
+
+    // now check again with free strategy
+    cnf = new PicosatCNF();
+    CNFBuilder builder2(false, CNFBuilder::FREE);
+    builder2.cnf = cnf;
+    builder2.pushClause(e);
+    if (free_strategy)
+        fail_unless(cnf->checkSatisfiable(),
+                    "%s is unsatisfiable (strategy: FREE), but should be", expression);
+    else
+        fail_if(cnf->checkSatisfiable(),
+                    "%s is satisfiable (strategy: FREE), should not be", expression);
+    delete cnf;
+
+    delete e;
+}
+
 START_TEST(buildAndNull)
 {
-    BoolExp *e = BoolExp::parseString("A && 0");
-    PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
-    fail_if(cnf->checkSatisfiable());
-
-    // now handle consts as free vars
-    PicosatCNF *cnf1 = new PicosatCNF();
-    CNFBuilder builder1(false,CNFBuilder::FREE);
-    builder1.cnf = cnf1;
-    builder1.pushClause(e);
-    fail_if(!cnf->checkSatisfiable());
-
+    build_and_evaluate_strategy("A && 0", true, false);
 } END_TEST;
 
 START_TEST(buildImplNull)
 {
-    BoolExp *e = BoolExp::parseString("A && (A <-> 0)");
-    PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
-    fail_if(cnf->checkSatisfiable());
-
-    // now handle consts as free vars
-    PicosatCNF *cnf1 = new PicosatCNF();
-    CNFBuilder builder1(false,CNFBuilder::FREE);
-    builder1.cnf = cnf1;
-    builder1.pushClause(e);
-    fail_if(!cnf->checkSatisfiable());
+    build_and_evaluate_strategy("A && (A <-> 0)", true, false);
 
 } END_TEST;
 
+START_TEST(literals)
+{
+    build_and_evaluate_strategy("0l", true, false);
+
+    // FIXME: these below should succeed but currently do not
+    //build_and_evaluate_strategy("0x0", true, false);
+    //build_and_evaluate_strategy("0x0ull", true, false);
+} END_TEST;
 
 Suite *cond_block_suite(void)
 {
 
-    Suite *s  = suite_create("Suite");
+    Suite *s  = suite_create("Suite: test-CNFBuilder");
     TCase *tc = tcase_create("CNFBuilder");
     tcase_add_test(tc, buildCNFOr);
     tcase_add_test(tc, buildCNFAnd);
@@ -333,6 +355,7 @@ Suite *cond_block_suite(void)
     tcase_add_test(tc, buildCNFConst);
     tcase_add_test(tc, buildAndNull);
     tcase_add_test(tc, buildImplNull);
+    tcase_add_test(tc, literals);
     suite_add_tcase(s, tc);
     return s;
 }

@@ -35,7 +35,7 @@ void parse_test(std::string input, bool good)
 //from test-SatChecker
 START_TEST(bool_parser_test)
 {
-        parse_test("", false);
+    parse_test("", false);
     parse_test("A", true);
     parse_test("! A", true);
     parse_test("--0--", false);
@@ -79,42 +79,46 @@ START_TEST(parseFunc)
 
 } END_TEST;
 
+void parse_test_reference(const char *expression, const char *reference, const char *comment) {
+    BoolExp *e = BoolExp::parseString(expression);
+
+    if (!e) {
+        fail("Failed to parse expression '%s'", expression);
+        return;
+    }
+
+    if (!reference)
+        reference = expression;
+
+    fail_if (e->str() != reference,
+             "Failed to parse\n\t'%s'\nexpected\n\t'%s'  %s",
+             expression, reference, comment);
+    delete e;
+}
+
 START_TEST(parseBool)
 {
-    //simple tests
-    BoolExp *e0 = BoolExp::parseString("X || Y && Z");
-    BoolExp *e1 = BoolExp::parseString("(X || Y) && Z");
-    BoolExp *e2 = BoolExp::parseString("(X || !Y) && Z");
-    BoolExp *e3 = BoolExp::parseString("(X||\n !Y) \n\t     &&Z");
-    BoolExp *e4 = BoolExp::parseString("ExFalso->Quodlibet");
-    BoolExp *e5 = BoolExp::parseString("CONFIG_NO_HZ -> (CONFIG_GENERIC_TIME && CONFIG_GENERIC_CLOCKEVENTS)");
-    BoolExp *e6 = BoolExp::parseString("0 || 1 || 01");
-    BoolExp *e7 = BoolExp::parseString("0 || 1 || 'r'");
+    parse_test_reference("X || Y && Z",    0, "");
+    parse_test_reference("(X || Y) && Z",  0, "");
+    parse_test_reference("(X || !Y) && Z", 0, "");
 
-    fail_if(!e0 || e0->str() != "X || Y && Z", "cannot parse 'X || Y && Z'");
-    fail_if(!e1 || e1->str() != "(X || Y) && Z", "cannot parse '(X || Y) && Z'");
-    fail_if(!e2 || e2->str() != "(X || !Y) && Z", "cannot parse '(X || !Y) && Z'");
-    fail_if(!e3 || e3->str() != "(X || !Y) && Z", "does not like spaces");
-    fail_if(!e4 || e4->str() != "ExFalso -> Quodlibet", "Implication fails");
-    fail_if(!e5 || e5->str() != "CONFIG_NO_HZ -> CONFIG_GENERIC_TIME && CONFIG_GENERIC_CLOCKEVENTS", "");
-    fail_if(!e6 || e6->str() != "0 || 1 || 1", "Consts");
-    fail_if(!e7 || e7->str() != "0 || 1 || 1", "Char Consts");
+    parse_test_reference("(X||\n !Y) \n\t     &&Z",
+                         "(X || !Y) && Z",
+                         "does not like spaces");
 
-    delete e0;
-    delete e1;
-    delete e2;
-    delete e3;
-    delete e4;
-    delete e5;
-    delete e6;
-    delete e7;
+    parse_test_reference("ExFalso->Quodlibet",
+                         "ExFalso -> Quodlibet",
+                         "Implication fails");
 
+    parse_test_reference("CONFIG_NO_HZ -> (CONFIG_GENERIC_TIME && CONFIG_GENERIC_CLOCKEVENTS)",
+                         "CONFIG_NO_HZ -> CONFIG_GENERIC_TIME && CONFIG_GENERIC_CLOCKEVENTS",
+                         "");
+
+    parse_test_reference("0 || 1 || 'r'", "0 || 1 || 1", "(Char Consts)");
 } END_TEST;
 
-Suite *cond_block_suite(void)
-{
-
-    Suite *s  = suite_create("Suite");
+Suite *cond_block_suite(void) {
+    Suite *s  = suite_create("Suite test-Bool");
     TCase *tc = tcase_create("Bool");
     tcase_add_test(tc, parseBool);
     tcase_add_test(tc, bool_parser_test);
@@ -123,9 +127,7 @@ Suite *cond_block_suite(void)
     return s;
 }
 
-int main()
-{
-
+int main() {
     Suite *s = cond_block_suite();
     SRunner *sr = srunner_create(s);
     srunner_run_all(sr, CK_NORMAL);
