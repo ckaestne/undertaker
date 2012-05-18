@@ -318,7 +318,6 @@ namespace kconfig
             }
 
             virtual BoolExp *simplify(bool /* useAsumtions = false*/) {
-
                 return new BoolExpVar(*this);
             }
 

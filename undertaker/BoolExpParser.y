@@ -61,7 +61,7 @@
 %token               TIMPL        "implication"
 %token               TTRUE        "true"
 %token               TFALSE       "false"
-%token               TCOP         "C-Operator"
+%token <stringVal>   TCOP         "C-Operator"
 
 %type <boolNode>     Const
 %type <boolNode>     Atom Literal AndExpr OrExpr ImplExpr EqExpr Expr CExpr
@@ -100,7 +100,7 @@ Literal : Atom                 {$$ = $1;}
          ;
 
 CExpr : Literal                {$$ = $1;}
-      | CExpr TCOP Literal     {$$ = new BoolExpAny("°", $1, $3);}
+      | CExpr TCOP Literal     {$$ = new BoolExpAny(*$2, $1, $3); delete $2;}
       ;
 
 AndExpr : CExpr                {$$ = $1;}

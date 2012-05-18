@@ -50,6 +50,10 @@ START_TEST(bool_parser_test)
     parse_test("!!!!!A", true);
     parse_test("A -> B", true);
     parse_test(" -> B", false);
+    parse_test("A ? B : C", true);
+    parse_test("A ? B = C", false);
+    parse_test("A + B = C", false);
+    parse_test("A + B == C", true);
     parse_test("(A -> B) -> A -> A", true);
     parse_test("(A <-> ! B) || ( B <-> ! A)", true);
     parse_test("A -> B -> C -> (D -> C)", true);
@@ -91,8 +95,8 @@ void parse_test_reference(const char *expression, const char *reference, const c
         reference = expression;
 
     fail_if (e->str() != reference,
-             "Failed to parse\n\t'%s'\nexpected\n\t'%s'  %s",
-             expression, reference, comment);
+             "Failed to parse\n\t'%s'\nexpected:\n\t'%s'\ngot:\n\t'%s'  %s",
+             expression, reference, e->str().c_str(), comment);
     delete e;
 }
 
@@ -101,7 +105,6 @@ START_TEST(parseBool)
     parse_test_reference("X || Y && Z",    0, "");
     parse_test_reference("(X || Y) && Z",  0, "");
     parse_test_reference("(X || !Y) && Z", 0, "");
-
     parse_test_reference("(X||\n !Y) \n\t     &&Z",
                          "(X || !Y) && Z",
                          "does not like spaces");
@@ -115,6 +118,10 @@ START_TEST(parseBool)
                          "");
 
     parse_test_reference("0 || 1 || 'r'", "0 || 1 || 1", "(Char Consts)");
+
+    parse_test_reference("A + B + C == D", 0, "C-operators");
+    parse_test_reference("(A == B) && (C == D)", "A == B && C == D", "C-operators and boolean mixed");
+    parse_test_reference("A ? B : C", 0, "ternary operator");
 } END_TEST;
 
 Suite *cond_block_suite(void) {

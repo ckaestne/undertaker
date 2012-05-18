@@ -70,24 +70,60 @@ typedef kconfig::BoolExpParser::token_type token_type;
 "<->"                    return token::TEQ;
 "->"                     return token::TIMPL;
 
-"?"                      return token::TCOP;
-":"                      return token::TCOP;
-"&"                      return token::TCOP;
-"|"                      return token::TCOP;
-">="                     return token::TCOP;
-"<="                     return token::TCOP;
-"=="                     return token::TCOP;
-"!="                     return token::TCOP;
-">>"                     return token::TCOP;
-"<<"                     return token::TCOP;
-"<<<"                    return token::TCOP;
-">"                      return token::TCOP;
-"<"                      return token::TCOP;
-"*"                      return token::TCOP;
-"/"                      return token::TCOP;
-"+"                      return token::TCOP;
-"-"                      return token::TCOP;
-"%"                      return token::TCOP;
+"?"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+":"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"&"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"|"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+">="                     { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"<="                     { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"=="                     { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"!="                     { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+">>"                     { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"<<"                     { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"<<<"                    { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+">"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"<"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"*"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"/"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"+"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"-"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
+"%"                      { yylval->stringVal = new std::string(yytext, yyleng);
+                          return token::TCOP;
+                         }
 
 
 [ \t\r]+                 {yylloc->step();}
