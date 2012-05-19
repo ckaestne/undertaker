@@ -145,7 +145,6 @@ void process_file_coverage_helper(const char *filename) {
 
     std::list<SatChecker::AssignmentMap> solution;
     std::map<std::string,std::string> parents;
-    MissingSet missingSet;
 
     ModelContainer *f = ModelContainer::getInstance();
     ConfigurationModel *model = f->lookupMainModel();
@@ -166,6 +165,7 @@ void process_file_coverage_helper(const char *filename) {
         assert(false);
 
     solution = analyzer->blockCoverage(model);
+    MissingSet missingSet = analyzer->getMissingSet();
 
     if (coverageOutputMode == COVERAGE_MODE_STDOUT) {
         SatChecker::pprintAssignments(std::cout, solution, model, missingSet);

@@ -63,7 +63,6 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
     formula.push_back(code_formula);
 
     if (model) {
-        std::set<std::string> missingSet;
         std::string kconfig_formula;
         model->doIntersect(code_formula, file->getChecker(),
                            missingSet, kconfig_formula);

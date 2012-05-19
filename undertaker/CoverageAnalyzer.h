@@ -26,16 +26,20 @@
 #include "SatChecker.h"
 
 class CoverageAnalyzer {
- public:
+public:
     CoverageAnalyzer(const CppFile *);
 
     virtual std::list<SatChecker::AssignmentMap>
         blockCoverage(ConfigurationModel *) = 0;
 
+    // NB: missingSet is filled during blockCoverage run
+    MissingSet getMissingSet() const { return missingSet; }
+
 protected:
     std::string baseFileExpression(const ConfigurationModel *model,
                                    std::set<ConditionalBlock *> *blocks = 0);
     const CppFile * file;
+    MissingSet missingSet;
 };
 
 class SimpleCoverageAnalyzer : public CoverageAnalyzer {

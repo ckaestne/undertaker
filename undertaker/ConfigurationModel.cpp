@@ -182,6 +182,10 @@ int ConfigurationModel::doIntersect(const std::set<std::string> start_items,
     }
     intersected = sj.join("\n&& ");
 
+    logger << debug << "Out of " << start_items.size() << " items "
+           << missing.size() << " have been put in the MissingSet"
+           << std::endl;
+
     return valid_items;
 }
 

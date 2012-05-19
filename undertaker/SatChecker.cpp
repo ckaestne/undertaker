@@ -135,7 +135,8 @@ void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
     }
 }
 
-int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet &missingSet) {
+int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
+                                             const MissingSet &missingSet) {
     typedef std::map<std::string, state> SelectionType;
     SelectionType selection, other_variables;
 
@@ -152,32 +153,38 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
 
         if (valid && boost::regex_match(name, what, module_regexp)) {
             const std::string &name = what[1];
-            std::string fullname = "CONFIG_" + name;
-            if (missingSet.find(fullname) != missingSet.end()) {
-                logger << debug << "Ignoring 'missing' item " << fullname << std::endl;
-                other_variables[fullname] = valid ? yes : no;
-            } else
-                selection[name] = module;
+            std::string basename = "CONFIG_" + name;
+            if (missingSet.find(basename) != missingSet.end() ||
+                missingSet.find(what[0])  != missingSet.end()) {
+                logger << debug << "Ignoring 'missing' module item "
+                       << what[0] << std::endl;
+                other_variables[basename] = valid ? yes : no;
+            } else {
+                selection[basename] = module;
+            }
+            continue;
         } else if (boost::regex_match(name, what, choice_regexp)) {
+            // choices are anonymous in kconfig and only used for
+            // cardinality constraints, ignore
             other_variables[what[0]] = valid ? yes : no;
             continue;
         } else if (boost::regex_match(name, what, item_regexp)) {
             ConfigurationModel *model = ModelContainer::lookupMainModel();
             const std::string &item_name = what[1];
 
-            logger << debug << "considering " << item_name << std::endl;
+            logger << debug << "considering " << what[0] << std::endl;
 
             if (missingSet.find(what[0]) != missingSet.end()) {
-                logger << debug << "Ignoring 'missing' item " << what[0] << std::endl;
-
-                other_variables[what[1]] = valid ? yes : no;
+                logger << debug << "Ignoring 'missing' item "
+                       << what[0] << std::endl;
+                other_variables[what[0]] = valid ? yes : no;
                 continue;
             }
 
             // ignore entries if already set (e.g., by the module variant).
-            if (selection.find(item_name) == selection.end()) {
-                selection[item_name] = valid ? yes : no;
-                logger << debug << "Setting " << item_name << " to " << valid << std::endl;
+            if (selection.find(what[0]) == selection.end()) {
+                selection[what[0]] = valid ? yes : no;
+                logger << debug << "Setting " << what[0] << " to " << valid << std::endl;
             }
 
             // skip item if it is neither a 'boolean' nor a tristate one
@@ -185,7 +192,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
                 !model->isBoolean(item_name) && !model->isTristate(item_name)) {
                 logger << debug << "Ignoring 'non-boolean' item " << what[0] << std::endl;
 
-                other_variables[what[1]] = valid ? yes : no;
+                other_variables[what[0]] = valid ? yes : no;
                 continue;
             }
 
@@ -200,7 +207,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
         const std::string &item = (*s).first;
         const int &state = (*s).second;
 
-        out << "CONFIG_" << item << "=";
+        out << item << "=";
         if (state == no)
             out << "n";
         else if (state == module)
