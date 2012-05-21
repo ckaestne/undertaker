@@ -4,7 +4,7 @@
 #
 # Copyright (C) 2009-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
-# Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud,uni-erlangen.de>
+# Copyright (C) 2012-2013 Manuel Zerpies <manuel.f.zerpies@ww.stud,uni-erlangen.de>
 # Copyright (C) 2012 Stefan Hengelein <stefan.hengelein@informatik.stud.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -44,6 +44,7 @@ PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
 
 DO_INFERENCES="no"
 MODE="rsf"
+USE_BUSYFIX="no"
 
 # ensure the last (rightmost) non-zero exitcode is used when piping results into
 # another program
@@ -51,7 +52,7 @@ set -o pipefail
 
 trap "kill 0" SIGINT SIGTERM
 
-while getopts irch OPT; do
+while getopts irchb OPT; do
     case $OPT in
         i)
             DO_INFERENCES="yes"
@@ -62,13 +63,17 @@ while getopts irch OPT; do
         c)
             MODE="cnf"
             ;;
+        b)
+            USE_BUSYFIX="yes"
+            ;;
         h)
             echo "\`undertaker-kconfigdump' generates models for a linux, busybox"
             echo "and coreboot"
-            echo "Usage: ${0##*/} [-r] [-c] [-i] [-h]"
+            echo "Usage: ${0##*/} [-r] [-c] [-i] [-h] [-b]"
             echo " -i  calculate inferences"
             echo " -r  generate Format 1.0 (RSF) Models (default)"
             echo " -c  generate Format 2.0 (CNF) Models"
+            echo " -b  use busyfix to transform busybox trees"
             echo " -h  displays this message"
             exit
             ;;
@@ -274,6 +279,14 @@ if [ -f scripts/gen_build_files.sh ]; then
 
     # disable CONFIG_WERROR
     ALWAYS_OFF_ITEMS="CONFIG_WERROR CONFIG_STATIC"
+
+    if [ $USE_BUSYFIX = "yes" ]; then
+        # busyfix damages the excluded files below
+        find -type f -name '*.[cS]' \
+            ! -regex '^./applets_sh.*' ! -regex '^./docs.*' ! -regex '^./examples.*' \
+            ! -regex '^./testsuite.*' ! -regex '^./scripts.*' \
+            -print > busyfix-worklist
+    fi
 
     # generate config files, execute dumpconf
     # remove all the comments because they will confuse rsf2model

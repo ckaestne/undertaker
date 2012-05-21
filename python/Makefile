@@ -1,4 +1,4 @@
-PYTHONPROGRAMS = golem rsf2model undertaker-calc-coverage undertaker-kconfigpp \
+PYTHONPROGRAMS = busyfix golem rsf2model undertaker-calc-coverage undertaker-kconfigpp \
 	vampyr
 PYTHONFILES    = $(PYTHONPROGRAMS) $(wildcard vamos/*/*.py) $(wildcard vamos/*.py)
 SEARCHPATH     = "$(CURDIR)/../undertaker:$(CURDIR)/../ziz:$(CURDIR):$(PATH)"

@@ -11,10 +11,12 @@ setup (name='vamos',
                  'vamos.rsf2model',
                  'vamos.golem',
                  'vamos.vampyr',
+                 'vamos.busyfix'
                  ],
        scripts=['python/golem',
                 'python/rsf2model',
                 'python/undertaker-kconfigpp',
                 'python/vampyr',
+                'python/busyfix',
                 ],
        )

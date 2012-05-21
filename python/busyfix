@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+#
+#   busyfix - normalizes the '#if ENABLE', 'IF' and 'IF_NOT' statements in  Busybox source files
+#
+# Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud.uni-erlangen.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import sys
+
+import logging
+
+from os.path import join, dirname
+
+from optparse import OptionParser
+
+sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
+                     (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
+                     + sys.path
+
+from vamos.tools import setup_logging, calculate_worklist
+from vamos.busyfix.normalizer import normalize_file
+
+def main():
+    parser = OptionParser(usage="%prog [options] <filename>")
+    parser.add_option('-v', '--verbose', dest='verbose', action='count',
+                      help="increase verbosity (specify multiple times for more)")
+    parser.add_option('-b', '--batch', dest='batch_mode', action='store_true', default=False,
+                      help="operate in batch mode, read filenames from given worklists")
+    parser.add_option('-i', '--inline', dest='inline', action='store_true', default=False,
+                      help="replace all files inline")
+
+    (opts, args) = parser.parse_args()
+
+    setup_logging(opts.verbose)
+
+    worklist = calculate_worklist(args, opts.batch_mode)
+    logging.info("Working on %d files", len(worklist))
+    for f in worklist:
+        try:
+            lines = normalize_file(f)
+            if opts.inline:
+                with open(f, 'w') as fd:
+                    fd.writelines(lines)
+            else:
+                sys.stdout.writelines(lines)
+
+        except:
+            logging.error("Failed to prorcess file %s", f)
+            raise
+
+if __name__ == "__main__":
+    main()

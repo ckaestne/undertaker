@@ -28,7 +28,7 @@
 # scan for deads by default
 MODE="scan-deads"
 
-while getopts :m:t:civh OPT; do
+while getopts m:t:civh OPT; do
     case $OPT in
         m)
             MODELS="$OPTARG"
@@ -89,7 +89,6 @@ if [ "$MODE" = "calc-coverage" ]; then
 
     files=`wc -l <undertaker-coverage-worklist`
     echo "Calculating partial configurations (greedy variant) on $files files"
-
     undertaker -j coverage -C min -t "$PROCESSORS" -b undertaker-coverage-worklist \
         -m "$MODELS"/busybox.model 2>&1 |
             grep '^I: ./' > coverage.txt
@@ -121,8 +120,8 @@ if [ "$MODE" = "scan-deads" ]; then
 fi
 
 if [ "$MODE" = "inference" ]; then
-    ARCH='x86'
+    ARCH='busybox'
     export ARCH
     golem -iv > models/busybox.makefile-constraints
-    echo "Extracted $(grep -c ^FILE_ models/x86.makefile-constraints) source file implications for x86"
+    echo "Extracted $(grep -c ^FILE_ models/busybox.makefile-constraints) source file implications"
 fi
