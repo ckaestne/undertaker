@@ -20,7 +20,7 @@
 #
 
 from vamos.Config import Config
-from vamos.tools import execute, CommandFailed, execute
+from vamos.tools import execute, CommandFailed
 
 from tempfile import mkstemp
 from glob import glob
