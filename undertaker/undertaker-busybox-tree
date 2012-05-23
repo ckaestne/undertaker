@@ -91,7 +91,7 @@ if [ "$MODE" = "calc-coverage" ]; then
     echo "Calculating partial configurations (greedy variant) on $files files"
 
     undertaker -j coverage -C min -t "$PROCESSORS" -b undertaker-coverage-worklist \
-        -m "$MODELS" 2>&1 |
+        -m "$MODELS"/busybox.model 2>&1 |
             grep '^I: ./' > coverage.txt
 
     if [ ! -s coverage.txt ]; then
@@ -115,7 +115,7 @@ if [ "$MODE" = "scan-deads" ]; then
     find . -type f -name '*dead' -delete
 
     echo "Analyzing $(wc -l < undertaker-worklist) files with $PROCESSORS threads."
-    undertaker -t "$PROCESSORS" -b undertaker-worklist # -m "$MODELS"
+    undertaker -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS"/busybox.model
     printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
     exit 0
 fi
