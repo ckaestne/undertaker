@@ -37,8 +37,8 @@ from vamos.golem.inference_atoms import *
 from vamos.golem.kbuild import determine_buildsystem_variables, \
     file_in_current_configuration, files_for_current_configuration, \
     determine_buildsystem_variables_in_directory, \
-    get_linux_version, NotALinuxTree, TreeNotConfigured, \
-    guess_subarch_from_arch
+    get_linux_version, get_busybox_version, NotALinuxTree, TreeNotConfigured, \
+    guess_subarch_from_arch, NotABusyboxTree
 from vamos.vampyr.Configuration import LinuxPartialConfiguration
 from vamos.vampyr.BuildFrameworks import KbuildBuildFramework
 from vamos.vampyr.utils import ExpansionError
@@ -53,20 +53,24 @@ def do_inference(args, arch, subarch):
     atoms = None
     if os.path.exists("src/Modules.ia32"):
         atoms = FiascoInferenceAtoms()
-    elif os.path.exists("coreutils/df.c"):
-        atoms = BusyboxInferenceAtoms(path)
-    elif os.path.exists("arch/x86/Kconfig"):
-        assert arch
-        assert subarch
+
+    if not atoms:
         try:
-            logging.info("using Linux version %s", get_linux_version())
-        except NotALinuxTree as e:
-            logging.error("Failed to determine Linux version: %s", e)
-            sys.exit(1)
-        atoms = LinuxInferenceAtoms(arch, subarch, path)
-    else:
-        logging.error("No primitive operations found (Not in a fiasco or linux tree?)")
-        sys.exit(-1)
+            get_busybox_version()
+            atoms = BusyboxInferenceAtoms(path)
+        except NotABusyboxTree:
+            pass
+
+    if not atoms:
+        try:
+            get_linux_version()
+            atoms = LinuxInferenceAtoms(arch, subarch, path)
+        except NotALinuxTree:
+            pass
+
+    if not atoms:
+        raise RuntimeError("No primitive operations found (not in a supported source tree?)")
+
 
     inferencer = Inferencer(atoms)
     inferencer.calculate()
@@ -133,29 +137,43 @@ def main():
 
     (arch, subarch) = (None, None)
 
-    if os.environ.has_key('ARCH'):
-        arch = os.environ['ARCH']
-
-    if os.environ.has_key('SUBARCH'):
-        subarch = os.environ['SUBARCH']
+    try:
+        logging.info("detected Busybox version %s", get_busybox_version())
+        arch = 'busybox'
+    except NotABusyboxTree:
+        pass
 
     if not arch:
-        arch = vamos.default_architecture
-        subarch = guess_subarch_from_arch(arch)
-        logging.warning("Environment variable $ARCH not set, defaulting to '%s/%s'",
-                        arch, subarch)
-    if not subarch:
-        subarch = guess_subarch_from_arch(arch)
+        try:
+            logging.info("detected Linux version %s", get_linux_version())
+
+            if os.environ.has_key('ARCH'):
+                arch = os.environ['ARCH']
+
+            if os.environ.has_key('SUBARCH'):
+                subarch = os.environ['SUBARCH']
+
+            if not arch:
+                arch = vamos.default_architecture
+                subarch = guess_subarch_from_arch(arch)
+                logging.warning("Environment variable $ARCH not set, defaulting to '%s/%s'",
+                                arch, subarch)
+            if not subarch:
+                subarch = guess_subarch_from_arch(arch)
+        except NotALinuxTree:
+            pass
+
+    if not arch:
+        logging.error("No supported software project found")
+        sys.exit(1)
 
     if opts.inference:
-        do_inference(args, arch=arch, subarch=subarch)
+        try:
+            do_inference(args, arch=arch, subarch=subarch)
+        except RuntimeError as e:
+            logging.error("Calculating inferences failed: %s", e)
+            sys.exit(1)
         sys.exit(0)
-
-    try:
-        logging.info("using Linux version %s", get_linux_version())
-    except NotALinuxTree as e:
-        logging.error("Failed to determine Linux version: %s", e)
-        sys.exit(1)
 
     if opts.do_opt:
         variables = determine_buildsystem_variables(arch)

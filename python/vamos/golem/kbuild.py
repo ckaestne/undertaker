@@ -42,6 +42,11 @@ class NotALinuxTree(RuntimeError):
     pass
 
 
+class NotABusyboxTree(RuntimeError):
+    """ Indicates we are not in a Linux tree """
+    pass
+
+
 def find_autoconf():
     """ returns the path to the autoconf.h file in this linux tree
     """
@@ -431,11 +436,10 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
 
 def get_linux_version():
     """
-    Checks that the current working directory is actually a Linux Tree
+    Check that the current working directory is actually a Linux tree
 
-    Uses a custom Makefile to retrieve the current kernel version. If we
-    are in a git tree, additionally compare the git version with the
-    version stated in the Makefile for plausibility.
+    If we are in a git tree, return that kernel version. Otherwise,
+    use a custom Makefile to retrieve the current kernel version.
 
     Raises a 'NotALinuxTree' exception if the version could not be retrieved.
     """
@@ -451,7 +455,8 @@ def get_linux_version():
         git_version = output[0]
         if (ret > 0):
             git_version = ""
-            logging.info("Execution of '%s' command failed, analyzing the Makefile instead", cmd)
+            logging.debug("Execution of '%s' command failed, analyzing the Makefile instead",
+                          cmd)
 
         # 'standard' Linux repository descriptions start with v
         if git_version.startswith(("v3.", "v2.6")):
@@ -466,7 +471,52 @@ def get_linux_version():
 
     version = output[-1] # use last line, if not configured we get additional warning messages
     if not version.startswith(("3.", "2.6")):
-        raise NotALinuxTree("Only Linux versions 2.6 and 3.x are supported")
+        raise NotALinuxTree("Only versions 2.6 and 3.x are supported, but not %s",
+                            version)
+    else:
+        return version
+
+def get_busybox_version():
+    """
+    Check that the current working directory is actually a Busybox tree
+
+    If we are in a git tree, return that kernel version. Otherwise,
+    use a custom Makefile to retrieve the current kernel version.
+
+    Raises a 'NotABusyboxTree' exception if the version could not be retrieved.
+    """
+
+    scriptsdir = find_scripts_basedir()
+
+    if not os.path.exists('Makefile'):
+        raise NotABusyboxTree("No 'Makefile' found")
+
+    if os.path.isdir('.git'):
+        cmd = "git describe"
+        (output, ret) = execute(cmd)
+        git_version = output[0]
+        if (ret > 0):
+            git_version = ""
+            logging.debug("Execution of '%s' command failed, analyzing the Makefile instead",
+                          cmd)
+
+        # 'standard' Busybox repository descriptions start with 1_
+        if git_version.startswith("1_"):
+            return git_version
+        else:
+            raise NotABusyboxTree("Git does not indicate a supported busybox version")
+
+    extra_vars = "-f %(basedir)s/Makefile.version UNDERTAKER_SCRIPTS=%(basedir)s" % \
+        { 'basedir' : scriptsdir }
+
+    (output, ret) = call_linux_makefile('', extra_variables=extra_vars)
+    if ret > 0:
+        raise NotALinuxTree("The call to Makefile.version failed")
+
+    version = output[-1] # use last line, if not configured we get additional warning messages
+    if not version.startswith("1."):
+        raise NotABusyboxTree("Only 1.x versions are supported, but not %s",
+                              version)
     else:
         return version
 
