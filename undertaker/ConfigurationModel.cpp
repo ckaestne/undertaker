@@ -145,8 +145,10 @@ int ConfigurationModel::doIntersect(const std::set<std::string> start_items,
 
     std::set<std::string> interesting = findSetOfInterestingItems(start_items);
 
-    const std::string magic("ALWAYS_ON");
-    const StringList *always_on = this->getMetaValue(magic);
+    const std::string magic_on("ALWAYS_ON");
+    const std::string magic_off("ALWAYS_OFF");
+    const StringList *always_on = this->getMetaValue(magic_on);
+    const StringList *always_off = this->getMetaValue(magic_off);
 
     for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); it++) {
         const std::string *item = _model->getValue(*it);
@@ -164,6 +166,14 @@ int ConfigurationModel::doIntersect(const std::set<std::string> start_items,
                     sj.push_back(*it);
                 }
             }
+
+            if (always_off) {
+                StringList::const_iterator cit = std::find(always_off->begin(), always_off->end(), *it);
+                if (cit != always_off->end()) {
+                    sj.push_back("!" + *it);
+                }
+            }
+
         } else {
             // check if the symbol might be in the model space.
             // if not it can't be missing!

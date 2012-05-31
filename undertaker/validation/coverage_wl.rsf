@@ -1,3 +1,4 @@
 Item	ON	boolean
+Item	OFF	boolean
 Item	TO_BE_SET	boolean
 Item	THAT_IS_ALWAYS_ON	boolean

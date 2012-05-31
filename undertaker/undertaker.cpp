@@ -538,6 +538,7 @@ void process_file_interesting(const char *filename) {
 
 void process_file_checkexpr(const char *expression) {
     ConfigurationModel *model = ModelContainer::lookupMainModel();
+    logger << debug << "Checking expr " << expression << std::endl;
 
     if (!model) {
         logger << error << "for finding interessting items a model must be loaded" << std::endl;
@@ -557,10 +558,12 @@ void process_file_checkexpr(const char *expression) {
                        missing, intersected);
 
     sj.push_back(intersected);
-
     sj.push_back(ConfigurationModel::getMissingItemsConstraints(missing));
 
-    SatChecker sc(sj.join("\n&&\n"));
+    std::string formula = sj.join("\n&&\n");
+    logger << debug << "formula: " << formula << std::endl;
+
+    SatChecker sc(formula);
     if (sc()) {
         SatChecker::AssignmentMap current_solution = sc.getAssignment();
         current_solution.formatKconfig(std::cout, missing);
