@@ -71,7 +71,7 @@ endif
 
 #This is the rule for creating the dependency files
 %.d: %.cpp
-	 @$(CXX) $(CXXFLAGS) -MM $< > $@
+	 @$(CXX) $(CXXFLAGS) -MM -MG $< > $@
 
 clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
