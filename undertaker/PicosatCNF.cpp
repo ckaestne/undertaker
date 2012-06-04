@@ -18,15 +18,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include <boost/assert.hpp>
+#include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp>
+
 #include "PicosatCNF.h"
 #include "IOException.h"
-
-#include<stdlib.h>
-#include<stdio.h>
-#include<iostream>
-#include<sstream>
-
 #include "KconfigWhitelist.h"
+#include "Logging.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <iostream>
+#include <sstream>
 
 using namespace kconfig;
 
@@ -62,8 +66,51 @@ void PicosatCNF::resetContext(void) {
     currentContext = 0;
 }
 
-void PicosatCNF::readFromFile(istream &) {
-    //TODO
+void PicosatCNF::readFromFile(istream &i) {
+    std::string line;
+
+    while(std::getline (i, line)) {
+        static const boost::regex var_regexp("^c var (.+) (\\d+)$");
+        static const boost::regex sym_regexp("^c sym (.+) (\\d)$");
+        static const boost::regex dim_regexp("^p cnf (\\d+) (\\d+)$");
+        static const boost::regex cls_regexp("^-?\\d+");
+        static const boost::regex comment_regexp("^c ");
+        boost::match_results<std::string::const_iterator> what;
+
+        if (boost::regex_match(line, what, var_regexp)) {
+            std::string varname = what[1];
+            int cnfnumber = boost::lexical_cast<int>(what[2]);
+            this->setCNFVar(varname, cnfnumber);
+        } else if (boost::regex_match(line, what, sym_regexp)) {
+            std::string varname = what[1];
+            int typeId = boost::lexical_cast<int>(what[2]);
+            this->setSymbolType(varname, typeId);
+        } else if (boost::regex_match(line, what, dim_regexp)) {
+            //todo: handle dimension descriptor line
+            //(only a speedup)
+            // int variables = boost::lexical_cast<int>(what[1]);
+            // int clauses = boost::lexical_cast<int>(what[2]));
+        } else if (boost::regex_search(line, cls_regexp)) {
+            std::stringstream l(line);
+            int val;
+
+            while (l.good()){
+                l >> val;
+                if(val == 0){
+                    this->pushClause();
+                }
+                else {
+                    this->pushVar(val);
+                }
+            }
+        } else if (boost::regex_search(line, comment_regexp)) {
+            logger << debug << "Ignoring comment: '" << line << "'" << std::endl;
+        } else {
+            logger << error << "Failed to parse line: '" << line << "'" << std::endl;
+
+            throw IOException("parse error while reading CNF file");
+        }
+    }
 }
 
 void PicosatCNF::toFile(ostream &out) {

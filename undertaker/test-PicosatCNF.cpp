@@ -292,16 +292,99 @@ START_TEST(toFileWithSymbolTable) {
 
 } END_TEST;
 
-Suite *cond_block_suite(void) {
+START_TEST(readCnfFileWithInts) {
+    std::stringstream file;
 
+    file << "c trivial test model\n";
+    file << "p cnf 6 8\n";
+    // v2 -> v1
+    file << "-2 1 0\n";
+    // v3 -> v1
+    file << "-3 1 0\n";
+    // v4 -> v1
+    file << "-4 1 0\n";
+    // v5 -> (v2 || !v3)
+    file << "-5 2 -3 0\n";
+    // v5 -> (v2 || v4)
+    file << "-6 2 4 0\n";
+    // !v2
+    file << "-2 0\n";
+    // v5
+    file << "5 0\n";
+    // v5
+    file << "6 0\n";
+
+    PicosatCNF cnf;
+    cnf.readFromFile(file);
+
+    fail_unless(cnf.checkSatisfiable());
+    fail_unless(cnf.deref(1) == true);
+    fail_unless(cnf.deref(2) == false);
+    fail_unless(cnf.deref(3) == false);
+    fail_unless(cnf.deref(4) == true);
+    fail_unless(cnf.deref(5) == true);
+    fail_unless(cnf.deref(6) == true);
+
+} END_TEST;
+
+START_TEST(readCnfFileWithStrings) {
+    std::stringstream file;
+
+    file << "c trivial test model\n";
+    file << "c var v1 1\n";
+    file << "c var v2 2\n";
+    file << "c var v3 3\n";
+    file << "c var v4 4\n";
+    file << "c var v5 5\n";
+    file << "c var v6 6\n";
+    file << "p cnf 6 5\n";
+    // v2 -> v1
+    file << "-2 1 0\n";
+    // v3 -> v1
+    file << "-3 1 0\n";
+    // v4 -> v1
+    file << "-4 1 0\n";
+    // v5 -> (v2 || !v3)
+    file << "-5 2 -3 0\n";
+    // v5 -> (v2 || v4)
+    file << "-6 2 4 0\n";
+
+    PicosatCNF cnf;
+    cnf.readFromFile(file);
+
+    std::string v1("v1");
+    std::string v2("v2");
+    std::string v3("v3");
+    std::string v4("v4");
+    std::string v5("v5");
+    std::string v6("v6");
+
+    cnf.pushAssumption(v2, false);
+    cnf.pushAssumption(v5, true);
+    cnf.pushAssumption(v6, true);
+
+    fail_unless(cnf.checkSatisfiable());
+    fail_unless(cnf.deref(v1) == true);
+    fail_unless(cnf.deref(v2) == false);
+    fail_unless(cnf.deref(v3) == false);
+    fail_unless(cnf.deref(v4) == true);
+    fail_unless(cnf.deref(v5) == true);
+    fail_unless(cnf.deref(v6) == true);
+
+} END_TEST;
+
+Suite *cond_block_suite(void) {
     Suite *s  = suite_create("PicosatCNF-test");
     TCase *tc = tcase_create("PicosatCNF");
+
     tcase_add_test(tc, simpleModel);
     tcase_add_test(tc, moreComplexModel);
     tcase_add_test(tc, sequentialUsage);
     tcase_add_test(tc, parallelUsage);
     tcase_add_test(tc, toFile);
     tcase_add_test(tc, toFileWithSymbolTable);
+    tcase_add_test(tc, readCnfFileWithInts);
+    tcase_add_test(tc, readCnfFileWithStrings);
 
     suite_add_tcase(s, tc);
     return s;
