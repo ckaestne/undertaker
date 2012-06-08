@@ -70,6 +70,17 @@ namespace kconfig
              */
             void pushClause(BoolExp *e);
 
+            //! Add new variable to the CNF and returns associated var number
+            /**
+             * @param[in] the name of the variable
+             * @returns associated var number
+             *
+             * Adds a new variable to the cnf and returns the associated
+             * cnf var number. If a variable with the given name already
+             * exists, the var number of the existing var is returned.
+             */
+            int addVar(std::string s);
+
         protected:
             virtual void visit(BoolExp *e);
             virtual void visit(BoolExpAnd *e);

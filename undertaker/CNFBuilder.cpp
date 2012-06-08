@@ -55,13 +55,30 @@ void CNFBuilder::pushClause(BoolExp *e)
 
 }
 
-void CNFBuilder::visit(BoolExp *)
-{
+int CNFBuilder::addVar(std::string symname) {
+    std::map<std::string, int>::iterator it;
+
+    if ((it = this->knownSymbols.find(symname)) == this->knownSymbols.end()) {
+        //Var not known yet:
+        // add new var
+        this->varcount++;
+        int newVar = this->varcount;
+
+        //add var to mapping
+        cnf->setCNFVar(symname, newVar);
+        this->knownSymbols[symname] = newVar;
+        return newVar;
+    }
+
+    //var known:
+    return it->second;
+}
+
+void CNFBuilder::visit(BoolExp *) {
     throw "CNF ERROR";
 }
 
-void CNFBuilder::visit(BoolExpAnd *e)
-{
+void CNFBuilder::visit(BoolExpAnd *e) {
     if (e->CNFVar)
         return;
     this->varcount++;
@@ -206,7 +223,7 @@ void CNFBuilder::visit(BoolExpConst *e)
         return;
 
     // FIXME:
-    //will fail when const are unified 
+    //will fail when const are unified
     if (constPolicy == CNFBuilder::FREE){
         //handle consts as free var
         this->varcount++;
@@ -239,18 +256,8 @@ void CNFBuilder::visit(BoolExpVar *e)
         this->varcount++;
         e->CNFVar = this->varcount;
     }
-    else if ((it = this->knownSymbols.find(e->str())) == this->knownSymbols.end()) {
-        // a new var
-        this->varcount++;
-        e->CNFVar = this->varcount;
-
-        //add var to mapping
-        //clauses << "c var " << e->str() << " " << e->CNFVar << endl;
-        cnf->setCNFVar(symname, e->CNFVar);
-        this->knownSymbols[e->str()] = e->CNFVar;
-    }
     else {
-        e->CNFVar = it->second;
+        e->CNFVar = this->addVar(symname);
     }
 
 }
