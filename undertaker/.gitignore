@@ -2,7 +2,9 @@
 *.a
 *.d
 *~
+*.cnf
 undertaker
+rsf2cnf
 docs
 coverage-html
 kconfig-dumps/models

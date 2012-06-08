@@ -27,13 +27,14 @@ PARSEROBJ = RsfReader.o KconfigWhitelist.o PresetList.o RsfConfigurationModel.o\
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
-PROGS = undertaker predator
+PROGS = undertaker predator rsf2cnf
 TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel test-PresetList \
             test-Bool test-CNFBuilder test-BoolExpSymbolSet test-PicosatCNF
 
 all: $(PROGS) $(TESTPROGS)
 
 undertaker: libparser.a
+rsf2cnf: libparser.a
 KconfigIntersect: libparser.a
 predator: libparser.a predator.o PredatorVisitor.o
 
@@ -41,6 +42,8 @@ predator: libparser.a predator.o PredatorVisitor.o
 	$(MAKE) -C .. version.h
 
 undertaker.d: ../version.h
+
+rsf2cnf.d: ../version.h
 
 BoolExpLexer.d:
 
@@ -107,6 +110,7 @@ check: $(PROGS)
 	cd coverage-tests && env PATH=$(CURDIR):$(PATH) ./run-tests
 	cd validation && env PATH=$(CURDIR):$(PATH) ./test-suite -t $$(getconf _NPROCESSORS_ONLN)
 	@$(MAKE) -s run-libcheck
+	@$(MAKE) -C validation-rsf2cnf check
 
 clean-check:
 	find coverage-tests validation/ \
@@ -125,6 +129,7 @@ clean-check:
 	                 \) -exec rm {} \;
 
 	rm -vf coverage-tests/coverage-cat.c.got
+	@$(MAKE) -C validation-rsf2cnf clean
 
 docs:
 	doxygen

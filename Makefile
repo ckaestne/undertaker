@@ -1,4 +1,5 @@
-PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator python/rsf2model ziz/zizler
+PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator undertaker/rsf2cnf \
+	python/rsf2model ziz/zizler
 MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz \
 	doc/undertaker-kconfigpp.1.gz
 
@@ -26,6 +27,9 @@ undertaker/undertaker: FORCE
 
 undertaker/predator: FORCE
 	$(MAKE) -C undertaker predator
+
+undertaker/rsf2cnf: FORCE
+	$(MAKE) -C undertaker rsf2cnf
 
 ziz/zizler: FORCE
 	$(MAKE) -C ziz zizler

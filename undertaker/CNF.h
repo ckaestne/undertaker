@@ -22,7 +22,7 @@
 #include<map>
 #include<string>
 #include<iostream>
-
+#include<deque>
 
 using namespace std;
 namespace kconfig
@@ -53,6 +53,8 @@ namespace kconfig
             virtual int newVar(void) = 0;
             virtual std::map<string, int>::const_iterator getSymbolsItBegin() = 0;
             virtual std::map<string, int>::const_iterator getSymbolsItEnd() = 0;
+            virtual const std::deque<std::string> *getMetaValue(const std::string &key) const = 0;
+            virtual void addMetaValue(const std::string &key, const std::string &value) = 0;
 
     };
 }

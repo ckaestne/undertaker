@@ -1,0 +1,24 @@
+c File Format Version: 2.0
+c ------------------------------- 
+c original model:
+c config FOO
+c     bool "FOO"
+c config BAR
+c     bool "BAR"
+c     depends on FOO
+c -------------------------------
+c Type info:
+c c sym <symbolname> <typeid>
+c with <typeid> being an integer out of:
+c enum {S_BOOLEAN=1, S_TRISTATE=2, S_INT=3, S_HEX=4, S_STRING=5, S_OTHER=5}
+c variable names:
+c c var <variablename> <cnfvar>
+c sym BAR 1
+c sym FOO 1
+c var CONFIG_BAR 1
+c var CONFIG_FOO 2
+p cnf 3 4
+3 1 0
+3 -2 0
+-3 -1 2 0
+3 0
