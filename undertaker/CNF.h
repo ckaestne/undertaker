@@ -31,7 +31,7 @@ namespace kconfig
     {
         public:
             virtual void readFromFile(istream &i) = 0;
-            virtual void toFile(string &path)= 0;
+            virtual void toFile(std::ostream &out) = 0;
             virtual int  getSymbolType(string &name) = 0;
             virtual void setSymbolType(string &sym, int type) = 0;
             virtual int getCNFVar(string &var) = 0;
