@@ -28,32 +28,41 @@
 
 #include "KconfigWhitelist.h"
 
-using namespace std;
 using namespace kconfig;
 
 static bool picosatIsInitalized = false;
+static PicosatCNF *currentContext = 0;
 
 PicosatCNF::PicosatCNF(int defaultPhase)
-{
-    if(picosatIsInitalized) {
+    : defaultPhase (defaultPhase), varcount (0), clausecount (0) {
+    resetContext();
+}
+
+PicosatCNF::~PicosatCNF() {}
+
+void PicosatCNF::loadContext(void) {
+    vector<int>::iterator it;
+
+    resetContext();
+    currentContext = this;
+    Picosat::picosat_set_global_default_phase(defaultPhase);
+
+    for (it = clauses.begin(); it != clauses.end(); it++) {
+        Picosat::picosat_add(*it);
+    }
+}
+
+void PicosatCNF::resetContext(void) {
+    if (picosatIsInitalized) {
         Picosat::picosat_reset();
     }
+
     Picosat::picosat_init();
     picosatIsInitalized = true;
-
-    Picosat::picosat_set_global_default_phase(defaultPhase);
-    this->varcount=0;
-    this->clausecount=0;
+    currentContext = 0;
 }
 
-PicosatCNF::~PicosatCNF()
-{
-    //Picosat::picosat_reset();
-}
-
-void PicosatCNF::readFromFile(istream &)
-{
-
+void PicosatCNF::readFromFile(istream &) {
     //TODO
 }
 
@@ -116,16 +125,15 @@ string &PicosatCNF::getSymbolName(int CNFVar)
 
 void PicosatCNF::pushVar(int v)
 {
-    if(v > this->varcount) {
-        this->varcount=v;
+    if (abs(v) > this->varcount) {
+        this->varcount = abs(v);
     }
-    if(-v > this->varcount) {
-        this->varcount=-v;
-    }
+
     if(v == 0) {
         this->clausecount++;
     }
-    Picosat::picosat_add(v);
+
+    clauses.push_back(v);
 }
 
 void PicosatCNF::pushVar(string  &v, bool val)
@@ -138,7 +146,8 @@ void PicosatCNF::pushVar(string  &v, bool val)
 void PicosatCNF::pushClause(void)
 {
     this->clausecount++;
-    Picosat::picosat_add(0);
+
+    clauses.push_back(0);
 }
 
 void PicosatCNF::pushClause(int *c)
@@ -152,7 +161,7 @@ void PicosatCNF::pushClause(int *c)
 
 void PicosatCNF::pushAssumption(int v)
 {
-    Picosat::picosat_assume(v);
+    assumptions.push_back(v);
 }
 
 void PicosatCNF::pushAssumption(string &v,bool val)
@@ -166,63 +175,29 @@ void PicosatCNF::pushAssumption(string &v,bool val)
 
 void PicosatCNF::pushAssumption(const char *v,bool val)
 {
-    string s(v);
+    std::string s(v);
+
     this->pushAssumption(s, val);
 }
 
 bool PicosatCNF::checkSatisfiable(void)
 {
+    vector<int>::iterator it;
+
+    if (this != currentContext){
+        this->loadContext();
+    }
+
+    for (it = assumptions.begin(); it != assumptions.end(); it++) {
+        Picosat::picosat_assume(*it);
+    }
+
+    assumptions.clear();
     return Picosat::picosat_sat(-1) == PICOSAT_SATISFIABLE;
 }
 
-void PicosatCNF::readAssumptionsFromFile(istream &i)
-{
-#if 0
-   string line;
-    while(! getline (i,line).eof()) {
-        if(line == "" || line[0] == '#') {
-            continue;
-        }
-        stringstream l(line);
-        string sym;
-        string val;
-        getline(l, sym, '=');
-        getline(l, val, '\n');
-        string symR = sym.substr(7, sym.length()-7);
-
-        enum symbol_type type = this->getSymbolType(symR);
-        string symM = sym + "_MODULES";
-
-        switch(type) {
-            case S_BOOLEAN:
-                if(val == "y")
-                    this->pushAssumption(sym,true);
-                else
-                    this->pushAssumption(sym,false);
-                break;
-            case S_TRISTATE:
-                if(val == "y")
-                    this->pushAssumption(sym,true);
-                else if (val == "m") {
-                    this->pushAssumption(symM,true);
-                }
-                else {
-                    this->pushAssumption(sym,false);
-                    this->pushAssumption(symM,false);
-                }
-                break;
-            case S_INT: case S_HEX:case S_STRING:
-                //TODO!!!
-                break;
-            case S_OTHER: case S_UNKNOWN:
-                break;
-
-            default:
-                //just to make the compiler happy
-                break;
-        }
-    }
-#endif
+void PicosatCNF::readAssumptionsFromFile(istream &) {
+    // FIXME
 }
 
 bool PicosatCNF::deref(int s)

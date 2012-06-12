@@ -28,7 +28,7 @@ DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
 PROGS = undertaker predator
 TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel test-PresetList \
-            test-Bool test-CNFBuilder test-BoolExpSymbolSet
+            test-Bool test-CNFBuilder test-BoolExpSymbolSet test-PicosatCNF
 
 all: $(PROGS) $(TESTPROGS)
 

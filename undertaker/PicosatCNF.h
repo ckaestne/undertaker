@@ -22,6 +22,7 @@
 #define KCONFIG_PICOSATCNF_H
 
 #include<map>
+#include<vector>
 #include<string>
 #include<stdio.h>
 #include<stdlib.h>
@@ -39,17 +40,22 @@ namespace Picosat
     }
 };
 
-using namespace std;
 namespace kconfig
 {
     class PicosatCNF: public CNF
     {
         private:
-            map<string, int> symboltypes;
-            map<string, int> cnfvars;
-            map<int, string> boolvars;
+            std::map<string, int> symboltypes;
+            std::map<string, int> cnfvars;
+            std::map<int, string> boolvars;
+            std::vector<int> clauses;
+            std::vector<int> assumptions;
+            int defaultPhase;
             int varcount;
             int clausecount;
+
+            void loadContext(void);
+            void resetContext(void);
 
         public:
             PicosatCNF(int defaultPhase = 0);
