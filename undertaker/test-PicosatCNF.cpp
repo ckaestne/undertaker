@@ -354,7 +354,7 @@ START_TEST(readCnfFileWithStrings) {
     file << "-4 1 0\n";
     // v5 -> (v2 || !v3)
     file << "-5 2 -3 0\n";
-    // v5 -> (v2 || v4)
+    // v6 -> (v2 || v4)
     file << "-6 2 4 0\n";
 
     PicosatCNF cnf;
@@ -366,6 +366,55 @@ START_TEST(readCnfFileWithStrings) {
     std::string v4("v4");
     std::string v5("v5");
     std::string v6("v6");
+
+    cnf.pushAssumption(v2, false);
+    cnf.pushAssumption(v5, true);
+    cnf.pushAssumption(v6, true);
+
+    fail_unless(cnf.checkSatisfiable());
+    fail_unless(cnf.deref(v1) == true);
+    fail_unless(cnf.deref(v2) == false);
+    fail_unless(cnf.deref(v3) == false);
+    fail_unless(cnf.deref(v4) == true);
+    fail_unless(cnf.deref(v5) == true);
+    fail_unless(cnf.deref(v6) == true);
+
+} END_TEST;
+
+START_TEST(addClausesToCnfFromFile) {
+    std::string v1("v1");
+    std::string v2("v2");
+    std::string v3("v3");
+    std::string v4("v4");
+    std::string v5("v5");
+    std::string v6("v6");
+
+    std::stringstream file;
+    file << "c trivial test model\n";
+    file << "c var v1 1\n";
+    file << "c var v2 2\n";
+    file << "c var v3 3\n";
+    file << "c var v4 4\n";
+    file << "c var v5 5\n";
+    file << "c var v6 6\n";
+    file << "p cnf 6 5\n";
+    // v2 -> v1
+    file << "-2 1 0\n";
+    // v3 -> v1
+    file << "-3 1 0\n";
+    // v4 -> v1
+    file << "-4 1 0\n";
+    // v5 -> (v2 || !v3)
+    file << "-5 2 -3 0\n";
+
+    PicosatCNF cnf;
+    cnf.readFromFile(file);
+
+    // v6 -> (v2 || v4)
+    cnf.pushVar(-6);
+    cnf.pushVar(2);
+    cnf.pushVar(4);
+    cnf.pushClause();
 
     cnf.pushAssumption(v2, false);
     cnf.pushAssumption(v5, true);
@@ -393,7 +442,7 @@ Suite *cond_block_suite(void) {
     tcase_add_test(tc, toFileWithSymbolTable);
     tcase_add_test(tc, readCnfFileWithInts);
     tcase_add_test(tc, readCnfFileWithStrings);
-
+    tcase_add_test(tc, addClausesToCnfFromFile);
     suite_add_tcase(s, tc);
     return s;
 }

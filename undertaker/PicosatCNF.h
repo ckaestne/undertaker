@@ -81,6 +81,8 @@ namespace kconfig
             virtual void readAssumptionsFromFile(istream &i);
             virtual bool deref(int s);
             virtual bool deref(string &s);
+            virtual int getVarCount(void);
+            virtual int newVar(void);
             virtual std::map<string, int>::const_iterator getSymbolsItBegin();
             virtual std::map<string, int>::const_iterator getSymbolsItEnd();
             const std::deque<std::string> *getMetaValue(const std::string &key) const;

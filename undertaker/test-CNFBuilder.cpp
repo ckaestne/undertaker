@@ -28,6 +28,19 @@
 using namespace kconfig;
 using namespace std;
 
+START_TEST(buildCNFVarUsedMultipleTimes)
+{
+    BoolExp *e = BoolExp::parseString("x && !x");
+    PicosatCNF *cnf = new PicosatCNF();
+    CNFBuilder builder;
+    builder.cnf = cnf;
+    builder.pushClause(e);
+
+    fail_if(cnf->checkSatisfiable());
+
+} END_TEST;
+
+
 START_TEST(buildCNFOr)
 {
     BoolExp *e = BoolExp::parseString("x || y");
@@ -403,6 +416,7 @@ Suite *cond_block_suite(void)
     tcase_add_test(tc, buildAndNull);
     tcase_add_test(tc, buildImplNull);
     tcase_add_test(tc, literals);
+    tcase_add_test(tc, buildCNFVarUsedMultipleTimes);
     suite_add_tcase(s, tc);
     return s;
 }

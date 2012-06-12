@@ -323,3 +323,13 @@ const std::deque<std::string> *PicosatCNF::getMetaValue(const std::string &key) 
         return NULL;
     return &((*i).second);
 }
+
+int PicosatCNF::getVarCount(void) {
+    return varcount;
+}
+
+int PicosatCNF::newVar(void) {
+    varcount++;
+    return varcount;
+}
+

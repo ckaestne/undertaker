@@ -27,22 +27,12 @@ using namespace std;
 
 CNFBuilder::CNFBuilder(bool useKconfigWhitelist, enum ConstantPolicy constPolicy)
 {
-    this->varcount = 0;
-    this->clausecount = 0;
+
     this->boolvar = 0;
     this->wl = useKconfigWhitelist ? KconfigWhitelist::getIgnorelist() : 0;
     this->constPolicy = constPolicy;
 
 }
-
-#if 0
-void CNFBuilder::pushSymbolInfo(struct symbol *sym)
-{
-    string name(sym->name);
-    cnf->setSymbolType(name, sym->type);
-}
-#endif
-
 
 void CNFBuilder::pushClause(BoolExp *e)
 {
@@ -57,21 +47,19 @@ void CNFBuilder::pushClause(BoolExp *e)
 
 int CNFBuilder::addVar(std::string symname) {
     std::map<std::string, int>::iterator it;
+    int cv = cnf->getCNFVar(symname);
 
-    if ((it = this->knownSymbols.find(symname)) == this->knownSymbols.end()) {
+    if (cv == 0) {
         //Var not known yet:
         // add new var
-        this->varcount++;
-        int newVar = this->varcount;
+        int newVar = this->cnf->newVar();
 
         //add var to mapping
         cnf->setCNFVar(symname, newVar);
-        this->knownSymbols[symname] = newVar;
         return newVar;
     }
-
     //var known:
-    return it->second;
+    return cv;
 }
 
 void CNFBuilder::visit(BoolExp *) {
@@ -81,8 +69,8 @@ void CNFBuilder::visit(BoolExp *) {
 void CNFBuilder::visit(BoolExpAnd *e) {
     if (e->CNFVar)
         return;
-    this->varcount++;
-    e->CNFVar = this->varcount;
+
+    e->CNFVar = this->cnf->newVar();
 
     // add clauses
     int h = e->CNFVar;
@@ -109,8 +97,8 @@ void CNFBuilder::visit(BoolExpOr *e)
 {
     if (e->CNFVar)
         return;
-    this->varcount++;
-    e->CNFVar = this->varcount;
+
+    e->CNFVar = this->cnf->newVar();
 
     // add clauses
     int h = e->CNFVar;
@@ -137,8 +125,8 @@ void CNFBuilder::visit(BoolExpImpl *e)
 {
     if (e->CNFVar)
         return;
-    this->varcount++;
-    e->CNFVar = this->varcount;
+
+    e->CNFVar = this->cnf->newVar();
 
     // add clauses
     int h = e->CNFVar;
@@ -165,8 +153,8 @@ void CNFBuilder::visit(BoolExpEq *e)
 {
     if (e->CNFVar)
         return;
-    this->varcount++;
-    e->CNFVar = this->varcount;
+
+    e->CNFVar = this->cnf->newVar();
 
     // add clauses
     int h = e->CNFVar;
@@ -198,15 +186,15 @@ void CNFBuilder::visit(BoolExpEq *e)
 void CNFBuilder::visit(BoolExpAny *e)
 {
     // add free variable for arith. Operators (ie, handle them later..)
-    this->varcount++;
-    e->CNFVar = this->varcount;
+
+    e->CNFVar = this->cnf->newVar();
 }
 
 void CNFBuilder::visit(BoolExpCall *e)
 {
     // add free variable for function calls (ie, handle them later..)
-    this->varcount++;
-    e->CNFVar = this->varcount;
+
+    e->CNFVar = this->cnf->newVar();
 }
 
 void CNFBuilder::visit(BoolExpNot *e)
@@ -226,15 +214,15 @@ void CNFBuilder::visit(BoolExpConst *e)
     //will fail when const are unified
     if (constPolicy == CNFBuilder::FREE){
         //handle consts as free var
-        this->varcount++;
-        e->CNFVar = this->varcount;
+
+        e->CNFVar = this->cnf->newVar();
         return;
     }
 
 
     if (!this->boolvar) {
-        this->varcount++;
-        this->boolvar = this->varcount;
+
+        this->boolvar = this->cnf->newVar();
         cnf->pushVar(boolvar);
         cnf->pushClause();
     }
@@ -250,11 +238,12 @@ void CNFBuilder::visit(BoolExpVar *e)
     string symname = e->str();
 
     std::map<std::string, int>::iterator it;
+    int cv;
     if(this->wl && wl->isWhitelisted(symname.c_str())) {
         // use free variables for symbols in wl
 
-        this->varcount++;
-        e->CNFVar = this->varcount;
+
+        e->CNFVar = this->cnf->newVar();
     }
     else {
         e->CNFVar = this->addVar(symname);

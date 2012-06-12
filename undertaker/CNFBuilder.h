@@ -39,13 +39,7 @@ namespace kconfig
         public:
             enum ConstantPolicy {BOUND = 0, FREE};
         private:
-            int varcount;
-            int clausecount;
-
             int boolvar;
-
-            std::stringstream clauses;
-            std::map<std::string, int> knownSymbols;
 
             KconfigWhitelist *wl;
 
@@ -58,7 +52,6 @@ namespace kconfig
             CNF *cnf;
 
             CNFBuilder(bool useKconfigWhitelist=false, enum ConstantPolicy constPolicy=BOUND);
-            /*void pushSymbolInfo(struct symbol * sym);*/
 
             //! Add clauses from the parsed boolean expression e
             /**

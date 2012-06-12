@@ -47,8 +47,10 @@ namespace kconfig
             virtual void pushAssumption(const char *v,bool val)= 0;
             virtual bool checkSatisfiable(void)= 0;
             virtual void readAssumptionsFromFile(istream &i) = 0;
-            virtual bool deref(int s) =0;
-            virtual bool deref(string &s) =0;
+            virtual bool deref(int s) = 0;
+            virtual bool deref(string &s) = 0;
+            virtual int getVarCount(void) = 0;
+            virtual int newVar(void) = 0;
             virtual std::map<string, int>::const_iterator getSymbolsItBegin() = 0;
             virtual std::map<string, int>::const_iterator getSymbolsItEnd() = 0;
 
