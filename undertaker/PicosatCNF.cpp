@@ -2,6 +2,7 @@
  *   boolframwork - boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,6 +27,7 @@
 #include "IOException.h"
 #include "KconfigWhitelist.h"
 #include "Logging.h"
+#include "StringJoiner.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -73,6 +75,7 @@ void PicosatCNF::readFromFile(istream &i) {
         static const boost::regex var_regexp("^c var (.+) (\\d+)$");
         static const boost::regex sym_regexp("^c sym (.+) (\\d)$");
         static const boost::regex dim_regexp("^p cnf (\\d+) (\\d+)$");
+        static const boost::regex meta_regexp("^c meta_value (.+) (.+)$");
         static const boost::regex cls_regexp("^-?\\d+");
         static const boost::regex comment_regexp("^c ");
         boost::match_results<std::string::const_iterator> what;
@@ -90,6 +93,14 @@ void PicosatCNF::readFromFile(istream &i) {
             //(only a speedup)
             // int variables = boost::lexical_cast<int>(what[1]);
             // int clauses = boost::lexical_cast<int>(what[2]));
+        } else if (boost::regex_match(line, what, meta_regexp)) {
+            std::string metavalue = what[1];
+            std::stringstream content(what[2]);
+            std::string item;
+
+            while (content >> item) {
+                this->addMetaValue(metavalue, item);
+            }
         } else if (boost::regex_search(line, cls_regexp)) {
             std::stringstream l(line);
             int val;
@@ -126,6 +137,17 @@ void PicosatCNF::toFile(ostream &out) {
         << std::endl;
     out << "c variable names:" << std::endl;
     out << "c c var <variablename> <cnfvar>" << std::endl;
+
+    for (std::map<std::string, std::deque<std::string> >::const_iterator k = meta_information.begin();
+         k != meta_information.end(); k++) {
+        StringJoiner sj;
+
+        sj.push_back("c meta_value");
+        sj.push_back((*k).first);
+        for (std::deque<std::string>::const_iterator j = k->second.begin(); j != k->second.end(); j++)
+            sj.push_back(*j);
+        out << sj.join(" ") << std::endl;
+    }
 
     for (it = this->symboltypes.begin(); it != this->symboltypes.end(); it++) {
         const string &sym = it->first;
@@ -273,4 +295,26 @@ std::map<string, int>::const_iterator PicosatCNF::getSymbolsItBegin()
 std::map<string, int>::const_iterator PicosatCNF::getSymbolsItEnd()
 {
     return this->cnfvars.end();
+}
+
+void PicosatCNF::addMetaValue(const std::string &key, const std::string &value) {
+    std::map<std::string, std::deque<std::string> >::const_iterator i = this->meta_information.find(key);
+    std::deque<std::string> values;
+
+    if (i != meta_information.end()) {
+        values = (*i).second;
+        meta_information.erase(key);
+    }
+
+    values.push_back(value);
+    meta_information.insert(make_pair(key, values));
+}
+
+const std::deque<std::string> *PicosatCNF::getMetaValue(const std::string &key) const {
+    static std::string null_string("");
+
+    std::map<std::string, std::deque<std::string> >::const_iterator i = meta_information.find(key);
+    if (i == meta_information.end())
+        return NULL;
+    return &((*i).second);
 }

@@ -2,6 +2,7 @@
  *   boolframwork - boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,6 +25,7 @@
 #include<map>
 #include<vector>
 #include<string>
+#include<deque>
 #include<stdio.h>
 #include<stdlib.h>
 #include "CNF.h"
@@ -50,6 +52,7 @@ namespace kconfig
             std::map<int, string> boolvars;
             std::vector<int> clauses;
             std::vector<int> assumptions;
+            std::map<std::string, std::deque<std::string> > meta_information;
             int defaultPhase;
             int varcount;
             int clausecount;
@@ -80,7 +83,8 @@ namespace kconfig
             virtual bool deref(string &s);
             virtual std::map<string, int>::const_iterator getSymbolsItBegin();
             virtual std::map<string, int>::const_iterator getSymbolsItEnd();
-
+            const std::deque<std::string> *getMetaValue(const std::string &key) const;
+            void addMetaValue(const std::string &key, const std::string &value);
     };
 }
 #endif

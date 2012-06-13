@@ -249,6 +249,10 @@ START_TEST(toFileWithSymbolTable) {
     cnf.setCNFVar(v3, 3);
     cnf.setCNFVar(v4, 4);
 
+    cnf.addMetaValue("ALWAYS_ON", "v4");
+    cnf.addMetaValue("ALWAYS_ON", "v5");
+    cnf.addMetaValue("ALWAYS_OFF", "v1");
+
     // building the model
 
     // !v2 || v1
@@ -278,6 +282,8 @@ START_TEST(toFileWithSymbolTable) {
         "c enum {S_BOOLEAN=1, S_TRISTATE=2, S_INT=3, S_HEX=4, S_STRING=5, S_OTHER=5}\n"
         "c variable names:\n"
         "c c var <variablename> <cnfvar>\n"
+        "c meta_value ALWAYS_OFF v1\n"
+        "c meta_value ALWAYS_ON v4 v5\n"
         "c var v1 1\n"
         "c var v2 2\n"
         "c var v3 3\n"
@@ -331,6 +337,8 @@ START_TEST(readCnfFileWithStrings) {
     std::stringstream file;
 
     file << "c trivial test model\n";
+    file << "c ALWAYS_ON v4 v5\n";
+    file << "c ALWAYS_OFF v2\n";
     file << "c var v1 1\n";
     file << "c var v2 2\n";
     file << "c var v3 3\n";
