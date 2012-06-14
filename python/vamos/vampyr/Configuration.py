@@ -20,8 +20,7 @@
 
 from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage, SpatchMessage
 from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
-from vamos.golem.kbuild import guess_arch_from_filename, call_linux_makefile, \
-    apply_configuration, find_autoconf, guess_subarch_from_arch, \
+from vamos.golem.kbuild import call_linux_makefile, apply_configuration, find_autoconf, \
     files_for_current_configuration
 from vamos.tools import execute
 from vamos.model import Model
@@ -169,32 +168,20 @@ class LinuxConfiguration(Configuration):
 
     """
     def __init__(self, framework, basename, nth,
-                 arch=None, subarch=None,
                  expansion_strategy='alldefconfig'):
         Configuration.__init__(self, framework, basename, nth)
 
         self.expanded = None
         self.expansion_strategy = expansion_strategy
         self.model = None
+        self.arch = self.framework.options['arch']
+        self.subarch = self.framework.options['subarch']
+        self.result_cache = {}
+
         try:
             os.unlink(self.kconfig + '.expanded')
         except OSError:
             pass
-
-        if arch:
-            self.arch = arch
-
-            if subarch:
-                self.subarch = subarch
-            else:
-                self.subarch = guess_subarch_from_arch(arch)
-        else:
-            oldsubarch = subarch
-            self.arch, self.subarch = guess_arch_from_filename(self.kconfig)
-            if oldsubarch:
-                self.subarch = oldsubarch
-
-        self.result_cache = {}
 
     def get_config_h(self):
         return find_autoconf()
@@ -418,12 +405,8 @@ class LinuxPartialConfiguration(LinuxConfiguration):
     NB: the self.cppflags and self.source is set to "/dev/null"
     """
 
-    def __init__(self, framework, filename, arch, subarch,
-                 expansion_strategy='alldefconfig'):
-        assert arch
-        logging.debug("arch: %s, subarch: %s", arch, subarch)
+    def __init__(self, framework, filename, expansion_strategy='alldefconfig'):
         LinuxConfiguration.__init__(self, framework,
-                                    arch=arch, subarch=subarch,
                                     basename=filename, nth="",
                                     expansion_strategy=expansion_strategy)
 
@@ -451,14 +434,10 @@ class LinuxStdConfiguration(LinuxConfiguration):
     immediately.
     """
 
-    def __init__(self, framework, basename, arch, subarch):
+    def __init__(self, framework, basename):
         assert framework.options.has_key('stdconfig')
-        assert arch
-        assert subarch
-        logging.debug("arch: %s, subarch: %s", arch, subarch)
         configuration = ".%s" % framework.options['stdconfig']
         LinuxConfiguration.__init__(self, framework,
-                                    arch=arch, subarch=subarch,
                                     basename=basename, nth=configuration)
 
         self.cppflags = '/dev/null'
@@ -466,17 +445,13 @@ class LinuxStdConfiguration(LinuxConfiguration):
         self.kconfig  = '/dev/null'
 
     def expand(self, verify=False):
-
-        arch    = self.framework.options['arch']
-        subarch = self.framework.options['subarch']
-
         call_linux_makefile(self.framework.options['stdconfig'],
-                            arch=arch, subarch=subarch,
+                            arch=self.arch, subarch=self.subarch,
                             failok=False)
 
         if not self.framework.options.has_key('stdconfig_files'):
             self.framework.options['stdconfig_files'] \
-                = set(files_for_current_configuration(arch, subarch))
+                = set(files_for_current_configuration(self.arch, self.subarch))
         else:
             apply_configuration(arch=self.arch, subarch=self.subarch)
         self.kconfig = '.vampyr.' + self.framework.options['stdconfig']

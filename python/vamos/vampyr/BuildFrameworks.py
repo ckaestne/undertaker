@@ -207,13 +207,13 @@ class KbuildBuildFramework(BuildFramework):
             options=dict()
         BuildFramework.__init__(self, options)
         if not options.has_key('expansion_strategy'):
-            options['expansion_strategy'] = 'alldefconfig'
+            self.options['expansion_strategy'] = 'alldefconfig'
         if not options.has_key('coverage_strategy'):
-            options['coverage_strategy'] = 'min'
+            self.options['coverage_strategy'] = 'min'
         if not options.has_key('arch'):
-            options['arch'] = vamos.default_architecture
+            self.options['arch'] = vamos.default_architecture
         if not options.has_key('subarch'):
-            options['subarch'] = guess_subarch_from_arch(options['arch'])
+            self.options['subarch'] = guess_subarch_from_arch(self.options['arch'])
 
     def identifier(self):
         return "kbuild"
@@ -270,7 +270,6 @@ class KbuildBuildFramework(BuildFramework):
             basename, ext = os.path.splitext(cfgfile)
             nth = int(ext[len('.config'):])
             config_obj = LinuxConfiguration(self, basename, nth,
-                                            arch=self.options['arch'], subarch=self.options['subarch'],
                                             expansion_strategy=self.options['expansion_strategy'])
             config_obj.switch_to()
             if file_in_current_configuration(filename, config_obj.arch, config_obj.subarch) != "n":
@@ -297,9 +296,8 @@ class KbuildBuildFramework(BuildFramework):
                          self.options['stdconfig'], filename)
             return None
 
-        c  = LinuxStdConfiguration(self, basename=filename,
-                                   arch=self.options['arch'],
-                                   subarch=self.options['subarch'])
+        c  = LinuxStdConfiguration(self, basename=filename)
+
         if not verify:
             return c
 

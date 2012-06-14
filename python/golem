@@ -193,7 +193,6 @@ def main():
         framework_exp = KbuildBuildFramework()
         config_exp = LinuxPartialConfiguration(framework_exp,
                                                opts.partialconfig,
-                                               arch, subarch,
                                                opts.strategy)
         if not os.path.exists("models/%s.model" % arch):
             logging.info("Model for arch %s absent, skipping verification", arch)
