@@ -12,7 +12,11 @@ endif
 
 # Read auto.conf if it exists, otherwise ignore
 ifeq ($(auto_conf),)
+ifeq ($(wildcard include/config/auto.conf),)
+include .config
+else
 -include include/config/auto.conf
+endif
 else
 include $(auto_conf)
 endif
