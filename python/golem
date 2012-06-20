@@ -37,8 +37,9 @@ from vamos.golem.inference_atoms import *
 from vamos.golem.kbuild import determine_buildsystem_variables, \
     file_in_current_configuration, files_for_current_configuration, \
     determine_buildsystem_variables_in_directory, \
-    get_linux_version, get_busybox_version, NotALinuxTree, TreeNotConfigured, \
-    guess_subarch_from_arch, NotABusyboxTree
+    get_linux_version, get_busybox_version, get_coreboot_version, \
+    NotALinuxTree, TreeNotConfigured, \
+    guess_subarch_from_arch, NotABusyboxTree, NotACorebootTree
 from vamos.vampyr.Configuration import LinuxPartialConfiguration
 from vamos.vampyr.BuildFrameworks import KbuildBuildFramework
 from vamos.vampyr.utils import ExpansionError
@@ -142,6 +143,13 @@ def main():
         arch = 'busybox'
     except NotABusyboxTree:
         pass
+    try:
+        logging.info("detected Coreboot version %s", get_coreboot_version())
+        arch = 'coreboot'
+        if os.environ.has_key('SUBARCH'):
+            subarch = os.environ['SUBARCH']
+    except NotACorebootTree:
+        pass
 
     if not arch:
         try:
@@ -166,7 +174,6 @@ def main():
     if not arch:
         logging.error("No supported software project found")
         sys.exit(1)
-
     if opts.inference:
         try:
             do_inference(args, arch=arch, subarch=subarch)
@@ -174,14 +181,12 @@ def main():
             logging.error("Calculating inferences failed: %s", e)
             sys.exit(1)
         sys.exit(0)
-
     if opts.do_opt:
         variables = determine_buildsystem_variables(arch)
         logging.info("Detected %d Kconfig variables in Makefiles", len(variables))
         for v in variables:
             print 'CONFIG_' + v
         sys.exit(0)
-
 
     if opts.do_directory:
         find_variables_in_directories(arch, args)
@@ -202,6 +207,7 @@ def main():
                 config_exp.expand(verify=True)
             except ExpansionError as e:
                 logging.warning(str(e))
+
     if opts.do_list:
         how = opts.verbose > 0
         try:

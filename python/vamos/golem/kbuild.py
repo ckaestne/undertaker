@@ -4,6 +4,7 @@
 # Copyright (C) 2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Andreas Ruprecht <rupran@einserver.de>
+# Copyright (C) 2012 Stefan Hengelein <stefan.hengelein@informatik.stud.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +29,7 @@ from glob import glob
 import logging
 import os
 import re
+import shutil
 import sys
 
 import vamos
@@ -43,9 +45,12 @@ class NotALinuxTree(RuntimeError):
 
 
 class NotABusyboxTree(RuntimeError):
-    """ Indicates we are not in a Linux tree """
+    """ Indicates we are not in a Busybox tree """
     pass
 
+class NotACorebootTree(RuntimeError):
+    """ Indicates we are not in a Coreboot tree """
+    pass
 
 def find_autoconf():
     """ returns the path to the autoconf.h file in this linux tree
@@ -121,26 +126,16 @@ def guess_source_for_target(target):
             return sourcefile
     return None
 
-
-def files_for_current_configuration(arch=None, subarch=None, how=False):
+def linux_files_for_current_configuration(arch=None, subarch=None, how=False):
     """
-    to be run in a Linux source tree.
-
     Returns a list of files that are compiled with the current
     configuration.
 
-    The parameter 'how', which defaults to False, decides on the mode of
-    operation. If it is set to False, this function guesses for each
-    found file the corresponding source file. A warning is issued if the
-    source file could not be guessed and the file is ignored. If it is
-    set to True, the function returns a list of object files and
-    additionally indicates in what way (i.e., module or statically
-    built-in) the object file is compiled.
+    to be run in a Linux source tree.
 
     NB: If not working for the default architecture 'x86', the optional
     parameters "arch" (and possibly "subarch") need to be specified!
     """
-
     # locate directory for supplemental makefiles
     scriptsdir = find_scripts_basedir()
     assert os.path.exists(os.path.join(scriptsdir, 'Makefile.list_recursion'))
@@ -178,6 +173,78 @@ def files_for_current_configuration(arch=None, subarch=None, how=False):
             raise RuntimeError("Failed to parse line '%s'" % line)
 
     return files
+
+def coreboot_files_for_current_configuration(subarch=None):
+    """
+    Returns a list of files that are compiled with the current
+    configuration.
+
+    Unlike in the Linux case, the parameter 'subarch' specifies the
+    selected vendor and mainboard in the form "VENDOR/MAINBOARD".
+
+    If there is no current configuration, (i.e., '.config' does not
+    exist), then qemu-x86 is selected as side effect.
+
+    To be run in a coreboot source tree.
+    """
+
+    if subarch == None and not os.path.exists('.config'):
+        logging.warning('.config does not exist, defaulting to qemu-x86')
+        subarch = "emulation/qemu-x86"
+
+    if subarch != None:
+        subarch_regex = re.compile("([a-zA-Z0-9_-]+)/([a-zA-Z_0-9-]+)")
+        m             = subarch_regex.match(subarch)
+
+        if m:
+            vendor    = m.group(1)
+            mainboard = m.group(2)
+            logging.debug("Using Vendor '%s', Mainboard '%s'", vendor, mainboard)
+
+            cmd = './util/abuild/abuild -C -t %s/%s' % (vendor, mainboard)
+            if not os.path.isdir('./coreboot-builds/%s_%s' % (vendor, mainboard)):
+                execute(cmd, failok=True)
+
+            if not os.path.isdir('./coreboot-builds/%s_%s' % (vendor, mainboard)):
+                raise RuntimeError('%s failed. ' % cmd + \
+                    'Maybe Vendor and/or Mainboard does not exist?')
+        else:
+            raise RuntimeError('SUBARCH (%s) given but has invalid syntax, \
+                use "Vendor/Mainboard" instead' % subarch)
+
+        shutil.copy('./coreboot-builds/%s_%s/config.build' % (vendor, mainboard),
+                    '.config')
+
+    (output, _) = call_coreboot_makefile('printall', failok=False)
+
+    files = set()
+    for line in output:
+        if line.startswith("allsrcs="):
+            for f in line[len('allsrcs=')+1:].split(): # skip first item
+                files.add(f)
+    return files
+
+def files_for_current_configuration(arch, subarch, how=False):
+    """
+    Returns a list of files that are compiled with the current
+    configuration.
+
+    The parameter 'how', which defaults to False, decides on the mode of
+    operation. If it is set to False, this function guesses for each
+    found file the corresponding source file. A warning is issued if the
+    source file could not be guessed and the file is ignored. If it is
+    set to True, the function returns a list of object files and
+    additionally indicates in what way (i.e., module or statically
+    built-in) the object file is compiled.
+
+    Distinguishes if current tree is linux or coreboot and then
+    returns a list of files that are compiled with the current
+    configuration.
+    """
+    if arch == 'coreboot':
+        return coreboot_files_for_current_configuration(subarch)
+    else:
+        return linux_files_for_current_configuration(arch, subarch, how)
 
 
 def file_in_current_configuration(filename, arch=None, subarch=None):
@@ -433,6 +500,35 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
     else:
         return execute(cmd, failok=failok)
 
+def call_coreboot_makefile(target, extra_env="", extra_variables="",
+                           failok=True, dryrun=False, njobs=None):
+    """
+    Invokes 'make' in a Coreboot Buildtree.
+
+    Since coreboot has just x86 Architecture, this is a simplified version of
+    call_linux_makefile.
+
+    If dryrun is True, then the command line is returned instead of the
+    command's execution output. This is mainly useful for testing.
+
+    returns a tuple with
+     1. the command's standard output as list of lines
+     2. the exitcode
+    """
+
+    if njobs is None:
+        njobs = int(os.sysconf('SC_NPROCESSORS_ONLN') * 1.20 + 0.5)
+
+    cmd = "env %(extra_env)s make -j%(njobs)s %(target)s %(extra_variables)s " % \
+        { 'njobs': njobs,
+          'extra_env': extra_env,
+          'target': target,
+          'extra_variables': extra_variables }
+
+    if dryrun:
+        return (cmd, 0)
+    else:
+        return execute(cmd, failok=failok)
 
 def get_linux_version():
     """
@@ -520,6 +616,32 @@ def get_busybox_version():
     else:
         return version
 
+def get_coreboot_version():
+    """
+    Check that the current working directory is actually a Coreboot tree
+
+    If we are in a git tree, return that bios version. If the version could
+    not be retrieved, a 'NotACorebootTree' exception is raised.
+    """
+
+    if not os.path.exists('Makefile') and not os.path.exists('Makefile.inc') \
+            and not os.path.exists('src/Kconfig'):
+        raise NotACorebootTree("No 'Makefile' or 'Makefile.inc' found")
+
+    if os.path.isdir('.git'):
+        cmd = "git describe"
+        (output, ret) = execute(cmd)
+        git_version = output[0]
+        if (ret > 0):
+            git_version = ""
+            logging.debug("Execution of '%s' command failed, analyzing the Makefile instead",
+                          cmd)
+
+        # 'standard' Coreboot repository descriptions start with 4.
+        if git_version.startswith(("4.")):
+            return git_version
+
+    raise NotACorebootTree("Coreboot Version could not be retrieved")
 
 def find_scripts_basedir():
     executable = os.path.realpath(sys.argv[0])
