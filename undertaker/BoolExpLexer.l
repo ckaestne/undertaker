@@ -61,7 +61,7 @@ typedef kconfig::BoolExpParser::token_type token_type;
 [0-9]+u?l{0,2}           return token::TTRUE; /* FIXME int type*/
 \'.\'                    return token::TTRUE; /* FIXME char type; fixme chars/escapeseq */
 
-[A-Za-z_][A-Za-z0-9_\.]* { yylval->stringVal = new std::string(yytext, yyleng);
+[A-Za-z_\.][A-Za-z0-9_\.]* { yylval->stringVal = new std::string(yytext, yyleng);
                           return token::STRING;
                          }
 

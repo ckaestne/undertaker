@@ -63,6 +63,7 @@ START_TEST(bool_parser_test)
     parse_test("( B23 <->  ( B1 )  && ( MAX_DMA_CHANNELS >= 12 ) >> 2 )", true);
     parse_test("( B0 <-> CONFIG_TTYS0_BASE == 0x2f8 )", true);
     parse_test("( B172 <-> B0 && (FAMILY_MMIO_BASE_MASK < 0xFFFFFF0000000000ull) )", true);
+    parse_test("._.model.x86._.", true);
 }
 
 END_TEST
