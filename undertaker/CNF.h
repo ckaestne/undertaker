@@ -31,11 +31,11 @@ namespace kconfig
     {
         public:
             virtual void readFromFile(istream &i) = 0;
-            virtual void toFile(std::ostream &out) = 0;
-            virtual int  getSymbolType(string &name) = 0;
-            virtual void setSymbolType(string &sym, int type) = 0;
-            virtual int getCNFVar(string &var) = 0;
-            virtual void setCNFVar(string &var, int CNFVar) = 0;
+            virtual void toFile(std::ostream &out) const = 0;
+            virtual int  getSymbolType(const string &name) = 0;
+            virtual void setSymbolType(const string &sym, int type) = 0;
+            virtual int getCNFVar(const string &var) = 0;
+            virtual void setCNFVar(const string &var, int CNFVar) = 0;
             virtual string &getSymbolName(int CNFVar) = 0;
             virtual void pushVar(int v) = 0;
             virtual void pushVar(string  &v, bool val) = 0;
