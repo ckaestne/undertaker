@@ -162,7 +162,8 @@ int PicosatCNF::getCNFVar(string &var)
 {
     //TODO: add new mapping for unknown variables
     //necessary since mapping is done by CNFBuilder, not by picosat itself
-    return this->cnfvars[var];
+    std::map<std::string, int>::const_iterator it = this->cnfvars.find(var);
+    return (it == this->cnfvars.end()) ? 0 : it->second;
 }
 
 void PicosatCNF::setCNFVar(string &var, int CNFVar)
