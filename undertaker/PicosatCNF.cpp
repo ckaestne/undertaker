@@ -44,7 +44,11 @@ PicosatCNF::PicosatCNF(int defaultPhase)
     resetContext();
 }
 
-PicosatCNF::~PicosatCNF() {}
+PicosatCNF::~PicosatCNF() {
+    if ( this == currentContext ) {
+        currentContext = 0;
+    }
+}
 
 void PicosatCNF::loadContext(void) {
     vector<int>::iterator it;

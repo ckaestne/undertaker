@@ -62,7 +62,7 @@ namespace kconfig
 
         public:
             PicosatCNF(int defaultPhase = 0);
-            ~PicosatCNF();
+            virtual ~PicosatCNF();
             virtual void readFromFile(istream &i);
             virtual void toFile(std::ostream &out) const;
             virtual int getSymbolType(const string &name);
