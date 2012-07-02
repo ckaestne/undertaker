@@ -176,7 +176,8 @@ void PicosatCNF::toFile(ostream &out) const {
 
 int PicosatCNF::getSymbolType(const string &name)
 {
-    return this->symboltypes[name];
+    std::map<std::string, int>::const_iterator it = this->symboltypes.find(name);
+    return (it == this->symboltypes.end()) ? 0 : it->second;
 }
 
 void PicosatCNF::setSymbolType(const string &sym, int type)
