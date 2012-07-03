@@ -79,7 +79,7 @@ void PicosatCNF::readFromFile(istream &i) {
         static const boost::regex var_regexp("^c var (.+) (\\d+)$");
         static const boost::regex sym_regexp("^c sym (.+) (\\d)$");
         static const boost::regex dim_regexp("^p cnf (\\d+) (\\d+)$");
-        static const boost::regex meta_regexp("^c meta_value (.+) (.+)$");
+        static const boost::regex meta_regexp("^c meta_value ([^\\s]+)\\s+(.+)$");
         static const boost::regex cls_regexp("^-?\\d+");
         static const boost::regex comment_regexp("^c ");
         boost::match_results<std::string::const_iterator> what;
@@ -119,7 +119,7 @@ void PicosatCNF::readFromFile(istream &i) {
                 }
             }
         } else if (boost::regex_search(line, comment_regexp)) {
-            logger << debug << "Ignoring comment: '" << line << "'" << std::endl;
+            //ignore
         } else {
             logger << error << "Failed to parse line: '" << line << "'" << std::endl;
 
