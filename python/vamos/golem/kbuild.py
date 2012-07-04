@@ -471,11 +471,14 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
         subarch = arch
 
     if arch == 'x86':
-        # x86 is special
-        if subarch == 'i386' or vamos.prefer_32bit:
+        # x86 is special - set default first
+        if vamos.prefer_32bit:
             variant = 'i386'
         else:
             variant = 'x86_64'
+        # do we need to override manually?
+        if subarch == 'i386':   variant = 'i386'
+        if subarch == 'x86_64': variant = 'x86_64'
         extra_env += " ARCH=%s" % variant
     else:
         extra_env += " ARCH=%s" % arch

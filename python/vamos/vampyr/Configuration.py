@@ -21,7 +21,7 @@
 from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage, SpatchMessage
 from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
 from vamos.golem.kbuild import call_linux_makefile, apply_configuration, find_autoconf, \
-    files_for_current_configuration
+    files_for_current_configuration, guess_arch_from_filename
 from vamos.tools import execute
 from vamos.model import Model
 from vamos.Config import Config
@@ -405,7 +405,8 @@ class LinuxPartialConfiguration(LinuxConfiguration):
     NB: the self.cppflags and self.source is set to "/dev/null"
     """
 
-    def __init__(self, framework, filename, expansion_strategy='alldefconfig'):
+    def __init__(self, framework, filename, expansion_strategy='alldefconfig',
+                 arch=None, subarch=None):
         LinuxConfiguration.__init__(self, framework,
                                     basename=filename, nth="",
                                     expansion_strategy=expansion_strategy)
@@ -414,15 +415,16 @@ class LinuxPartialConfiguration(LinuxConfiguration):
         self.source   = '/dev/null'
         self.kconfig  = filename
 
+        if arch and subarch:
+            self.arch, self.subarch = arch, subarch
+        else:
+            self.arch, self.subarch = guess_arch_from_filename(filename)
+
     def write_config_h(self, dummy):
         pass
 
     def filename(self):
         return self.basename
-
-    def save_expanded(self, config):
-        # do not copy expanded configs around
-        return '.config'
 
 
 class LinuxStdConfiguration(LinuxConfiguration):
