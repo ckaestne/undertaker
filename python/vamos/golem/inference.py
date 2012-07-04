@@ -61,6 +61,12 @@ def all_variations(seq_SEQ):
             ret.append([i] + r)
     return ret
 
+def unique(seq):
+   # order preserving
+   noDupes = []
+   [noDupes.append(i) for i in seq if not noDupes.count(i)]
+   return noDupes
+
 class Counter:
     def __init__(self):
         self.lock = threading.Lock()
@@ -142,7 +148,7 @@ class Inferencer:
 
                 if not skip:
                     ret.append(variation)
-        return ret
+        return unique(ret)
 
     def calculate(self):
         empty_selection = Selection()
@@ -177,6 +183,8 @@ class Inferencer:
 
                 for variation in self.generate_variations(base_select, pov):
                     new_selection = Selection(base_select)
+                    assert all([not var_int in new_selection.symbols
+                                for (var_int, value) in variation])
                     for (var_int, value) in variation:
                         new_selection.push_down()
                         new_selection.add_alternative(var_int, value)

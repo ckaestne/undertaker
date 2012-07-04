@@ -69,6 +69,14 @@ def do_inference(args, arch, subarch):
             pass
 
     if not atoms:
+        try:
+            get_coreboot_version()
+            atoms = CorebootInferenceAtoms(path)
+        except NotALinuxTree:
+            pass
+
+
+    if not atoms:
         raise RuntimeError("No primitive operations found (not in a supported source tree?)")
 
 
@@ -202,7 +210,7 @@ def main():
             'loglevel': logging.getLogger().getEffectiveLevel(),
             'expansion_strategy': opts.strategy,
             }
-            
+
         framework = select_framework(None, options)
         config_exp = framework.make_partial_configuration(opts.partialconfig)
 
