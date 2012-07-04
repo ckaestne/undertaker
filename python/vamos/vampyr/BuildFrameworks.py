@@ -4,6 +4,7 @@
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Valentin Rothberg <valentinrothberg@googlemail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +22,8 @@
 import vamos
 
 from vamos.vampyr.Configuration \
-    import BareConfiguration, LinuxConfiguration, LinuxStdConfiguration
+    import BareConfiguration, LinuxConfiguration, LinuxStdConfiguration, \
+    LinuxPartialConfiguration
 from vamos.vampyr.utils import find_configurations, \
     get_conditional_blocks, get_block_to_linum_map
 from vamos.golem.kbuild import apply_configuration, file_in_current_configuration, \
@@ -120,10 +122,31 @@ class BuildFramework:
             covered_blocks = return_dict['blocks'][config_h] = \
                 set(get_conditional_blocks(filename, config_h, all_cpp_blocks=True))
         else:
-            configs = self.calculate_configurations(filename)
-            logging.info("%s: found %d configurations", filename, len(configs))
+            if self.options.has_key('configurations'):
+                if not isinstance(self.options["configurations"], set):
+                    raise RuntimeError("Internal Error, " + \
+                                       "self.options['configuration'] is not a set")
+                configs = list()
+                return_dict['all_configs'] =  list()
+                for config_path in self.options["configurations"]:
+                    config_obj = LinuxPartialConfiguration(self, config_path,
+                             expansion_strategy=self.options['expansion_strategy'])
+                    cfgfile = config_obj.kconfig
+                    return_dict['all_configs'].append(cfgfile)
+                    config_obj.switch_to()
+                    if file_in_current_configuration(filename,
+                                                     config_obj.arch,
+                                                     config_obj.subarch) != "n":
+                        logging.info("Configuration '%s' is actually compiled", cfgfile)
+                        configs.append(config_obj)
+                    else:
+                        logging.info("Configuration '%s' is *not* compiled", cfgfile)
 
-            return_dict['all_configs'] = find_configurations(filename)
+            else:
+                configs = self.calculate_configurations(filename)
+                logging.info("%s: found %d configurations", filename, len(configs))
+                return_dict['all_configs'] = find_configurations(filename)
+
             return_dict['all_config_count'] = len(return_dict['all_configs'])
             return_dict['expandable_configs'] = len(configs)
 

@@ -5,6 +5,7 @@
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Valentin Rothberg <valentinrothberg@googlemail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -126,7 +127,7 @@ def handle_file(options, filename):
                 if len(m.in_configurations) < len(configs):
                     relevant_errors.add(m)
         else:
-            # take all for BareBuildFramework 
+            # take all for BareBuildFramework
             relevant_errors.update(errors)
 
         logging.info("Found %d configuration dependent errors",
@@ -285,7 +286,8 @@ def main():
     parser.add_option("-T", "--tests-dir", dest='testsdir', action='store', type='string',
                       default="scripts/coccinelle",
                       help="directory containing the tests that should be run with the program")
-
+    parser.add_option("-K", "--kconfig-configurations", dest='configurations', action='store',
+                      default=None, help="Batch file with predefined Kconfig configurations")
     (opts, args) = parser.parse_args()
 
     setup_logging(opts.verbose)
@@ -321,12 +323,21 @@ def main():
             logging.error("Trying to set a standard config together with a configuration file, aborting")
             sys.exit(1)
 
+    if opts.configurations:
+        if os.path.exists(opts.configurations):
+            options['configurations'] = calculate_worklist([opts.configurations], True)
+            logging.info("Restricting analysis to batch file %s (%d configurations)",
+                         opts.configurations, len(options['configurations']))
+        else:
+            logging.error("Kconfig file list '%s' does not exist, aborting", opts.configurations)
+            sys.exit(1)
+
     if opts.configfile:
         if os.path.exists(opts.configfile):
-            logging.info("Restricting Analysis to %s", opts.configfile)
+            logging.info("Restricting analysis to %s", opts.configfile)
             options['configfile'] = opts.configfile
         else:
-            logging.error("Configfile %s does not exist, aborting")
+            logging.error("Configfile %s does not exist, aborting", opts.configfile)
             sys.exit(1)
 
     if opts.do_analyze:
