@@ -66,6 +66,12 @@ class BuildFramework:
         else:
             self.options = dict()
 
+    def make_configuration(self, basename, nth):
+        raise NotImplementedError
+
+    def make_partial_configuration(self, filename):
+        raise NotImplementedError
+
     def calculate_configurations(self, filename):
         raise NotImplementedError
 
@@ -129,8 +135,7 @@ class BuildFramework:
                 configs = list()
                 return_dict['all_configs'] =  list()
                 for config_path in self.options["configurations"]:
-                    config_obj = LinuxPartialConfiguration(self, config_path,
-                             expansion_strategy=self.options['expansion_strategy'])
+                    config_obj = self.make_partial_configuration(config_path)
                     cfgfile = config_obj.kconfig
                     return_dict['all_configs'].append(cfgfile)
                     config_obj.switch_to()
@@ -197,6 +202,12 @@ class BareBuildFramework(BuildFramework):
     def identifier(self):
         return "bare"
 
+    def make_configuration(self, basename, nth):
+        return BareConfiguration(self, basename, nth)
+
+    def make_partial_configuration(self, filename):
+        raise RuntimeError("BareBuildFramework does not create partial configurations")
+
     def calculate_configurations(self, filename):
         undertaker = "undertaker -q -j coverage -C min -O combined"
 
@@ -218,7 +229,7 @@ class BareBuildFramework(BuildFramework):
             assert '.config' in cfgfile
             basename, ext = os.path.splitext(cfgfile)
             nth = int(ext[len('.config'):])
-            configs.append(BareConfiguration(self, basename, nth))
+            configs.append(self.make_configuration(basename, nth))
         return configs
 
 
@@ -240,6 +251,15 @@ class KbuildBuildFramework(BuildFramework):
 
     def identifier(self):
         return "kbuild"
+
+    def make_configuration(self, basename, nth):
+        return LinuxConfiguration(self, basename, nth)
+
+    def make_partial_configuration(self, filename):
+        return LinuxPartialConfiguration(self, filename)
+
+    def make_std_configuration(self, basename):
+        return LinuxStdConfiguration(self, basename)
 
     def guess_arch_from_filename(self, filename):
         """
@@ -292,8 +312,7 @@ class KbuildBuildFramework(BuildFramework):
             assert '.config' in cfgfile
             basename, ext = os.path.splitext(cfgfile)
             nth = int(ext[len('.config'):])
-            config_obj = LinuxConfiguration(self, basename, nth,
-                                            expansion_strategy=self.options['expansion_strategy'])
+            config_obj = self.make_configuration(basename, nth)
             config_obj.switch_to()
             if file_in_current_configuration(filename, config_obj.arch, config_obj.subarch) != "n":
                 logging.info("Configuration '%s' is actually compiled", cfgfile)
@@ -319,7 +338,7 @@ class KbuildBuildFramework(BuildFramework):
                          self.options['stdconfig'], filename)
             return None
 
-        c  = LinuxStdConfiguration(self, basename=filename)
+        c  = self.make_std_configuration(basename=filename)
 
         if not verify:
             return c

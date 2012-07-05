@@ -59,9 +59,6 @@ class Configuration:
     def switch_to(self):
         raise NotImplementedError
 
-    def call_sparse(self, on_file):
-        raise NotImplementedError
-
     def get_cppflags(self):
         with open(self.cppflags, 'r') as fd:
             return fd.read().strip()
@@ -80,6 +77,7 @@ class Configuration:
         Returns the path to a config.h like configuration file
         """
         return self.config_h
+
 
 class BareConfiguration(Configuration):
 
@@ -167,16 +165,19 @@ class LinuxConfiguration(Configuration):
     method on demand.
 
     """
-    def __init__(self, framework, basename, nth,
-                 expansion_strategy='alldefconfig'):
+    def __init__(self, framework, basename, nth):
         Configuration.__init__(self, framework, basename, nth)
 
         self.expanded = None
-        self.expansion_strategy = expansion_strategy
         self.model = None
         self.arch = self.framework.options['arch']
         self.subarch = self.framework.options['subarch']
         self.result_cache = {}
+
+        if self.framework.options.has_key('expansion_strategy'):
+            self.expansion_strategy = self.framework.options['expansion_strategy']
+        else:
+            self.expansion_strategy = 'alldefconfig'
 
         try:
             os.unlink(self.kconfig + '.expanded')
@@ -405,11 +406,9 @@ class LinuxPartialConfiguration(LinuxConfiguration):
     NB: the self.cppflags and self.source is set to "/dev/null"
     """
 
-    def __init__(self, framework, filename, expansion_strategy='alldefconfig',
-                 arch=None, subarch=None):
+    def __init__(self, framework, filename, arch=None, subarch=None):
         LinuxConfiguration.__init__(self, framework,
-                                    basename=filename, nth="",
-                                    expansion_strategy=expansion_strategy)
+                                    basename=filename, nth="")
 
         self.cppflags = '/dev/null'
         self.source   = '/dev/null'

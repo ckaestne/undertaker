@@ -29,7 +29,7 @@ sys.path = [os.path.join(os.path.dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                      + sys.path
 
 import vamos
-from vamos.tools import setup_logging
+from vamos.tools import setup_logging, get_online_processors
 from vamos.model import Model
 
 from vamos.golem.inference import Inferencer
@@ -40,8 +40,7 @@ from vamos.golem.kbuild import determine_buildsystem_variables, \
     get_linux_version, get_busybox_version, get_coreboot_version, \
     NotALinuxTree, TreeNotConfigured, \
     guess_subarch_from_arch, NotABusyboxTree, NotACorebootTree
-from vamos.vampyr.Configuration import LinuxPartialConfiguration
-from vamos.vampyr.BuildFrameworks import KbuildBuildFramework
+from vamos.vampyr.BuildFrameworks import select_framework
 from vamos.vampyr.utils import ExpansionError
 
 
@@ -195,10 +194,18 @@ def main():
         if not os.path.exists(opts.partialconfig):
             logging.error("Partial config %s does not exist", opts.partialconfig)
             sys.exit(1)
-        framework_exp = KbuildBuildFramework()
-        config_exp = LinuxPartialConfiguration(framework_exp,
-                                               opts.partialconfig,
-                                               opts.strategy)
+
+        options = {
+            'arch' : arch,
+            'subarch': subarch,
+            'threads': get_online_processors(),
+            'loglevel': logging.getLogger().getEffectiveLevel(),
+            'expansion_strategy': opts.strategy,
+            }
+            
+        framework = select_framework(None, options)
+        config_exp = framework.make_partial_configuration(opts.partialconfig)
+
         if not os.path.exists("models/%s.model" % arch):
             logging.info("Model for arch %s absent, skipping verification", arch)
             config_exp.expand(verify=False)
