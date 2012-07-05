@@ -111,20 +111,16 @@ std::set<std::string> ConfigurationModel::findSetOfInterestingItems(const std::s
     return result;
 }
 
-std::string ConfigurationModel::getMissingItemsConstraints(std::set<std::string> &missing) {
-    std::stringstream m;
-    for(std::set<std::string>::iterator it = missing.begin(); it != missing.end(); it++) {
+std::string ConfigurationModel::getMissingItemsConstraints(const std::set<std::string> &missing) {
+    StringJoiner sj;
 
-        if (it == missing.begin()) {
-            m << "( ! ( " << (*it);
-        } else {
-            m << " || " << (*it) ;
-        }
-    }
-    if (!m.str().empty()) {
-        m << " ) )";
-    }
-    return m.str();
+    for (std::set<std::string>::const_iterator it = missing.begin(); it != missing.end(); it++)
+        sj.push_back(*it);
+
+    std::stringstream ss;
+    if (sj.size() > 0)
+        ss << "( ! ( " <<  sj.join(" || ") << " ) )";
+    return ss.str();
 }
 
 int ConfigurationModel::doIntersect(const std::string exp,

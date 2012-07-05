@@ -1,7 +1,7 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  *
@@ -91,7 +91,7 @@ public:
                     std::string &intersected) const;
 
     std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &working) const;
-    static std::string getMissingItemsConstraints(std::set<std::string> &missing);
+    static std::string getMissingItemsConstraints(const std::set<std::string> &missing);
     std::string getName() const { return _name; }
 
     //! checks if a given item should be in the model space
