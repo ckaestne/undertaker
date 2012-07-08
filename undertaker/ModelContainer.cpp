@@ -53,8 +53,12 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
             model_name = std::string(what[1]);
         }
         ret = f->registerModelFile(model, model_name);
-        logger << info << "loaded rsf model for " << model_name
-               << std::endl;
+        if (ret) {
+            logger << info << "loaded rsf model for " << model_name << std::endl;
+        } else {
+            logger << error << "failed to load model from " << model
+                   << std::endl;
+        }
 
         return ret;
     }
@@ -118,20 +122,25 @@ ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std:
     }
 
     std::string::size_type i = filename.find(".model");
-    if (i == std::string::npos)
-        return NULL;
-
-    filename.erase(i); filename.append(".rsf");
-    std::ifstream *rsf = new std::ifstream(filename.c_str());
+    std::ifstream *rsf = NULL;
+    if (i != std::string::npos) {
+        filename.erase(i); filename.append(".rsf");
+        rsf = new std::ifstream(filename.c_str());
+    } else {
+        rsf = new std::ifstream("/dev/null");
+    }
     if (!rsf->good()) {
         logger << warn << "could not open file for reading: "      << filename << std::endl;
         logger << warn << "checking the type of symbols will fail" << std::endl;
-        rsf = new std::ifstream("/dev/null");
+    }
+    
+    db = new ConfigurationModel(arch, model, rsf);
+    if (!db) {
+        logger << error << "Failed to load model from " << filename
+               << std::endl;
     }
 
-    db = new ConfigurationModel(arch, model, rsf);
-
-    this->insert(std::make_pair(arch,db));
+    this->insert(std::make_pair(arch, db));
 
     return db;
 };

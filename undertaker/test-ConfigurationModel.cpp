@@ -18,6 +18,7 @@
  */
 
 #include "ModelContainer.h"
+#include "Logging.h"
 
 #include <check.h>
 
@@ -91,6 +92,16 @@ START_TEST(blacklistManagement) {
     fail_unless(needle);
 } END_TEST;
 
+START_TEST(empty_model) {
+    ConfigurationModel *model = ModelContainer::loadModels("/dev/null");
+    fail_unless(model != NULL);
+    fail_unless(model->isComplete() == false);
+    model->addFeatureToWhitelist("CONFIG_A");
+    const StringList *l = model->getWhitelist();
+    fail_unless(l != NULL);
+    fail_unless(l->size() == 1, "found %d items in whitelist", l->size());
+} END_TEST;
+
 Suite *cond_block_suite(void) {
 
     Suite *s  = suite_create("Suite");
@@ -98,6 +109,7 @@ Suite *cond_block_suite(void) {
     tcase_add_test(tc, getTypes);
     tcase_add_test(tc, whitelistManagement);
     tcase_add_test(tc, blacklistManagement);
+    tcase_add_test(tc, empty_model);
 
     suite_add_tcase(s, tc);
     return s;
@@ -107,6 +119,11 @@ int main() {
 
     Suite *s = cond_block_suite();
     SRunner *sr = srunner_create(s);
+
+#if 0
+    logger.init(std::cout, Logging::LOG_DEBUG, Logging::LOG_DEBUG);
+#endif
+
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

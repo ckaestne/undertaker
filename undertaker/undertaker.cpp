@@ -149,6 +149,9 @@ void process_file_coverage_helper(const char *filename) {
     ModelContainer *f = ModelContainer::getInstance();
     ConfigurationModel *model = f->lookupMainModel();
 
+    if (!model)
+        logger << debug << "Running without a model!" << std::endl;
+
     // HACK: make B00 a 'regular' block
     file.push_front(file.topBlock());
 
@@ -869,7 +872,8 @@ int main (int argc, char ** argv) {
             for (itl = wl->begin(); !wl->empty() && itl != wl->end(); itl++) {
                 model->addFeatureToWhitelist(*itl);
             }
-        }
+        } else
+            logger << error << "Failed to load model " << *i << std::endl;
     }
 
     std::vector<std::string> workfiles;

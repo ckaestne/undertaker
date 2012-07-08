@@ -53,6 +53,10 @@ ConfigurationModel::ConfigurationModel(std::string name, std::istream *in, std::
     } else
         _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);
 
+    if (_model->size() == 0) {
+        // if the model is empty (e.g., if /dev/null was loaded), it cannot possibly be complete
+        _model->addMetaValue("CONFIGURATION_SPACE_INCOMPLETE", "1");
+    }
 }
 
 ConfigurationModel::~ConfigurationModel() {

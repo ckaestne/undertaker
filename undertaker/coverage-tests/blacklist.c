@@ -1,0 +1,6 @@
+
+#ifdef CONFIG_A
+B0
+#else
+B1
+#endif

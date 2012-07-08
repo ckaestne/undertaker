@@ -1,4 +1,4 @@
+*.got
 sb1250-mac.c.config?
-coverage-cat.c.got
 sb1250-mac.c.source?
 sb1250-mac.c.cppflags?

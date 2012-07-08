@@ -52,6 +52,7 @@ total=$(( $total + 1 ))
 undertaker -q -j coverage -O exec:cat coverage-cat.c > coverage-cat.c.got
 if ! diff -q coverage-cat.c.got coverage-cat.c.expected; then
     echo "FAILED: output for coverage-cat.c differs"
+    diff -u coverage-cat.c.got coverage-cat.c.expected
 else
     passed=$(( $passed + 1 ))
 fi
@@ -62,6 +63,25 @@ if diff -q sb1250-mac.c.cppflags?; then
 else
     passed=$(( $passed + 1 ))
 fi
+
+undertaker -q -j coverage -C min -B blacklist -m /dev/null -O exec:cat blacklist.c > blacklist.c.blacklist.got
+total=$(( $total + 1 ))
+if ! diff -q blacklist.c.blacklist{,.got}; then
+    echo "FAILED: blacklist functionality"
+    diff -u blacklist.c.{got,blacklist}
+else
+    passed=$(( $passed + 1 ))
+fi
+
+undertaker -q -j coverage -C min -W blacklist -m /dev/null -O exec:cat blacklist.c > blacklist.c.whitelist.got
+total=$(( $total + 1 ))
+if ! diff -q blacklist.c.whitelist{,.got}; then
+    echo "FAILED: whitelist functionality"
+    diff -u blacklist.c.{got,whitelist}
+else
+    passed=$(( $passed + 1 ))
+fi
+
 
 echo "$passed/$total checks passed"
 [ $passed -eq $total ] || exit 1
