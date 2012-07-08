@@ -1,5 +1,6 @@
 # test-suite
 !*.model
+*.coverage
 *.diff
 *.got
 *.expected

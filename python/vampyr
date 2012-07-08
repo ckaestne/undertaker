@@ -173,7 +173,8 @@ def analyze_variability(source_files, options):
 
     for arch in wl_dict.keys():
         if not os.path.exists('models/%s.model' % arch):
-            logging.error("No model found for architecture %s", arch)
+            logging.info("No model found for architecture %s, " +
+                         "skipping dead block analysis", arch)
             continue
         with tempfile.NamedTemporaryFile() as tmpfile:
             tmpfile.write("\n".join(wl_dict[arch]))
@@ -300,6 +301,10 @@ def main():
                       help="directory containing the tests that should be run with the program")
     parser.add_option("-K", "--kconfig-configurations", dest='configurations', action='store',
                       default=None, help="Batch file with predefined Kconfig configurations")
+    parser.add_option("-W", "--whitelist", dest='whitelist', action='store', default=None,
+                      help="Use this whitelist when calculating configurations")
+    parser.add_option("-B", "--blacklist", dest='blacklist', action='store', default=None,
+                      help="Use this blacklist when calculating configurations")
     (opts, args) = parser.parse_args()
 
     setup_logging(opts.verbose)
@@ -315,6 +320,20 @@ def main():
                 'exclude_others': opts.exclude_others,
                 'model': opts.model,
                 'loglevel': logging.getLogger().getEffectiveLevel()}
+
+    if opts.whitelist:
+        if os.path.exists(opts.whitelist):
+            options['whitelist'] = opts.whitelist
+        else:
+            logging.error("Whitelist %s does not exist", opts.whitelist)
+            sys.exit(1)
+
+    if opts.blacklist:
+        if os.path.exists(opts.blacklist):
+            options['blacklist'] = opts.blacklist
+        else:
+            logging.error("Blacklist %s does not exist", opts.blacklist)
+            sys.exit(1)
 
     for arg in opts.args:
         if not "," in arg:

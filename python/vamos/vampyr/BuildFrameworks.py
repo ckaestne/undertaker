@@ -216,6 +216,12 @@ class BareBuildFramework(BuildFramework):
         else:
             logging.info("No model specified, running without models")
 
+        if self.options.has_key('whitelist'):
+            undertaker += " -W %s" % self.options['whitelist']
+
+        if self.options.has_key('blacklist'):
+            undertaker += " -B %s" % self.options['blacklist']
+
         if self.options.has_key('args') and 'undertaker' in self.options['args']:
             undertaker += " " + self.options['args']['undertaker']
 
@@ -289,6 +295,12 @@ class KbuildBuildFramework(BuildFramework):
             cmd += " -m models/%s.model" % self.options['arch']
         else:
             logging.warning("No model specified, running without models")
+
+        if self.options.has_key('whitelist'):
+            cmd += " -W %s" % self.options['whitelist']
+
+        if self.options.has_key('blacklist'):
+            cmd += " -B %s" % self.options['blacklist']
 
         logging.info("Calculating configurations for '%s'", filename)
         if self.options and self.options.has_key('args'):
