@@ -81,3 +81,6 @@ dumpconf Config.in | sort -u | grep -v '^#' > "$MODELS/busybox.rsf"
 
 # make models for busybox
 rsf2model "$MODELS/busybox.rsf" > "$MODELS/busybox.model"
+
+# disable CONFIG_WERROR
+echo 'UNDERTAKER_SET ALWAYS_OFF "CONFIG_WERROR" "CONFIG_STATIC"' >> "$MODELS/busybox.model"

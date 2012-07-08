@@ -78,3 +78,6 @@ dumpconf ./src/Kconfig | sort -u | grep -v '^#' > "$MODELS/$CBMODEL.rsf"
 
 # make model for coreboot
 rsf2model "$MODELS/$CBMODEL.rsf" > "$MODELS/$CBMODEL.model"
+
+# disable CONFIG_WERROR
+echo 'UNDERTAKER_SET ALWAYS_OFF "CONFIG_WERROR" "CONFIG_CCACHE" "CONFIG_SCANBUILD_ENABLE" "CONFIG_WARNINGS_ARE_ERRORS"' >> "$MODELS/$CBMODEL.model"
