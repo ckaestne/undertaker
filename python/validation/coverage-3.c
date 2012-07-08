@@ -15,7 +15,7 @@ int main(void) {
  * check-command: vampyr -f bare -Csparse --exclude-others $file
  * check-output-start
 coverage-3.c: Checking 1 configuration(s): coverage-3.c.config0
-  ---- Found 1 relevant messages with sparse in coverage-3.c ----
+  ---- Found 1 messages with sparse in coverage-3.c ----
 coverage-3.c:8: warning: incorrect type in return expression (different base types) | expected int | got char static *<noident> (in configs: coverage-3.c.config0)
   --------------------------------------------------
  * check-output-end

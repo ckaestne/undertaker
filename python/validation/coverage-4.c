@@ -23,7 +23,7 @@ int main(void) {
  * check-command: vampyr -f bare -Cgcc -Ogcc,-Wunused-variable  $file
  * check-output-start
 coverage-4.c: Checking 1 configuration(s): coverage-4.c.config0
-  ---- Found 1 relevant messages with gcc in coverage-4.c ----
+  ---- Found 1 messages with gcc in coverage-4.c ----
 coverage-4.c:5: warning: unused variable 'a' (in configs: coverage-4.c.config0)
   --------------------------------------------------
  * check-output-end

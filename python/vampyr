@@ -112,36 +112,18 @@ def handle_file(options, filename):
                          filename, len(configs))
             continue
 
-        errors = do_checks(options, filename, configs, tool)
-
-        for c in configs:
-            total_errors_for_config = 0
-            for message in errors:
-                if c in message.in_configurations:
-                    total_errors_for_config += 1
-            logging.info("%s:\t%d errors", c.filename(), total_errors_for_config)
-
-        relevant_errors = set()
-        if framework.identifier() == 'kbuild':
-            for m in errors:
-                if len(m.in_configurations) < len(configs):
-                    relevant_errors.add(m)
-        else:
-            # take all for BareBuildFramework
-            relevant_errors.update(errors)
-
+        messages = do_checks(options, filename, configs, tool)
         logging.info("Found %d configuration dependent errors",
-                     len(relevant_errors))
+                     len(messages))
 
-        format_errors(tool, relevant_errors, filename)
-
-def format_errors(tool, errors, filename):
-    if len(errors) > 0:
-        print "  ---- Found %d relevant messages with %s in %s ----" % (len(errors), tool, filename)
-        for m in errors:
-            print "%s (in configs: %s)" % \
-                (m.get_message(), ", ".join([c.filename() for c in m.in_configurations]))
-        print "  --------------------------------------------------"
+        if len(messages) > 0:
+            print "  ---- Found %d messages with %s in %s ----" % (len(messages),
+                                                                   tool, filename)
+            for m in messages:
+                print "%s (in configs: %s)" % \
+                    (m.get_message(),
+                     ", ".join([c.filename() for c in m.in_configurations]))
+            print "  --------------------------------------------------"
 
 
 def analyze_variability(source_files, options):
