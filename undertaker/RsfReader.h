@@ -40,6 +40,7 @@ class RsfReader : public RsfMap {
 public:
 
     RsfReader(std::istream &f, const std::string metaflag = "");
+    virtual ~RsfReader() {};
 
     const std::string *getValue(const std::string &key) const;
     const StringList *getMetaValue(const std::string &key) const;
