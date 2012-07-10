@@ -56,7 +56,7 @@ shift $(( OPTIND - 1 ))
 OPTIND=1
 
 MODELS=${MODELS:-models}
-DEFAULT_ARCH=${DEFAULT_ARCH:-x86}
+CBMODEL=coreboot
 PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
 
 if [ ! -f src/Kconfig ]; then
@@ -71,7 +71,7 @@ if ! which  undertaker > /dev/null; then
     exit 1
 fi
 
-if ! ls "$MODELS"/x86.model >/dev/null 2>&1; then
+if ! ls "$MODELS"/$CBMODEL.model >/dev/null 2>&1; then
     echo "No coreboot model found, please call coreboot-kconfigdump"
     exit
 fi
@@ -85,7 +85,7 @@ if [ "$MODE" = "scan-deads" ]; then
     find . -type f -name '*dead' -delete
 
     echo "Analyzing $(wc -l < undertaker-worklist) files with $PROCESSORS threads."
-    undertaker -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"
+    undertaker -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS"/$CBMODEL.model
     printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
     exit 0
 fi

@@ -37,6 +37,7 @@
 
 
 MODELS=${MODELS:-models}
+CBMODEL=coreboot
 
 function debug() {
     if [ -n "$DEBUG" ]; then
@@ -73,7 +74,7 @@ echo "Calculating model for coreboot"
 
 # generate config files, execute dumpconf, remove all the comments because they will confuse rsf2model
 
-dumpconf ./src/Kconfig | sort -u | grep -v '^#' > "$MODELS/x86.rsf"
+dumpconf ./src/Kconfig | sort -u | grep -v '^#' > "$MODELS/$CBMODEL.rsf"
 
 # make model for coreboot
-rsf2model "$MODELS/x86.rsf" > "$MODELS/x86.model"
+rsf2model "$MODELS/$CBMODEL.rsf" > "$MODELS/$CBMODEL.model"
