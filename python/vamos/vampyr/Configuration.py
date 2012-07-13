@@ -4,6 +4,7 @@
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,8 +20,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage, SpatchMessage
-from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
-from vamos.golem.kbuild import call_linux_makefile, apply_configuration, find_autoconf, \
+from vamos.vampyr.utils import ExpansionError
+from vamos.golem.kbuild import call_linux_makefile, find_autoconf, \
     files_for_current_configuration, guess_arch_from_filename
 from vamos.tools import execute, CommandFailed
 from vamos.model import Model
@@ -150,9 +151,8 @@ class BareConfiguration(Configuration):
         return messages
 
 
-class LinuxConfiguration(Configuration):
-    """
-    This class represents a (partial) Linux configuration.
+class KbuildConfiguration(Configuration):
+    """A common base class for kbuild-like projects
 
     The expand method uses Kconfig to fill up the remaining
     variables. The parameter expansion_strategy of the __init__ method
@@ -188,7 +188,13 @@ class LinuxConfiguration(Configuration):
         return find_autoconf()
 
     def __repr__(self):
-        return '<LinuxConfiguration "' + self.kconfig + '">'
+        raise NotImplementedError
+
+    def call_makefile(self, target, extra_variables="", extra_env="", failok=False):
+        return self.framework.call_makefile(target,
+                                            extra_variables=extra_variables,
+                                            extra_env=extra_env,
+                                            failok=failok)
 
     def expand(self, verify=False):
         """
@@ -204,12 +210,9 @@ class LinuxConfiguration(Configuration):
         if len(files) > 1:
             logging.error("Deleted spurious configuration files: %s", ", ".join(files))
 
-        target = self.expansion_strategy
-        extra_var = 'KCONFIG_ALLCONFIG="%s"' % self.kconfig
-        call_linux_makefile(target, extra_variables=extra_var,
-                            arch=self.arch, subarch=self.subarch,
-                            failok=False)
-        apply_configuration(arch=self.arch, subarch=self.subarch)
+        extra_env = 'KCONFIG_ALLCONFIG="%s"' % self.kconfig
+        self.call_makefile(self.expansion_strategy, extra_env=extra_env)
+        self.framework.apply_configuration()
 
         self.expanded = self.save_expanded('.config')
 
@@ -233,6 +236,18 @@ class LinuxConfiguration(Configuration):
         shutil.copy(config, expanded_config)
         return expanded_config
 
+    def expand_stdconfig(self):
+        stdconfig = self.framework.options['stdconfig']
+        self.call_makefile(stdconfig, failok=False)
+
+        if not self.framework.options.has_key('stdconfig_files'):
+            self.framework.options['stdconfig_files'] \
+                = set(files_for_current_configuration(self.arch, self.subarch))
+        else:
+            self.framework.apply_configuration()
+        self.kconfig = '.vampyr.' + self.framework.options['stdconfig']
+        shutil.copy('.config', self.kconfig)
+
     def verify(self, expanded_config='.config'):
         """
         verifies that the given expanded configuration satisfies the
@@ -249,7 +264,6 @@ class LinuxConfiguration(Configuration):
 
         return (partial_config.keys(), conflicts)
 
-
     def switch_to(self):
         if not self.expanded:
             logging.debug("Expanding partial configuration %s", self.kconfig)
@@ -258,28 +272,15 @@ class LinuxConfiguration(Configuration):
 
         # now replace the old .config with our 'expanded' one
         shutil.copyfile(self.expanded, '.config')
+        self.framework.apply_configuration()
 
-        call_linux_makefile('oldconfig', failok=False,
-                            arch=self.arch, subarch=self.subarch)
-
-
-        (_, returncode) = call_linux_makefile('silentoldconfig', failok=True,
-                                              arch=self.arch, subarch=self.subarch)
-        if returncode != 0:
-            # with the satconfig approach, this always worked
-            m = "silentoldconfig failed while switching to config %s (rc: %d)" \
-                % (self.expanded, returncode)
-            raise ExpansionSanityCheckError(m)
-
-
-    def __call_make(self, on_file, extra_args):
+    def call_make(self, on_file, extra_args):
         on_object = on_file[:-1] + "o"
 
         # dry compilation to ensure all dependent objects are present,
         # but only if we are actually interested in the compiler output
         if not 'CHECK=' in extra_args:
-            call_linux_makefile(on_object, failok=True, arch=self.arch, subarch=self.subarch,
-                                extra_variables=extra_args)
+            self.call_makefile(on_object, failok=True, extra_variables=extra_args)
 
         if os.path.exists(on_object):
             os.unlink(on_object)
@@ -287,7 +288,7 @@ class LinuxConfiguration(Configuration):
         try:
             cmd = None
             (messages, statuscode) = \
-                call_linux_makefile(on_object, failok=False, extra_variables=extra_args)
+                self.call_makefile(on_object, failok=False, extra_variables=extra_args)
         except CommandFailed as e:
             statuscode, cmd, messages = e.returncode, e.command, e.stdout
 
@@ -330,7 +331,6 @@ class LinuxConfiguration(Configuration):
         logging.debug(CHECK)
         return (CC, CHECK)
 
-
     def call_gcc(self, on_file):
         """Call Gcc on the given file"""
         if "CC" in self.result_cache:
@@ -340,7 +340,7 @@ class LinuxConfiguration(Configuration):
         if self.framework.options.has_key('cross_prefix') and \
                 len(self.framework.options['cross_prefix']) > 0:
             extra_args += " CROSS_COMPILE=%s" % self.framework.options['cross_prefix']
-        (CC, _) = self.__call_make(on_file, extra_args)
+        (CC, _) = self.call_make(on_file, extra_args)
 
         messages = GccMessage.preprocess_messages(CC)
         messages = [GccMessage(self, x) for x in messages]
@@ -357,7 +357,7 @@ class LinuxConfiguration(Configuration):
         if 'sparse' in self.framework.options['args']:
             sparse += " " + self.framework.options['args']['sparse']
 
-        (CC, CHECK) = self.__call_make(on_file, "C=2 CC='fakecc' CHECK='%s'" % sparse.replace("'", "\\'"))
+        (CC, CHECK) = self.call_make(on_file, "C=2 CC='fakecc' CHECK='%s'" % sparse.replace("'", "\\'"))
 
         # GCC messages
         messages = GccMessage.preprocess_messages(CC)
@@ -383,7 +383,7 @@ class LinuxConfiguration(Configuration):
             if 'spatch' in self.framework.options['args']:
                 spatch += " " + self.framework.options['args']['spatch']
 
-            (CC, CHECK) = self.__call_make(on_file, "C=2 CHECK='%s' CC=fakecc" % spatch.replace("'", "\\'"))
+            (CC, CHECK) = self.call_make(on_file, "C=2 CHECK='%s' CC=fakecc" % spatch.replace("'", "\\'"))
 
             # GCC messages
             if "CC" not in self.result_cache:
@@ -398,6 +398,30 @@ class LinuxConfiguration(Configuration):
 
         self.result_cache["SPATCH"] = messages
         return messages
+
+
+class LinuxConfiguration(KbuildConfiguration):
+    """
+    This class represents a (partial) Linux configuration.
+
+    The expand method uses Kconfig to fill up the remaining
+    variables. The field expansion_strategy of the framework's option
+    dict selects how partial configurations get expanded. In the default
+    mode, 'alldefconfig', the strategy is to set the remaining variables
+    to their Kconfig defined defaults. With 'allnoconfig', the strategy
+    is to enable as few features as possible.
+
+    The attribute 'model' of this class is allocated in the expand()
+    method on demand.
+
+    """
+    def __init__(self, framework, basename, nth):
+        KbuildConfiguration.__init__(self, framework, basename, nth)
+        self.arch    = self.framework.options['arch']
+        self.subarch = self.framework.options['subarch']
+
+    def __repr__(self):
+        return '<LinuxConfiguration "' + self.kconfig + '">'
 
 
 class LinuxPartialConfiguration(LinuxConfiguration):
@@ -428,6 +452,13 @@ class LinuxPartialConfiguration(LinuxConfiguration):
     def filename(self):
         return self.basename
 
+    def call_makefile(self, target, extra_variables="", extra_env="", failok=False):
+        # do not use the architecture set from framework, but the possibly
+        # overriden one from the configuration. (i.e., handle subarch changes gracefully)
+        return call_linux_makefile(target, extra_variables=extra_variables,
+                                   arch=self.arch, subarch=self.subarch,
+                                   failok=failok)
+
 
 class LinuxStdConfiguration(LinuxConfiguration):
     """
@@ -449,17 +480,88 @@ class LinuxStdConfiguration(LinuxConfiguration):
         self.kconfig  = '/dev/null'
 
     def expand(self, verify=False):
-        call_linux_makefile(self.framework.options['stdconfig'],
-                            arch=self.arch, subarch=self.subarch,
-                            failok=False)
+        return self.expand_stdconfig()
 
-        if not self.framework.options.has_key('stdconfig_files'):
-            self.framework.options['stdconfig_files'] \
-                = set(files_for_current_configuration(self.arch, self.subarch))
+    def get_cppflags(self):
+        return ""
+
+    def filename(self):
+        return self.basename + '.' + self.framework.options['stdconfig']
+
+
+class BusyboxConfiguration(KbuildConfiguration):
+    """
+    This class represents a (partial) Busybox configuration.
+
+    The expand method uses Kconfig to fill up the remaining
+    variables. The parameter expansion_strategy of the __init__ method
+    selects how partial configurations get expanded. In the default
+    mode, 'defconfig', the strategy is to set the remaining variables
+    to their Kconfig defined defaults. With 'allnoconfig', the strategy
+    is to enable as few features as possible.
+
+    The attribute 'model' of this class is allocated in the expand()
+    method on demand.
+
+    """
+    def __init__(self, framework, basename, nth):
+        KbuildConfiguration.__init__(self, framework, basename, nth)
+        self.arch = 'busybox'
+        self.subarch = 'busybox'
+
+        if self.framework.options.has_key('expansion_strategy'):
+            self.expansion_strategy = self.framework.options['expansion_strategy']
         else:
-            apply_configuration(arch=self.arch, subarch=self.subarch)
-        self.kconfig = '.vampyr.' + self.framework.options['stdconfig']
-        shutil.copy('.config', self.kconfig)
+            self.expansion_strategy = 'allyesconfig'
+
+    def __repr__(self):
+        return '<BusyboxConfiguration "' + self.kconfig + '">'
+
+
+class BusyboxPartialConfiguration(BusyboxConfiguration):
+    """
+    This class creates a configuration object for a partial Busybox
+    Configuration. This works on arbitrary partial configurations, like
+    "trolled" ones.
+
+    NB: the self.cppflags and self.source is set to "/dev/null"
+    """
+
+    def __init__(self, framework, filename):
+        BusyboxConfiguration.__init__(self, framework, basename=filename, nth="")
+
+        self.cppflags = '/dev/null'
+        self.source   = '/dev/null'
+        self.kconfig  = filename
+
+    def write_config_h(self, dummy):
+        pass
+
+    def filename(self):
+        return self.basename
+
+
+class BusyboxStdConfiguration(BusyboxConfiguration):
+    """
+    This class creates a configuration object for a standard Busybox
+    configuration, such as 'allyesconfig' or 'allnoconfig'.
+
+    Instantiating this class will not change the current working tree,
+    immediately.
+    """
+
+    def __init__(self, framework, basename):
+        assert framework.options.has_key('stdconfig')
+        configuration = ".%s" % framework.options['stdconfig']
+        BusyboxConfiguration.__init__(self, framework,
+                                    basename=basename, nth=configuration)
+
+        self.cppflags = '/dev/null'
+        self.source   = basename
+        self.kconfig  = '/dev/null'
+
+    def expand(self, verify=False):
+        return self.expand_stdconfig()
 
     def get_cppflags(self):
         return ""

@@ -5,6 +5,7 @@
 # Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Andreas Ruprecht <rupran@einserver.de>
 # Copyright (C) 2012 Stefan Hengelein <stefan.hengelein@informatik.stud.uni-erlangen.de>
+# Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -215,7 +216,7 @@ def coreboot_files_for_current_configuration(subarch=None):
         shutil.copy('./coreboot-builds/%s_%s/config.build' % (vendor, mainboard),
                     '.config')
 
-    (output, _) = call_coreboot_makefile('printall', failok=False)
+    (output, _) = call_makefile_generic('printall', failok=False)
 
     files = set()
     for line in output:
@@ -277,12 +278,18 @@ def file_in_current_configuration(filename, arch=None, subarch=None):
         { 'basedir' : scriptsdir,
           'filename': filename.replace("'", "\'")}
 
-    (make_result, _) = call_linux_makefile('list',
-                                           filename=filename,
-                                           arch=arch,
-                                           subarch=subarch,
-                                           failok=False,
-                                           extra_variables=make_args)
+    if arch == 'busybox':
+        (make_result, _) = call_makefile_generic('list',
+                                                 failok=False,
+                                                 extra_variables=make_args)
+    # fallback to Linux
+    else:
+        (make_result, _) = call_linux_makefile('list',
+                                               filename=filename,
+                                               arch=arch,
+                                               subarch=subarch,
+                                               failok=False,
+                                               extra_variables=make_args)
 
     for line in make_result:
         # these lines indicate error and warning messages
@@ -415,6 +422,40 @@ def guess_arch_from_filename(filename):
     return (arch, subarch)
 
 
+def call_makefile_generic(target, failok=False, dryrun=False, **kwargs):
+    """
+    Invokes 'make'.
+
+    This variant is intended to work in a generic way. For project
+    specific adaptations, a wrapper function may call this.
+
+    If dryrun is True, then the command line is returned instead of the
+    command's execution output. This is mainly useful for testing.
+
+    returns a tuple with
+     1. the command's standard output as list of lines
+     2. the exitcode
+    """
+
+    njobs = kwargs.get('njobs', None)
+
+    if njobs is None:
+        njobs = int(os.sysconf('SC_NPROCESSORS_ONLN') * 1.20 + 0.5)
+
+    cmd = "env %(extra_env)s make -j%(njobs)s %(target)s %(extra_variables)s " %\
+        {
+        'target': target,
+        'njobs': njobs,
+        'extra_env': kwargs.get('extra_env', ""),
+        'extra_variables': kwargs.get('extra_variables', ""),
+        }
+
+    if dryrun:
+        return (cmd, 0)
+    else:
+        return execute(cmd, failok=failok)
+
+
 def call_linux_makefile(target, extra_env="", extra_variables="",
                         filename=None, arch=None, subarch=None,
                         failok=True, dryrun=False, njobs=None):
@@ -444,10 +485,6 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
      1. the command's standard output as list of lines
      2. the exitcode
     """
-
-    cmd = "make"
-    if njobs is None:
-        njobs = int(os.sysconf('SC_NPROCESSORS_ONLN') * 1.20 + 0.5)
 
     if extra_env and "ARCH=" in extra_env or extra_variables and "ARCH=" in extra_variables:
         logging.debug("Detected manual (SUB)ARCH override in extra arguments '(%s, %s)'",
@@ -492,46 +529,11 @@ def call_linux_makefile(target, extra_env="", extra_variables="",
         if vamos.kernelversion:
             extra_env += ' KERNELVERSION="%s"' % vamos.kernelversion
 
-    cmd = "env %(extra_env)s make -j%(njobs)s %(target)s %(extra_variables)s " % \
-        { 'njobs': njobs,
-          'extra_env': extra_env,
-          'target': target,
-          'extra_variables': extra_variables }
+    return call_makefile_generic(target, failok=failok, njobs=njobs,
+                                 dryrun=dryrun,
+                                 extra_env=extra_env,
+                                 extra_variables=extra_variables)
 
-    if dryrun:
-        return (cmd, 0)
-    else:
-        return execute(cmd, failok=failok)
-
-def call_coreboot_makefile(target, extra_env="", extra_variables="",
-                           failok=True, dryrun=False, njobs=None):
-    """
-    Invokes 'make' in a Coreboot Buildtree.
-
-    Since coreboot has just x86 Architecture, this is a simplified version of
-    call_linux_makefile.
-
-    If dryrun is True, then the command line is returned instead of the
-    command's execution output. This is mainly useful for testing.
-
-    returns a tuple with
-     1. the command's standard output as list of lines
-     2. the exitcode
-    """
-
-    if njobs is None:
-        njobs = int(os.sysconf('SC_NPROCESSORS_ONLN') * 1.20 + 0.5)
-
-    cmd = "env %(extra_env)s make -j%(njobs)s %(target)s %(extra_variables)s " % \
-        { 'njobs': njobs,
-          'extra_env': extra_env,
-          'target': target,
-          'extra_variables': extra_variables }
-
-    if dryrun:
-        return (cmd, 0)
-    else:
-        return execute(cmd, failok=failok)
 
 def get_linux_version():
     """
@@ -575,6 +577,7 @@ def get_linux_version():
     else:
         return version
 
+
 def get_busybox_version():
     """
     Check that the current working directory is actually a Busybox tree
@@ -608,9 +611,9 @@ def get_busybox_version():
     extra_vars = "-f %(basedir)s/Makefile.version UNDERTAKER_SCRIPTS=%(basedir)s" % \
         { 'basedir' : scriptsdir }
 
-    (output, ret) = call_linux_makefile('', extra_variables=extra_vars)
+    (output, ret) = call_makefile_generic('', extra_variables=extra_vars)
     if ret > 0:
-        raise NotALinuxTree("The call to Makefile.version failed")
+        raise NotABusyboxTree("The call to Makefile.version failed")
 
     version = output[-1] # use last line, if not configured we get additional warning messages
     if not version.startswith("1."):
@@ -618,6 +621,7 @@ def get_busybox_version():
                               version)
     else:
         return version
+
 
 def get_coreboot_version():
     """
