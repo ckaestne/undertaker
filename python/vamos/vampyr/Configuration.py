@@ -22,7 +22,7 @@ from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage, Spatc
 from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
 from vamos.golem.kbuild import call_linux_makefile, apply_configuration, find_autoconf, \
     files_for_current_configuration, guess_arch_from_filename
-from vamos.tools import execute
+from vamos.tools import execute, CommandFailed
 from vamos.model import Model
 from vamos.Config import Config
 
@@ -284,9 +284,12 @@ class LinuxConfiguration(Configuration):
         if os.path.exists(on_object):
             os.unlink(on_object)
 
-        (messages, statuscode) = \
-            call_linux_makefile(on_object, failok=True, arch=self.arch, subarch=self.subarch,
-                                extra_variables=extra_args)
+        try:
+            cmd = None
+            (messages, statuscode) = \
+                call_linux_makefile(on_object, failok=False, extra_variables=extra_args)
+        except CommandFailed as e:
+            statuscode, cmd, messages = e.returncode, e.command, e.stdout
 
         state = None
         CC = []
@@ -319,7 +322,7 @@ class LinuxConfiguration(Configuration):
             del messages[0]
 
         if statuscode != 0:
-            logging.error("Running checker %s on file %s failed", extra_args, on_file)
+            logging.error("Running checker %s on file %s failed", cmd, on_file)
 
         logging.debug("contents of CC:")
         logging.debug(CC)

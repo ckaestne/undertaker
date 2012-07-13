@@ -31,10 +31,11 @@ class CommandFailed(RuntimeError):
         command    -- the command that failed
         returncode -- the exitcode of the failed command
     """
-    def __init__(self, command, returncode):
+    def __init__(self, command, returncode, stdout):
         assert(returncode != 0)
         self.command = command
         self.returncode = returncode
+        self.stdout = stdout
         self.repr = "Command %s failed to execute (returncode: %d)" % \
             (command, returncode)
         RuntimeError.__init__(self, self.repr)
@@ -76,7 +77,7 @@ def execute(command, echo=True, failok=True):
     p = Popen(command, stdout=PIPE, stderr=STDOUT, shell=True)
     (stdout, _)  = p.communicate() # stderr is merged into STDOUT
     if not failok and p.returncode != 0:
-        raise CommandFailed(command, p.returncode)
+        raise CommandFailed(command, p.returncode, stdout.__str__().rsplit('\n'))
     if len(stdout) > 0 and stdout[-1] == '\n':
         stdout = stdout[:-1]
     return (stdout.__str__().rsplit('\n'), p.returncode)

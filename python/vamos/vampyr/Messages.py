@@ -68,8 +68,8 @@ class SparseMessage:
         self.in_configurations = set([configuration])
         self.message = ""
         self.location = ""
-        self.parse()
         self.is_error = False
+        self.parse()
 
     def message_is_in_configuration(self, configuration):
         """Tell this message that it is also in another configuration"""
@@ -77,9 +77,10 @@ class SparseMessage:
 
     def parse(self):
         message = self.bare_message.split(" ", 2)
-        if message[1] == "error:":
+
+        if 'error: ' in self.bare_message:
             self.is_error = True
-        elif message[1] == "warning:":
+        elif 'warning: ' in self.bare_message:
             self.is_error = False
         else:
             raise RuntimeError("Sparse: Failed to determine criticality of '%s'" % self.bare_message)
@@ -114,7 +115,7 @@ class GccMessage(SparseMessage):
         expr = re.compile("\s*\[(-W[^[]+|enabled by default)\]$")
         messages = map(lambda x: re.sub(expr, "", x), messages)
         messages = SparseMessage.preprocess_messages(messages)
-        messages = filter(lambda x: re.match(".*:[0-9]+: (warning|error):", x), messages)
+        messages = filter(lambda x: re.match(".*:[0-9]+: (fatal )?(warning|error):", x), messages)
         messages = map(lambda x: re.sub(r'(:\d+):\d+: ', r'\1: ', x), messages)
         return messages
 

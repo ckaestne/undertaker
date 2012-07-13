@@ -21,7 +21,9 @@
 
 import unittest as t
 
-from vamos.vampyr.Messages import SparseMessage, SpatchMessage
+from vamos.vampyr.Messages import SparseMessage, SpatchMessage, GccMessage
+
+from pprint import pprint
 
 class TestMessage(t.TestCase):
 
@@ -64,6 +66,26 @@ Killed
             self.assertEqual(reference.get_message(), m.get_message(),
                              "Messages not correctly normalized:\n%s" % 
                              "\n".join(x.get_message() for x in self.spatch_messages))
+
+    def test_busybox_gcc(self):
+        gcc_busybox_output = """\
+  CC      applets/applets.o
+In file included from include/busybox.h:8:0,
+                 from applets/applets.c:9:
+include/libbb.h:81:30: fatal error: selinux/selinux.h: No such file or directory
+compilation terminated.
+make[1]: *** [applets/applets.o] Error 1
+make: *** [applets_dir] Error 2
+"""
+        messages = GccMessage.preprocess_messages(gcc_busybox_output.splitlines())
+        gcc_objs = list()
+        for msg in messages:
+            pprint (msg)
+            gcc_objs.append(GccMessage("applets.config1", msg))
+        self.assertEqual(len(gcc_objs), 1)
+        for msg in gcc_objs:
+            pprint(msg)
+            self.assertTrue(msg.is_error, "message '%s' does not indicate an error!" % msg.bare_message)
 
 if __name__ == '__main__':
     t.main()
