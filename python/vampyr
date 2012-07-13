@@ -291,6 +291,9 @@ def main():
                       help="Number of parallel threads for undertaker dead analysis")
     parser.add_option('-c', '--config', dest='configfile',
                       help="Analyze a given configuration in config.h format")
+    parser.add_option('-s', '--strategy', dest='strategy', action='store',
+                      default='alldefconfig',
+                      help="select how partial configurations get expanded")
     parser.add_option('', '--stdconfig', dest='stdconfig',
                       default='allyesconfig',
                       help="Use the given default configuration. "+\
@@ -319,7 +322,9 @@ def main():
                 'threads': get_online_processors() if opts.threads == 0 else opts.threads,
                 'exclude_others': opts.exclude_others,
                 'model': opts.model,
-                'loglevel': logging.getLogger().getEffectiveLevel()}
+                'expansion_strategy': opts.strategy,
+                'loglevel': logging.getLogger().getEffectiveLevel(),
+                }
 
     if opts.whitelist:
         if os.path.exists(opts.whitelist):
