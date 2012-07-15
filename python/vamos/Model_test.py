@@ -27,9 +27,11 @@ class TestModel(t.TestCase):
 I: Format: <variable> [presence condition]
 UNDERTAKER_SET SCHEMA_VERSION 1.1
 UNDERTAKER_SET ALWAYS_ON "CONFIG_B1 "CONFIG_B2"
+UNDERTAKER_SET ALWAYS_OFF "CONFIG_B3" "CONFIG_B5"
 CONFIG_T1
 CONFIG_B3 "CONFIG_T2 -> CONFIG_FOO && (CONFIG_BAR)"
 CONFIG_B4 CONFIG_T1
+CONFIG_B5
 CONFIG_T2 "!CONFIG_T2_MODULE && CONFIG_FOO"
 CONFIG_T2_MODULE "!CONFIG_T2 && CONFIG_BAR && CONFIG_MODULES"
 CONFIG_T3 "CONFIG_BAR"
@@ -85,6 +87,15 @@ Depends T3 "BAR"
 
         for symbol in ("CONFIG_B1", "CONFIG_B2"):
             self.assertIn(symbol, model.always_on_items)
+
+    def test_symbol_always_off(self):
+        model = Model(self.model_file.name)
+        for symbol in ("CONFIG_B1", "B2", "CONFIG_B2"):
+            self.assertNotIn(symbol, model.always_off_items)
+
+        for symbol in ("CONFIG_B3", "CONFIG_B5"):
+            self.assertIn(symbol, model.always_off_items)
+
 
     def test_slice_symbols(self):
         model = Model(self.model_file.name)

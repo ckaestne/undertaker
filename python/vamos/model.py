@@ -28,6 +28,7 @@ class Model(dict):
         dict.__init__(self)
         self.path = path
         self.always_on_items = set()
+        self.always_off_items = set()
 
         with open(path) as fd:
             self.parse(fd)
@@ -51,6 +52,13 @@ class Model(dict):
                 for item in always_on_items:
                     self[item] = None
                     self.always_on_items.add(item)
+                continue
+            if line.startswith("UNDERTAKER_SET ALWAYS_OFF"):
+                line = line.split(" ")[2:]
+                always_off_items = [ l.strip(" \t\"") for l in line]
+                for item in always_off_items:
+                    self[item] = None
+                    self.always_off_items.add(item)
                 continue
             elif line.startswith("I:") or line.startswith("UNDERTAKER_SET"):
                 continue
