@@ -65,7 +65,6 @@ START_TEST(bool_parser_test)
     parse_test("( B172 <-> B0 && (FAMILY_MMIO_BASE_MASK < 0xFFFFFF0000000000ull) )", true);
     parse_test("._.model.x86._.", true);
 }
-
 END_TEST
 
 START_TEST(parseFunc)
