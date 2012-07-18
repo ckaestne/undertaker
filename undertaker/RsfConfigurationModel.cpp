@@ -161,6 +161,22 @@ int RsfConfigurationModel::doIntersect(const std::set<std::string> start_items,
     const StringList *always_on = this->getMetaValue(magic_on);
     const StringList *always_off = this->getMetaValue(magic_off);
 
+    // ALWAYS_ON and ALWAYS_OFF items and their transitive dependencies
+    // always need to appear in the slice.
+    if (always_on) {
+        StringList::const_iterator cit;
+        for (cit = always_on->begin(); cit != always_on->end(); cit++) {
+            interesting.insert(*cit);
+        }
+    }
+
+    if (always_off) {
+        StringList::const_iterator cit;
+        for (cit = always_off->begin(); cit != always_off->end(); cit++) {
+            interesting.insert(*cit);
+        }
+    }
+
     for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); it++) {
         const std::string *item = _model->getValue(*it);
 
