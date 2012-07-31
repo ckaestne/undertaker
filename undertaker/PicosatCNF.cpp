@@ -39,13 +39,21 @@ using namespace kconfig;
 static bool picosatIsInitalized = false;
 static PicosatCNF *currentContext = 0;
 
-PicosatCNF::PicosatCNF(int defaultPhase)
+PicosatCNF::PicosatCNF(Picosat::SATMode defaultPhase)
     : defaultPhase (defaultPhase), varcount (0), clausecount (0) {
     resetContext();
 }
 
 PicosatCNF::~PicosatCNF() {
     if ( this == currentContext ) {
+        currentContext = 0;
+    }
+}
+
+void PicosatCNF::setDefaultPhase(Picosat::SATMode phase) {
+    this->defaultPhase = phase;
+    //force a reload of the context to avoid random mixed phases
+    if (this == currentContext) {
         currentContext = 0;
     }
 }

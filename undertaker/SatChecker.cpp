@@ -67,7 +67,7 @@ SatChecker::SatChecker(const char *sat, int debug)
 SatChecker::SatChecker(const std::string sat, int debug)
     : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
 
-bool SatChecker::operator()(SATMode mode) throw (SatCheckerError) {
+bool SatChecker::operator()(Picosat::SATMode mode) throw (SatCheckerError) {
 
     _cnf = new PicosatCNF(mode);
     try {
@@ -531,7 +531,7 @@ bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSym
 BaseExpressionSatChecker::BaseExpressionSatChecker(const char *base_expression, int debug)
 : SatChecker(base_expression, debug) {
 
-    _cnf = new PicosatCNF(SatChecker::SAT_MAX);
+    _cnf = new PicosatCNF(Picosat::SAT_MAX);
     std::string base_expression_s(base_expression);
     BoolExp *exp = BoolExp::parseString(base_expression_s);
     if (!exp){

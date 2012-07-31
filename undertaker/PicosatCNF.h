@@ -40,6 +40,16 @@ namespace Picosat
     {
         #include <picosat/picosat.h>
     }
+
+    // Modes taken from picosat.h
+    enum SATMode
+    {
+        SAT_MIN     = 0,
+        SAT_MAX     = 1,
+        SAT_DEFAULT = 2,
+        SAT_RANDOM  = 3,
+    };
+
 };
 
 namespace kconfig
@@ -53,7 +63,7 @@ namespace kconfig
             std::vector<int> clauses;
             std::vector<int> assumptions;
             std::map<std::string, std::deque<std::string> > meta_information;
-            int defaultPhase;
+            Picosat::SATMode defaultPhase;
             int varcount;
             int clausecount;
 
@@ -61,8 +71,9 @@ namespace kconfig
             void resetContext(void);
 
         public:
-            PicosatCNF(int defaultPhase = 0);
+            PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
             virtual ~PicosatCNF();
+            void setDefaultPhase(Picosat::SATMode phase);
             virtual void readFromFile(istream &i);
             virtual void toFile(std::ostream &out) const;
             virtual int getSymbolType(const string &name);

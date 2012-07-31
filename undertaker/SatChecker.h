@@ -74,13 +74,6 @@ class SatChecker
         SatChecker(const std::string sat, int debug = 0);
         virtual ~SatChecker() {};
 
-        enum SATMode
-        {
-            SAT_MIN     = 0,
-            SAT_MAX     = 1,
-            SAT_DEFAULT = 2,
-        };
-
         /**
          * Checks the given string with an sat solver
          * @param sat the formula to be checked
@@ -88,7 +81,8 @@ class SatChecker
          * @returns true, if satisfiable, false otherwise
          * @throws if syntax error
          */
-        virtual bool operator()(SATMode mode=SAT_MAX) throw (SatCheckerError);
+        virtual bool operator()(Picosat::SATMode mode=Picosat::SAT_MAX)
+            throw (SatCheckerError);
 
         static bool check(const std::string &sat) throw (SatCheckerError);
         const char *c_str() { return _sat.c_str(); }
@@ -253,6 +247,8 @@ class SatChecker
         std::string debug_parser;
         int debug_parser_indent;
         std::string debug_cnf;
+
+        Picosat::SATMode mode;
 
         const std::string _sat;
         int _clauses;
