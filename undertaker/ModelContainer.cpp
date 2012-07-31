@@ -4,6 +4,7 @@
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +27,7 @@
 #include <fstream>
 
 #include "ModelContainer.h"
+#include "RsfConfigurationModel.h"
 #include "KconfigWhitelist.h"
 #include "Logging.h"
 
@@ -120,21 +122,23 @@ ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std:
         delete model;
         return NULL;
     }
+    boost::filesystem::path filepath(filename);
+    if (filepath.extension() == ".model" || filepath == "/dev/null") {
+        std::ifstream *rsf = NULL;
+        if (filepath.extension() == ".model") {
+            filepath.replace_extension(".rsf");
+            rsf = new std::ifstream(filepath.string().c_str());
+        } else {
+            rsf = new std::ifstream("/dev/null");
+        }
+        if (!rsf->good()) {
+            logger << warn << "could not open file for reading: "      << filename << std::endl;
+            logger << warn << "checking the type of symbols will fail" << std::endl;
+        }
 
-    std::string::size_type i = filename.find(".model");
-    std::ifstream *rsf = NULL;
-    if (i != std::string::npos) {
-        filename.erase(i); filename.append(".rsf");
-        rsf = new std::ifstream(filename.c_str());
-    } else {
-        rsf = new std::ifstream("/dev/null");
+        db = new RsfConfigurationModel(arch, model, rsf);
     }
-    if (!rsf->good()) {
-        logger << warn << "could not open file for reading: "      << filename << std::endl;
-        logger << warn << "checking the type of symbols will fail" << std::endl;
-    }
-    
-    db = new ConfigurationModel(arch, model, rsf);
+
     if (!db) {
         logger << error << "Failed to load model from " << filename
                << std::endl;

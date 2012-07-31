@@ -15,9 +15,10 @@ LDFLAGS =
 BOOST_LIBS = -lboost_system -lboost_regex -lboost_filesystem -lboost_thread
 LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) -lpicosat -lboost_wave-mt -lPuma $(LDCOV)
 
-PARSEROBJ = RsfReader.o KconfigWhitelist.o PresetList.o ConfigurationModel.o\
+PARSEROBJ = RsfReader.o KconfigWhitelist.o PresetList.o RsfConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
 		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o \
+		ConfigurationModel.o \
 		Logging.o \
 		bool.o \
 		CNFBuilder.o \
@@ -53,7 +54,7 @@ BoolExpParser.cpp: BoolExpParser.y
 
 stack.hh location.hh postion.hh: BoolExpParser.cpp
 
-bool.o: bool.cpp bool.h BoolExpParser.o 
+bool.o: bool.cpp bool.h BoolExpParser.o
 
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
@@ -76,7 +77,7 @@ endif
 clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
 	rm -rf location.hh stack.hh position.hh
-	rm -rf BoolExpParser.cpp BoolExpParser.h BoolExpLexer.cpp 
+	rm -rf BoolExpParser.cpp BoolExpParser.h BoolExpLexer.cpp
 
 test-%: test-%.cpp libparser.a
 	$(CXX) $(CXXFLAGS) -g -O0 -o $@ $< libparser.a -lcheck $(LDFLAGS) $(LDLIBS)

@@ -36,6 +36,7 @@
 
 #include "KconfigWhitelist.h"
 #include "ModelContainer.h"
+#include "RsfConfigurationModel.h"
 #include "PumaConditionalBlock.h"
 #include "ConditionalBlock.h"
 #include "BlockDefectAnalyzer.h"
@@ -378,7 +379,7 @@ void process_file_cppsym_helper(const char *filename) {
         sj.push_back(rewrites.str());
 
         if (model) {
-            if (model->find(item_name) != model->end()) {
+            if (model->containsSymbol(item_name)) {
                 sj.push_back("PRESENT");
                 sj.push_back(model->getType(item_name));
             } else {
@@ -505,10 +506,10 @@ void process_file_dead(const char *filename) {
 
 
 void process_file_interesting(const char *filename) {
-    ConfigurationModel *model = ModelContainer::lookupMainModel();
+    RsfConfigurationModel *model = dynamic_cast<RsfConfigurationModel *> (ModelContainer::lookupMainModel());
 
     if (!model) {
-        logger << error << "for finding interessting items a model must be loaded" << std::endl;
+        logger << error << "for finding interessting items a (rsf based) model must be loaded" << std::endl;
         return;
     }
 

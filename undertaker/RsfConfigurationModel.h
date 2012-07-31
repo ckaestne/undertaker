@@ -21,8 +21,8 @@
 
 
 // -*- mode: c++ -*-
-#ifndef configuration_model_h__
-#define configuration_model_h__
+#ifndef rsf_configuration_model_h__
+#define rsf_configuration_model_h__
 
 #include <string>
 #include <map>
@@ -31,21 +31,29 @@
 #include <list>
 #include <boost/regex.hpp>
 
-#include "RsfReader.h" // for 'StringList'
+#include "ConfigurationModel.h"
 
-class ConfigurationModel {
+std::list<std::string> itemsOfString(const std::string &str);
+
+class RsfConfigurationModel: public ConfigurationModel {
 public:
 
-    struct Checker {
-        //! checks if the item is a candidate for addition in the 'missing' set
-        virtual bool operator()(const std::string &item) const = 0;
-    };
+    //! Loads the configuration model from file
+    /*!
+     * \param name the architecture
+     * \param in   istream of the model file as produced by rsf2model.
+                   Will be deleted upon object destruction.
+     * \param rsf  istream of the rsf file. used for type information of symbol files
+                   Will be deleted upon object destruction.
+     * \param log  error stream for diagnostics
+     */
+    RsfConfigurationModel(std::string name, std::istream *in, std::istream *rsf);
 
     //! destructor
-    virtual ~ConfigurationModel() {};
+    ~RsfConfigurationModel();
 
     //! add feature to whitelist ('ALWAYS_ON')
-    virtual void addFeatureToWhitelist(const std::string feature) = 0;
+    void addFeatureToWhitelist(const std::string feature);
 
     //! gets the current feature whitelist ('ALWAYS_ON')
     /*!
@@ -53,7 +61,7 @@ public:
      *
      * The referenced object must not be freed, the model class manages it.
      */
-    virtual const StringList *getWhitelist() const = 0;
+    const StringList *getWhitelist() const;
 
     //! add feature to blacklist ('ALWAYS_OFF')
     /*!
@@ -61,38 +69,36 @@ public:
      * referenced by getWhitelist(). Be sure to call getWhitelist()
      * again after using this method.
      */
-    virtual void addFeatureToBlacklist(const std::string feature) = 0;
+    void addFeatureToBlacklist(const std::string feature);
 
     //!< gets the current feature blacklist ('ALWAYS_OFF')
-    virtual const StringList *getBlacklist() const = 0;
+    const StringList *getBlacklist() const;
 
 
-    virtual int doIntersect(const std::string exp,
+    int doIntersect(const std::string exp,
                     const ConfigurationModel::Checker *c,
                     std::set<std::string> &missing,
-                    std::string &intersected) const = 0;
+                    std::string &intersected) const;
 
-    virtual int doIntersect(const std::set<std::string> exp,
+    int doIntersect(const std::set<std::string> exp,
                     const ConfigurationModel::Checker *c,
                     std::set<std::string> &missing,
-                    std::string &intersected) const = 0;
+                    std::string &intersected) const;
 
-    virtual std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &working) const = 0;
-    static std::string getMissingItemsConstraints(const std::set<std::string> &missing);
-
+    std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &working) const;
     std::string getName() const { return _name; }
 
     //! checks if a given item should be in the model space
-    virtual bool inConfigurationSpace(const std::string &symbol) const = 0;
+    bool inConfigurationSpace(const std::string &symbol) const;
 
     //! checks if we can assume that the configuration space is complete
-    virtual bool isComplete() const = 0;
+    bool isComplete() const;
 
     //@{
     //! checks the type of a given symbol.
     //! @return false if not found
-    virtual bool isBoolean(const std::string&) const = 0;
-    virtual bool isTristate(const std::string&) const = 0;
+    bool isBoolean(const std::string&) const;
+    bool isTristate(const std::string&) const;
     //@}
 
     //! returns the type of the given symbol
@@ -100,15 +106,25 @@ public:
      * Normalizes the given item so that passing with and without
      * CONFIG_ prefix works.
      */
-    virtual std::string getType(const std::string &feature_name) const = 0;
+    std::string getType(const std::string &feature_name) const;
 
-    virtual bool containsSymbol(std::string symbol) = 0;
+    RsfReader::iterator find(const RsfReader::key_type &x) const { return _model->find(x); }
+    RsfReader::iterator begin() const { return _model->begin(); }
+    RsfReader::iterator end()   const { return _model->end(); }
 
-    virtual const StringList *getMetaValue(const std::string &key) const = 0;
+    bool containsSymbol(std::string symbol) { return (this->find(symbol) != this->end()); }
+
+    const StringList *getMetaValue(const std::string &key) const {
+        return _model->getMetaValue(key);
+    }
 
 
-protected:
-    std::string _name;
+private:
+    boost::regex _inConfigurationSpace_regexp;
+    std::istream *_model_stream;
+    std::istream *_rsf_stream;
+    RsfReader *_model;
+    ItemRsfReader *_rsf;
 };
 
 #endif
