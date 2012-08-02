@@ -5,6 +5,7 @@
 # Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud.uni-erlangen.de>
+# Copyright (C) 2012 Stefan Hengelein <stefan.hengelein@informatik.stud.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +22,7 @@
 
 from vamos.vampyr.Messages import SparseMessage, GccMessage, ClangMessage, SpatchMessage
 from vamos.vampyr.utils import ExpansionError
-from vamos.golem.kbuild import call_linux_makefile, find_autoconf, \
+from vamos.golem.kbuild import call_linux_makefile, \
     files_for_current_configuration, guess_arch_from_filename
 from vamos.tools import execute, CommandFailed
 from vamos.model import Model
@@ -185,7 +186,7 @@ class KbuildConfiguration(Configuration):
             pass
 
     def get_config_h(self):
-        return find_autoconf()
+        return self.framework.find_autoconf()
 
     def __repr__(self):
         raise NotImplementedError
@@ -206,7 +207,8 @@ class KbuildConfiguration(Configuration):
         if not os.path.exists(self.kconfig):
             raise RuntimeError("Partial configuration %s does not exist" % self.kconfig)
 
-        (files, _) = execute("find include -name autoconf.h -print -delete", failok=False)
+        files = self.framework.cleanup_autoconf_h()
+
         if len(files) > 1:
             logging.error("Deleted spurious configuration files: %s", ", ".join(files))
 
@@ -554,6 +556,90 @@ class BusyboxStdConfiguration(BusyboxConfiguration):
         assert framework.options.has_key('stdconfig')
         configuration = ".%s" % framework.options['stdconfig']
         BusyboxConfiguration.__init__(self, framework,
+                                    basename=basename, nth=configuration)
+
+        self.cppflags = '/dev/null'
+        self.source   = basename
+        self.kconfig  = '/dev/null'
+
+    def expand(self, verify=False):
+        return self.expand_stdconfig()
+
+    def get_cppflags(self):
+        return ""
+
+    def filename(self):
+        return self.basename + '.' + self.framework.options['stdconfig']
+
+
+class CorebootConfiguration(KbuildConfiguration):
+    """
+    This class represents a (partial) Coreboot configuration.
+
+    The expand method uses Kconfig to fill up the remaining
+    variables. The framework parameter of the __init__ method
+    selects how partial configurations get expanded. In the default
+    mode, 'allyesconfig', the strategy is to set all valid remaining variables
+    to yes. With 'allnoconfig', the strategy is to enable as few features as
+    possible.
+
+    The attribute 'model' of this class is allocated in the expand()
+    method on demand.
+
+    """
+    def __init__(self, framework, basename, nth):
+        KbuildConfiguration.__init__(self, framework, basename, nth)
+        self.arch = 'coreboot'
+        if os.environ.has_key('SUBARCH'):
+            self.subarch = os.environ['SUBARCH']
+        else:
+            self.subarch = "emulation/qemu-x86"
+
+        if self.framework.options.has_key('expansion_strategy'):
+            self.expansion_strategy = self.framework.options['expansion_strategy']
+        else:
+            self.expansion_strategy = 'allyesconfig'
+
+    def __repr__(self):
+        return '<CorebootConfiguration "' + self.kconfig + '">'
+
+
+class CorebootPartialConfiguration(CorebootConfiguration):
+    """
+    This class creates a configuration object for a partial Coreboot
+    Configuration. This works on arbitrary partial configurations, like
+    "trolled" ones.
+
+    NB: the self.cppflags and self.source is set to "/dev/null"
+    """
+
+    def __init__(self, framework, filename):
+        CorebootConfiguration.__init__(self, framework, basename=filename, nth="")
+
+        self.cppflags = '/dev/null'
+        self.source   = '/dev/null'
+        self.kconfig  = filename
+
+    def write_config_h(self, dummy):
+        pass
+
+    def filename(self):
+        return self.basename
+
+
+class CorebootStdConfiguration(CorebootConfiguration):
+    """
+    This class creates a configuration object for a standard Coreboot
+    configuration, such as 'allyesconfig' or 'allnoconfig'.
+
+    Instantiating this class will not change the current working tree,
+    immediately.
+    """
+
+    def __init__(self, framework, basename):
+        assert framework.options.has_key('stdconfig')
+        configuration = ".%s" % framework.options['stdconfig']
+        CorebootConfiguration.__init__(self, framework,
                                     basename=basename, nth=configuration)
 
         self.cppflags = '/dev/null'

@@ -38,7 +38,7 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
 
 from vamos.tools import setup_logging, calculate_worklist, check_tool, execute, \
     get_online_processors
-from vamos.vampyr.BuildFrameworks import select_framework
+from vamos.vampyr.BuildFrameworks import select_framework, EmptyLinumMapException
 from vamos.vampyr.Configuration import ExpansionError
 from vamos.vampyr.Messages import MessageContainer
 from vamos.golem.kbuild import guess_arch_from_filename
@@ -169,7 +169,11 @@ def analyze_variability(source_files, options):
         logging.info("Analyzing %s", f)
         if reset_arch:
             bf.options['arch'], bf.options['subarch'] = None, None
-        results = bf.analyze_configuration_coverage(f)
+        try:
+            results = bf.analyze_configuration_coverage(f)
+        except EmptyLinumMapException:
+            logging.error("Analysis of %s failed, skipping.", f)
+            continue
         # add dead/undead statistics
         results['dead blocks']   = [x.split(".")[-4] for x in glob.glob("%s*.dead" % f)]
         results['undead blocks'] = [x.split(".")[-4] for x in glob.glob("%s*.undead" % f)]

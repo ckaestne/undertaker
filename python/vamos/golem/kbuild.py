@@ -175,6 +175,30 @@ def linux_files_for_current_configuration(arch=None, subarch=None, how=False):
 
     return files
 
+def coreboot_get_config_for(subarch=None):
+    if subarch != None:
+        subarch_regex = re.compile("([a-zA-Z0-9-]+)/([a-zA-Z_0-9_-]+)")
+        m             = subarch_regex.match(subarch)
+
+        if m:
+            vendor    = m.group(1)
+            mainboard = m.group(2)
+            logging.debug("Using Vendor '%s', Mainboard '%s'", vendor, mainboard)
+
+            cmd = './util/abuild/abuild -B -C -t %s/%s' % (vendor, mainboard)
+            if not os.path.isdir('./coreboot-builds/%s_%s' % (vendor, mainboard)):
+                execute(cmd, failok=True)
+
+            if not os.path.isdir('./coreboot-builds/%s_%s' % (vendor, mainboard)):
+                raise RuntimeError('%s failed. ' % cmd + \
+                    'Maybe Vendor and/or Mainboard does not exist?')
+        else:
+            raise RuntimeError('SUBARCH (%s) given but has invalid syntax, \
+                use "Vendor/Mainboard" instead' % subarch)
+
+        shutil.copy('./coreboot-builds/%s_%s/config.build' % (vendor, mainboard),
+                    '.config')
+
 def coreboot_files_for_current_configuration(subarch=None):
     """
     Returns a list of files that are compiled with the current
@@ -193,29 +217,7 @@ def coreboot_files_for_current_configuration(subarch=None):
         logging.warning('.config does not exist, defaulting to qemu-x86')
         subarch = "emulation/qemu-x86"
 
-    if subarch != None:
-        subarch_regex = re.compile("([a-zA-Z0-9_-]+)/([a-zA-Z_0-9-]+)")
-        m             = subarch_regex.match(subarch)
-
-        if m:
-            vendor    = m.group(1)
-            mainboard = m.group(2)
-            logging.debug("Using Vendor '%s', Mainboard '%s'", vendor, mainboard)
-
-            cmd = './util/abuild/abuild -C -t %s/%s' % (vendor, mainboard)
-            if not os.path.isdir('./coreboot-builds/%s_%s' % (vendor, mainboard)):
-                execute(cmd, failok=True)
-
-            if not os.path.isdir('./coreboot-builds/%s_%s' % (vendor, mainboard)):
-                raise RuntimeError('%s failed. ' % cmd + \
-                    'Maybe Vendor and/or Mainboard does not exist?')
-        else:
-            raise RuntimeError('SUBARCH (%s) given but has invalid syntax, \
-                use "Vendor/Mainboard" instead' % subarch)
-
-        shutil.copy('./coreboot-builds/%s_%s/config.build' % (vendor, mainboard),
-                    '.config')
-
+    coreboot_get_config_for(subarch)
     (output, _) = call_makefile_generic('printall', failok=False)
 
     files = set()
@@ -282,6 +284,12 @@ def file_in_current_configuration(filename, arch=None, subarch=None):
         (make_result, _) = call_makefile_generic('list',
                                                  failok=False,
                                                  extra_variables=make_args)
+    elif arch == 'coreboot':
+        make_result = coreboot_files_for_current_configuration(subarch)
+        for line in make_result:
+            if filename in line:
+                return "y"
+        return "n"
     # fallback to Linux
     else:
         (make_result, _) = call_linux_makefile('list',
@@ -369,8 +377,6 @@ def guess_subarch_from_arch(arch):
             subarch = 'i386'
         else:
             subarch = 'x86_64'
-    else:
-        assert(arch==subarch)
 
     return subarch
 

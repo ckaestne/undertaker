@@ -6,6 +6,7 @@
 # Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Valentin Rothberg <valentinrothberg@googlemail.com>
 # Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud.uni-erlangen.de>
+# Copyright (C) 2012 Stefan Hengelein <stefan.hengelein@informatik.stud.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,18 +26,24 @@ import vamos
 from vamos.vampyr.Configuration \
     import BareConfiguration, \
     LinuxConfiguration, LinuxStdConfiguration, LinuxPartialConfiguration, \
-    BusyboxConfiguration, BusyboxStdConfiguration, BusyboxPartialConfiguration
+    BusyboxConfiguration, BusyboxStdConfiguration, BusyboxPartialConfiguration, \
+    CorebootConfiguration, CorebootStdConfiguration, CorebootPartialConfiguration
 from vamos.vampyr.utils import find_configurations, \
     get_conditional_blocks, get_block_to_linum_map
 from vamos.golem.kbuild import apply_configuration, file_in_current_configuration, \
-    guess_subarch_from_arch, \
+    guess_subarch_from_arch, TreeNotConfigured, \
     call_linux_makefile, find_autoconf, get_linux_version, NotALinuxTree, \
-    call_makefile_generic, NotABusyboxTree, get_busybox_version
-from vamos.tools import execute
+    call_makefile_generic, NotABusyboxTree, get_busybox_version, \
+    NotACorebootTree, get_coreboot_version, coreboot_get_config_for
+from vamos.tools import execute, CommandFailed
 from vamos.model import Model
 
 import os.path
 import logging
+
+class EmptyLinumMapException(RuntimeError):
+    """ Indicates an Empty Linum Map in Buildframeworks """
+    pass
 
 
 class BuildFramework:
@@ -83,6 +90,16 @@ class BuildFramework:
         Ensures that a newly set configuration is active.
         """
         pass
+
+    def cleanup_autoconf_h(self):
+        """
+        deletes various autoconf.h files
+        returns a list of deleted files
+        """
+        raise NotImplementedError
+
+    def find_autoconf(self):
+        return find_autoconf()
 
     def calculate_configurations(self, filename):
         """Calculate configurations for the given file"""
@@ -224,6 +241,8 @@ class BuildFramework:
         return_dict['blocks_uncovered'] = return_dict['blocks_total'] - covered_blocks
 
         linum_map = get_block_to_linum_map(filename, all_cpp_blocks=True)
+        if len(linum_map) == 0:
+            raise EmptyLinumMapException("linum_map contains no elements")
         return_dict['linum_map'] = linum_map
 
         total_lines = sum(linum_map.values())
@@ -313,6 +332,15 @@ class KbuildBuildFramework(BuildFramework):
         """
         raise NotImplementedError
 
+    def cleanup_autoconf_h(self):
+        """
+        deletes various autoconf.h files
+        returns a list of deleted files
+        """
+        (files, _) = execute("find include -name autoconf.h -print -delete",
+                             failok=False)
+        return files
+
     def verify_configurations(self, filename):
         logging.info("Testing which configurations are actually being compiled")
         configs = list()
@@ -365,7 +393,7 @@ class KbuildBuildFramework(BuildFramework):
         """
         Analyzes the given file 'filename' for its configuration coverage.
 
-        This method also includes statistics about blocks covered by 'allyeconfig'
+        This method also includes statistics about blocks covered by 'allyesconfig'
 
         Returns a dict with all members that the base class returns,
         plus the following in addition:
@@ -378,9 +406,10 @@ class KbuildBuildFramework(BuildFramework):
         # sanity check: remove existing configuration to ensure consistent behavior
         if os.path.exists(".config"):
             os.unlink(".config")
+        self.call_makefile("allyesconfig", failok=False)
         self.apply_configuration()
         assert os.path.exists('.config')
-        autoconf_h=find_autoconf()
+        autoconf_h=self.find_autoconf()
 
         return_dict = BuildFramework.analyze_configuration_coverage(self, filename)
 
@@ -397,6 +426,44 @@ class KbuildBuildFramework(BuildFramework):
             return_dict['blocks_allyesconfig'] = set()
 
         return return_dict
+
+    def apply_black_white_lists(self, ignoreset):
+        """
+        This function creates the "allno.config" and "allyes.config" files in
+        the root directory of the current tree, which ensure, when calling the
+        respective "make all{no, yes}config", the always_off_items to be always
+        off and the always_on_items to be always on, even when calling "make
+        all{no,yes}config" without using the framework.
+
+        Be careful though, when having an item without prompt in Kconfig, the
+        previously described behaviour CANNOT be guaranteed!
+        """
+
+        # Sanity check
+        if len(self.always_on_items & self.always_off_items) > 0:
+            raise RuntimeError("Intersection between always_on_items and \
+            always_off_items is non-empty: %s" %(self.always_on_items & \
+            self.always_off_items))
+
+        del_cmds = list()
+        for item in self.always_on_items | self.always_off_items:
+            if any([i in item for i in ignoreset]): continue
+            del_cmds.append("/^%s=/d" % item)
+        if len(del_cmds) > 0:
+            sed_commands = ";".join(del_cmds)
+            execute("sed '%s' .config > allno.config" % sed_commands)
+            self.call_makefile("allnoconfig")
+
+        del_cmds = list()
+        for item in self.always_on_items:
+            if any([i in item for i in ignoreset]): continue
+            del_cmds.append("/^%s=/d" % item)
+        if len(del_cmds) > 0:
+            sed_commands = ";".join(del_cmds)
+            execute("sed '%s' .config > allyes.config" % sed_commands)
+            self.call_makefile("allyesconfig")
+        else:
+            self.call_makefile("silentoldconfig")
 
 
 class LinuxBuildFramework(KbuildBuildFramework):
@@ -426,7 +493,6 @@ class LinuxBuildFramework(KbuildBuildFramework):
         """
         Ensures that a newly set configuration is active.
         """
-        self.call_makefile(self.options['expansion_strategy'], failok=False)
         try:
             apply_configuration(arch=self.options['arch'],
                                 subarch=self.options['subarch'])
@@ -484,35 +550,11 @@ class BusyboxBuildFramework(KbuildBuildFramework):
         'allyes.config' for all items that should be set to yes.
         """
 
-        self.call_makefile("allyesconfig")
-
-        if not os.path.exists('.config'):
-            raise RuntimeError("Cannot apply configuration, no '.config' file was found")
-
         # these item prefixes indicate harmless items that shall be
         # skipped to improve performance
         ignoreset = ("CONFIG_CHOICE_", "CONFIG_HAVE_DOT_CONFIG")
 
-        del_cmds = list()
-        for item in self.always_on_items | self.always_off_items:
-            if any([i in item for i in ignoreset]): continue
-            del_cmds.append("/^%s=/d" % item)
-        if len(del_cmds) > 0:
-            sed_commands = ";".join(del_cmds)
-            execute("sed '%s' .config > allno.config" % sed_commands)
-            self.call_makefile("allnoconfig")
-
-        del_cmds = list()
-        for item in self.always_on_items:
-            if any([i in item for i in ignoreset]): continue
-            del_cmds.append("/^%s=/d" % item)
-        if len(del_cmds) > 0:
-            sed_commands = ";".join(del_cmds)
-            execute("sed '%s' .config > allyes.config" % sed_commands)
-            self.call_makefile("allyesconfig")
-        else:
-            self.call_makefile("silentoldconfig")
-
+        self.apply_black_white_lists(ignoreset)
 
     def call_makefile(self, target, extra_env="", extra_variables="", failok=False):
         return call_makefile_generic(target, extra_env=extra_env,
@@ -520,14 +562,81 @@ class BusyboxBuildFramework(KbuildBuildFramework):
                                      failok=failok)
 
 
-def select_framework(identifier, options):
-    #pylint: disable=R0912
-    # NB: this function is too complicated and needs cleanup
+class CorebootBuildFramework(KbuildBuildFramework):
+    """ For use with Coreboot, considers Kconfig constraints """
 
+    def __init__(self, options=None):
+        if options:
+            self.options=options
+        else:
+            self.options=dict()
+        self.options['arch'] = 'coreboot'
+        if os.path.exists('models/coreboot.model'):
+            self.options['model'] = 'models/coreboot.model'
+        else:
+            raise RuntimeError('No model existing! Please run \
+                    coreboot-kconfigdump first')
+        if os.environ.has_key('SUBARCH'):
+            self.options['subarch'] = os.environ['SUBARCH']
+        else:
+            self.options['subarch'] = "emulation/qemu-x86"
+        if not options.has_key('expansion_strategy') or \
+            self.options['expansion_strategy'] == 'alldefconfig' or \
+            self.options['expansion_strategy'] == 'defconfig':
+            self.options['expansion_strategy'] = 'allyesconfig'
+
+        KbuildBuildFramework.__init__(self, options)
+
+    def identifier(self):
+        return "coreboot"
+
+    def make_configuration(self, basename, nth):
+        return CorebootConfiguration(self, basename, nth)
+
+    def make_partial_configuration(self, filename):
+        return CorebootPartialConfiguration(self, filename)
+
+    def make_std_configuration(self, basename):
+        return CorebootStdConfiguration(self, basename)
+
+    def apply_configuration(self):
+        """
+        Ensures that a newly set configuration is active.
+
+        """
+        logging.debug("Applying config for %s" ,self.options["subarch"])
+        coreboot_get_config_for(self.options['subarch'])
+
+        ignoreset = ("CONFIG_CHOICE_",)
+
+        self.apply_black_white_lists(ignoreset)
+
+    def cleanup_autoconf_h(self):
+        """
+        deletes various autoconf.h files
+        returns a list of deleted files
+        """
+        (files, _) = execute("find build -name config.h -print -delete",
+                             failok=False)
+        return files
+
+    def find_autoconf(self):
+        if os.path.exists("build/config.h"):
+            return "build/config.h"
+        else:
+            return ""
+
+    def call_makefile(self, target, extra_env="", extra_variables="", failok=False):
+        return call_makefile_generic(target, extra_env=extra_env,
+                                     extra_variables=extra_variables, failok=failok)
+
+
+def select_framework(identifier, options):
     frameworks = {'kbuild' : LinuxBuildFramework,
                   'linux'  : LinuxBuildFramework,
                   'bare'   : BareBuildFramework,
-                  'busybox': BusyboxBuildFramework}
+                  'busybox': BusyboxBuildFramework,
+                  'coreboot': CorebootBuildFramework}
 
     if identifier is None:
         identifier='bare'
@@ -542,6 +651,12 @@ def select_framework(identifier, options):
                          get_busybox_version())
             identifier='busybox'
         except NotABusyboxTree:
+            pass
+        try:
+            logging.info("Detected Coreboot version %s; selecting Coreboot framework",
+                         get_coreboot_version())
+            identifier='coreboot'
+        except NotACorebootTree:
             pass
 
     if not options.has_key('arch') and os.environ.has_key('ARCH'):
@@ -566,7 +681,6 @@ def select_framework(identifier, options):
     if identifier in frameworks:
         bf = frameworks[identifier](options)
     else:
-        raise RuntimeError("Build framework '%s' not found" % \
-                               options['framework'])
+        raise RuntimeError("Build framework '%s' not found" % options['framework'])
 
     return bf
