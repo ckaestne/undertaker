@@ -112,7 +112,8 @@ class TranslatedModel(tools.UnicodeMixin):
         [state, cond] = dependency
         if state == "y" and cond == "y" \
                and option.prompts() == 0 \
-               and not option.tristate():
+               and not option.tristate() \
+               and not option.has_depends():
             self.always_on.append(option.symbol())
             # we add a free item to the defaultSelect list. this is
             # important in the following scenario:
