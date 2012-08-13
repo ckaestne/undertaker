@@ -1,0 +1,5 @@
+c epsilon.cnf
+c this is a nearly empty model
+c to force the use of CnfConfigurationModel
+p cnf 1 1
+1 0
