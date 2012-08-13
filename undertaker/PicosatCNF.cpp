@@ -191,13 +191,19 @@ kconfig_symbol_type PicosatCNF::getSymbolType(const string &name) {
 
 void PicosatCNF::setSymbolType(const string &sym, kconfig_symbol_type type)
 {
+    std::string config_sym = "CONFIG_" + sym;
+    this->associatedSymbols[config_sym] = sym;
+
+    if (type == 2) {
+        std::string config_sym_mod = "CONFIG_" + sym + "_MODULE";
+        this->associatedSymbols[config_sym_mod] = sym;
+    }
+
     this->symboltypes[sym] = type;
 }
 
 int PicosatCNF::getCNFVar(const string &var)
 {
-    //TODO: add new mapping for unknown variables
-    //necessary since mapping is done by CNFBuilder, not by picosat itself
     std::map<std::string, int>::const_iterator it = this->cnfvars.find(var);
     return (it == this->cnfvars.end()) ? 0 : it->second;
 }
@@ -300,6 +306,22 @@ bool PicosatCNF::deref(string &s)
     return this->deref(cnfvar);
 }
 
+bool PicosatCNF::deref(const char *c)
+{
+    string s(c);
+    int cnfvar = this->getCNFVar(s);
+    return this->deref(cnfvar);
+}
+
+const std::string *PicosatCNF::getAssociatedSymbol(const std::string &var) const {
+    std::map<std::string, std::string>::const_iterator it = this->associatedSymbols.find(var);
+    return (it == this->associatedSymbols.end()) ? 0 : &(it->second);
+}
+
+const int *PicosatCNF::failedAssumptions(void) const {
+    return Picosat::picosat_failed_assumptions();
+}
+
 std::map<string, int>::const_iterator PicosatCNF::getSymbolsItBegin()
 {
     return this->cnfvars.begin();
@@ -330,8 +352,6 @@ void PicosatCNF::addMetaValue(const std::string &key, const std::string &value) 
 }
 
 const std::deque<std::string> *PicosatCNF::getMetaValue(const std::string &key) const {
-    static std::string null_string("");
-
     std::map<std::string, std::deque<std::string> >::const_iterator i = meta_information.find(key);
     if (i == meta_information.end())
         return NULL;

@@ -28,10 +28,11 @@
 
 #include "ModelContainer.h"
 #include "RsfConfigurationModel.h"
+#include "CnfConfigurationModel.h"
 #include "KconfigWhitelist.h"
 #include "Logging.h"
 
-static const boost::regex model_regex("^([-[:alnum:]]+)\\.model$");
+static const boost::regex model_regex("^([-[:alnum:]]+)\\.(model|cnf)$");
 
 ConfigurationModel* ModelContainer::loadModels(std::string model) {
     ModelContainer *f = getInstance();
@@ -113,8 +114,13 @@ ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std:
         return db;
     }
 
-    db = new RsfConfigurationModel(filename.c_str());
-
+    boost::filesystem::path filepath(filename);
+    if (filepath.extension() == ".cnf") {
+        db = new CnfConfigurationModel(filename.c_str());
+    }
+    else {
+        db = new RsfConfigurationModel(filename.c_str());
+    }
     if (!db) {
         logger << error << "Failed to load model from " << filename
                << std::endl;

@@ -1,9 +1,7 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
- * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
- * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +19,8 @@
 
 
 // -*- mode: c++ -*-
-#ifndef configuration_model_h__
-#define configuration_model_h__
+#ifndef cnf_configuration_model_h__
+#define cnf_configuration_model_h__
 
 #include <string>
 #include <map>
@@ -31,21 +29,21 @@
 #include <list>
 #include <boost/regex.hpp>
 
-#include "RsfReader.h" // for 'StringList'
+#include "RsfReader.h"
+#include "PicosatCNF.h"
 
-class ConfigurationModel {
+std::list<std::string> itemsOfString(const std::string &str);
+
+class CnfConfigurationModel: public ConfigurationModel {
 public:
 
-    struct Checker {
-        //! checks if the item is a candidate for addition in the 'missing' set
-        virtual bool operator()(const std::string &item) const = 0;
-    };
+    CnfConfigurationModel(const char *filename);
 
     //! destructor
-    virtual ~ConfigurationModel() {};
+    ~CnfConfigurationModel();
 
     //! add feature to whitelist ('ALWAYS_ON')
-    virtual void addFeatureToWhitelist(const std::string feature) = 0;
+    void addFeatureToWhitelist(const std::string feature);
 
     //! gets the current feature whitelist ('ALWAYS_ON')
     /*!
@@ -53,7 +51,7 @@ public:
      *
      * The referenced object must not be freed, the model class manages it.
      */
-    virtual const StringList *getWhitelist() const = 0;
+    const StringList *getWhitelist() const;
 
     //! add feature to blacklist ('ALWAYS_OFF')
     /*!
@@ -61,57 +59,65 @@ public:
      * referenced by getWhitelist(). Be sure to call getWhitelist()
      * again after using this method.
      */
-    virtual void addFeatureToBlacklist(const std::string feature) = 0;
+    void addFeatureToBlacklist(const std::string feature);
 
-    //!< gets the current feature blacklist ('ALWAYS_OFF')
-    virtual const StringList *getBlacklist() const = 0;
+    //! gets the current feature blacklist ('ALWAYS_OFF')
+    const StringList *getBlacklist() const;
 
 
-    virtual int doIntersect(const std::string exp,
+    int doIntersect(const std::string exp,
                     const ConfigurationModel::Checker *c,
                     std::set<std::string> &missing,
-                    std::string &intersected) const = 0;
+                    std::string &intersected) const;
 
-    virtual int doIntersect(const std::set<std::string> exp,
+    int doIntersect(const std::set<std::string> exp,
                     const ConfigurationModel::Checker *c,
                     std::set<std::string> &missing,
-                    std::string &intersected) const = 0;
+                    std::string &intersected) const;
 
-    virtual std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &working) const = 0;
-    static std::string getMissingItemsConstraints(const std::set<std::string> &missing);
-
+    std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &working) const;
     std::string getName() const { return _name; }
 
-    //! returns the version identifier for the current model
-    virtual const char *getModelVersionIdentifier() const = 0;
-
     //! checks if a given item should be in the model space
-    virtual bool inConfigurationSpace(const std::string &symbol) const = 0;
+    bool inConfigurationSpace(const std::string &symbol) const;
 
     //! checks if we can assume that the configuration space is complete
-    virtual bool isComplete() const = 0;
+    bool isComplete() const;
 
     //@{
     //! checks the type of a given symbol.
     //! @return false if not found
-    virtual bool isBoolean(const std::string&) const = 0;
-    virtual bool isTristate(const std::string&) const = 0;
+    bool isBoolean(const std::string&) const;
+    bool isTristate(const std::string&) const;
     //@}
+
+    //! returns the version identifier for the current model
+    const char *getModelVersionIdentifier() const { return "cnf"; }
 
     //! returns the type of the given symbol
     /*!
      * Normalizes the given item so that passing with and without
      * CONFIG_ prefix works.
      */
-    virtual std::string getType(const std::string &feature_name) const = 0;
+    std::string getType(const std::string &feature_name) const;
 
-    virtual bool containsSymbol(const std::string &symbol) const = 0;
+    bool containsSymbol(const std::string &symbol) const;
 
-    virtual const StringList *getMetaValue(const std::string &key) const = 0;
+    const StringList *getMetaValue(const std::string &key) const {
+        return _cnf->getMetaValue(key);
+    }
+
+    const kconfig::PicosatCNF *getCNF(void) {
+        return _cnf;
+    }
 
 
-protected:
+private:
     std::string _name;
+    boost::regex _inConfigurationSpace_regexp;
+    std::istream *_model_stream;
+    std::istream *_rsf_stream;
+    kconfig::PicosatCNF *_cnf;
 };
 
 #endif

@@ -662,8 +662,15 @@ void process_file_dead_helper(const char *filename) {
 
 void process_file_dead(const char *filename) {
     boost::thread t(process_file_dead_helper, filename);
+    static unsigned int timeout = 120; // default timeout in seconds
 
-    if (!t.timed_join(boost::posix_time::seconds(120)))
+    ConfigurationModel *model = ModelContainer::lookupMainModel();
+    if (model && strcmp("cnf", model->getModelVersionIdentifier())) {
+        logger << debug << "Increasing timeout for dead analysis to 3600 seconds" << std::endl;
+        timeout = 3600;
+    }
+
+    if (!t.timed_join(boost::posix_time::seconds(timeout)))
         logger << error << "timeout passed while processing " << filename
                << std::endl;
 }

@@ -38,8 +38,9 @@
 #include "KconfigWhitelist.h"
 
 #include "ModelContainer.h"
-#include "ConfigurationModel.h"
 #include "PumaConditionalBlock.h"
+#include "ConfigurationModel.h"
+#include "CnfConfigurationModel.h"
 #include "Logging.h"
 
 #include "CNFBuilder.h"
@@ -68,15 +69,37 @@ SatChecker::SatChecker(const char *sat, int debug)
 SatChecker::SatChecker(const std::string sat, int debug)
     : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
 
+PicosatCNF *getCnfWithModelInit (const std::string &formula, Picosat::SATMode mode, std::string *result) {
+     static const boost::regex modelvar_regexp("\\._\\.(.+)\\._\\.");
+     boost::match_results<std::string::const_iterator> what;
+     if (boost::regex_search(formula, what, modelvar_regexp)) {
+        std::string modelname = what[1];
+        CnfConfigurationModel *cm = dynamic_cast<CnfConfigurationModel *>(
+            ModelContainer::getInstance()->lookupModel(modelname.c_str()));
+        if (!cm) {
+            logger << error << "Could not add model \"" << modelname  <<"\" to cnf" << std::endl;
+            return 0;
+        }
+        const PicosatCNF *modelcnf = cm->getCNF();
+        PicosatCNF *cnf = new PicosatCNF(*modelcnf);
+        cnf->setDefaultPhase(mode);
+        *result = boost::regex_replace(formula, modelvar_regexp , "1");
+        return cnf;
+     } else {
+        *result = formula;
+        return new PicosatCNF(mode);
+     }
+}
+
 bool SatChecker::operator()(Picosat::SATMode mode) throw (SatCheckerError) {
 
-    _cnf = new PicosatCNF(mode);
+    std::string sat;
+    _cnf = getCnfWithModelInit(_sat, mode, &sat );
     try {
 
-        BoolExp *exp = BoolExp::parseString(_sat);
-
+        BoolExp *exp = BoolExp::parseString(sat);
         if (!exp) {
-           throw SatCheckerError("SatChecker: Couldn't parse: " + _sat);
+           throw SatCheckerError("SatChecker: Couldn't parse: " + sat);
         }
 
         CNFBuilder builder(true, CNFBuilder::FREE);
@@ -539,8 +562,8 @@ bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSym
 BaseExpressionSatChecker::BaseExpressionSatChecker(const char *base_expression, int debug)
 : SatChecker(base_expression, debug) {
 
-    _cnf = new PicosatCNF(Picosat::SAT_MAX);
     std::string base_expression_s(base_expression);
+    _cnf = getCnfWithModelInit(base_expression_s, Picosat::SAT_MAX, &base_expression_s);
     BoolExp *exp = BoolExp::parseString(base_expression_s);
     if (!exp){
         throw SatCheckerError("SatChecker: Couldn't parse: " + base_expression_s);

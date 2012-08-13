@@ -66,6 +66,16 @@ namespace kconfig
              *  Keep in sync with "booleanvars"
              */
             std::map<string, int> cnfvars;
+            /** mapping between the names of boolean variables and symbols
+            Some boolean variable represent model symbols. if so, the have
+            to be stored in this map.
+            Example:
+            { "CONFIG_FOO"  -> "FOO", "CONFIG_FOO_MODULE" -> "FOO" }
+            **/
+            std::map<string, string> associatedSymbols;
+            /** contains the variable name for cnf-id.
+            Not all cnf-id will have a name. Must kept in sync with "symboltypes"
+            **/
             std::map<int, string> boolvars;
             std::vector<int> clauses;
             std::vector<int> assumptions;
@@ -100,6 +110,18 @@ namespace kconfig
             virtual bool deref(string &s);
             virtual int getVarCount(void);
             virtual int newVar(void);
+            virtual bool deref(const char *c);
+            virtual const std::string *getAssociatedSymbol(const std::string &var) const;
+            /** returns cnf-id of assumtions, that cause unresolvable conflicts.
+            If checkSatisfiable returns false, this returns an array of assumptions
+            that derived unsatisfiability (= failed assumptions).
+            It does not contain all unsatisfiable assumptions.
+            @returns array if of failed cnf-ids
+            **/
+            const int *failedAssumptions(void) const;
+            /** get an Iterator over all symbols associated with this formula
+            @returns iterator over pairs of symbolnames and their type
+            **/
             virtual std::map<string, int>::const_iterator getSymbolsItBegin();
             virtual std::map<string, int>::const_iterator getSymbolsItEnd();
             const std::deque<std::string> *getMetaValue(const std::string &key) const;

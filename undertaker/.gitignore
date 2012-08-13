@@ -8,6 +8,7 @@ rsf2cnf
 docs
 coverage-html
 kconfig-dumps/models
+kconfig-dumps/cnfmodels
 test-*
 !test-*.cpp
 predator

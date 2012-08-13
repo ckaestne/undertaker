@@ -107,7 +107,7 @@ public:
     RsfReader::iterator begin() const { return _model->begin(); }
     RsfReader::iterator end()   const { return _model->end(); }
 
-    bool containsSymbol(std::string symbol) { return (this->find(symbol) != this->end()); }
+    bool containsSymbol(const std::string &symbol) const { return (this->find(symbol) != this->end()); }
 
     const StringList *getMetaValue(const std::string &key) const {
         return _model->getMetaValue(key);
