@@ -237,7 +237,7 @@ def main():
     elif opts.compiled:
         try:
             for filename in opts.compiled:
-                status = file_in_current_configuration(filename)
+                status = file_in_current_configuration(filename, arch, subarch)
                 print filename, status
         except TreeNotConfigured:
             logging.error("Your Linux tree is not configured, please configure it first")
