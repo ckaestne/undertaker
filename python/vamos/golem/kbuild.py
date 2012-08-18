@@ -35,6 +35,15 @@ import sys
 
 import vamos
 
+# matches lines like:
+# obj-$(CONFIG_MODULES)           += microblaze_ksyms.o module.o
+# must not match lines like:
+# foo_CFLAGS += -DCONFIG=foo.h
+
+BUILDSYSTEM_VARIABLE_REGEX = \
+    r'(^CONFIG_|[^A-Za-z0-9_]CONFIG_)(?P<feature>[A-Za-z0-9_]+)'
+
+
 class TreeNotConfigured(RuntimeError):
     """ Indicates that this Linux tree is not configured yet """
     pass
@@ -327,10 +336,8 @@ def determine_buildsystem_variables(arch=None):
     find_result = execute(cmd, failok=False)
 
     ret = set()
-    # line might look like this:
-    # obj-$(CONFIG_MODULES)           += microblaze_ksyms.o module.o
     for line in find_result[0]:
-        for m in re.finditer(r'CONFIG_(?P<feature>[A-Za-z0-9_]+)', line):
+        for m in re.finditer(BUILDSYSTEM_VARIABLE_REGEX, line):
             config_variable = m.group('feature')
             ret.add(config_variable)
     return ret
@@ -352,14 +359,12 @@ def determine_buildsystem_variables_in_directory(directory):
         filenames += glob(directory + "/*/Platform")
 
     ret = set()
-
     for filename in filenames:
         with open(filename) as fd:
             for line in fd:
-                for m in re.finditer(r'CONFIG_(?P<feature>[A-Za-z0-9_]+)', line):
+                for m in re.finditer(BUILDSYSTEM_VARIABLE_REGEX, line):
                     config_variable = m.group('feature')
                     ret.add("CONFIG_" + config_variable)
-
     return ret
 
 
