@@ -89,7 +89,8 @@ def find_variables_in_directories(arch, args):
     if not os.path.exists(modelfile):
         logging.error("%s not found, please generate models using undertaker-kconfigdump",
                       modelfile)
-
+    if len(args) is 0:
+        args.append(".")
     for d in args:
         if not os.path.isdir(d):
             logging.warning("Skipping %s, not a directory", d)
@@ -101,7 +102,7 @@ def find_variables_in_directories(arch, args):
         s += [x + "_MODULE" for x in s if (x+"_MODULE") in model]
         logging.debug("found %d items in check_subdir result: %s", len(s), s)
         for v in sorted(variables):
-            print 'CONFIG_' + v
+            print v
 
 
 def main():
