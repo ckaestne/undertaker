@@ -23,9 +23,9 @@ from vamos.golem.kbuild import determine_buildsystem_variables_in_directory, \
 
 
 from vamos.tools import execute, CommandFailed
-from vamos.golem.kbuild import find_scripts_basedir
+from vamos.golem.kbuild import find_scripts_basedir, NotACorebootTree
 from vamos.model import Model
-from tempfile import NamedTemporaryFile, mkstemp
+from tempfile import NamedTemporaryFile
 import glob
 import logging
 import os
@@ -252,8 +252,9 @@ class BusyboxInferenceAtoms(LinuxInferenceAtoms):
 
 class CorebootInferenceAtoms(LinuxInferenceAtoms):
     def __init__(self, path):
-        InferenceAtoms.__init__(self)
+        LinuxInferenceAtoms.__init__(self, "coreboot", None)
         self.directory_prefix = path
+
     def OP_list(self, selection):
         features = selection.to_dict()
 

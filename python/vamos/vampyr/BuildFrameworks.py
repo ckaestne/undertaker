@@ -31,11 +31,11 @@ from vamos.vampyr.Configuration \
 from vamos.vampyr.utils import find_configurations, \
     get_conditional_blocks, get_block_to_linum_map
 from vamos.golem.kbuild import apply_configuration, file_in_current_configuration, \
-    guess_subarch_from_arch, TreeNotConfigured, \
+    guess_subarch_from_arch, \
     call_linux_makefile, find_autoconf, get_linux_version, NotALinuxTree, \
     call_makefile_generic, NotABusyboxTree, get_busybox_version, \
     NotACorebootTree, get_coreboot_version, coreboot_get_config_for
-from vamos.tools import execute, CommandFailed
+from vamos.tools import execute
 from vamos.model import Model
 
 import os.path
@@ -96,7 +96,7 @@ class BuildFramework:
         deletes various autoconf.h files
         returns a list of deleted files
         """
-        raise NotImplementedError
+        return list()
 
     def find_autoconf(self):
         return find_autoconf()

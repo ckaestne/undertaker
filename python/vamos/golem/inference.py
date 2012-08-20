@@ -62,10 +62,12 @@ def all_variations(seq_SEQ):
     return ret
 
 def unique(seq):
-   # order preserving
-   noDupes = []
-   [noDupes.append(i) for i in seq if not noDupes.count(i)]
-   return noDupes
+    # order preserving
+    noDupes = []
+    for i in seq:
+        if not i in noDupes:
+            noDupes.append(i)
+    return noDupes
 
 class Counter:
     def __init__(self):
