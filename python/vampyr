@@ -303,6 +303,12 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    if opts.do_analyze is True and len(opts.call) > 0:
+        print "Vampyr - VAMOS Variability aware static analyzer driver\n"
+        print "Please don't use -a and -C {gcc, sparse, spatch} at the same time\n"
+        parser.print_help()
+        sys.exit(1)
+
     options = { 'args': {},
                 'cross_prefix': opts.cross_prefix,
                 'threads': get_online_processors() if opts.threads == 0 else opts.threads,
