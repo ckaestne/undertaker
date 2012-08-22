@@ -116,28 +116,7 @@ ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std:
         return db;
     }
 
-    std::ifstream *model = new std::ifstream(filename.c_str());
-    if (!model->good()) {
-        logger << error << "could not open file for reading: " << filename << std::endl;
-        delete model;
-        return NULL;
-    }
-    boost::filesystem::path filepath(filename);
-    if (filepath.extension() == ".model" || filepath == "/dev/null") {
-        std::ifstream *rsf = NULL;
-        if (filepath.extension() == ".model") {
-            filepath.replace_extension(".rsf");
-            rsf = new std::ifstream(filepath.string().c_str());
-        } else {
-            rsf = new std::ifstream("/dev/null");
-        }
-        if (!rsf->good()) {
-            logger << warn << "could not open file for reading: "      << filename << std::endl;
-            logger << warn << "checking the type of symbols will fail" << std::endl;
-        }
-
-        db = new RsfConfigurationModel(arch, model, rsf);
-    }
+    db = new RsfConfigurationModel(filename.c_str());
 
     if (!db) {
         logger << error << "Failed to load model from " << filename

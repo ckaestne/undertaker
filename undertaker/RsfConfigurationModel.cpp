@@ -26,6 +26,7 @@
 #include "Logging.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <algorithm>
 #include <cassert>
@@ -35,10 +36,34 @@
 #include <list>
 #include <stack>
 
-RsfConfigurationModel::RsfConfigurationModel(std::string name, std::istream *in, std::istream *rsf)
-    :  _model_stream(in), _rsf_stream(rsf) {
+RsfConfigurationModel::RsfConfigurationModel(const char *filename) {
     const StringList *configuration_space_regex;
-    _name = name;
+    boost::filesystem::path filepath(filename);
+
+    _name = boost::filesystem::basename(filepath);
+    _model_stream = new std::ifstream(filename);
+
+    if (strcmp(filename, "/dev/null") != 0 && _model_stream->good()) {
+        bool have_rsf = false;
+
+        if (filepath.extension() == ".model") {
+            filepath.replace_extension(".rsf");
+            _rsf_stream = new std::ifstream(filepath.string().c_str());
+            have_rsf = true;
+        } else {
+            _rsf_stream = new std::ifstream("/dev/null");
+        }
+
+        if (!have_rsf || !_rsf_stream->good()) {
+            logger << warn << "could not open file for reading: "      << filename << std::endl;
+            logger << warn << "checking the type of symbols will fail" << std::endl;
+        }
+    } else {
+        delete _model_stream;
+        _model_stream = new std::ifstream("/dev/null");
+        _rsf_stream = new std::ifstream("/dev/null");
+    }
+
     _model = new RsfReader(*_model_stream, "UNDERTAKER_SET");
     _rsf   = new ItemRsfReader(*_rsf_stream);
 

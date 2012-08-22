@@ -40,14 +40,10 @@ public:
 
     //! Loads the configuration model from file
     /*!
-     * \param name the architecture
-     * \param in   istream of the model file as produced by rsf2model.
-                   Will be deleted upon object destruction.
-     * \param rsf  istream of the rsf file. used for type information of symbol files
-                   Will be deleted upon object destruction.
-     * \param log  error stream for diagnostics
+     * \param filename filepath to the model file.
+                       NB: The basename is taken as architecture name.
      */
-    RsfConfigurationModel(std::string name, std::istream *in, std::istream *rsf);
+    RsfConfigurationModel(const char *filename);
 
     //! destructor
     ~RsfConfigurationModel();
