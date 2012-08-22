@@ -32,6 +32,7 @@
 I: Set configuration space regex to '^(ENABLE_|CONFIG_)[^ ]*$'
 I: loaded rsf model for busybox-syslogd.model
 I: Using busybox-syslogd.model as primary model
+I: Entries in missingSet: 0
 I: Found 3 assignments
 I: In all assignments the following symbols are equally set
 CONFIG_FEATURE_REMOTE_LOG=1

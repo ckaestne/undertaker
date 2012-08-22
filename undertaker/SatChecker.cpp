@@ -427,8 +427,9 @@ void SatChecker::pprintAssignments(std::ostream& out,
                                    const ConfigurationModel *model,
                                    const MissingSet &missingSet) {
     out << "I: Found " << solution.size() << " assignments" << std::endl;
-    std::map<std::string, bool> common_subset;
+    out << "I: Entries in missingSet: " << missingSet.size() << std::endl;
 
+    std::map<std::string, bool> common_subset;
 
     for (std::list<AssignmentMap>::const_iterator conf = solution.begin(); conf != solution.end(); ++conf) {
         for (AssignmentMap::const_iterator  it = (*conf).begin(); it != (*conf).end(); it++) {

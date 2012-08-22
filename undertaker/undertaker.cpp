@@ -176,8 +176,6 @@ void process_file_coverage_helper(const char *filename) {
         return;
     }
 
-    logger << info << "Entries in missingSet: " << missingSet.size() << std::endl;
-
     int cruft = 0;
     std::string pattern(filename);
     pattern.append(".cppflags*");

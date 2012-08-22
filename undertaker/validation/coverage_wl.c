@@ -22,7 +22,6 @@ I: loaded rsf model for coverage_wl.model
 I: Using coverage_wl.model as primary model
 I: 2 Items have been forcefully set
 I: 1 Items have been forcefully unset
-I: Entries in missingSet: 0
 I: Removed 0 leftovers for coverage_wl.c
 I: coverage_wl.c, Found Solutions: 1, Coverage: 3/5 blocks enabled (60%)
 CONFIG_TO_BE_SET=y

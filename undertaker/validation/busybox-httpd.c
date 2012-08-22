@@ -80,6 +80,7 @@
 I: Set configuration space regex to '^(ENABLE_|CONFIG_)[^ ]*$'
 I: loaded rsf model for busybox-httpd.model
 I: Using busybox-httpd.model as primary model
+I: Entries in missingSet: 0
 I: Found 4 assignments
 I: In all assignments the following symbols are equally set
 CONFIG_FEATURE_HTTPD_AUTH_MD5=1
