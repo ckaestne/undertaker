@@ -603,6 +603,14 @@ class CorebootConfiguration(KbuildConfiguration):
     def __repr__(self):
         return '<CorebootConfiguration "' + self.kconfig + '">'
 
+    def call_gcc(self, on_file):
+        raise NotImplementedError("call_gcc is not implemented yet")
+
+    def call_spatch(self, on_file):
+        raise NotImplementedError("call_spatch is not implemented yet")
+
+    def call_sparse(self, on_file):
+        raise NotImplementedError("call_sparse is not implemented yet")
 
 class CorebootPartialConfiguration(CorebootConfiguration):
     """
