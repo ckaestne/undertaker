@@ -131,7 +131,7 @@ fi
 if [ "$MODE" = "scan-deads" ]; then
     find -type f -name "*.[hcS]" \
         ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
-        -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-worklist
+        -exec grep -q -E '^#[[:space:]]*if' {} \; -print | shuf > undertaker-worklist
 
     # delete potentially confusing .dead files first
     find . -type f -name '*dead' -delete
