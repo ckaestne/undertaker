@@ -70,7 +70,7 @@ fi
 debug "rsf2model: $(which rsf2model)"
 debug "dumpconf: $(which dumpconf)"
 
-if [ ! -f arch/x86/Kconfig ]; then
+if ! [ -f arch/x86/Kconfig -o -f arch/i386/Kconfig ]; then
     echo "Not run in an linux tree. Please run inside an linux tree without arguments"
     exit 1
 fi
