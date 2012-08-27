@@ -3,8 +3,9 @@
 #   undertaker-kconfigdump - generates models in Linux source trees
 #
 # Copyright (C) 2009-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
-# Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 # Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud,uni-erlangen.de>
+# Copyright (C) 2012 Stefan Hengelein <stefan.hengelein@informatik.stud.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -70,18 +71,9 @@ fi
 debug "rsf2model: $(which rsf2model)"
 debug "dumpconf: $(which dumpconf)"
 
-if ! [ -f arch/x86/Kconfig -o -f arch/i386/Kconfig ]; then
-    echo "Not run in an linux tree. Please run inside an linux tree without arguments"
-    exit 1
-fi
-
-ALLARCHS="$(ls arch/*/Kconfig | cut -d '/' -f 2) um"
-
-if [ -z "$1" ]; then
-    ARCHS=$ALLARCHS
-else
-    ARCHS="$@"
-fi
+function all_linux_archs () {
+    echo "$(ls arch/*/Kconfig | cut -d '/' -f 2) um"
+}
 
 mkdir -p "$MODELS"
 
@@ -91,7 +83,7 @@ function pwait() {
     [ -z "$jobs" ] && jobs=5
 
     while [ $(jobs -r | wc -l) -ge "$jobs" ]; do
-        sleep 0.5
+	sleep 0.5
     done
 }
 
@@ -107,12 +99,12 @@ function do_convert() {
     SUBARCH=$ARCH
     KCONFIG=Kconfig
     if [ x"$ARCH" = x"um" ]; then
-        SUBARCH=x86
-        if [ -r arch/um/Kconfig ]; then
-            KCONFIG=Kconfig
-        else
-            KCONFIG=Kconfig.um
-        fi
+	SUBARCH=x86
+	if [ -r arch/um/Kconfig ]; then
+	    KCONFIG=Kconfig
+	else
+	    KCONFIG=Kconfig.um
+	fi
     fi
 
     test -f arch/$ARCH/$KCONFIG || {
@@ -131,10 +123,61 @@ function do_convert() {
     rsf2model "$MODELS/$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
 
   # Add CONFIG_$i -> !CONFIG_* for every architecture
-    echo $ALLARCHS | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | \
-        sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
-        >> "$MODELS/$ARCH.model"
+    echo $(all_linux_archs) | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | \
+	sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
+	>> "$MODELS/$ARCH.model"
 }
+
+if [ -f scripts/gen_build_files.sh ]; then
+    echo "Detected a busybox source tree"
+
+   # generate config files, execute dumpconf
+    # remove all the comments because they will confuse rsf2model
+    make gen_build_files
+    dumpconf Config.in | sort -u | grep -v '^#' > "$MODELS/busybox.rsf"
+
+    # make models for busybox
+    rsf2model "$MODELS/busybox.rsf" > "$MODELS/busybox.model"
+
+    # disable CONFIG_WERROR
+    echo 'UNDERTAKER_SET ALWAYS_OFF "CONFIG_WERROR" "CONFIG_STATIC"' >> "$MODELS/busybox.model"
+
+    exit 0
+fi
+
+if test -f Makefile && grep -q 'This file is part of the coreboot project.' Makefile; then
+    CBMODEL=coreboot
+
+    #make the Kconfig Symbol WARNINGS_ARE_ERRORS changeable
+    sed -i ':a;N;$!ba;s,config WARNINGS_ARE_ERRORS\n\tbool\n,config WARNINGS_ARE_ERRORS\n\tbool "DUMMY"\n,' src/Kconfig
+
+    # generate config files, execute dumpconf, remove all the comments because they will confuse rsf2model
+	dumpconf ./src/Kconfig | sort -u | grep -v '^#' > "$MODELS/$CBMODEL.rsf"
+
+    # make model for coreboot
+    rsf2model "$MODELS/$CBMODEL.rsf" > "$MODELS/$CBMODEL.model"
+
+    # disable bad CONFIG_ Symbols
+    #
+    # be careful here, if the desired CONFIG_ Symbol doesn't have a prompt within
+    # the specific Kconfig file (eg. "config WARNINGS_ARE_ERRORS\n\tbool\n") then
+    # it CANNOT be asured to be always off or on!
+
+    echo 'UNDERTAKER_SET ALWAYS_OFF "CONFIG_CCACHE" "CONFIG_SCANBUILD_ENABLE" "CONFIG_WARNINGS_ARE_ERRORS"' >> "$MODELS/$CBMODEL.model"
+    exit 0
+fi
+
+if ! [ -f arch/x86/Kconfig -o -f arch/i386/Kconfig ]; then
+    echo "This version supports Linux, busybox and coreboot"
+    echo "Please run this programm inside an source tree without arguments"
+    exit 1
+fi
+
+if [ -z "$1" ]; then
+    ARCHS=$(all_linux_archs)
+else
+    ARCHS="$@"
+fi
 
 for ARCH in $ARCHS
 do
@@ -146,4 +189,3 @@ done
 while [ $(jobs -r | wc -l) -gt 0 ]; do
     sleep 0.5
 done
-

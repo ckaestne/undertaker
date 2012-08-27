@@ -55,10 +55,8 @@ install: all $(MANPAGES)
 
 	@install -v python/undertaker-calc-coverage $(DESTDIR)$(BINDIR)
 	@install -v python/undertaker-kconfigdump $(DESTDIR)$(BINDIR)
-	@install -v python/coreboot-kconfigdump $(DESTDIR)$(BINDIR)
 	@install -v python/vampyr-spatch-wrapper $(DESTDIR)$(BINDIR)
 	@install -v python/fakecc $(DESTDIR)$(BINDIR)
-	@install -v python/busybox-kconfigdump $(DESTDIR)$(BINDIR)
 
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(LIBDIR)/undertaker
 
