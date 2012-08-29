@@ -25,6 +25,7 @@
 /**
  * \brief Kconfig symbols types
  * To be kept in sync with symbol_type in expression.h from kconfig
+ * and SymbolTools.cpp
  */
 enum kconfig_symbol_type {
     K_S_UNKNOWN, K_S_BOOLEAN, K_S_TRISTATE, K_S_INT, K_S_HEX, K_S_STRING, K_S_OTHER

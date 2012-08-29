@@ -1,0 +1,1 @@
+ #OLPC [=n] && X86_32 [=n] && !X86_PAE [=n] || ALIX [=n] && X86_32 [=n] || ARCH_REQUIRE_GPIOLIB [=n] || FB_VIA [=m] && HAS_IOMEM [=y] && FB [=m] && PCI [=y] && X86 [=y]

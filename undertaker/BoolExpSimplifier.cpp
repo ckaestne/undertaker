@@ -58,8 +58,7 @@ void kconfig::BoolExpSimplifier::visit(BoolExpAnd *) {
         if (c->value == true) {
             this->result = var;
             return;
-        }
-        else {
+        } else {
             this->result = c;            //0
             return;
         }
@@ -109,8 +108,7 @@ void kconfig::BoolExpSimplifier::visit(BoolExpOr *) {
             if (c->value == false) {
                 this->result = var;
                  return;
-            }
-            else {
+            } else {
                  this->result = c;        //1
                  return;
             }
@@ -204,5 +202,9 @@ void kconfig::BoolExpSimplifier::visit(BoolExpConst *e) {
 }
 
 void kconfig::BoolExpSimplifier::visit(BoolExpVar *e) {
+    if (e->rel == rel_mod && e->sym->type == S_BOOLEAN) {
+        this->result = B_CONST(false);
+        return;
+    }
     this->result = new BoolExpVar(*e);
 }

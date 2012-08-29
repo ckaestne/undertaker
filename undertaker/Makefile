@@ -21,17 +21,25 @@ PARSEROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
 		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o \
 		ConfigurationModel.o \
 		Logging.o \
-		bool.o \
-		CNFBuilder.o \
 		BoolExpGC.o \
 		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o BoolExpSimplifier.o \
-		PicosatCNF.o CnfConfigurationModel.o
+		PicosatCNF.o CnfConfigurationModel.o \
+		bool.o CNFBuilder.o PicosatCNF.o CnfConfigurationModel.o
 
-DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
+SATYROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
+		ModelContainer.o BlockDefectAnalyzer.o\
+		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o \
+		Logging.o ConfigurationModel.o BoolExpGC.o \
+		bool.o CNFBuilder.o PicosatCNF.o CnfConfigurationModel.o\
+		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o BoolExpSimplifier.o\
+		ExpressionTranslator.o SymbolTranslator.o SymbolTools.o SymbolParser.o\
+		KconfigAssumptionMap.o
 
-PROGS = undertaker predator rsf2cnf
+PROGS = undertaker predator rsf2cnf satyr
 TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel \
             test-Bool test-CNFBuilder test-BoolExpSymbolSet test-PicosatCNF
+
+DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ) $(SATYROBJ)) undertaker.d satyr.d
 
 all: $(PROGS) $(TESTPROGS)
 
@@ -39,6 +47,7 @@ undertaker: libparser.a ../picosat/libpicosat.a
 rsf2cnf: libparser.a
 KconfigIntersect: libparser.a
 predator: libparser.a predator.o PredatorVisitor.o
+satyr: libsatyr.a zconf.tab.o ../picosat/libpicosat.a libparser.a
 
 ../picosat/libpicosat.a:
 	$(MAKE) -C .. picosat/libpicosat.a
@@ -49,6 +58,8 @@ predator: libparser.a predator.o PredatorVisitor.o
 undertaker.d: ../version.h
 
 rsf2cnf.d: ../version.h
+
+satyr.d: ../version.h
 
 BoolExpLexer.d:
 
@@ -66,6 +77,9 @@ bool.o: bool.cpp bool.h BoolExpParser.o
 
 libparser.a: $(DEPFILES) $(PARSEROBJ)
 	ar r $@ $(PARSEROBJ)
+
+libsatyr.a: $(DEPFILES) $(SATYROBJ)
+	ar r $@ $(SATYROBJ)
 
 zconf.tab.o:
 	$(MAKE) -C $(CURDIR)/.. scripts/kconfig/dumpconf
@@ -118,6 +132,9 @@ run-coveragecheck: undertaker predator
 	if grep -q '^CONFIG_IA64=y' validation/sched.c.config*; then echo "IA64 must not be enabled!"; false ; fi
 	if grep -q '^CONFIG_CHOICE' validation/sched.c.config*; then echo "must not contain CONFIG_CHOICE*"; false ; fi
 
+run-satyrcheck: satyr
+	@cd validation-satyr && ./checkall.sh
+
 check: $(PROGS)
 	@$(MAKE) -s clean-check
 	@$(MAKE) run-rsf2cnfcheck
@@ -128,6 +145,7 @@ check: $(PROGS)
 	cd validation && env PATH=$(CURDIR):$(PATH) ./test-suite -t $$(getconf _NPROCESSORS_ONLN)
 	@$(MAKE) -s run-libcheck
 	@$(MAKE) -C validation-rsf2cnf check
+	@$(MAKE) -s run-satyrcheck
 
 clean-check:
 	find coverage-tests validation/ \

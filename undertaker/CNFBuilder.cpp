@@ -24,8 +24,8 @@
 using namespace kconfig;
 
 CNFBuilder::CNFBuilder(bool useKconfigWhitelist, enum ConstantPolicy constPolicy)
-    : boolvar(0), wl(useKconfigWhitelist ? KconfigWhitelist::getIgnorelist() : 0), constPolicy(constPolicy)
-{}
+    : boolvar(0), wl(useKconfigWhitelist ? KconfigWhitelist::getIgnorelist() : 0),
+    constPolicy(constPolicy) {}
 
 void CNFBuilder::pushClause(BoolExp *e) {
     visited.clear();
@@ -37,7 +37,6 @@ void CNFBuilder::pushClause(BoolExp *e) {
             return;
         }
     }
-
     // If we push a variable directly to the stack of clauses, we can
     // assume that it is always set. Therefore, also add it to the
     // ALWAYS_ON meta variable, to preserve this observation so that
@@ -47,7 +46,6 @@ void CNFBuilder::pushClause(BoolExp *e) {
         const std::string always_on("ALWAYS_ON");
         cnf->addMetaValue(always_on, variable->str());
     }
-
     e->accept(this);
     cnf->pushVar(e->CNFVar);
     cnf->pushClause();
@@ -59,15 +57,14 @@ int CNFBuilder::addVar(std::string symname) {
     int cv = cnf->getCNFVar(symname);
 
     if (cv == 0) {
-        //Var not known yet:
-        // add new var
+        // Var not known yet: add new var
         int newVar = this->cnf->newVar();
 
-        //add var to mapping
+        // add var to mapping
         cnf->setCNFVar(symname, newVar);
         return newVar;
     }
-    //var known:
+    // var known:
     return cv;
 }
 
@@ -126,7 +123,6 @@ void CNFBuilder::visit(BoolExpOr *e) {
     cnf->pushVar(a);
     cnf->pushVar(b);
     cnf->pushClause();
-
 }
 
 void CNFBuilder::visit(BoolExpImpl *e) {
@@ -198,9 +194,8 @@ void CNFBuilder::visit(BoolExpCall *e) {
 }
 
 void CNFBuilder::visit(BoolExpNot *e) {
-    if (e->CNFVar) {
+    if (e->CNFVar)
         return;
-    }
 
     e->CNFVar = -(e->right->CNFVar);
 }
@@ -214,14 +209,11 @@ void CNFBuilder::visit(BoolExpConst *e) {
         e->CNFVar = this->cnf->newVar();
         return;
     }
-
     if (!this->boolvar) {
-
         this->boolvar = this->cnf->newVar();
         cnf->pushVar(boolvar);
         cnf->pushClause();
     }
-
     e->CNFVar = e->value ? boolvar : -boolvar;
 }
 
@@ -232,7 +224,6 @@ void CNFBuilder::visit(BoolExpVar *e) {
     if (e->CNFVar) {
         return;
     }
-
     if (this->wl && wl->isWhitelisted(symname.c_str())) {
         // use free variables for symbols in wl
         e->CNFVar = this->cnf->newVar();

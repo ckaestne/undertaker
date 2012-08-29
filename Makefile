@@ -1,5 +1,5 @@
-PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator undertaker/rsf2cnf \
-	python/rsf2model tailor/undertaker-traceutil ziz/zizler
+PROGS = scripts/kconfig/dumpconf scripts/kconfig/conf undertaker/undertaker undertaker/predator undertaker/rsf2cnf \
+	undertaker/satyr python/rsf2model tailor/undertaker-traceutil ziz/zizler
 MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz \
 	doc/undertaker-kconfigpp.1.gz
 
@@ -42,11 +42,16 @@ undertaker/rsf2cnf: FORCE
 tailor/undertaker-traceutil: FORCE
 	$(MAKE) -C tailor undertaker-traceutil
 
+undertaker/satyr: FORCE
+	$(MAKE) -C undertaker satyr
+
 ziz/zizler: FORCE
 	$(MAKE) -C ziz zizler
 
 %.1.gz: %.1
 	gzip < $< > $@
+
+conf: scripts/kconfig/conf
 
 clean:
 	$(MAKE) -f Makefile.kbuild clean
@@ -66,6 +71,7 @@ check:
 	$(MAKE) -C ziz $@
 	$(MAKE) -C python $@
 	$(MAKE) -C tailor $@
+	$(MAKE) -C fm $@
 
 install: all $(MANPAGES)
 	@install -d -v $(DESTDIR)$(BINDIR)
@@ -101,6 +107,7 @@ install: all $(MANPAGES)
 	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(BINDIR)
 	@install -v undertaker/undertaker-busybox-tree $(DESTDIR)$(BINDIR)
 	@install -v undertaker/rsf2cnf $(DESTDIR)$(BINDIR)
+	@install -v undertaker/satyr $(DESTDIR)$(BINDIR)
 
 	@install -v ziz/zizler $(DESTDIR)$(BINDIR)
 
@@ -133,5 +140,5 @@ undertaker-lcov:
 	$(MAKE) -C undertaker run-lcov
 
 FORCE:
-.PHONY: FORCE check undertaker-lcov
+.PHONY: FORCE check undertaker-lcov conf
 .NOTPARALLEL:

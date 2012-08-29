@@ -22,6 +22,15 @@
 #ifndef KCONFIG_CNFBUILDER_H
 #define KCONFIG_CNFBUILDER_H
 
+#ifdef USE_ZCONF
+#ifndef LKC_DIRECT_LINK
+#define LKC_DIRECT_LINK
+#endif
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include "lkc.h"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#endif
+
 #include "bool.h"
 #include "BoolVisitor.h"
 #include "CNF.h"
@@ -32,23 +41,29 @@
 
 namespace kconfig {
 
-    class CNFBuilder : public BoolVisitor  {
+    class CNFBuilder : public BoolVisitor {
     public:
         enum ConstantPolicy {BOUND = 0, FREE};
+        CNF *cnf;
     private:
         int boolvar;
-
         KconfigWhitelist *wl;
-
-        //FIXME:
-        //dirty workaround! should be done in Parser!
-        //will conflict as soon const node unification is working
         enum ConstantPolicy constPolicy;
 
     public:
-        CNF *cnf;
-
         CNFBuilder(bool useKconfigWhitelist=false, enum ConstantPolicy constPolicy=BOUND);
+        #ifdef USE_ZCONF
+        void pushSymbolInfo(struct symbol * sym) {
+            std::string name(sym->name);
+            cnf->setSymbolType(name, (kconfig_symbol_type) sym->type);
+            std::string config = "CONFIG_";
+            this->addVar(config + sym->name);
+            if (sym->type == S_TRISTATE) {
+                this->addVar(config + sym->name + "_MODULE");
+            }
+        }
+        #endif
+
 
         //! Add clauses from the parsed boolean expression e
         /**

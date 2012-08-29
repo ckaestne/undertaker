@@ -17,3 +17,4 @@ build
 /picosat/config.h
 /picosat/libpicosat.a
 /picosat/makefile
+*.swp

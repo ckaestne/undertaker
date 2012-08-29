@@ -1,3 +1,4 @@
+// -*- mode: c++ -*-
 /*
  *   satyr - compiles KConfig files to boolean formulas
  *
@@ -27,10 +28,8 @@
 
 #include "Kconfig.h"
 
-namespace kconfig
-{
-    class CNF
-    {
+namespace kconfig {
+    class CNF {
         public:
             virtual ~CNF(){};
             virtual void readFromFile(std::istream &i) = 0;
@@ -49,7 +48,9 @@ namespace kconfig
             virtual void pushAssumption(const char *v, bool val)= 0;
             virtual bool checkSatisfiable(void)= 0;
             virtual bool deref(int s) = 0;
-            virtual bool deref(std::string &s) = 0;
+            virtual const int *failedAssumptions(void) const = 0;
+            virtual void pushAssumptions(std::map<std::string, bool> &a) = 0;
+            virtual bool deref(const std::string &s) = 0;
             virtual bool deref(const char *c) = 0;
             virtual const std::string *getAssociatedSymbol(const std::string &var) const = 0;
             virtual int getVarCount(void) = 0;

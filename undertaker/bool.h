@@ -28,24 +28,26 @@
 #include <string>
 #include <list>
 #include <ostream>
+#include <sstream>
+
+#include "SymbolTools.h"
 
 #define B_AND new kconfig::BoolExpAnd
 #define B_OR new kconfig::BoolExpOr
 #define B_NOT new kconfig::BoolExpNot
+#define B_IMPL new kconfig::BoolExpImpl
 #define B_VAR new kconfig::BoolExpVar
 #define B_CONST(v) (kconfig::BoolExpConst::getInstance(v))
 
 
 namespace kconfig {
-
     class BoolVisitor;
 
     enum BoolType {
         NONE, CONST, VAR, NOT, AND, OR
     };
 
-    enum TristateRelation
-    {
+    enum TristateRelation {
         rel_yes, rel_mod, rel_pres, rel_helper, rel_meta
     };
 
@@ -54,137 +56,154 @@ namespace kconfig {
     };
 
     class BoolExp {
-        protected:
-            std::string name;
-        public:
-            bool gcMarked;
-            BoolExp *left;
-            BoolExp *right;
-            int CNFVar;
-            BoolExp(): gcMarked(false), left(NULL), right(NULL), CNFVar(0) {}
-            virtual std::string str(void);
-            //! Apply obvious simplifications (if possible)
-            virtual BoolExp *simplify();
-            virtual int getEvaluationPriority(void) const {return -1;}
-            virtual bool equals(const BoolExp *other) const;
-            virtual void accept(BoolVisitor *visitor);
-            virtual std::string getName(void) const {return this->name;}
-            virtual bool isPersistent(void) const {return false;};
-            virtual ~BoolExp();
-            static BoolExp *parseString(std::string);
+    protected:
+        std::string name;
+    public:
+        bool gcMarked;
+        BoolExp *left;
+        BoolExp *right;
+        int CNFVar;
+
+        BoolExp(): gcMarked(false), left(NULL), right(NULL), CNFVar(0) {}
+        virtual ~BoolExp();
+        virtual std::string str(void);
+        //! Apply obvious simplifications (if possible)
+        virtual BoolExp *simplify();
+        virtual int getEvaluationPriority(void) const { return -1; }
+        virtual bool equals(const BoolExp *other) const;
+        virtual void accept(BoolVisitor *visitor);
+        virtual std::string getName(void) const { return this->name; }
+        virtual bool isPersistent(void) const { return false; };
+        static BoolExp *parseString(std::string);
     };
 
     std::ostream& operator<< (std::ostream &s, BoolExp &exp);
 
     class BoolExpAnd : public BoolExp {
-        public:
-            BoolExpAnd(BoolExp *el, BoolExp *er) :BoolExp() {
-                right = er;
-                left = el;
-            }
+    public:
+        BoolExpAnd(BoolExp *el, BoolExp *er) :BoolExp() {
+            right = er;
+            left = el;
+        }
 
-            void accept(BoolVisitor *visitor);
-            int getEvaluationPriority(void) const {return 50;}
+        void accept(BoolVisitor *visitor);
+        int getEvaluationPriority(void) const { return 50; }
     };
 
     class BoolExpOr : public BoolExp {
-        public:
-            BoolExpOr(BoolExp *el, BoolExp *er): BoolExp() {
-                right = er;
-                left = el;
-            }
+    public:
+        BoolExpOr(BoolExp *el, BoolExp *er): BoolExp() {
+            right = er;
+            left = el;
+        }
 
-            void accept(BoolVisitor *visitor);
-            int getEvaluationPriority(void) const {return 30;}
+        void accept(BoolVisitor *visitor);
+        int getEvaluationPriority(void) const { return 30; }
     };
 
     class BoolExpAny : public BoolExp {
-        public:
-            BoolExpAny(std::string name, BoolExp *el, BoolExp *er):BoolExp() {
-                right = er;
-                left = el;
-                this->name = name;
-            }
+    public:
+        BoolExpAny(std::string name, BoolExp *el, BoolExp *er):BoolExp() {
+            right = er;
+            left = el;
+            this->name = name;
+        }
 
-            int getEvaluationPriority(void) const {return 60;}
-            void accept(BoolVisitor *visitor);
-            bool equals(const BoolExp *other) const;
+        int getEvaluationPriority(void) const {return 60;}
+        void accept(BoolVisitor *visitor);
+        bool equals(const BoolExp *other) const;
     };
 
     class BoolExpImpl : public BoolExp {
-        public:
-            BoolExpImpl(BoolExp *el, BoolExp *er) :BoolExp() {
-                right = er;
-                left = el;
-            }
+    public:
+        BoolExpImpl(BoolExp *el, BoolExp *er) :BoolExp() {
+            right = er;
+            left = el;
+        }
 
-            void accept(BoolVisitor *visitor);
-            int getEvaluationPriority(void) const {return 20;}
+        void accept(BoolVisitor *visitor);
+        int getEvaluationPriority(void) const {return 20;}
     };
 
     class BoolExpEq : public BoolExp {
-        public:
-            BoolExpEq(BoolExp *el, BoolExp *er) :BoolExp() {
-                right = er;
-                left = el;
-            }
+    public:
+        BoolExpEq(BoolExp *el, BoolExp *er) :BoolExp() {
+            right = er;
+            left = el;
+        }
 
-            void accept(BoolVisitor *visitor);
-            int getEvaluationPriority(void) const {return 10;}
+        void accept(BoolVisitor *visitor);
+        int getEvaluationPriority(void) const {return 10;}
     };
 
     class BoolExpCall : public BoolExp {
-        public:
-            std::list<BoolExp *> *param;
-            BoolExpCall(std::string name, std::list<BoolExp *> *param) :BoolExp() {
-                this->name = name;
-                this->param = param;
-            }
+    public:
+        std::list<BoolExp *> *param;
+        BoolExpCall(std::string name, std::list<BoolExp *> *param) :BoolExp() {
+            this->name = name;
+            this->param = param;
+        }
 
-            void accept(BoolVisitor *visitor);
-            int getEvaluationPriority(void) const {return 90;}
-            bool equals(const BoolExp *other) const;
+        void accept(BoolVisitor *visitor);
+        int getEvaluationPriority(void) const {return 90;}
+        bool equals(const BoolExp *other) const;
     };
 
     class BoolExpNot : public BoolExp {
-        public:
-            BoolExpNot(BoolExp *e) :BoolExp() {
-                right = e;
-            }
+    public:
+        BoolExpNot(BoolExp *e) :BoolExp() {
+            right = e;
+        }
 
-            void accept(BoolVisitor *visitor);
-            int getEvaluationPriority(void) const {return 70;}
+        void accept(BoolVisitor *visitor);
+        int getEvaluationPriority(void) const {return 70;}
     };
 
     class BoolExpConst : public BoolExp {
-        public:
-            bool value;
-        private:
-            BoolExpConst(bool val):BoolExp() {
-                value = val ;
-            }
-        public:
-            static BoolExpConst *getInstance(bool val);
-            void accept(BoolVisitor *visitor);
-            int getEvaluationPriority(void) const {return 90;}
-            bool equals(const BoolExp *other) const;
-            bool isPersistent(void) const {return true;};
+    private:
+        BoolExpConst(bool val):BoolExp() {
+            value = val ;
+        }
+    public:
+        bool value;
+
+        static BoolExpConst *getInstance(bool val);
+        void accept(BoolVisitor *visitor);
+        int getEvaluationPriority(void) const {return 90;}
+        bool equals(const BoolExp *other) const;
+        bool isPersistent(void) const {return true;};
     };
 
     class BoolExpVar : public BoolExp {
-        public:
+    public:
         TristateRelation rel;
+        struct symbol *sym;
 
-        public:
-            BoolExpVar(std::string name, bool addPrefix=true):BoolExp() {
-                this->rel = rel_helper;
-                this->name = addPrefix ? "CONFIG_" + name: name;
-            }
+        BoolExpVar(std::string name, bool addPrefix=true):BoolExp() {
+            this->rel = rel_helper;
+            this->name = addPrefix ? "CONFIG_" + name: name;
+        }
 
-            void accept(BoolVisitor *visitor);
-            int getEvaluationPriority(void) const {return 90;}
+        void accept(BoolVisitor *visitor);
+        int getEvaluationPriority(void) const {return 90;}
 
-            bool equals(const BoolExp *other) const;
+        BoolExpVar(struct symbol *sym, TristateRelation rel):BoolExp() {
+            nameSymbol(sym);
+            std::string name(sym->name ? sym->name : "[unnamed_menu]");
+            this->rel = rel;
+            this->sym = sym;
+            this->name = "CONFIG_" + name + TristateRelationNames[rel];
+        }
+
+        static BoolExp *getFreeVar(void) {
+            static int freecount;
+            std::stringstream name;
+            name << "__FREEVAR__" << freecount;
+            freecount++;
+            return new BoolExpVar(name.str());
+        }
+
+        bool equals(const BoolExp *other) const;
     };
 
     BoolExp &operator &&(BoolExp &l, BoolExp &r);

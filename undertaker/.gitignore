@@ -5,6 +5,7 @@
 *.cnf
 undertaker
 rsf2cnf
+satyr
 docs
 coverage-html
 kconfig-dumps/models

@@ -32,100 +32,95 @@
 
 #include "CNF.h"
 
-namespace Picosat
-{
+namespace Picosat {
     #include <ctype.h>
     #include <assert.h>
 
-    extern "C"
-    {
+    extern "C" {
         #include "picosat.h"
     }
 
     // Modes taken from picosat.h
-    enum SATMode
-    {
+    enum SATMode {
         SAT_MIN     = 0,
         SAT_MAX     = 1,
         SAT_DEFAULT = 2,
         SAT_RANDOM  = 3,
     };
-
 };
 
-namespace kconfig
-{
-    class PicosatCNF: public CNF
-    {
-        protected:
-            //! this map contains the the type of each Kconfig symbol
-            std::map<std::string, kconfig_symbol_type> symboltypes;
+namespace kconfig {
+    class PicosatCNF: public CNF {
+    protected:
+        //! this map contains the the type of each Kconfig symbol
+        std::map<std::string, kconfig_symbol_type> symboltypes;
 
-            /**
-             * \brief mapping between boolean variable names and their cnf-id
-             *  Keep in sync with "booleanvars"
-             */
-            std::map<std::string, int> cnfvars;
-            /** mapping between the names of boolean variables and symbols
+        /**
+        * \brief mapping between boolean variable names and their cnf-id
+        *  Keep in sync with "booleanvars"
+        */
+        std::map<std::string, int> cnfvars;
+        /** mapping between the names of boolean variables and symbols
             Some boolean variable represent model symbols. if so, the have
             to be stored in this map.
             Example:
             { "CONFIG_FOO"  -> "FOO", "CONFIG_FOO_MODULE" -> "FOO" }
-            **/
-            std::map<std::string, std::string> associatedSymbols;
-            /** contains the variable name for cnf-id.
+        **/
+        std::map<std::string, std::string> associatedSymbols;
+        /** contains the variable name for cnf-id.
             Not all cnf-id will have a name. Must kept in sync with "symboltypes"
-            **/
-            std::map<int, std::string> boolvars;
-            std::vector<int> clauses;
-            std::vector<int> assumptions;
-            std::map<std::string, std::deque<std::string> > meta_information;
-            Picosat::SATMode defaultPhase;
-            int varcount;
-            int clausecount;
+        **/
+        std::map<int, std::string> boolvars;
+        std::vector<int> clauses;
+        std::vector<int> assumptions;
+        std::map<std::string, std::deque<std::string> > meta_information;
+        Picosat::SATMode defaultPhase;
+        int varcount;
+        int clausecount;
 
-            void loadContext(void);
-            void resetContext(void);
+        void loadContext(void);
+        void resetContext(void);
 
-        public:
-            PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
-            virtual ~PicosatCNF();
-            void setDefaultPhase(Picosat::SATMode phase);
-            virtual void readFromFile(std::istream &i);
-            virtual void toFile(std::ostream &out) const;
-            virtual kconfig_symbol_type getSymbolType(const std::string &name);
-            virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type);
-            virtual int getCNFVar(const std::string &var);
-            virtual void setCNFVar(const std::string &var, int CNFVar);
-            virtual std::string &getSymbolName(int CNFVar);
-            virtual void pushVar(int v);
-            virtual void pushVar(std::string  &v, bool val);
-            virtual void pushClause(void);
-            virtual void pushClause(int *c);
-            virtual void pushAssumption(int v);
-            virtual void pushAssumption(const std::string &v,bool val);
-            virtual void pushAssumption(const char *v,bool val);
-            virtual bool checkSatisfiable(void);
-            virtual bool deref(int s);
-            virtual bool deref(std::string &s);
-            virtual int getVarCount(void);
-            virtual int newVar(void);
-            virtual bool deref(const char *c);
-            virtual const std::string *getAssociatedSymbol(const std::string &var) const;
-            /** returns cnf-id of assumtions, that cause unresolvable conflicts.
+    public:
+        PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
+        virtual ~PicosatCNF();
+        void setDefaultPhase(Picosat::SATMode phase);
+        virtual void readFromFile(std::istream &i);
+        virtual void toFile(std::ostream &out) const;
+        virtual kconfig_symbol_type getSymbolType(const std::string &name);
+        virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type);
+        virtual int getCNFVar(const std::string &var);
+        virtual void setCNFVar(const std::string &var, int CNFVar);
+        virtual std::string &getSymbolName(int CNFVar);
+        virtual void pushVar(int v);
+        virtual void pushVar(std::string  &v, bool val);
+        virtual void pushClause(void);
+        virtual void pushClause(int *c);
+        virtual void pushAssumption(int v);
+        virtual void pushAssumption(const std::string &v,bool val);
+        virtual void pushAssumption(const char *v,bool val);
+        virtual void pushAssumptions(std::map<std::string, bool> &a);
+        virtual bool checkSatisfiable(void);
+        virtual bool deref(int s);
+        virtual bool deref(const std::string &s);
+        virtual bool deref(const char *s);
+        virtual int getVarCount(void);
+        virtual int newVar(void);
+        virtual const std::string *getAssociatedSymbol(const std::string &var) const;
+        /** returns cnf-id of assumtions, that cause unresolvable conflicts.
             If checkSatisfiable returns false, this returns an array of assumptions
             that derived unsatisfiability (= failed assumptions).
             It does not contain all unsatisfiable assumptions.
             @returns array if of failed cnf-ids
-            **/
-            const int *failedAssumptions(void) const;
-            /** get an Iterator over all symbols associated with this formula
+        **/
+        const int *failedAssumptions(void) const;
+        /** get an Iterator over all symbols associated with this formula
             @returns iterator over pairs of symbolnames and their type
-            **/
-            virtual std::map<std::string, int>::const_iterator getSymbolsItBegin();
-            virtual std::map<std::string, int>::const_iterator getSymbolsItEnd();
-            const std::deque<std::string> *getMetaValue(const std::string &key) const;
-            void addMetaValue(const std::string &key, const std::string &value);
+        **/
+        virtual std::map<std::string, int>::const_iterator getSymbolsItBegin();
+        virtual std::map<std::string, int>::const_iterator getSymbolsItEnd();
+        const std::deque<std::string> *getMetaValue(const std::string &key) const;
+        void addMetaValue(const std::string &key, const std::string &value);
     };
 }
 #endif
