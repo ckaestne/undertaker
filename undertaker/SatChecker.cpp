@@ -223,6 +223,12 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
         const std::string &item = (*s).first;
         const int &state = (*s).second;
 
+        if (boost::starts_with(item, "CONFIG_CHOICE_") ||
+            boost::starts_with(item, "__FREE__") ||
+            item == "CONFIG_n" ||
+            item == "CONFIG_y")
+            continue;
+
         if (selection.find(item) != selection.end())
             continue;
 

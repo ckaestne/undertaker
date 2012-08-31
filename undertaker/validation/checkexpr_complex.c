@@ -45,6 +45,5 @@ CONFIG_X86_UP_APIC=n
 # CONFIG_PPC=n
 # CONFIG_PPC_PMAC=n
 # CONFIG_S390=n
-# CONFIG_n=n
  * check-output-end
  */
