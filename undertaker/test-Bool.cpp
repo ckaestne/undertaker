@@ -64,6 +64,8 @@ START_TEST(bool_parser_test)
     parse_test("( B0 <-> CONFIG_TTYS0_BASE == 0x2f8 )", true);
     parse_test("( B172 <-> B0 && (FAMILY_MMIO_BASE_MASK < 0xFFFFFF0000000000ull) )", true);
     parse_test("._.model.x86._.", true);
+    parse_test("B2 && ( B2 <-> B1 && __STDC_VERSION__ >= 199901L )" , true);
+    parse_test("B2 && ( B2 <-> B1 && __STDC_VERSION__ >= 199901L ) && ( B1 <-> ! FLEXINT_H ) && B00 && (B1 -> FLEXINT_H.) && (!B1 -> (FLEXINT_H <-> FLEXINT_H.)) && ( B00 <-> FILE_build_util_kconfig_lex.zconf.c )" , true);
 }
 END_TEST
 
