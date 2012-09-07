@@ -1,0 +1,92 @@
+#!/usr/bin/env python
+#
+#  undertaker-kconfigpp - preprocess 'source' directives in Kconfig files
+#
+# Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+# Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+#
+# The purpose of this script is to have a complex Kconfig tree
+# strucuture, such as commonly found in Linux flattened to a single
+# file, which helps writing test-cases and similar.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import re
+import sys
+import os.path
+import logging
+
+from vamos.tools import setup_logging
+from optparse import OptionParser
+
+env_regex    = re.compile(r'"[^$]*\$([\w]+)[^"]*"')
+source_regex = re.compile(r"^\s*source\s+\"?([\w/\$\.\-]+)\"?")
+
+def ppFile(filename):
+    try:
+        logging.info("Processing %s", filename)
+        with open(filename, 'r') as mf:
+            for line in mf:
+                # replace from environment
+                while env_regex.search(line):
+                    do_break = False
+                    for v in env_regex.findall(line):
+                        env = os.getenv(v)
+                        if env:
+                            old_line = line
+                            line = line.replace('$'+v, env)
+                            assert not old_line == line, "[%s, %s] %s" % (env, v, line)
+                        else:
+                            logging.debug("[%s] var %s not found in environment (%s)\n",
+                                          filename, v, line.strip())
+                            do_break = True
+                    if do_break: break
+                # catch: help section may contain the word "source"
+                m = source_regex.match(line)
+                if m:
+                    f = m.group(1)
+                    if os.path.exists(f):
+                        ppFile(f)
+                    else:
+                        logging.debug("[%s] failed to source %s, (%s)\n",
+                                      filename, f, line.rstrip())
+                else:
+                    if line[-1] == '\n':
+                        print line,
+                    else:
+                        print line
+    except IOError as e:
+        logging.error("Failed to open %s for reading: %s\n", filename, e.strerror)
+
+
+if __name__ == '__main__':
+    parser = OptionParser(usage="%prog [options] <filename>", description="""\
+preprocess 'source' directives in Kconfig files.
+
+The purpose of this script is to have a complex Kconfig tree
+structure, such as commonly found in Linux flattened to a single
+file, which helps writing test-cases and similar.
+""")
+    parser.add_option('-v', '--verbose', dest='verbose', action='count',
+                      help="increase verbosity (specify multiple times for more)")
+    (opts, args) = parser.parse_args()
+
+    setup_logging(opts.verbose)
+
+    if len(args) < 1:
+        logging.error("usage: kconfigpp file (%d params given)", (len(args)))
+        parser.print_help()
+        sys.exit(1)
+
+    ppFile(sys.argv[1])

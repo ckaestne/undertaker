@@ -14,6 +14,7 @@ setup (name='vamos',
                  ],
        scripts=['python/golem',
                 'python/rsf2model',
+                'python/undertaker-kconfigpp',
                 'python/vampyr',
                 ],
        )

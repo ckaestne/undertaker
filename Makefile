@@ -1,5 +1,6 @@
 PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator python/rsf2model ziz/zizler
-MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz
+MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz \
+	doc/undertaker-kconfigpp.1.gz
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
