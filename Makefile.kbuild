@@ -1,4 +1,4 @@
-
+# -*- mode: makefile -*-
 # Do not:
 # o  use make's built-in rules and variables
 #    (this increases performance and avoids hard-to-debug behaviour);
@@ -69,6 +69,9 @@ config: scripts_basic FORCE
 dumpconf: scripts_basic FORCE
 	$(Q)$(MAKE) $(build)=scripts/kconfig $@
 	scripts/kconfig/dumpconf $(KBUILD_KCONFIG)
+
+conf: scripts_basic FORCE
+	$(Q)$(MAKE) $(build)=scripts/kconfig scripts/kconfig/conf
 
 clean:
 	@find . $(RCS_FIND_IGNORE) \

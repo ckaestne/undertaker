@@ -17,8 +17,8 @@ all: $(PROGS)
 version.h: generate-version.sh
 	./$<
 
-scripts/kconfig/dumpconf: FORCE
-	$(MAKE) -f Makefile.kbuild dumpconf
+scripts/kconfig/dumpconf scripts/kconfig/conf: FORCE
+	$(MAKE) -f Makefile.kbuild $(@F)
 
 undertaker/undertaker: FORCE
 	$(MAKE) -C undertaker undertaker
