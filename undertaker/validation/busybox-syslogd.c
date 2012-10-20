@@ -30,8 +30,8 @@
  * check-command: undertaker -j coverage -O stdout -m  busybox-syslogd.model $file | grep -v '^ENABLE'
  * check-output-start
 I: Set configuration space regex to '^(ENABLE_|CONFIG_)[^ ]*$'
-I: loaded rsf model for busybox-syslogd.model
-I: Using busybox-syslogd.model as primary model
+I: loaded rsf model for busybox-syslogd
+I: Using busybox-syslogd as primary model
 I: Entries in missingSet: 0
 I: Found 3 assignments
 I: In all assignments the following symbols are equally set

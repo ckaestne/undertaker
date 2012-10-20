@@ -78,8 +78,8 @@
  * check-command: undertaker -j coverage -O stdout -m  busybox-httpd.model $file
  * check-output-start
 I: Set configuration space regex to '^(ENABLE_|CONFIG_)[^ ]*$'
-I: loaded rsf model for busybox-httpd.model
-I: Using busybox-httpd.model as primary model
+I: loaded rsf model for busybox-httpd
+I: Using busybox-httpd as primary model
 I: Entries in missingSet: 0
 I: Found 4 assignments
 I: In all assignments the following symbols are equally set

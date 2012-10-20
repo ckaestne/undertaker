@@ -31,14 +31,14 @@
 #include "KconfigWhitelist.h"
 #include "Logging.h"
 
+static const boost::regex model_regex("^([-[:alnum:]]+)\\.model$");
+
 ConfigurationModel* ModelContainer::loadModels(std::string model) {
     ModelContainer *f = getInstance();
     int found_models = 0;
     typedef std::list<std::string> FilenameContainer;
     FilenameContainer filenames;
     ConfigurationModel *ret = 0;
-
-    const boost::regex model_regex("^([[:alnum:]]+)\\.model$", boost::regex::perl);
 
     if (! boost::filesystem::exists(model)){
         logger << error << "model '" << model << "' doesn't exist (neither directory nor file)" << std::endl;
@@ -48,12 +48,8 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
     if (! boost::filesystem::is_directory(model)) {
         /* A model file was specified, so load exactly this one */
         boost::match_results<const char*> what;
-        std::string model_name = std::string(basename(model.c_str()));
+        std::string model_name = std::string(boost::filesystem::basename(model));
 
-        /* Strip the .model suffix if possible */
-        if (boost::regex_search(model_name.c_str(), what, model_regex)) {
-            model_name = std::string(what[1]);
-        }
         ret = f->registerModelFile(model, model_name);
         if (ret) {
             logger << info << "loaded rsf model for " << model_name << std::endl;

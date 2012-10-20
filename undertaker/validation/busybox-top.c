@@ -75,8 +75,8 @@
  * check-command: undertaker -j coverage -O stdout -m  busybox-top.model $file | grep -v '^ENABLE'
  * check-output-start
 I: Set configuration space regex to '^(ENABLE_|CONFIG_)[^ ]*$'
-I: loaded rsf model for busybox-top.model
-I: Using busybox-top.model as primary model
+I: loaded rsf model for busybox-top
+I: Using busybox-top as primary model
 I: Entries in missingSet: 0
 I: Found 6 assignments
 I: In all assignments the following symbols are equally set
