@@ -203,6 +203,9 @@ int PicosatCNF::getCNFVar(const string &var)
 
 void PicosatCNF::setCNFVar(const string &var, int CNFVar)
 {
+    if (abs(CNFVar) > this->varcount) {
+        this->varcount = abs(CNFVar);
+    }
     this->cnfvars[var] = CNFVar;
     this->boolvars[CNFVar] = var;
 }
