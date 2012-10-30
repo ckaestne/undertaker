@@ -46,7 +46,6 @@ namespace kconfig
             virtual void pushAssumption(string &v,bool val)= 0;
             virtual void pushAssumption(const char *v,bool val)= 0;
             virtual bool checkSatisfiable(void)= 0;
-            virtual void readAssumptionsFromFile(istream &i) = 0;
             virtual bool deref(int s) = 0;
             virtual bool deref(string &s) = 0;
             virtual int getVarCount(void) = 0;

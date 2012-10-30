@@ -288,10 +288,6 @@ bool PicosatCNF::checkSatisfiable(void)
     return Picosat::picosat_sat(-1) == PICOSAT_SATISFIABLE;
 }
 
-void PicosatCNF::readAssumptionsFromFile(istream &) {
-    // FIXME
-}
-
 bool PicosatCNF::deref(int s)
 {
     return Picosat::picosat_deref(s) == 1;
