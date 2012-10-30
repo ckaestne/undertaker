@@ -636,15 +636,16 @@ def get_busybox_version():
 
 def get_coreboot_version():
     """
-    Check that the current working directory is actually a Coreboot tree
+    Check that the current working directory is actually a Coreboot tree.
 
-    If we are in a git tree, return that bios version. If the version could
-    not be retrieved, a 'NotACorebootTree' exception is raised.
+    If we are in a git tree or a tarball with build/autoconf.h, return that bios
+    version if it starts with 4., else raise a NotACorebootTree-Exception
+    or return "coreboot-UNKNOWN" if in a bare tarball.
     """
 
     if not os.path.exists('Makefile') and not os.path.exists('Makefile.inc') \
             and not os.path.exists('src/Kconfig'):
-        raise NotACorebootTree("No 'Makefile' or 'Makefile.inc' found")
+        raise NotACorebootTree("No 'Makefile', 'Makefile.inc' or 'src/Kconfig' found")
 
     if os.path.isdir('.git'):
         cmd = "git describe"
@@ -654,12 +655,30 @@ def get_coreboot_version():
             git_version = ""
             logging.debug("Execution of '%s' command failed, analyzing the Makefile instead",
                           cmd)
+        # 'standard' Coreboot repository descriptions start with 4.
+        if git_version.startswith("4."):
+            return git_version
+        raise NotACorebootTree("Only 4.x versions are supported, but not %s",
+                              git_version)
+
+    if os.path.exists('build/autoconf.h'):
+        regx = re.compile(" \* coreboot version: ([a-zA-Z_0-9_.-]+)")
+        with open('build/autoconf.h') as conf:
+            for line in conf:
+                if regx.match(line):
+                    m = regx.match(line)
+                    version = m.group(1)
+                    break
 
         # 'standard' Coreboot repository descriptions start with 4.
-        if git_version.startswith(("4.")):
-            return git_version
+        if version.startswith("4."):
+            return version
+        raise NotACorebootTree("Only 4.x versions are supported, but not %s",
+                              version)
 
-    raise NotACorebootTree("Coreboot Version could not be retrieved")
+    # at this stage, we are "sure" to have a coreboot tree, since Makefile and
+    # Makefile.inc and src/Kconfig files exist, but no valid version is known
+    return "coreboot-UNKNOWN"
 
 def find_scripts_basedir():
     executable = os.path.realpath(sys.argv[0])
