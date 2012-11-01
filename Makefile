@@ -71,6 +71,7 @@ install: all $(MANPAGES)
 	@install -v undertaker/undertaker-coreboot-tree $(DESTDIR)$(BINDIR)
 	@install -v undertaker/undertaker-scan-head $(DESTDIR)$(BINDIR)
 	@install -v undertaker/undertaker-busybox-tree $(DESTDIR)$(BINDIR)
+	@install -v undertaker/rsf2cnf $(DESTDIR)$(BINDIR)
 
 	@install -v ziz/zizler $(DESTDIR)$(BINDIR)
 
