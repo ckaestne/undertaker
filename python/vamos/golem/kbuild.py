@@ -643,8 +643,8 @@ def get_coreboot_version():
     or return "coreboot-UNKNOWN" if in a bare tarball.
     """
 
-    if not os.path.exists('Makefile') and not os.path.exists('Makefile.inc') \
-            and not os.path.exists('src/Kconfig'):
+    if not (os.path.exists('Makefile') and os.path.exists('Makefile.inc') \
+            and os.path.exists('src/Kconfig')):
         raise NotACorebootTree("No 'Makefile', 'Makefile.inc' or 'src/Kconfig' found")
 
     if os.path.isdir('.git'):
