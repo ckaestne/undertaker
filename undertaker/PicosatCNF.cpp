@@ -145,7 +145,7 @@ void PicosatCNF::toFile(ostream &out) const {
     out << "c Type info:" << std::endl;
     out << "c c sym <symbolname> <typeid>" << std::endl;
     out << "c with <typeid> being an integer out of:"  << std::endl;
-    out << "c enum {S_BOOLEAN=1, S_TRISTATE=2, S_INT=3, S_HEX=4, S_STRING=5, S_OTHER=5}"
+    out << "c enum {S_BOOLEAN=1, S_TRISTATE=2, S_INT=3, S_HEX=4, S_STRING=5, S_OTHER=6}"
         << std::endl;
     out << "c variable names:" << std::endl;
     out << "c c var <variablename> <cnfvar>" << std::endl;

@@ -10,7 +10,7 @@ c -------------------------------
 c Type info:
 c c sym <symbolname> <typeid>
 c with <typeid> being an integer out of:
-c enum {S_BOOLEAN=1, S_TRISTATE=2, S_INT=3, S_HEX=4, S_STRING=5, S_OTHER=5}
+c enum {S_BOOLEAN=1, S_TRISTATE=2, S_INT=3, S_HEX=4, S_STRING=5, S_OTHER=6}
 c variable names:
 c c var <variablename> <cnfvar>
 c sym BAR 1
