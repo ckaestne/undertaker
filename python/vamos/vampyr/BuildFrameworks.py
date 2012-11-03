@@ -36,7 +36,7 @@ from vamos.golem.kbuild import apply_configuration, file_in_current_configuratio
     call_makefile_generic, NotABusyboxTree, get_busybox_version, \
     NotACorebootTree, get_coreboot_version, coreboot_get_config_for
 from vamos.tools import execute
-from vamos.model import Model
+from vamos.model import parse_model, get_model_for_arch
 
 import os.path
 import logging
@@ -107,9 +107,6 @@ class BuildFramework:
         cmd = "undertaker -q -j coverage -C %s -O combined" % self.options['coverage_strategy']
         if self.options.has_key('model') and self.options['model']:
             cmd += " -m %s" % self.options['model']
-        elif os.path.isdir("models"):
-            # Fallback
-            cmd += " -m models/%s.model" % self.options['arch']
         else:
             logging.info("No model specified, running without models")
 
@@ -303,8 +300,8 @@ class KbuildBuildFramework(BuildFramework):
         BuildFramework.__init__(self, self.options)
         self.always_on_items = set()
         self.always_off_items = set()
-        if self.options.has_key("model") and os.path.exists(self.options['model']):
-            m = Model(self.options['model'])
+        if self.options.has_key("model") and self.options['model']:
+            m = parse_model(self.options['model'])
             self.always_on_items = m.always_on_items
             self.always_off_items = m.always_off_items
 
@@ -480,7 +477,7 @@ class LinuxBuildFramework(KbuildBuildFramework):
             self.options['arch'] = vamos.default_architecture
         if not options.has_key('subarch'):
             self.options['subarch'] = guess_subarch_from_arch(self.options['arch'])
-        self.options['model'] = "models/%s.model" % self.options['arch']
+        self.options['model'] = get_model_for_arch(self.options['arch'])
         KbuildBuildFramework.__init__(self, self.options)
 
     def make_configuration(self, basename, nth):
@@ -526,7 +523,7 @@ class BusyboxBuildFramework(KbuildBuildFramework):
             self.options['expansion_strategy'] = 'allyesconfig'
         self.options['arch'] = 'busybox'
         self.options['subarch'] = 'busybox'
-        self.options['model'] = 'models/busybox.model'
+        self.options['model'] = get_model_for_arch('busybox')
         KbuildBuildFramework.__init__(self, self.options)
 
     def make_configuration(self, basename, nth):
@@ -571,11 +568,11 @@ class CorebootBuildFramework(KbuildBuildFramework):
         else:
             self.options=dict()
         self.options['arch'] = 'coreboot'
-        if os.path.exists('models/coreboot.model'):
-            self.options['model'] = 'models/coreboot.model'
-        else:
+
+        self.options['model'] = get_model_for_arch('coreboot')
+        if not self.options['model']:
             raise RuntimeError('No model existing! Please run \
-                    coreboot-kconfigdump first')
+                    undertaker-kconfigdump first')
         if os.environ.has_key('SUBARCH'):
             self.options['subarch'] = os.environ['SUBARCH']
         else:

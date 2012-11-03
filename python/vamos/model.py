@@ -22,8 +22,29 @@ from vamos.rsf2model.RsfReader import RsfReader
 
 import logging
 import re
+import os.path
 
-class Model(dict):
+
+def get_model_for_arch(arch):
+    """
+    Returns an cnf or rsf model for the given architecture
+    Return 'None' if no model is found.
+    """
+
+    for p in ("models/%s.cnf", "models/%s.model"):
+        if os.path.exists(p % arch):
+            return p % arch
+
+    return None
+
+
+def parse_model(path):
+    if path.endswith('.cnf'):
+        return CnfModel(path)
+    return RsfModel(path)
+
+
+class RsfModel(dict):
     def __init__(self, path, rsf = None):
         dict.__init__(self)
         self.path = path
@@ -121,7 +142,7 @@ class Model(dict):
 
     def is_bool_tristate(self, symbol):
         """
-        Returns true if symbol is tristate, otherwise false is returned.
+        Returns true if symbol is bool or tristate, otherwise false is returned.
 
         Raises RuntimeError if no corresponding rsf-file is found.
         """
@@ -153,3 +174,84 @@ class Model(dict):
                 if not new_symbols in visited:
                     stack.append(new_symbols)
         return list(visited)
+
+
+class CnfModel(dict):
+    def __init__(self, path):
+        dict.__init__(self)
+        self.path = path
+        self.always_on_items = set()
+        self.always_off_items = set()
+        self.symbols = {}
+
+        with open(path) as fd:
+            self.parse(fd)
+
+    def parse(self, fd):
+        for line in fd.readlines():
+
+            sym_regexp  = re.compile(r"^c sym (.+) (\d)$")
+            meta_regexp = re.compile(r"^c meta_value ([^\s]+)\s+(.+)$")
+
+            m = sym_regexp.match(line)
+            if m:
+                sym = 'CONFIG_' + m.group(1)
+                code = int(m.group(2))
+                self[sym] = None
+                self.symbols[sym] = code
+                # tristate symbols also have a _MODULE sister
+                if code == 2:
+                    self[sym + '_MODULE'] = None
+                    self[sym + '_MODULE'] = code
+                continue
+
+            m = meta_regexp.match(line)
+            if m:
+                if m.group(1) == 'ALWAYS_ON':
+                    self.always_on_items.add(m.group(2))
+                if m.group(1) == 'ALWAYS_OFF':
+                    self.always_off_items.add(m.group(2))
+                continue
+
+
+    def get_type(self, symbol):
+        """
+        @raises RuntimeError if no corresponding rsf is found.
+        @return data type of symbol.
+        """
+        if not symbol.startswith("CONFIG_"):
+            symbol = "CONFIG_" + symbol
+
+        if not symbol in self.symbols:
+            raise RuntimeError("Symbol %s not found" % symbol)
+
+        code = int(self.symbols[symbol])
+        if code == 1:
+            return 'boolean'
+        if code == 2:
+            return 'tristate'
+        if code == 3:
+            return 'integer'
+        if code == 4:
+            return 'hex'
+        if code == 5:
+            return 'string'
+        if code == 6:
+            return 'other'
+        raise RuntimeError("Unknown type code code %d" % code)
+
+
+    def is_bool_tristate(self, symbol):
+        """
+        @raises RuntimeError on internal errors
+        @return True if symbol is tristate, otherwise False
+        """
+
+        if not symbol.startswith("CONFIG_"):
+            symbol = "CONFIG_" + symbol
+
+        if not symbol in self.symbols:
+            raise RuntimeError("Symbol %s not found" % symbol)
+
+        code = self.symbols[symbol]
+        return code == 1 or code == 2

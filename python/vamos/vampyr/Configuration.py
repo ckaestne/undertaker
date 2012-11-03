@@ -25,7 +25,7 @@ from vamos.vampyr.utils import ExpansionError
 from vamos.golem.kbuild import call_linux_makefile, \
     files_for_current_configuration, guess_arch_from_filename
 from vamos.tools import execute, CommandFailed
-from vamos.model import Model
+from vamos.model import get_model_for_arch, parse_model
 from vamos.Config import Config
 
 import logging
@@ -222,9 +222,13 @@ class KbuildConfiguration(Configuration):
         self.expanded = self.save_expanded('.config')
 
         if verify:
+            modelf = get_model_for_arch(self.arch)
+            if not modelf:
+                logging.error("Skipping verification as no model could be loaded")
+                return
+
             if not self.model:
-                modelf = "models/%s.model" % self.arch
-                self.model = Model(modelf)
+                self.model = parse_model(modelf)
                 logging.info("Loaded %d items from %s", len(self.model), modelf)
 
             all_items, violators = self.verify(self.expanded)

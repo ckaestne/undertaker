@@ -22,8 +22,9 @@ from vamos.golem.kbuild import determine_buildsystem_variables_in_directory, \
 
 from vamos.tools import execute, CommandFailed
 from vamos.golem.kbuild import find_scripts_basedir
-from vamos.model import Model
+from vamos.model import get_model_for_arch, parse_model
 from tempfile import NamedTemporaryFile
+
 import glob
 import logging
 import os
@@ -187,16 +188,17 @@ class LinuxInferenceAtoms(InferenceAtoms):
         self.directory_prefix = directory_prefix
 
         if arch:
-            modelfile = 'models/%s.model' % arch
-        else: modelfile = None
+            modelfile = get_model_for_arch(arch)
+        else:
+            modelfile = None
 
-        if modelfile and os.path.exists(modelfile):
+        if modelfile:
             logging.info("loading model %s", modelfile)
-            self.model = Model(modelfile)
+            self.model = parse_model(modelfile)
         else:
             logging.error("%s not found, please generate models using undertaker-kconfigdump",
                           modelfile)
-            self.model = Model('/dev/null')
+            self.model = parse_model('/dev/null')
 
         call_linux_makefile('allnoconfig', arch=self.arch, subarch=self.subarch)
         apply_configuration(arch=self.arch, subarch=self.subarch)

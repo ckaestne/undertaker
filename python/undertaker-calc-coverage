@@ -26,7 +26,7 @@ sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
                 + sys.path
 
 from vamos.golem.kbuild import *
-from vamos.model import Model
+from vamos.model import parse_model
 from vamos.tools import setup_logging, execute
 from vamos.vampyr.utils import get_conditional_blocks, get_loc_coverage
 from vamos.vampyr.utils import ExpansionError, ExpansionSanityCheckError
@@ -391,7 +391,7 @@ def parse_options():
 
     if options.model and os.path.exists(options.model):
         global model
-        model = Model(options.model)
+        model = parse_model(options.model)
         logging.info("Loaded %d options from Model %s", len(model), options.model)
         logging.info("%d items are always on", len(model.always_on_items))
 

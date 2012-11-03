@@ -30,7 +30,7 @@ sys.path = [os.path.join(os.path.dirname(sys.path[0]), 'lib', 'python%d.%d' % \
 
 import vamos
 from vamos.tools import setup_logging, get_online_processors
-from vamos.model import Model
+from vamos.model import get_model_for_arch, parse_model
 
 from vamos.golem.inference import Inferencer
 from vamos.golem.inference_atoms import *
@@ -84,11 +84,11 @@ def do_inference(args, arch, subarch):
     inferencer.calculate()
 
 def find_variables_in_directories(arch, args):
-    modelfile = 'models/%s.model' % arch
-    logging.info("loading model %s", modelfile)
-    if not os.path.exists(modelfile):
+    modelfile = get_model_for_arch(arch)
+    if not modelfile:
         logging.error("%s not found, please generate models using undertaker-kconfigdump",
                       modelfile)
+    logging.info("loading model %s", modelfile)
     if len(args) is 0:
         args.append(".")
     for d in args:
@@ -97,7 +97,7 @@ def find_variables_in_directories(arch, args):
             continue
         variables = determine_buildsystem_variables_in_directory(d)
         logging.info("Detected %d Kconfig variables in subdir %s", len(variables), d)
-        model = Model(modelfile)
+        model = parse_model(modelfile)
         s = [x for x in variables if x in model]
         s += [x + "_MODULE" for x in s if (x+"_MODULE") in model]
         logging.debug("found %d items in check_subdir result: %s", len(s), s)
@@ -215,7 +215,7 @@ def main():
         framework = select_framework(None, options)
         config_exp = framework.make_partial_configuration(opts.partialconfig)
 
-        if not os.path.exists("models/%s.model" % arch):
+        if not get_model_for_arch(arch):
             logging.info("Model for arch %s absent, skipping verification", arch)
             config_exp.expand(verify=False)
         else:
