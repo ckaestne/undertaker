@@ -87,8 +87,13 @@ static void addClauses(CNFBuilder &builder, RsfReader *model){
                 // CONFIG_FOO depends on EXPR
                 clause += " -> (" + it->second[0] +")";
                 BoolExp *exp = BoolExp::parseString(clause);
-                builder.pushClause(exp);
-                delete exp;
+                if (exp) {
+                    builder.pushClause(exp);
+                    delete exp;
+                } else {
+                    logger << error
+                           << "failed to parse '" << clause << "'" << std::endl;
+                }
             } else {
                 // CONFIG_FOO depnends on Y
                 // can be ignored

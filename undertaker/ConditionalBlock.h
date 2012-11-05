@@ -111,7 +111,7 @@ class ConditionalBlock : public CondBlockList {
      * \param verbose_blocks if set, normalized filenames are appended to the block name
      */
     static void setBlocknameWithFilename(bool verbose_blocks){ useBlockWithFilename = verbose_blocks; }
-    static std::string normalize_filename(const char *); //!< replaces slashes in name
+    static std::string normalize_filename(const char *); //!< replaces invalid characters with '_'
 
     /* None virtual functions follow */
 

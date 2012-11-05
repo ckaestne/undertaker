@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include "ConditionalBlock.h"
 #include "CNFBuilder.h"
 #include "InvalidNodeException.h"
 #include "UnsupportedFeatureException.h"
@@ -51,6 +52,7 @@ void CNFBuilder::pushClause(BoolExp *e)
 
 int CNFBuilder::addVar(std::string symname) {
     std::map<std::string, int>::iterator it;
+    symname = ConditionalBlock::normalize_filename(symname.c_str());
     int cv = cnf->getCNFVar(symname);
 
     if (cv == 0) {

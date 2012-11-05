@@ -168,12 +168,12 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
    return join ? and_clause->join(" && ") : "";
 }
 
-std::string ConditionalBlock::normalize_filename(const char * name){
+std::string ConditionalBlock::normalize_filename(const char * name) {
     std::string normalized(name);
 
     for (std::string::iterator i = normalized.begin();
          i != normalized.end(); i++)
-        if ((*i) == '/' || (*i) == '-')
+        if ((*i) == '/' || (*i) == '-' || (*i) == '+' || (*i) == ':')
             *i = '_';
     return normalized;
 }
