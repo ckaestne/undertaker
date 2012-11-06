@@ -39,9 +39,11 @@
 
 
 MODELS=${MODELS:-models}
+CNFMODELS=${MODELS:-cnfmodels}
 PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
 
 DO_INFERENCES="no"
+MODE="rsf"
 
 # ensure the last (rightmost) non-zero exitcode is used when piping results into
 # another program
@@ -49,16 +51,24 @@ set -o pipefail
 
 trap "kill 0" SIGINT SIGTERM
 
-while getopts ih OPT; do
+while getopts irch OPT; do
     case $OPT in
         i)
             DO_INFERENCES="yes"
             ;;
+        r)
+            MODE="rsf"
+            ;;
+        c)
+            MODE="cnf"
+            ;;
         h)
             echo "\`undertaker-kconfigdump' generates models for a linux, busybox"
             echo "and coreboot"
-            echo "Usage: ${0##*/} [-i] [-h]"
+            echo "Usage: ${0##*/} [-r] [-c] [-i] [-h]"
             echo " -i  calculate inferences"
+            echo " -r  generate Format 1.0 (RSF) Models (default)"
+            echo " -c  generate Format 2.0 (CNF) Models"
             echo " -h  displays this message"
             exit
             ;;
@@ -83,18 +93,28 @@ function find_undertaker_basepath () {
 PATH="`find_undertaker_basepath`/lib/undertaker:$PATH"
 debug "PATH=$PATH\n"
 
-if ! which dumpconf > /dev/null; then
-    echo "No dumpconf binary found."
-    exit 1
-fi
+if [ $MODE = "rsf" ]; then
+    if ! which dumpconf > /dev/null; then
+        echo "No dumpconf binary found."
+        exit 1
+    fi
 
-if ! which  rsf2model > /dev/null; then
-    echo "No rsf2model binary found."
-    exit 1
+    if ! which rsf2model > /dev/null; then
+        echo "No rsf2model binary found."
+        exit 1
+    fi
+    echo "Generating Format 1.0 (rsf) models"
+else
+    if ! which satyr > /dev/null; then
+        echo "No satyr binary found."
+        exit 1
+    fi
+    echo "Generating Format 2.0 (cnf) models"
 fi
 
 debug "rsf2model: $(which rsf2model)"
 debug "dumpconf: $(which dumpconf)"
+debug "satyr: $(which satyr)"
 
 function all_linux_archs () {
     echo "$(ls arch/*/Kconfig* | cut -d '/' -f 2 | sort -u)"
@@ -112,15 +132,25 @@ function pwait() {
     done
 }
 
+# This function removes stale, zero-sized intermediate files
+# First paramter is the architecture for which to cleanup
+cleanup_empty_intermediates_for_arch() {
+    for suffix in "inferences" "whitelist" "blacklist" "model" "cnf"; do
+        f="$MODELS/$1.$suffix"
+        if [ ! -s $f ]; then
+            rm -f $f
+        fi
+    done
+}
+
 function do_convert() {
     ARCH=$1
     UPCASE_ARCH=$(echo $ARCH | tr 'a-z' 'A-Z')
-    echo "Calculating model for $ARCH"
 
-  # special case for user mode linux
-  # Note that upstream commit 5c48b108ecbf6505d929e64d50dace13ac2bdf34 renamed
-  # arch/{um/Kconfig.x86 => x86/um/Kconfig}
-  # get the right file even in historic linux trees.
+    # special case for user mode linux
+    # Note that upstream commit 5c48b108ecbf6505d929e64d50dace13ac2bdf34 renamed
+    # arch/{um/Kconfig.x86 => x86/um/Kconfig}
+    # get the right file even in historic linux trees.
     SUBARCH=$ARCH
     KCONFIG=Kconfig
     if [ x"$ARCH" = x"um" ]; then
@@ -137,23 +167,32 @@ function do_convert() {
        return
     }
 
-  # dumpconf, remove all the comments because they will confuse rsf2model
-    SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | sort -u \
-        | grep -v '^#' > "$MODELS/$ARCH.rsf"
+    if [ $MODE = "rsf" ]; then
+        echo "Calculating RSF model for $ARCH"
+        # remove all the comments from dumpconf because they will confuse rsf2model
+        SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | sort -u \
+            | grep -v '^#' > "$MODELS/$ARCH.rsf"
 
-  # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by
-  # a rule that no other architecture can be selected at the same
-  # time. E.g. X86 -> !ARM && !S390
+        # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by
+        # a rule that no other architecture can be selected at the same
+        # time. E.g. X86 -> !ARM && !S390
 
-    rsf2model "$MODELS/$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
+        rsf2model "$MODELS/$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
 
-  # Add CONFIG_$i -> !CONFIG_* for every architecture
-    echo $(all_linux_archs) | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | sed 's/ *$//g' | \
-    sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
-        >> "$MODELS/$ARCH.model"
+        # Add CONFIG_$i -> !CONFIG_* for every architecture
+        echo $(all_linux_archs) | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | sed 's/ *$//g' | \
+            sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
+            >> "$MODELS/$ARCH.model"
+    fi
+
+    if [ $MODE = "cnf" ]; then
+        # run satyr
+        echo "Calculating CNF model for $ARCH"
+        SUBARCH=$SUBARCH SRCARCH=$ARCH ARCH=$ARCH satyr arch/$ARCH/$KCONFIG -c "$MODELS/$ARCH.cnf"
+    fi
 }
 
-# Parameter {Project/Arch} {Subarch}
+# Parameters {Project/Arch} {Subarch}
 function do_inference() {
     if [ $DO_INFERENCES = "yes" ]; then
         echo "Calculating makefile inferences for $1"
@@ -173,23 +212,61 @@ function do_inference() {
 }
 
 #Parameters {Project/Arch} Configpath ALWAYS_OFF_ITEMS ALWAYS_ON_ITEMS
-function do_rsf_call() {
-    dumpconf $2 | sort -u | grep -v '^#' > "$MODELS/$1.rsf"
+function do_rsf_or_satyr_call() {
 
-    # make model
-    rsf2model "$MODELS/$1.rsf" > "$MODELS/$1.model"
+    if [ "$MODE" = "rsf" ]; then
+        dumpconf $2 | sort -u | grep -v '^#' > "$MODELS/$1.rsf"
 
-    # append ALWAYS_OFF items to the model
-    echo "UNDERTAKER_SET ALWAYS_OFF $3" >> "$MODELS/$1.model"
+        # make model
+        rsf2model "$MODELS/$1.rsf" > "$MODELS/$1.model"
 
-    # append ALWAYS_ON items to the model
-    for i in $4; do
-        sed -i "/^UNDERTAKER_SET ALWAYS_ON/s|$| \"$i\"|" "$MODELS/$1.model"
-    done
+        # append ALWAYS_OFF items to the model
+        echo "UNDERTAKER_SET ALWAYS_OFF $3" >> "$MODELS/$1.model"
 
-    # create inferences
-    do_inference $1
-    cat "$MODELS/$1.inferences" >> "$MODELS/$1.model"
+        # append ALWAYS_ON items to the model
+        for i in $4; do
+            sed -i "/^UNDERTAKER_SET ALWAYS_ON/s|$| \"$i\"|" "$MODELS/$1.model"
+        done
+
+        # create inferences (or at least an empty file)
+        do_inference $1
+        cat "$MODELS/$1.inferences" >> "$MODELS/$1.model"
+
+        # kill warnings and errors from golem and rsf2model
+        sed -i "/^[EWI]: /d" "$MODELS/$1.model"
+    fi
+
+    if [ "$MODE" = "cnf" ]; then
+        # create empty blacklist file and append ALWAYS_OFF items
+        :> "$MODELS/$1.blacklist"
+        for i in $3; do
+            echo $i >> "$MODELS/$1.blacklist"
+        done
+
+        # create empty whitelist file and append ALWAYS_ON items
+        :> "$MODELS/$1.whitelist"
+        for i in $4; do
+            echo $i >> "$MODELS/$1.whitelist"
+        done
+
+        # call satyr
+        echo "Calculating cnf model for '$1'"
+        satyr $2 -c "$MODELS/$1.cnf"
+
+        # create inferences (or at least an empty file)
+        do_inference $1
+
+        echo "Calling rsf2cnf..."
+        rsf2cnf \
+            -m "$MODELS/$1.inferences" \
+            -c "$MODELS/$1.cnf" \
+            -B "$MODELS/$1.blacklist" \
+            -W "$MODELS/$1.whitelist" \
+            > "$MODELS/$1.cnf2"
+        mv $MODELS/$1.cnf2 $MODELS/$1.cnf
+    fi
+
+    cleanup_empty_intermediates_for_arch $1
 }
 
 if [ -f scripts/gen_build_files.sh ]; then
@@ -202,12 +279,12 @@ if [ -f scripts/gen_build_files.sh ]; then
     # remove all the comments because they will confuse rsf2model
     make gen_build_files
 
-    do_rsf_call busybox Config.in "$ALWAYS_OFF_ITEMS"
+    do_rsf_or_satyr_call busybox Config.in "$ALWAYS_OFF_ITEMS"
 
     exit 0
 fi
 
-if test -f Makefile && grep -q 'This file is part of the coreboot project.' Makefile; then
+if test -r Makefile && grep -q 'This file is part of the coreboot project.' Makefile; then
     echo "Detected a coreboot source tree"
     CBMODEL=coreboot
 
@@ -234,7 +311,7 @@ if test -f Makefile && grep -q 'This file is part of the coreboot project.' Make
         sed -i "/^CFLAGS =/s|$|\nifneq (\$(KCFLAGS),)\n\tCFLAGS += (\$KCFLAGS)\nendif|" Makefile.inc
     fi
 
-    do_rsf_call $CBMODEL ./src/Kconfig "$ALWAYS_OFF_ITEMS" "$ALWAYS_ON_ITEMS"
+    do_rsf_or_satyr_call $CBMODEL ./src/Kconfig "$ALWAYS_OFF_ITEMS" "$ALWAYS_ON_ITEMS"
 
     exit 0
 fi
@@ -251,8 +328,7 @@ else
     ARCHS="$@"
 fi
 
-for ARCH in $ARCHS
-do
+for ARCH in $ARCHS; do
     do_convert $ARCH &
     # run many converting processes in parallel
     pwait ${PROCESSORS}
@@ -264,7 +340,26 @@ done
 
 for ARCH in $ARCHS; do
     do_inference $ARCH $ARCH
-    cat "$MODELS/$ARCH.inferences" >> "$MODELS/$ARCH.model"
+
+    if [ $MODE = "rsf" ]; then
+        cat "$MODELS/$ARCH.inferences" >> "$MODELS/$ARCH.model"
+        # kill warnings and errors from golem
+        sed -i "/^[EWI]: /d" "$MODELS/$ARCH.model"
+    fi
+
+    if [ $MODE = "cnf" ]; then
+        echo "Calling rsf2cnf for arch $ARCH..."
+        touch "$MODELS/$ARCH.whitelist" "$MODELS/$ARCH.blacklist"
+        rsf2cnf \
+            -m "$MODELS/$ARCH.inferences" \
+            -c "$MODELS/$ARCH.cnf" \
+            -B "$MODELS/$ARCH.blacklist" \
+            -W "$MODELS/$ARCH.whitelist" \
+            > "$MODELS/$ARCH.cnf2"
+        mv $MODELS/$ARCH.cnf2 $MODELS/$ARCH.cnf
+    fi
+
+    cleanup_empty_intermediates_for_arch $ARCH
 done
 
 exit 0
