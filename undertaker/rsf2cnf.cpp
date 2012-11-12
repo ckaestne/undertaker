@@ -29,6 +29,7 @@
 #include "CNFBuilder.h"
 #include "IOException.h"
 #include "RsfReader.h"
+#include "KconfigWhitelist.h"
 #include "Logging.h"
 #include "bool.h"
 
@@ -113,6 +114,18 @@ static void addAllwaysOnOff(CNFBuilder &builder, RsfReader *model){
     const std::string magic_off("ALWAYS_OFF");
     StringList::const_iterator it1;
 
+    KconfigWhitelist *whitelist = KconfigWhitelist::getWhitelist();
+    for(std::list<std::string>::const_iterator iterator = (*whitelist).begin(),
+            end = (*whitelist).end(); iterator != end; ++iterator) {
+        model->addMetaValue(magic_on, *iterator);
+    }
+
+    KconfigWhitelist *blacklist = KconfigWhitelist::getBlacklist();
+    for(std::list<std::string>::const_iterator iterator = (*blacklist).begin(),
+            end = (*blacklist).end(); iterator != end; ++iterator) {
+        model->addMetaValue(magic_off, *iterator);
+    }
+
     const StringList *aon = model->getMetaValue(magic_on);
 
     if (aon) {
@@ -145,8 +158,10 @@ int main(int argc, char **argv) {
 
     int loglevel = logger.getLogLevel();
 
-    while ((opt = getopt(argc, argv, "m:r:c:vh")) != -1) {
+    while ((opt = getopt(argc, argv, "m:r:c:W:B:vh")) != -1) {
         switch (opt) {
+            int n;
+            KconfigWhitelist *wl;
         case 'm':
             model_file = strdup(optarg);
             break;
@@ -165,6 +180,26 @@ int main(int argc, char **argv) {
             if (loglevel < 0)
                 loglevel = Logging::LOG_EVERYTHING;
             logger.setLogLevel(loglevel);
+            break;
+        case 'W':
+            wl = KconfigWhitelist::getWhitelist();
+            n = wl->loadWhitelist(optarg);
+            if (n >= 0) {
+                logger << info << "loaded " << n << " items to whitelist" << std::endl;
+            } else {
+                logger << error << "couldn't load whitelist" << std::endl;
+                exit(-1);
+            }
+            break;
+        case 'B':
+            wl = KconfigWhitelist::getBlacklist();
+            n = wl->loadWhitelist(optarg);
+            if (n >= 0) {
+                logger << info << "loaded " << n << " items to blacklist" << std::endl;
+            } else {
+                logger << error << "couldn't load blacklist" << std::endl;
+                exit(-1);
+            }
             break;
         case 'h':
             usage();
