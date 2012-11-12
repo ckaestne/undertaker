@@ -41,6 +41,25 @@
 MODELS=${MODELS:-models}
 PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
 
+DO_INFERENCES="no"
+
+while getopts ih OPT; do
+    case $OPT in
+        i)
+            DO_INFERENCES="yes"
+            ;;
+        h)
+            echo "\`undertaker-kconfigdump' generates models for a linux, busybox"
+            echo "and coreboot"
+            echo "Usage: ${0##*/} [-i] [-h]"
+            echo " -i  calculate inferences"
+            echo " -h  displays this message"
+            exit
+            ;;
+    esac
+done
+
+shift $(($OPTIND - 1))
 
 function debug() {
     if [ -n "$DEBUG" ]; then
@@ -139,6 +158,12 @@ if [ -f scripts/gen_build_files.sh ]; then
     # make models for busybox
     rsf2model "$MODELS/busybox.rsf" > "$MODELS/busybox.model"
 
+    if [ $DO_INFERENCES = "yes" ]; then
+        # FIXME: golem -i requires a normalized busybox tree. reenable when busyfix is ready
+        echo "Calculating makefile inferences for busybox not implemented yet."
+        # ARCH=busybox golem -i 2> $MODELS/busybox.golem-errors >> "$MODELS/busybox.model"
+    fi
+
     # disable CONFIG_WERROR
     echo 'UNDERTAKER_SET ALWAYS_OFF "CONFIG_WERROR" "CONFIG_STATIC"' >> "$MODELS/busybox.model"
 
@@ -152,10 +177,15 @@ if test -f Makefile && grep -q 'This file is part of the coreboot project.' Make
     sed -i ':a;N;$!ba;s,config WARNINGS_ARE_ERRORS\n\tbool\n,config WARNINGS_ARE_ERRORS\n\tbool "DUMMY"\n,' src/Kconfig
 
     # generate config files, execute dumpconf, remove all the comments because they will confuse rsf2model
-	dumpconf ./src/Kconfig | sort -u | grep -v '^#' > "$MODELS/$CBMODEL.rsf"
+    dumpconf ./src/Kconfig | sort -u | grep -v '^#' > "$MODELS/$CBMODEL.rsf"
 
     # make model for coreboot
     rsf2model "$MODELS/$CBMODEL.rsf" > "$MODELS/$CBMODEL.model"
+
+    if [ $DO_INFERENCES = "yes" ]; then
+        echo "Calculating makefile inferences for coreboot"
+        ARCH=$CBMODEL golem -i 2> $MODELS/$CBMODEL.golem-errors >> "$MODELS/$CBMODEL.model"
+    fi
 
     # disable bad CONFIG_ Symbols
     #
@@ -189,3 +219,11 @@ done
 while [ $(jobs -r | wc -l) -gt 0 ]; do
     sleep 0.5
 done
+
+if [ $DO_INFERENCES = "yes" ]; then
+    for ARCH in $ARCHS
+    do
+        echo "Calculating makefile inferences for $ARCH"
+        SUBARCH=$ARCH ARCH=$ARCH golem -i 2> $MODELS/$ARCH.golem-errors >> "$MODELS/$ARCH.model"
+    done
+fi
