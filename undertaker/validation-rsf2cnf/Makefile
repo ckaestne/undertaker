@@ -7,8 +7,11 @@ all: complete.cnf
 clean:
 	rm -f complete.cnf
 
+$(RSF2CNF):
+	$(MAKE) -C .. rsf2cnf
+
 complete.cnf: mainmodel.cnf files.model $(RSF2CNF)
-	$(RSF2CNF) files.model /dev/null mainmodel.cnf >complete.cnf
+	$(RSF2CNF) -m files.model -c mainmodel.cnf >complete.cnf
 
 check: complete.cnf
 # note: the following tests are fragile, because the cnf variable encodings

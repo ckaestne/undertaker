@@ -17,7 +17,7 @@ models/%.model: kconfig-%.rsf
 
 cnfmodels/%.cnf: models/%.model kconfig-%.rsf
 	@mkdir -p cnfmodels
-	$(RSF2CNF) $^ >$@
+	$(RSF2CNF) -m models/$*.model -r models/$*.rsf >$@
 
 FORCE:
 
