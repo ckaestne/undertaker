@@ -25,7 +25,7 @@ h
 
 /*
  * check-name: Normalize multi-line macros without shifting line numbers
- * check-command: undertaker -j coverage -O combined $file; wc -l $file.source0
+ * check-command: undertaker -v -j coverage -O combined $file; wc -l $file.source0
  * check-output-start
 I: Removed 0 leftovers for multi-line-macros.c
 I: multi-line-macros.c, Found Solutions: 4, Coverage: 7/7 blocks enabled (100%)

@@ -11,7 +11,6 @@
  * check-name: Complex Conditions
  * check-command: undertaker -j cpppc $file
  * check-output-start
-I: CPP Precondition for cpppc-define.c
 ( B0 <-> CONFIG_A )
 && ( B1 <-> CONFIG_C. )
 && (B0 -> CONFIG_C.)

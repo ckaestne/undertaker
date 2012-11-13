@@ -14,7 +14,7 @@ OUT
 
 /*
  * check-name: calculate configuration from solvable multiple-file block preconditions with white- and blacklist
- * check-command: undertaker -j mergeblockconf mergeblockconf_lists.worklist -m mergeblockconf.model -W mergeblockconf.whitelist -B mergeblockconf.blacklist
+ * check-command: undertaker -v -j mergeblockconf mergeblockconf_lists.worklist -m mergeblockconf.model -W mergeblockconf.whitelist -B mergeblockconf.blacklist
  * check-output-start
 I: loaded 1 items to whitelist
 I: loaded 1 items to blacklist

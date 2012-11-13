@@ -14,11 +14,13 @@ OUT
 
 /*
  * check-name: try to calculate configuration from unsolvable multiple-file block preconditions
- * check-command: undertaker -j mergeblockconf mergeblockconf_fail.worklist
+ * check-command: undertaker -v -j mergeblockconf mergeblockconf_fail.worklist
  * check-output-start
 I: No block found at ./mergeblockconf_fail.c:8
 I: Processing block B0_mergeblockconf_fail.c
 I: Processing block B2_mergeblockconf_fail.c
-E: Wasn't able to generate a valid configuration
  * check-output-end
+ * check-error-start
+E: Wasn't able to generate a valid configuration
+ * check-error-end
  */

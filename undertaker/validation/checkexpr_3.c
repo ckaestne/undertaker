@@ -1,6 +1,6 @@
 /*
  * check-name: Ensure that the blacklist operates correctly
- * check-command: undertaker -j checkexpr -m coverage-wl.model -B coverage-wl.blacklist CONFIG_OFF
+ * check-command: undertaker -v -j checkexpr -m coverage-wl.model -B coverage-wl.blacklist CONFIG_OFF
  * check-exit-value: 1
  * check-output-start
 I: loaded 1 items to blacklist

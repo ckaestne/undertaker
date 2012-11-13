@@ -849,12 +849,7 @@ int main (int argc, char ** argv) {
     std::string process_mode = "dead";
     process_file_cb_t process_file = process_file_dead;
 
-    /* Standard Logging output is standard out,
-       the loglevel (threshold) is LOG_INFO
-       the default Loglevel is LOG_INFO
-    */
-    logger.init(std::cout, Logging::LOG_INFO, Logging::LOG_INFO);
-    int loglevel = Logging::LOG_INFO;
+    int loglevel = logger.getLogLevel();
 
     /* Command line structure:
        - Model Options:

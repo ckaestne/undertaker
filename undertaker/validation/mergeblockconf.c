@@ -14,7 +14,7 @@ OUT
 
 /*
  * check-name: calculate configuration from solvable multiple-file block preconditions
- * check-command: undertaker -j mergeblockconf mergeblockconf.worklist
+ * check-command: undertaker -v -j mergeblockconf mergeblockconf.worklist
  * check-output-start
 I: No block found at ./mergeblockconf.c:8
 I: Processing block B2_mergeblockconf.c

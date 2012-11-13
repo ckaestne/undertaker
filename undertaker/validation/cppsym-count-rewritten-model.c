@@ -13,8 +13,6 @@
  * check-name: cppsym: Count rewrites correctly with model
  * check-command: undertaker -j cppsym -m models/x86.model $file
  * check-output-start
-I: Using x86 as primary model
-I: loaded rsf model for x86
 CONFIG_SMP, 1, 0, PRESENT, BOOLEAN
 HAVE_SMP, 2, 1, MISSING, NOT_CONFIG_LIKE
  * check-output-end

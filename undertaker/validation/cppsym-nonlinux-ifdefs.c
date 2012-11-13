@@ -13,8 +13,6 @@
  * check-name: cppsym: ensure status and type of detected symbols with x86 model
  * check-command: undertaker -j cppsym -m models/x86.model $file
  * check-output-start
-I: Using x86 as primary model
-I: loaded rsf model for x86
 CONFIG_FOO, 1, 0, MISSING, CONFIG_LIKE
 CONFIG_SMP, 1, 0, PRESENT, BOOLEAN
 HAVE_NUMA, 1, 0, MISSING, NOT_CONFIG_LIKE

@@ -45,11 +45,12 @@ public:
     void setLogLevel(int l) { loglevel = l; };
     void setDefaultLogLevel(int l) { default_level = l; };
     void setActualLogLevel(int l) { actual_level = l; };
+    int getLogLevel() { return loglevel; }
 
-
-    void init(std::ostream &out_stream=std::cerr,
-              LogLevel _loglevel = LOG_WARNING,
-              LogLevel _default_loglevel = LOG_INFO);
+    void init(std::ostream &out_stream=std::cout,
+              std::ostream &error_stream=std::cerr,
+              LogLevel loglevel=LOG_WARNING,
+              LogLevel default_loglevel=LOG_WARNING);
 
     /* Catchall for all other stream operator<< arguments */
     template<typename T>
@@ -65,6 +66,7 @@ private:
     std::string logPrefix(int level);
     int loglevel, default_level, actual_level;
     std::ostream *out;
+    std::ostream *err;
     std::stringstream buffer;
 };
 

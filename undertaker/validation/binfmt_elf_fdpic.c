@@ -1843,7 +1843,7 @@ cleanup:
 
 /*
  * check-name: binfmt_elf_fdpic.c
- * check-command: undertaker -m models/x86.model -i ignorelist $file
+ * check-command: undertaker -v -m models/x86.model -i ignorelist $file
  * check-output-start
 I: loaded rsf model for x86
 I: loaded 1 items to ignorelist

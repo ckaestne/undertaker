@@ -9404,7 +9404,7 @@ EXPORT_SYMBOL_GPL(synchronize_sched_expedited);
 
 /*
  * check-name: Full text of kernel/sched.c from Linux v2.6.37-rc1-542-g0143832
- * check-command: undertaker -m models -i /dev/null $file
+ * check-command: undertaker -v -m models -i /dev/null $file
  * check-output-start
 I: loaded rsf model for alpha
 I: loaded rsf model for arm

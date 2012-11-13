@@ -26,20 +26,26 @@ Logging::Logging() {
 }
 
 void Logging::log(int level, std::string input) {
-    if (level >= loglevel)
-        (*out) << logPrefix(level) << ": " << input << std::endl;
-};
+    if (level >= loglevel) {
+        if (level < LOG_WARNING)
+            (*out) << logPrefix(level) << ": " << input << std::endl;
+        else
+            (*err) << logPrefix(level) << ": " << input << std::endl;
+    }
+}
 
 void Logging::debug(std::string input) { log(LOG_DEBUG,   input); };
 void Logging::info(std::string input)  { log(LOG_INFO,    input); };
 void Logging::warn(std::string input)  { log(LOG_WARNING, input); };
 void Logging::error(std::string input) { log(LOG_ERROR,   input); };
 
-void Logging::init(std::ostream &out_stream, Logging::LogLevel _loglevel,
-                   Logging::LogLevel _default_loglevel) {
-    out = &out_stream;
-    setLogLevel(_loglevel);
-    setDefaultLogLevel(_default_loglevel);
+void Logging::init(std::ostream &out_stream, std::ostream &error_stream,
+                   Logging::LogLevel loglevel,
+                   Logging::LogLevel default_loglevel) {
+    this->out = &out_stream;
+    this->err = &error_stream;
+    setLogLevel(loglevel);
+    setDefaultLogLevel(default_loglevel);
 }
 
 std::string Logging::logPrefix(int level) {

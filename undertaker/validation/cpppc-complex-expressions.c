@@ -5,7 +5,6 @@
  * check-name: Handle Comparators
  * check-command: undertaker -j cpppc $file
  * check-output-start
-I: CPP Precondition for cpppc-complex-expressions.c
 ( B0 <-> BITS_PER_LONG == 32 &&  ( CONFIG_SMP ) )
 && ( B1 <-> ( ! (B0) ) )
 && B00

@@ -16,7 +16,6 @@
  * check-name: Handle toplevel macros
  * check-command: undertaker -j cpppc $file
  * check-output-start
-I: CPP Precondition for cpppc-handle-toplevelmacro.c
 ( B0 <-> ((CONFIG_A) && ( CONFIG_B)) )
 && ( B1 <-> XXXX )
 && ( B2 <-> both(CONFIG_A, CONFIG_B) && 1 )

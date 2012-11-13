@@ -24,8 +24,6 @@
  * check-name: cppsym: duplicate elimination with model and tristate symbols
  * check-command: undertaker -j cppsym -m models/x86.model $file
  * check-output-start
-I: Using x86 as primary model
-I: loaded rsf model for x86
 CONFIG_CGROUP_SCHED, 1, 0, PRESENT, BOOLEAN
 CONFIG_FAIR_GROUP_SCHED, 1, 0, PRESENT, BOOLEAN
 CONFIG_RT_GROUP_SCHED, 1, 0, PRESENT, BOOLEAN

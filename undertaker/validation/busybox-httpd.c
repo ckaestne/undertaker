@@ -75,7 +75,7 @@
 
 /*
  * check-name: coverage analysis for busybox httpd
- * check-command: undertaker -j coverage -O stdout -m  busybox-httpd.model $file
+ * check-command: undertaker -v -j coverage -O stdout -m  busybox-httpd.model $file
  * check-output-start
 I: Set configuration space regex to '^(ENABLE_|CONFIG_)[^ ]*$'
 I: loaded rsf model for busybox-httpd

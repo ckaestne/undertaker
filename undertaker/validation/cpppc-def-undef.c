@@ -12,7 +12,6 @@
  * check-name: Define and undefine in same level
  * check-command: undertaker -j cpppc $file
  * check-output-start
-I: CPP Precondition for cpppc-def-undef.c
 ( B0 <-> X )
 && (B0 -> !X.)
 && (B0 -> X..)

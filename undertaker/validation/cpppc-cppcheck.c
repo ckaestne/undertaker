@@ -20,7 +20,6 @@ int main(void) {
  * check-name: Complex Conditions
  * check-command: undertaker -j cpppc $file
  * check-output-start
-I: CPP Precondition for cpppc-cppcheck.c
 ( B0 <-> FOO )
 && ( B1 <-> B0 && BAR. )
 && ( B2 <-> B0 && ( ! (B1) ) )

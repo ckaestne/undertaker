@@ -2,8 +2,6 @@
  * check-name: find interesting items for symbol
  * check-command: undertaker -j checkexpr -m ../kconfig-dumps/models/x86.model 'CONFIG_SMP && !CONFIG_64BIT'
  * check-output-start
-I: loaded rsf model for x86
-I: Using x86 as primary model
 CONFIG_64BIT=n
 CONFIG_ANON_INODES=y
 CONFIG_ARCH_HAS_CACHE_LINE_SIZE=y

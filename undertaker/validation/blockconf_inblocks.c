@@ -26,7 +26,7 @@ WITHOUT BLOCK AT END
 
 /*
  * check-name: calculate configuration from solvable block preconditions at one location
- * check-command: undertaker -j blockconf blockconf_inblocks.c:13
+ * check-command: undertaker -v -j blockconf blockconf_inblocks.c:13
  * check-output-start
 I: Processing block B4
 CONFIG_B=n

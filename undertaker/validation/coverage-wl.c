@@ -14,7 +14,7 @@
 
 /*
  * check-name: whitelisting for coverage algorithms
- * check-command: undertaker -j coverage $file -m coverage-wl.model -W coverage-wl.whitelist -B coverage-wl.blacklist ; cat coverage-wl.c.config1
+ * check-command: undertaker -v -j coverage $file -m coverage-wl.model -W coverage-wl.whitelist -B coverage-wl.blacklist; cat coverage-wl.c.config1
  * check-output-start
 I: loaded 1 items to blacklist
 I: loaded 1 items to whitelist
