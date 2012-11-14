@@ -1,3 +1,4 @@
+// -*- mode: c++ -*-
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
@@ -19,8 +20,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-// -*- mode: c++ -*-
 #ifndef blockdefect_h__
 #define blockdefect_h__
 
@@ -61,8 +60,20 @@ struct BlockDefectAnalyzer {
      *                               to false (grounding these variables)
      * $block.globally.dead       -> dead on every checked arch
      * \endverbatim
+     *
+     * By default this method will only create the report if the defect
+     * references at least one item that is controlled by the
+     * configuration system. Technically, this is implemented by
+     * checking if at least one item is inside the configuration space
+     * of the given model. This behavior can be overridden with the
+     * only_in_model parameter.
+     *
+     * This method returns 'true' if the file was successfully
+     * written. The return code 'false' indicates either a file-system
+     * permission problem or, if only_in_model is set to true, that the
+     * defect does not contain any item in the configuration space.
      */
-    virtual bool writeReportToFile() const = 0;
+    virtual bool writeReportToFile(bool only_in_model) const = 0;
     virtual void markOk(const std::string &arch);
     virtual std::list<std::string> getOKList() { return _OKList; }
     virtual int defectType() const { return _defectType; }
@@ -73,9 +84,11 @@ struct BlockDefectAnalyzer {
                                                     ConfigurationModel *);
 
 protected:
-    BlockDefectAnalyzer(int defecttype) : _defectType(defecttype), _isGlobal(false), _OKList() {}
+    BlockDefectAnalyzer(int defecttype)
+        : _defectType(defecttype), _isGlobal(false), _inConfigurationSpace(false), _OKList() {}
     int _defectType;
     bool _isGlobal;
+    bool _inConfigurationSpace;
     ConditionalBlock *_cb;
     const char *_suffix;
     std::list<std::string> _OKList; //!< List of architectures on which this is proved to be OK
@@ -89,7 +102,7 @@ public:
     virtual bool isDefect(const ConfigurationModel *model); //!< checks for a defect
     virtual bool isGlobal() const; //!< checks if the defect applies to all models
     virtual bool needsCrosscheck() const; //!< defect will be present on every model
-    virtual bool writeReportToFile() const;
+    virtual bool writeReportToFile(bool only_in_model) const;
 
     virtual const char *getArch() { return _arch; }
     virtual void setArch(const char *arch) { _arch = arch; }
@@ -107,6 +120,5 @@ public:
     UndeadBlockDefect(ConditionalBlock *);
     virtual bool isDefect(const ConfigurationModel *model);
 };
-
 
 #endif

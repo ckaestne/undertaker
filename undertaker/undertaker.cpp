@@ -80,6 +80,7 @@ enum CoverageOperationMode {
 
 static const char *coverage_exec_cmd = "cat";
 static int RETVALUE = EXIT_SUCCESS;
+static bool skip_non_configuration_based_defects = false;
 
 void usage(std::ostream &out, const char *error) {
     if (error)
@@ -98,6 +99,8 @@ void usage(std::ostream &out, const char *error) {
     out << "  -b  specify a worklist (batch mode)\n";
     out << "  -t  specify count of parallel processes\n";
     out << "  -I  add an include path for #include directives\n";
+    out << "  -s  skip non-configuration based defect reports\n";
+    out << "      (enabled by default if more than one model is loaded)\n";
     out << "  -j  specify the jobs which should be done\n";
     out << "      - dead: dead/undead file analysis (default)\n";
     out << "      - coverage: coverage file analysis\n";
@@ -627,7 +630,7 @@ void process_file_dead_helper(const char *filename) {
     try {
         const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(file.topBlock(), model);
         if (defect) {
-            defect->writeReportToFile();
+            defect->writeReportToFile(skip_non_configuration_based_defects);
             delete defect;
         }
     } catch (SatCheckerError &e) {
@@ -642,7 +645,7 @@ void process_file_dead_helper(const char *filename) {
         try {
             const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(block, model);
             if (defect) {
-                defect->writeReportToFile();
+                defect->writeReportToFile(skip_non_configuration_based_defects);
                 delete defect;
             }
         } catch (SatCheckerError &e) {
@@ -862,7 +865,7 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:i:B:W:j:O:C:I:Vhvq")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:i:B:W:sj:O:C:I:Vhvq")) != -1) {
         switch (opt) {
             int n;
             KconfigWhitelist *wl;
@@ -954,6 +957,9 @@ int main (int argc, char ** argv) {
         case 'm':
             models.push_back(std::string(optarg));
             break;
+        case 's':
+            skip_non_configuration_based_defects = true;
+            break;
         case 'j':
             /* assign a new function pointer according to the jobs
                which should be done */
@@ -1025,6 +1031,10 @@ int main (int argc, char ** argv) {
         } else
             logger << error << "Failed to load model " << *i << std::endl;
     }
+
+    /* skip non-configuration based defect reports if more than one model is loaded */
+    if (models.size() > 1)
+        skip_non_configuration_based_defects = true;
 
     std::vector<std::string> workfiles;
     if (!worklist) {

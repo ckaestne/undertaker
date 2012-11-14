@@ -114,7 +114,25 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     std::string code_formula = _cb->getCodeConstraints();
     formula.push_back(_cb->getName());
     formula.push_back(code_formula);
-    SatChecker code_constraints(_formula = formula.join("\n&&\n"));
+    _formula = formula.join("\n&&\n");
+
+    // The idea is that the expression needs to contain at least one
+    // item that is in the configuration space. Otherwise, the block is
+    // not configuration dependent and must not be reported as
+    // configuration defect.
+    if (model) {
+        const std::string expr = _formula;
+        std::set<std::string> items = ConditionalBlock::itemsOfString(expr);
+        for (std::set<std::string>::const_iterator i = items.begin(); i != items.end(); i++) {
+            if (model->inConfigurationSpace(*i))
+                _inConfigurationSpace = true;
+        }
+    } else {
+        // if we do not have a model, this defect should always be reported
+        _inConfigurationSpace = true;
+    }
+
+    SatChecker code_constraints(_formula);
 
     if (!code_constraints()) {
         _defectType = Implementation;
@@ -191,8 +209,11 @@ const std::string BlockDefectAnalyzer::defectTypeToString() const {
     return "";
 }
 
-bool DeadBlockDefect::writeReportToFile() const {
+bool DeadBlockDefect::writeReportToFile(bool only_in_model) const {
     StringJoiner fname_joiner;
+
+    if (only_in_model && !_inConfigurationSpace)
+        return false;
 
     fname_joiner.push_back(_cb->getFile()->getFilename());
     fname_joiner.push_back(_cb->getName());
@@ -220,7 +241,7 @@ bool DeadBlockDefect::writeReportToFile() const {
         return false;
     } else {
         logger << info << "creating " << filename << std::endl;
-        out << "#" << _cb->getName() << ":" 
+        out << "#" << _cb->getName() << ":"
             << _cb->filename() << ":" << _cb->lineStart() << ":" << _cb->colStart() << ":"
             << _cb->filename() << ":" << _cb->lineEnd() << ":" << _cb->colEnd() << ":"
             << std::endl;
@@ -248,7 +269,25 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
     std::string code_formula = _cb->getCodeConstraints();
     formula.push_back("( " + parent->getName() + " && ! " + _cb->getName() + " )");
     formula.push_back(code_formula);
-    SatChecker code_constraints(_formula = formula.join("\n&&\n"));
+    _formula = formula.join("\n&&\n");
+
+    // The idea is that the expression needs to contain at least one
+    // item that is in the configuration space. Otherwise, the block is
+    // not configuration dependent and must not be reported as
+    // configuration defect.
+    if (model) {
+        const std::string expr = _formula;
+        std::set<std::string> items = ConditionalBlock::itemsOfString(expr);
+        for (std::set<std::string>::const_iterator i = items.begin(); i != items.end(); i++) {
+            if (model->inConfigurationSpace(*i))
+                _inConfigurationSpace = true;
+        }
+    } else {
+        // if we do not have a model, this defect should always be reported
+        _inConfigurationSpace = true;
+    }
+
+    SatChecker code_constraints(_formula);
 
     if (!code_constraints()) {
         _defectType = Implementation;
