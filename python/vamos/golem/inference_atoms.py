@@ -325,8 +325,9 @@ class CorebootInferenceAtoms(LinuxInferenceAtoms):
     def format_selections(self, selections):
         string = InferenceAtoms.format_selections(self, selections)
         string = string.replace("=y", "")
+        string = string.replace("-", "_")
         def MAINBOARD_DIR(match):
-            return "(CONFIG_VENDOR_%(vendor)s && CONFIG_BOARD_%(vendor)s_%(board)s" % { \
+            return "(CONFIG_VENDOR_%(vendor)s && CONFIG_BOARD_%(vendor)s_%(board)s)" % { \
                 'vendor': match.group(1).upper(),
                 'board': match.group(2).upper()}
 
