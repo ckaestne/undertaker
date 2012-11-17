@@ -173,7 +173,7 @@ bool process_blockconf_helper(StringJoiner &sj,
     if(filesolvable.find(fileVar) != filesolvable.end()) {
         // and conflicts with user defined lists, don't add it to formula
         if(!filesolvable[fileVar]) {
-            logger << error << "File " << file << " not included - " <<
+            logger << warn << "File " << file << " not included - " <<
                 "conflict with white-/blacklist" << std::endl;
             return false;
         }
@@ -191,7 +191,7 @@ bool process_blockconf_helper(StringJoiner &sj,
             SatChecker fileChecker(fileCondition.str());
             if(!fileChecker()) {
                 filesolvable[fileVar] = false;
-                logger << error << "File condition for location " << locationname
+                logger << warn << "File condition for location " << locationname
                     << " conflicting with black-/whitelist - not added"
                     << std::endl;
                 return false;
@@ -219,7 +219,7 @@ bool process_blockconf_helper(StringJoiner &sj,
     try {
         SatChecker constraintChecker(precondition);
         if(!constraintChecker()) {
-            logger << error << "Code constraints for " << block->getName() <<
+            logger << warn << "Code constraints for " << block->getName() <<
                 " not satisfiable - override by black-/whitelist" << std::endl;
             return false;
         } else {

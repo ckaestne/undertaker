@@ -21,7 +21,7 @@ I: loaded 1 items to blacklist
 I: loaded rsf model for mergeblockconf
 I: Using mergeblockconf as primary model
 I: Processing block B2_mergeblockconf_lists_conflict.c
-E: Code constraints for B2_mergeblockconf_lists_conflict.c not satisfiable - override by black-/whitelist
+W: Code constraints for B2_mergeblockconf_lists_conflict.c not satisfiable - override by black-/whitelist
 I: Processing block B4_mergeblockconf_lists_conflict.c
 I: Solution found, result:
 # B3_mergeblockconf_lists_conflict.c=n
