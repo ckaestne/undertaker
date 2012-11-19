@@ -1,12 +1,15 @@
 PROGS = scripts/kconfig/dumpconf undertaker/undertaker undertaker/predator undertaker/rsf2cnf \
-	python/rsf2model ziz/zizler
+	python/rsf2model tailor/undertaker-traceutil ziz/zizler
 MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz \
 	doc/undertaker-kconfigpp.1.gz
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
+SBINDIR ?= $(PREFIX)/sbin
 LIBDIR ?= $(PREFIX)/lib
 MANDIR ?= $(PREFIX)/share/man
+DOCDIR ?= $(PREFIX)/share/doc
+ETCDIR ?= $(PREFIX)/etc
 
 VERSION=$(shell cat VERSION)
 
@@ -31,6 +34,9 @@ undertaker/predator: FORCE
 undertaker/rsf2cnf: FORCE
 	$(MAKE) -C undertaker rsf2cnf
 
+tailor/undertaker-traceutil: FORCE
+	$(MAKE) -C tailor undertaker-traceutil
+
 ziz/zizler: FORCE
 	$(MAKE) -C ziz zizler
 
@@ -42,6 +48,7 @@ clean:
 	$(MAKE) -C undertaker clean
 	$(MAKE) -C ziz clean
 	$(MAKE) -C python clean
+	$(MAKE) -C tailor clean
 	@python setup.py clean
 
 docs:
@@ -51,11 +58,17 @@ check:
 	$(MAKE) -C undertaker $@
 	$(MAKE) -C ziz $@
 	$(MAKE) -C python $@
+	$(MAKE) -C tailor $@
 
 install: all $(MANPAGES)
 	@install -d -v $(DESTDIR)$(BINDIR)
+	@install -d -v $(DESTDIR)$(SBINDIR)
+	@install -d -v $(DESTDIR)$(DOCDIR)
 	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker
+	@install -d -v $(DESTDIR)$(ETCDIR)/undertaker
+	@install -d -v $(DESTDIR)$(LIBDIR)/undertaker/tailor/ubuntu-boot
 	@install -d -v $(DESTDIR)$(PREFIX)/share/emacs/site-lisp/undertaker
+	@install -d -v $(DESTDIR)$(DOCDIR)/undertaker/tailor
 	@install -d -v $(DESTDIR)$(MANDIR)/man1
 
 	@install -v python/undertaker-calc-coverage $(DESTDIR)$(BINDIR)
@@ -64,6 +77,15 @@ install: all $(MANPAGES)
 	@install -v python/fakecc $(DESTDIR)$(BINDIR)
 
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(LIBDIR)/undertaker
+
+	@install -v tailor/undertaker-tailor $(DESTDIR)$(BINDIR)
+	@install -v tailor/undertaker-tracecontrol-prepare $(DESTDIR)$(BINDIR)
+	@install -v tailor/undertaker-tracecontrol $(DESTDIR)$(BINDIR)
+	@install -v tailor/undertaker-traceutil $(DESTDIR)$(SBINDIR)
+	@cp -v tailor/lists/* $(DESTDIR)$(ETCDIR)/undertaker/
+	@cp -v tailor/HOWTO $(DESTDIR)$(DOCDIR)/undertaker/tailor/
+	@cp -v tailor/README $(DESTDIR)$(DOCDIR)/undertaker/tailor/
+	@cp -r -v tailor/boot/* $(DESTDIR)$(LIBDIR)/undertaker/tailor/ubuntu-boot
 
 	@install -v undertaker/predator $(DESTDIR)$(BINDIR)
 	@install -v undertaker/undertaker $(DESTDIR)$(BINDIR)

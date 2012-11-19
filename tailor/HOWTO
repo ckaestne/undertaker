@@ -1,0 +1,91 @@
+============================= HOWTO - Ubuntu ============================
+
+While the tools and the approach work on every system, there are a few
+improvements for Ubuntu, which also was the distribution the tools were
+developed on. If you can describe specific differences for other architectures
+or have your own script to set up tracing early in the boot for other
+distributions, you are very welcome to submit this as a patch; we really
+appreciate this!
+
+The following explanations refer to Ubuntu 12.04 using Linux 3.2.0.
+
+1) Installing the undertaker, downloading the source and generating the Kconfig
+models works just as described in the README file, namely by typing:
+
+tailor@ubuntu:~$ sudo apt-get install undertaker
+tailor@ubuntu:~$ apt-get source linux-image-`uname -r`
+tailor@ubuntu:~$ cd linux-3.2.0
+tailor@ubuntu:~/linux-3.2.0$ undertaker-kconfigdump -i x86
+
+Note that the undertaker-kconfigdump call may take up to 60 minutes since
+Kconfig models of the specific Linux tree are generated.
+
+2) Downloading the debug information binaries can be done by adding the
+ddebs.ubuntu.com repository to apt and installing the
+linux-image-`uname -r`-dbgsym package. This is done as follows:
+
+tailor@ubuntu:~$ echo "deb http://ddebs.ubuntu.com $(lsb_release -cs) main restricted universe multiverse
+deb http://ddebs.ubuntu.com $(lsb_release -cs)-updates main restricted universe multiverse
+deb http://ddebs.ubuntu.com $(lsb_release -cs)-security main restricted universe multiverse
+deb http://ddebs.ubuntu.com $(lsb_release -cs)-proposed main restricted universe multiverse" | \
+sudo tee -a /etc/apt/sources.list.d/ddebs.list
+
+tailor@ubuntu:~$ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 428D7C01
+tailor@ubuntu:~$ sudo apt-get update
+tailor@ubuntu:~$ sudo apt-get install linux-image-`uname -r`-dbgsym
+
+3) On Ubuntu, you can setup your system to allow tracing early in the boot
+process. Therefore please provide a path to the prepared scripts used by Ubuntu
+using the -s parameter. You can skip this step if you want to start tracing
+manually after your system is booted.
+
+Now make sure that both undertaker-tracecontrol and undertaker-traceutil are in
+the command search path.
+
+tailor@ubuntu:~$ sudo undertaker-tracecontrol-prepare
+
+This will generate a custom initram disk called initrd.img-`uname -r`.ftrace,
+which fires up our tracing tool even before the init process is launched.
+If you run it as a normal user, the initrd image will be generated in the current
+working directory, named initrd.img-`uname -r`.ftrace, and you will have to copy
+it to /boot/ yourself to use it.
+
+If you want to use early boot tracing (highly recommended), you should now
+reboot your computer, and tell it to use the modified initramdisk. In GRUB2,
+you can do so by navigating to the entry of your normal kernel, press 'e',
+scroll down to the line starting with "initrd", and add ".ftrace" to the end of
+the file name, and press 'F10' to boot. If the GRUB2 menu does not show up
+during the boot process, press SHIFT to enter.
+
+If you only want to trace after the system has booted, please start tracing as
+described in README by executing the following (after entering your password for
+super user rights, you can run this process as a background process):
+
+tailor@ubuntu:~$ sudo undertaker-tracecontrol module
+
+4) Stopping the trace, changing to the source tree and making the traceutils
+output readable is required on every distribution and the same command:
+
+tailor@ubuntu:~$ sudo undertaker-tracecontrol stop
+tailor@ubuntu:~$ cd linux-3.2.0/
+tailor@ubuntu:~/linux-3.2.0$ sudo chmod og+r /run/undertaker-trace.out
+
+5) If you have installed the debug information correctly, you can use it in the
+call to undertaker-tailor. However, as there can be multiple installed dbgsym
+packages, you have to provide the full path to both vmlinux (this is done via
+the -e parameter) AND the directory for the corresponding LKM files.
+Additionally, white- and blacklists for x86 and x86_64 which we needed to employ
+to generate a bootable kernel are provided and used automatically, if you use
+the -a parameter. A call on x86{_64} will therefore look like this:
+
+tailor@ubuntu:~/linux-3.2.0$ undertaker-tailor -a -c \
+                       -k /usr/lib/debug/lib/modules/`uname -r` \
+                       -e /usr/lib/debug/boot/vmlinux-`uname -r` \
+                       /run/undertaker-trace.out
+
+6) Building the kernel and installing are again the same as described in README:
+
+tailor@ubuntu:~/linux-3.2.0$ make deb-pkg -j6
+tailor@ubuntu:~/linux-3.2.0$ cd .. && sudo dpkg -i ./linux-image-*.deb
+
+7) Reboot into your tailored kernel :-)

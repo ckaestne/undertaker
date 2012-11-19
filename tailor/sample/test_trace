@@ -1,0 +1,40 @@
+# tracer: function
+#
+# entries-in-buffer/entries-written: 39926/1938778   #P:1
+#
+#                              _-----=> irqs-off
+#                             / _----=> need-resched
+#                            | / _---=> hardirq/softirq
+#                            || / _--=> preempt-depth
+#                            ||| /     delay
+#           TASK-PID   CPU#  ||||    TIMESTAMP  FUNCTION
+#              | |       |   ||||       |         |
+            bash-2249  [000] d.h.   156.061000: beta+0xb/0x95 <ffffffff8105a1c2> <-xray+0x56/0x72 <ffffffff81051720>
+            bash-2249  [000] d.h.   156.061000: charlie+0x4/0x1a <ffffffff8101e4f1> <-whiskey+0x12/0x31 <ffffffff81059da8>
+            bash-2249  [000] d.h.   156.061000: delta+0x4/0x10 <ffffffff81506f14> <-yankee+0x3f/0xf2 <ffffffff8104f78d>
+            bash-2249  [000] d.h.   156.061000: echo+0x6/0x3c <ffffffff8104d75f> <-yankee+0x47/0xf2 <ffffffff8104f795>
+            bash-2249  [000] d.h.   156.061000: foxtrot+0x9/0xe1 <ffffffff8104eb48> <-yankee+0x4f/0xf2 <ffffffff8104f79d>
+            bash-2249  [000] d.h.   156.061000: golf+0x4/0x3f <ffffffff8104dbc6> <-foxtrot+0xda/0xe1 <ffffffff8104ec19>
+            bash-2249  [000] d.h.   156.061000: init_module+0x4/0x19 <ffffffff81018820> <-foxtrot+0xda/0xe1 <ffffffff8104ec19>
+            bash-2249  [000] d.h.   156.061000: zulu+0xf/0x110 <ffffffff81052f27> <-yankee+0xc8/0xf2 <ffffffff8104f816>
+            bash-2249  [000] d.h.   156.061000: hotel+0xe/0x110 <ffffffff81051dcc> <-zulu+0x41/0x110 <ffffffff81052f59>
+            bash-2249  [000] d.h.   156.061000: india+0x4/0x17b <ffffffff81051939> <-zulu+0x5a/0x110 <ffffffff81052f72>
+            bash-2249  [000] d.h.   156.061000: juliet+0xb/0xbc <ffffffff81051ed9> <-zulu+0x62/0x110 <ffffffff81052f7a>
+            bash-2249  [000] d.h.   156.061000: two_func+0x8/0x2f <ffffffffa057def9> <-golf+0xa/0x3f <ffffffff8104dbc6>
+            bash-2249  [000] d.h.   156.061000: kilo+0x4/0x46 <ffffffff8104f70c> <-yankee+0xd8/0xf2 <ffffffff8104f826>
+            bash-2249  [000] d.h.   156.061000: lima+0xa/0x283 <ffffffff8105512f> <-yankee+0xe9/0xf2 <ffffffff8104f837>
+            bash-2249  [000] d.h.   156.061000: kilo+0x4/0x46 <ffffffff8104f70c> <-lima+0x5a/0x283 <ffffffff8105517f>
+            bash-2249  [000] d.h.   156.061000: mike+0x11/0x350 <ffffffff81045cd9> <-november+0x6d/0x76 <ffffffff81035a9a>
+            bash-2249  [000] d.h.   156.061000: oscar+0x7/0x71 <ffffffff8105980a> <-papa+0x7a/0x9a <ffffffff810603b3>
+            bash-2249  [000] d.h.   156.061000: quebec+0x9/0x87 <ffffffff81046263> <-papa+0x8c/0x9a <ffffffff810603c5>
+            bash-2249  [000] d.h.   156.061000: alpha+0x4/0x35 <ffffffff810461e4> <-quebec+0x69/0x87 <ffffffff810462c3>
+            bash-2249  [000] d.h.   156.061000: alpha+0x4/0x35 <ffffffff810461e4> <-quebec+0x79/0x87 <ffffffff810462d3>
+            bash-2249  [000] d.h.   156.061000: delta+0x4/0x10 <ffffffff81506f14> <-romeo+0xee/0x142 <ffffffff81046729>
+            bash-2249  [000] d.h.   156.061000: sierra+0xa/0x7b <ffffffff810462eb> <-romeo+0x107/0x142 <ffffffff81046742>
+            bash-2249  [000] d.h.   156.061000: tango+0x4/0x26 <ffffffff81060010> <-uniform+0x114/0x19d <ffffffff81046eb1>
+            bash-2249  [000] d.h.   156.061000: victor+0xd/0xc7 <ffffffff8105ef89> <-tango+0x24/0x26 <ffffffff81060030>
+            bash-2249  [000] d.h.   156.061000: beta+0xb/0x95 <ffffffff8105a1c2> <-victor+0x74/0xc7 <ffffffff8105eff0>
+            bash-2249  [000] d.h.   156.061000: charlie+0x4/0x1a <ffffffff8101e4f1> <-whiskey+0x12/0x31 <ffffffff81059da8>
+            bash-2249  [000] d.h.   156.061000: init_module+0x4/0x19 <ffffffff81018820> <-victor+0xab/0xc7 <ffffffff8105f027>
+            bash-2249  [000] d.h.   156.061000: four_func+0x1/0xc7 <ffffffffa0414062> <-victor+0xac/0xc7 <ffffffff8105f027>
+

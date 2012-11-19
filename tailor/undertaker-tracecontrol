@@ -1,0 +1,103 @@
+#!/bin/bash
+# Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
+# Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
+# Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+set -e
+
+DEBUGFSMOUNTPOINT=/sys/kernel/debug
+DEBUGFSFTRACE=$DEBUGFSMOUNTPOINT/tracing
+TRACEOUTFILE=/run/undertaker-trace.out
+TRACEUTIL=undertaker-traceutil
+
+if [ ! `id -u` -eq 0 ] ; then
+    echo "This operation requires root - aborting..."
+    exit 1
+fi
+if ! cat /boot/config-`uname -r` | grep -q "CONFIG_FTRACE=y" ; then
+    echo "Warning: No ftrace in current kernel available..."
+fi
+
+function initftrace {
+    if [ ! -d $DEBUGFSMOUNTPOINT ] ; then
+        mount -t debugfs none $(DEBUGFSMOUNTPOINT)
+    fi
+    if [ ! -d $DEBUGFSMOUNTPOINT ] ; then
+        echo "Could not mount debugfs to $DEBUGFSMOUNTPOINT - aborting..."
+        exit 1
+    fi
+    echo 0 > $DEBUGFSFTRACE/tracing_on
+    echo sym-addr > $DEBUGFSFTRACE/trace_options
+    echo sym-offset > $DEBUGFSFTRACE/trace_options
+    echo "function" > $DEBUGFSFTRACE/current_tracer
+    echo > $DEBUGFSFTRACE/set_ftrace_notrace
+}
+
+function tracefile {
+    echo "Tracing output is written to $TRACEOUTFILE"
+    touch $TRACEOUTFILE
+    chmod a+rw $TRACEOUTFILE
+}
+
+function help {
+    echo "Usage: $0 [start|stop|mount|module] [tracefile (optional)]"
+}
+
+if [ $# -gt 0 ] ; then
+    if [ $# -eq 2 ] ; then
+        TRACEOUTFILE=$2
+    fi
+    # prefer local version in same directory
+    if [ -x $TRACEUTIL ] ; then
+        TRACEUTIL=./$TRACEUTIL
+    fi
+    case "$1" in
+        start )
+            initftrace
+            tracefile
+            echo "Starting trace..."
+            echo 1 > $DEBUGFSFTRACE/tracing_on
+            if ! $TRACEUTIL $DEBUGFSFTRACE/trace_pipe $TRACEOUTFILE $DEBUGFSFTRACE/set_ftrace_notrace ; then
+                echo "Traceutil stopped!"
+            fi
+            echo 0 > $DEBUGFSFTRACE/tracing_on
+            ;;
+        mount )
+            initftrace
+            ;;
+        module )
+            initftrace
+            tracefile
+            echo "Starting Module trace..."
+            echo 1 > $DEBUGFSFTRACE/tracing_on
+            if ! $TRACEUTIL $DEBUGFSFTRACE/trace_pipe $TRACEOUTFILE $DEBUGFSFTRACE/set_ftrace_notrace /proc/modules ; then
+                echo "Traceutil stopped!"
+            fi
+            echo 0 > $DEBUGFSFTRACE/tracing_on
+            ;;
+        stop )
+            echo 0 > $DEBUGFSFTRACE/tracing_on
+            if ! killall $TRACEUTIL ; then
+                echo "Failed to kill $TRACEUTIL"
+            fi
+            ;;
+        * )
+            echo "Command '$1' could not be recognized..."
+            help
+            ;;
+    esac
+else
+    help
+fi

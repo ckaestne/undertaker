@@ -1,0 +1,224 @@
+==================== The Valiant Little Tailor ======================
+
+"The Valiant Little Tailor" (or short: Tailor) is a project developed by
+Bernhard Heinloth, Valentin Rothberg and Andreas Ruprecht, which allows you
+to generate a small Linux kernel configuration tailored to your specific use
+case.
+
+The tools were developed for a practical course with the VAMOS project [1] at
+Friedrich-Alexander-University Erlangen-Nürnberg, and improved fro publications
+in the proceedings of the HotDep '12 workshop [2] and the NDSS 2013 conference
+[3]. On the project website [1] you can also find more papers describing the
+undertaker tool and its variability model in greater detail.
+
+In this documentation we want to give an insight on the various steps required
+to build this configuration, and how to use our tools to actually do it.
+While the general approach is distribution independent, we were able to improve
+the results on Ubuntu by using the specific upstart infrastructure. We explain
+this in the additional HOWTO file as part of a complete recommended workflow for
+the Ubuntu distribution. This can be done for other distributions as well, so
+patches and instructions for porting to other distributions are always welcome!
+
+== Overview of the approach ===
+
+In order to tailor a kernel configuration specific for a use case, we use the
+kernel's own ftrace infrastructure to collect a log file containing the
+addresses of all functions that have been instrumented. As there might be
+functionality needed in the system that is only executed during the boot phase,
+we provide a simple modification of the initramfs (currently Ubuntu only!) in
+order to make it possible to start tracing very early in the boot process.
+
+We can then use debug information to correlate these addresses from the text
+segment to locations in kernel source files. This leads to a list of typically
+around 10.000 to 15.000 distinct locations in the source code.
+
+Using the undertaker tool and its possibility to compute Kconfig models for a
+Linux source tree, we can now get the Kconfig constraints needed to actually
+compile every one of these locations, including possible dependencies between
+Kconfig features. By combining this for every location found from the traces,
+we get a formula describing the Kconfig constraints for the entire list.
+
+This formula can be solved by a SAT solver, setting the variables (and
+therefore configuration options) to be on or off. By using heuristics to keep as
+many features turned off as possible, we end up with a kernel configuration
+containing a very small set of configuration options that are needed for the
+given use case.
+
+More details on the approach can also be found in [2] and [3].
+
+=== What do I need? ===
+- Ubuntu 12.04 or later
+- binaries with debug information for the current kernel
+- The undertaker tool in version 1.4 or later, with all its dependencies
+- The addr2line tool, found in the GNU Binary Utilities
+- A Linux kernel source tree for your traceable kernel; this tree should also
+  already contain the Kconfig models with file inference information
+  (calculated by calling "undertaker-kconfigdump -i x86" in the Linux source tree
+  you want to trace)
+- root/sudo access on the machine you want to trace
+- Possibly a defined use case, in order to run a test workload (although you can
+  always just use it on your own machine, and execute your everyday tasks)
+
+=== What do the tools do? ===
+- undertaker-tracecontrol: Allows you to start/stop the collection of system
+  traces
+- undertaker-tracecontrol-prepare:  Prepares your Ubuntu system to be able to
+  collect traces (see HOWTO file for further instructions for Ubuntu).
+- undertaker-traceutil: This tool watches the kernel's own ftrace log for
+  addresses it has not encountered yet, feeds ftrace's ignore list with already
+discovered functions, and writes a file containing unique addresses encountered
+during tracing; if the address traced stems from within a loadable kernel module
+(LKM), the module's name is written to this file, too.
+- undertaker-tailor: This script uses the collected log together with debug
+  information to first obtain which address resolves to which line in the source
+code, and to additionally help you calling the undertaker tool. It accepts user
+defined white- and blacklists, and calls the undertaker tool with the correct
+parameters. This should be executed from within a Linux source tree.
+
+=== How do I use it? ===
+- Download the undertaker tool either from the webpage
+  (http://vamos.informatik.uni-erlangen.de/trac/undertaker) or install it on
+Debian or Ubuntu by using your package manager.
+
+tailor@machine:~$ sudo apt-get install undertaker
+
+- Download the Linux kernel source for the currently running kernel; this can be
+  for example done with apt-get, using the following command:
+
+tailor@machine:~$ apt-get source linux-image-`uname -r`
+
+- Generate the model information for this Linux tree, by changing into the
+  source tree and execute the undertaker-kconfigdump; please replace the last
+parameter with your machine's architecture, if you're not using x86.
+
+tailor@machine:~$ cd linux-3.2.0/
+tailor@machine:~/linux-3.2.0$ undertaker-kconfigdump -i x86
+
+- Also make sure that you have kernel binaries with debug information, which
+  some distributors provide in their repositories (for Ubuntu, see HOWTO). For
+the remainder of this documentation, suppose we have stored this in
+~/debug-3.2.0/.
+
+- Once you have fulfilled all these requirements, you're ready to start tracing.
+  You can do so by typing
+
+tailor@machine:~$ sudo undertaker-tracecontrol module
+
+which fires up the undertaker-traceutil and includes support for LKM addresses;
+this can also be a background process after you entered your password for sudo.
+On Ubuntu, you can setup the system in a way to start tracing during the boot
+process which might cover additional information about your system (e.g. calls
+that only occur from the startup scripts). Please see HOWTO for this.
+
+- Now our tool is collecting traces and stores them in a text file called
+  undertaker-trace.out in /run. You should now run your use case on the
+system, for example if you are tracing a LAMP server, you could now run a
+benchmark or generate some traffic to trigger the execution of relevant code
+paths in the kernel. (see [2] or [3] for use cases we used)
+
+- If you're confident that the collected traces are sufficient (i.e. if the
+  output file '/run/undertaker-trace.out' doesn't grow anymore while still
+running the test workload), you can stop tracing by using the command
+
+tailor@machine:~$ sudo undertaker-tracecontrol stop
+
+- Now you can start the undertaker-tailor script to generate a configuration.
+First, please change into the previously prepared kernel source tree.
+
+tailor@machine:~$ cd linux-3.2.0/
+
+Please make sure that you have read access to the undertaker-traceutil output
+file (/run/undertaker-trace.out); otherwise please run
+
+tailor@machine:~/linux-3.2.0$ sudo chmod og+r /run/undertaker-trace.out
+
+Now you can execute the undertaker-tailor tool, which you need to provide the
+collected trace file to. The tool is highly configurable in order to make it
+work for other distributions than Ubuntu, too, but a typical call on x86 will
+look like this (for a specific call for Ubuntu, see HOWTO):
+
+tailor@machine:~/linux-3.2.0$ undertaker-tailor -a -c -k ~/debug-3.2.0 \
+                                /run/undertaker-trace.out
+
+-a (for "automatic) will assume "." as the source and debug information tree,
+the model "./models/x86.model" and black- and whitelists for the x86 or x86_64
+architecture in the subdirectory tailor/lists (or "/usr/etc/undertaker", if the
+Debian package was installed).
+Please note that -a currently only works for x86_64 and x86, patches for other
+architectures are always welcome!
+In order to override the path to debug information, the -k parameter is given
+with the actual path.  The -c parameter is used to generate a complete
+configuration that is expanded by the Kconfig framework after the undertaker
+run. For a complete list of parameters, please see the output of
+"undertaker-tailor -h".
+
+Important note on black- and whitelists: You can supply the undertaker tool with
+white- and blacklists (using the -b and -w parameters for undertaker-tailor),
+which contains Kconfig features to be turned on or off specific to your needs.
+If there is a conflict between a dependency requirement from the log file and a
+list, the list will be preferred.  This makes it possible for example to
+automatically remove the ftrace infrastructure from a tailored kernel.
+Furthermore, we need to have these black- and whitelists because some features
+in Linux are not traceable, and therefore can not appear in the ftrace log file.
+In the undertaker source subdirectory "tailor/lists" (or if you installed the
+undertaker Debian package, in "/usr/etc/undertaker/"), we provide sample black-
+and whitelists for the x86 and x86_64 architectures, which we needed to employ
+to get a bootable kernel for Ubuntu 12.04.
+Additionally, the undertaker tool currently has issues parsing a few files.
+These files are included in the tailor/lists/undertaker.ignore file (Debian
+package: /usr/etc/undertaker/undertaker.ignore), and the undertaker-tailor tool
+will filter them out of the generated list before feeding it into the undertaker
+tool.
+The list is automatically employed on x86 and x86_64 if you use the -a
+parameter, or you can use a custom version by providing the -i parameter to
+undertaker-tailor.
+
+- Once this call is finished, the .config file will contain your tailored
+configuration, so you can now compile this kernel (using the command below will
+also generate a .deb package that can be easily installed using dpkg) and use it.
+
+tailor@machine:~/linux-3.2.0$ make deb-pkg -j6
+tailor@machine:~/linux-3.2.0$ cd .. && sudo dpkg -i ./linux-image-*.deb
+
+=== Remarks on the approach ===
+- Our approach uses the assumption that the workload run during tracing is
+  representative for the whole use case, in other words, the traces need to be
+"sufficiently complete". However, as can be seen in the evaluation section in
+[3], we do not need to execute every single code path that is used in the target
+system. The results presented there show that a configuration obtained from a
+smaller sample scenario also provides full usability in the bigger scenario.
+- In both [2] and [3], we got comments from the reviewers who were concerned
+  about what might happen if you execute something on your tailored kernel which
+was not encountered during tracing, and if this might cause the kernel to crash.
+While this can not be completely excluded (and with respect to the remark above
+seems to be no problem for "closely related code"), this would not be a drawback
+of our approach, but moreover point to bugs in the application or the kernel.
+Configuring the kernel with its own infrastructure (which considers
+interdependencies by the provided constraints for every feature) will leave no
+"loose ends" in the kernel that could lead to "sudden breaks" in the code, but
+will have the kernel in a consistent state. This is (in more detail) also
+discussed in [3].  Of course we can not give guarantees for some completely
+different scenarios (e.g. tailoring a kernel for a LAMP server scenario and
+using it as a gaming machine), but a) this was not the goal of our approach, and
+b) should not lead to kernel crashes, but rather to errors handled and explained
+to you by the people who wrote the application and kernel code.
+
+=== Known issues ===
+- Proprietary drivers not working: As our approach is based on source code and
+  the Linux source tree, proprietary drivers can not be traced and analyzed,
+therefore any devices requiring proprietary drivers will not work with the
+traced kernel.
+- Sound not working on a Ubuntu Desktop machine: Our approach will not enable
+  any sound parser codecs, it will only select the driver itself. If you want
+sound, you have to manually edit the config before compiling or add the desired
+Kconfig option to the whitelist.
+- The tools were only tested on Ubuntu, patches or comments about necessary
+  adaptions for porting them to other distributions are welcome.
+
+=== References ===
+[1]: VAMOS: Variability Management in Operating Systems,
+     http://www4.cs.fau.de/Research/VAMOS/
+[2]: Automatic OS Kernel TCB Reduction by Leveraging Compile-Time
+     Configurability, HotDep '12, Hollywood, CA
+[3]: Attack Surface Metrics and Automated Compile-Time OS Kernel Tailoring,
+     NDSS '13, San Diego, CA

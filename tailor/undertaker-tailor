@@ -1,0 +1,473 @@
+#!/bin/bash
+# Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
+# Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
+# Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+set -e
+
+function licence {
+    echo '
+ Copyright (c) 2012 Andreas Ruprecht  <rupran@einserver.de>,
+                    Bernhard Heinloth <bernhard@heinloth.net>
+                and Valentin Rothberg <valentinrothberg@gmail.com>
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>.
+'
+}
+
+# Help message
+function help {
+    echo "  tailor - generating system configuration by tracing"
+    echo
+    echo "Usage: $0 [options] [tracefile]"
+    echo '
+  Modifier
+    -b <file>    blacklist (disabled configuration features)
+    -w <file>    whitelist (enabled configuration features)
+    -i <file>    list of ignored source files
+    -m <file>    path to model file of used architecture
+                 (default: "./models/x86.model")
+    -u <path>    path to undertaker   (default: version in $PATH)
+    -s <dir>     path to kernelsource (default: ".")
+    -k <dir>     path to compiled debug source of target system
+                 (default: ".")
+    -e <file>    path to vmlinux, if not in the path above
+    -a           try to find the missing parameters above
+                 automatically, use default settings
+    -c           generate complete config file to target
+                 (this will overwrite existing .config files)
+    -l           output source locations for addresses in tracefile
+
+  Outputlevel
+    -q           be quiet (only necessary output)
+    -v           be verbose (more output)
+    -d           debug (very verbose output)
+
+  General Information
+    -g           show GNU General Public License information
+    -h           show this help
+
+  Starting with tracefile only will use "-a -s . -k .".
+
+  Meta and control data is printed to STDERR, the result is at STDOUT
+'
+}
+
+function output {
+    if [[ $1 -le $outputlevel ]]; then
+        echo -e "$2" 1>&2
+    fi
+}
+
+function require {
+    type $1 >/dev/null 2>&1 ||
+       {
+        echo >&2 "This tool requires $1 but it is not available.  Aborting."
+        exit 1
+       }
+}
+
+file_whitelist=""
+file_blacklist=""
+file_ignorelist=""
+file_tracefile=""
+file_model=""
+dir_kernelsource=$(readlink -f . )
+dir_kernelbinary=$(readlink -f . )
+path_undertaker=""
+path_vmlinux=""
+
+# Const values
+const_ulimit=65536
+starttime=$(date "+%s")
+const_minlines=1000
+const_analyzelength=1000
+outputlevel=1
+QUIET=0
+NORMAL=1
+VERBOSE=2
+DEBUG=10
+path_script=$(readlink -f $0)
+dir_lists="/etc/undertaker/"
+autoconf=false
+onlylines=false
+generate_configfile=false
+error=0
+
+
+# No arguments - fail and provide help
+if [ $# -eq 0  ] ; then
+    echo "Missing arguments" >&2
+    help
+    exit 1
+# parse last argument as tracefile
+elif [[ -f "${@: -1}" ]] ; then
+    file_tracefile=$(readlink -f ${@: -1})
+else
+    echo "No valid tracefile found" >&2
+    ((error+=1))
+fi
+
+# No options - switch to default parameters
+if [ $# -eq 1 -a -f $1 ]; then
+    autoconf=true
+else
+    # Parse Arguments
+    while getopts "ab:cde:ghi:k:lm:qs:u:vdw:" options; do
+      case $options in
+        a ) autoconf=true
+            ;;
+        b ) if [ -f $OPTARG ] ;then
+                file_blacklist=$(readlink -f $OPTARG)
+            else
+                output $QUIET "Blacklist (-b): Not a valid file: $OPTARG"
+                ((error+=1))
+            fi
+            ;;
+        c ) generate_configfile=true
+            ;;
+        d ) if [[ $outputlevel == 1 ]]; then
+                outputlevel=5
+            else
+                output $QUIET "Output level (-d): You can only set this level ONCE"
+                ((error+=1))
+            fi
+            ;;
+        e ) if [ -f $OPTARG ] ;then
+                path_vmlinux=$(readlink -f $OPTARG)
+            else
+                output $QUIET "vmlinux path (-e): Not a valid file: $OPTARG"
+                ((error+=1))
+            fi
+            ;;
+        i ) if [ -f $OPTARG ] ;then
+                file_ignorelist=$(readlink -f $OPTARG)
+            else
+                output $QUIET "Ignore list (-i): Not a valid file: $OPTARG"
+                ((error+=1))
+            fi
+            ;;
+        g ) licence
+            exit 0
+            ;;
+        h ) help
+            exit 0
+            ;;
+        k ) if [ -d $OPTARG ] ;then
+                dir_kernelbinary=$(readlink -f $OPTARG)
+            else
+                output $QUIET "Kernel debug information (-k): Not a valid directory: $OPTARG"
+                ((error+=1))
+            fi
+            ;;
+        l ) onlylines=true
+            ;;
+        m ) if [ -f $OPTARG ] ;then
+                file_model=$(readlink -f $OPTARG)
+            else
+                output $QUIET "Model (-m): Not a valid model file: $OPTARG"
+                ((error+=1))
+            fi
+            ;;
+        q ) if [ $outputlevel -eq 1 ]; then
+                outputlevel=0
+            else
+                output $QUIET "Output level (-q): You can only set this level ONCE"
+                ((error+=1))
+            fi
+            ;;
+        s ) if [ -d $OPTARG ] ;then
+                dir_kernelsource=$(readlink -f $OPTARG)
+            else
+                output $QUIET "Kernel source (-s): Not a valid direcotry: $OPTARG"
+                ((error+=1))
+            fi
+            ;;
+        u ) if [ -x $OPTARG ] ;then
+                path_undertaker=$(readlink -f $OPTARG)
+            else
+                output $QUIET "Undertaker (-u): Not a valid executable path: $OPTARG"
+                ((error+=1))
+            fi
+            ;;
+        v ) if [[ $outputlevel == 1 ]]; then
+                outputlevel=2
+            else
+                output $QUIET "Output level (-v): You can only set this level ONCE"
+                ((error+=1))
+            fi
+            ;;
+        w ) if [ -f $OPTARG ] ;then
+                file_whitelist=$(readlink -f $OPTARG)
+            else
+                output $QUIET "Whitelist (-w): Not a valid whitelist file: $OPTARG"
+                ((error+=1))
+            fi
+            ;;
+       \? ) help
+            exit 1
+            ;;
+      esac
+    done
+fi
+
+# Abort on errors
+if [ $error -gt 0 ] ; then
+  echo "Aborted progress due $error errors"
+  exit 1
+else
+    tmp_addr2line="$(mktemp)"
+fi
+
+# autoconf
+if $autoconf ; then
+    dir_script=$(dirname $path_script)
+    # determine, if we have 64 or 32 bit traces, use appropiate
+    # white-/black-/ignore lists
+    if $(cat $file_tracefile | grep -q "ffffffff8" ); then
+        if [ -z $file_whitelist ]; then
+            file_whitelist=$(find "$dir_script/..$dir_lists" "$dir_lists" "$dir_script" 2>/dev/null | grep "whitelist.x86_64" | head -n 1)
+        fi
+        if [ -z $file_blacklist ]; then
+            file_blacklist=$(find "$dir_script/..$dir_lists" "$dir_lists" "$dir_script" 2>/dev/null | grep "blacklist.x86_64" | head -n 1)
+        fi
+    else
+        if [ -z $file_whitelist ]; then
+            file_whitelist=$(find "$dir_script/..$dir_lists" "$dir_lists" "$dir_script" 2>/dev/null | grep "whitelist.i686" | head -n 1)
+        fi
+        if [ -z $file_blacklist ]; then
+            file_blacklist=$(find "$dir_script/..$dir_lists" "$dir_lists" "$dir_script" 2>/dev/null | grep "blacklist.i686" | head -n 1)
+        fi
+    fi
+    # Default ignore list - circumvents errors from the undertaker
+    if [ -z $file_ignorelist ]; then
+        file_ignorelist=$(find "$dir_script/..$dir_lists" "$dir_lists" "$dir_script" 2>/dev/null | grep "undertaker.ignore" | head -n 1)
+    fi
+
+    # If you want a whole config, white-, black- and ignorelists MUST be defined
+    if [ $onlylines = "false" ]; then
+        if [ ! -f $file_whitelist ]; then
+            output $QUIET "Could not determine location of default whitelist file - Aborting"
+            exit 1
+        fi
+        if [ ! -f $file_blacklist ]; then
+            output $QUIET "Could not determine location of default blacklist file - Aborting"
+            exit 1
+        fi
+        if [ ! -f $file_ignorelist ]; then
+            output $QUIET "Could not determine location of default  ignorelist file - Aborting"
+            exit 1
+        fi
+        # and a model for the x86 architecture has to be present
+        if [ ! -d "$dir_kernelsource/models/" ]; then
+            output $QUIET "Could not determine location of model directory - Aborting"
+            output $VERBOSE "You need to generate a model first - use \"undertaker-kconfigdump -i\""
+            exit 1
+        else
+            file_model="$(readlink -f $dir_kernelsource)/models/x86.model"
+        fi
+        if [ ! -f $file_model ]; then
+            output $QUIET "Could not determine location of x86 model - Aborting"
+            exit 1
+        fi
+        # See if undertaker is installed, also try directory structure, if self-compiled
+        if [ -z $path_undertaker ] ; then
+            path_undertaker="$dir_script/../undertaker/undertaker"
+            if [ $(type undertaker >/dev/null 2>&1 && echo 1) -eq 1  ]; then
+                 path_undertaker="undertaker"
+            elif [ ! -f path_undertaker ]; then
+                output $QUIET "Could not determine location of undertaker - Aborting"
+                exit 1
+            fi
+        fi
+    fi
+fi
+if [ -z $path_vmlinux ]; then
+    path_vmlinux=$dir_kernelbinary/vmlinux
+fi
+
+# Fallback if no undertaker path was given or found
+if [ -z $path_undertaker ]; then
+    path_undertaker="undertaker"
+fi
+
+# check for vmlinux file in debug binary dir, if not given manually
+if [ ! -r $path_vmlinux ] && [ $(find $dir_kernelbinary | grep vmlinux | wc -l) -eq 0 ]; then
+    output $QUIET "Cannot find vmlinux, $dir_kernelbinary does not look like a compiled source tree!"
+    exit 1
+fi
+
+# check length of tracefile
+if [ $outputlevel -gt 1 ] && [ $(cat $file_tracefile | wc -l) -lt $const_minlines ]; then
+    echo "Very short trace - less than $const_minlines lines" >&2
+fi
+
+# generating lines out of it
+require addr2line
+output $VERBOSE "Starting translating addresses to files/lines..."
+tmptracefile=$(mktemp)
+tmp_addrdir=$(mktemp -d)
+# Distinguish between LKMs and vmlinux code
+cat $file_tracefile | while read line; do
+    if [[ "$line" == *" "* ]]; then
+        echo "${line% *}" >> ${tmp_addrdir}/${line#* }.ko
+    else
+        echo "${line}" >> ${tmp_addrdir}/vmlinux
+    fi
+done
+shopt -s nullglob
+# Work through all modules and vmlinux,
+for modname in $tmp_addrdir/* ; do
+    kofile=$(basename "$modname")
+    if [ "$kofile" == "vmlinux" -a -f $path_vmlinux ] ; then
+        modfile=$path_vmlinux
+    else
+        modfile="$(find $dir_kernelbinary -name "${kofile//[-_]/?}*")"
+    fi
+    case $(echo "$modfile" | wc -w) in
+        0) output $NORMAL "Couldn't find ${kofile} (ignoring)!" >&2 ;;
+        1) addr2line -e $modfile @$modname | grep -v ":[0\?]" | cut -d " " -f 1 >> $tmptracefile ;;
+        *) output $NORMAL "Found multiple matches for ${kofile} (ignoring all):\n${modfile}\n"
+    esac
+done
+if [ $(cat $tmptracefile | wc -l ) -eq 0 ] ; then
+    output $QUIET "Something went wrong while translating addresses - Aborting"
+    exit 1
+fi
+
+# Finding the shortest common prefix to all paths
+output $VERBOSE "Start analyzing base path of files..."
+prefix=""
+for line in $(cat $tmptracefile | head -n $const_analyzelength) ; do
+    if [ -z $prefix ]; then
+        prefix=$line
+    else
+        prefix=$(echo "$prefix|$line" | sed -e 's/^\(.*\/\).*|\1.*$/\1/')
+    fi
+done
+
+# Remove the prefix, so we have relative addresses to kernel source directory
+output $VERBOSE "Starting formatting path of files..."
+for line in $(sort -u $tmptracefile) ; do
+    echo ${line/#$prefix/\.\/} >> $tmp_addr2line
+done
+
+# output lines, if parameter was set
+if [ $onlylines = "true" ]; then
+    cat $tmp_addr2line
+    exit 0
+fi
+
+# setting ulimit for the undertaker
+if [ $(ulimit -s) -lt $const_ulimit ]; then
+    output $VERBOSE "Setting ulimit up to $const_ulimit"
+    ulimit -s $const_ulimit
+fi
+
+# remove ignored functions
+if [ -n "$file_ignorelist" ]; then
+    output $VERBOSE "Removing ignored lines described in $file_ignorelist"
+    ignore=$(cat $file_ignorelist | paste -sd "|" | sed -e "s/ //g" )
+    output $DEBUG "Content lines are: $ignore"
+    require egrep
+    ignored=$(mktemp)
+    cat $tmp_addr2line | egrep -v "$ignore" > $ignored
+    cp $ignored $tmp_addr2line
+fi
+
+# build undertaker call, setting white-/blacklists and verbosity
+output $VERBOSE "Starting undertaker..."
+parameters="-j mergeblockconf -m $(readlink -f $file_model)"
+if [ -r "$file_whitelist" ]; then
+    parameters="$parameters -W $(readlink -f $file_whitelist)"
+fi
+if [ -r "$file_blacklist" ]; then
+    parameters="$parameters -B $(readlink -f $file_blacklist)"
+fi
+if [ $outputlevel -gt $VERBOSE ]; then
+    parameters="$parameters -vvv"
+fi
+
+# Process output of the undertaker tool
+require egrep
+tmp_undertakeroutput=$(mktemp)
+cd $dir_kernelsource
+case $outputlevel in
+    $QUIET ) egrep="E: " ;;
+    $NORMAL ) egrep="E: " ;;
+    $VERBOSE ) egrep="E: |W: " ;;
+    *) egrep="" ;;
+esac
+output $DEBUG "$path_undertaker $parameters $tmp_addr2line"
+
+set +e
+$path_undertaker $parameters $tmp_addr2line 2>&1 | tee $tmp_undertakeroutput | egrep -i "$egrep" >&2
+cat $tmp_undertakeroutput | grep '^CONFIG_'
+
+# show stats of the undertaker run
+if [ $outputlevel -gt $QUIET ]; then
+    echo -e "\nStats:" >&2
+    echo "Calculated config in $(( $(date +%s) - $starttime )) seconds with $(cat $tmp_undertakeroutput | grep '^CONFIG_' | wc -l)/$(cat $tmp_undertakeroutput | wc -l) relevant config lines:" >&2
+    echo -e "\t $(cat $tmp_undertakeroutput | grep '^CONFIG_' | grep '=y' | wc -l)\t enabled" >&2
+    echo -e "\t $(cat $tmp_undertakeroutput | grep '^CONFIG_' | grep '=m' | wc -l)\t modules" >&2
+    echo -e "\t $(cat $tmp_undertakeroutput | grep '^CONFIG_' | grep '=n' | wc -l)\t disabled" >&2
+    echo >&2
+    echo "Trace file contains $(cat $file_tracefile | wc -l) lines which refer to $(cat $tmp_addr2line | sed -e 's/^\([^:]*\):.*/\1/' | sort -u | wc -l) files with $(cat $file_tracefile | grep " " | wc -l) module references:" >&2
+    cat $file_tracefile | grep " " | sed "s/^[a-f0-9]* /\t/g" | sort -u  >&2
+fi
+
+# Generate configuration by using Kconfigs own allnoconfig
+if  $generate_configfile ; then
+    output $VERBOSE "\nGenerating full config file..."
+    # build config if wanted
+    if [ $outputlevel -gt $NORMAL ]; then
+        stream="/dev/stderr"
+    else
+        stream="/dev/null"
+    fi
+    # Strip away undertaker-only symbols
+    tmp_baseconfig=$(mktemp)
+    cat  $tmp_undertakeroutput | grep "^CONFIG_" > $tmp_baseconfig
+    # Determine architecture of undertaker-generated config - needed for generating
+    # 32bit kernels on 64bit machines
+    if [ $(cat $tmp_undertakeroutput | grep "CONFIG_64BIT=n" | wc -l ) -eq 1 ]; then
+        KCONFIG_ALLCONFIG=$tmp_baseconfig ARCH=i386 make allnoconfig >$stream
+    else
+        KCONFIG_ALLCONFIG=$tmp_baseconfig ARCH=x86_64 make allnoconfig >$stream
+    fi
+    # Output stats for final configuration
+    if [ -f "$dir_kernelsource/.config" ]; then
+        if [ $outputlevel -gt $QUIET ]; then
+            echo >&2
+            echo "Calculated allnoconfig with $(cat $dir_kernelsource/.config | grep '^CONFIG_' | wc -l)/$(cat $dir_kernelsource/.config | wc -l) relevant config lines:" >&2
+            echo -e "\t $(cat $dir_kernelsource/.config | grep '^CONFIG_' | grep '=y' | wc -l)\t enabled" >&2
+            echo -e "\t $(cat $dir_kernelsource/.config | grep '^CONFIG_' | grep '=m' | wc -l)\t modules" >&2
+            echo -e "\t $(cat $dir_kernelsource/.config | grep '^CONFIG_' | grep '=n' | wc -l)\t disabled" >&2
+        fi
+    else
+        output $QUITE "Error during generation of $dir_kernelsource/.config ..."
+    fi
+fi

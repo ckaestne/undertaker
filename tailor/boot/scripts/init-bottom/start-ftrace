@@ -1,0 +1,36 @@
+#!/bin/sh
+# initramfs init-bottom script for starting ftrace function tracer
+
+PREREQ=""
+MOUNTPOINT="/sys/kernel/debug"
+SUBDIR="${MOUNTPOINT}/tracing"
+
+# Output pre-requisites
+prereqs()
+{
+    echo "$PREREQ"
+}
+
+case "$1" in
+    prereqs)
+        prereqs
+        exit 0
+        ;;
+esac
+
+
+echo "Starting with undertaker tracing enabled"
+touch /run/ftrace.start
+[ -d ${MOUNTPOINT} ] || mkdir ${MOUNTPOINT}
+grep -q debugfs /proc/mounts || mount -t debugfs nodev ${MOUNTPOINT}
+touch /run/ftrace.mounted
+sleep 1
+echo 0 > ${SUBDIR}/tracing_on
+echo sym-addr > ${SUBDIR}/trace_options
+echo sym-offset > ${SUBDIR}/trace_options
+echo "function" > ${SUBDIR}/current_tracer
+echo > ${SUBDIR}/set_ftrace_notrace
+echo 1 > ${SUBDIR}/tracing_on
+touch /run/ftrace.tracing
+sleep 1
+cat ${SUBDIR}/trace_options > /run/ftrace.options
