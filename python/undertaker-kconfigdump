@@ -224,6 +224,17 @@ if [ $DO_INFERENCES = "yes" ]; then
     for ARCH in $ARCHS
     do
         echo "Calculating makefile inferences for $ARCH"
-        SUBARCH=$ARCH ARCH=$ARCH golem -i 2> $MODELS/$ARCH.golem-errors >> "$MODELS/$ARCH.model"
+        if SUBARCH=$ARCH ARCH=$ARCH golem -i 2> $MODELS/$ARCH.golem-errors >> "$MODELS/$ARCH.inferences"; then
+            cat "$MODELS/$ARCH.inferences" >> "$MODELS/$ARCH.model"
+            # Filter out annoying "AttributeError" messages
+            # This is a known upstream python bug, cf: http://bugs.python.org/issue14308
+            sed -i "/'_DummyThread' object has no attribute '_Thread__block'/d" \
+                $MODELS/$ARCH.golem-errors
+            echo "$MODELS/$ARCH.model ready"
+        else
+            echo "Failed to extract inferences for arch $ARCH"
+        fi
     done
 fi
+
+exit 0
