@@ -52,7 +52,8 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
 
         ret = f->registerModelFile(model, model_name);
         if (ret) {
-            logger << info << "loaded rsf model for " << model_name << std::endl;
+            logger << info << "loaded " << ret->getModelVersionIdentifier()
+                   << " model for " << model_name << std::endl;
         } else {
             logger << error << "failed to load model from " << model
                    << std::endl;
@@ -87,14 +88,14 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
                 if (a) ret = a;
                 found_models++;
 
-                logger << info << "loaded rsf model for " << found_arch
-                       << std::endl;
+                logger << info << "loaded " << a->getModelVersionIdentifier()
+                       << " model for " << found_arch << std::endl;
             }
         }
     }
 
     if (found_models > 0) {
-        logger << info << "found " << found_models << " rsf models" << std::endl;
+        logger << info << "found " << found_models << " models" << std::endl;
         return ret;
     } else {
         logger << error << "could not find any models" << std::endl;

@@ -2120,7 +2120,7 @@ I: loaded rsf model for sparc
 I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
-I: found 23 rsf models
+I: found 23 models
 I: Using x86 as primary model
 I: creating exec.c.B1.missing.x86.dead
 I: creating exec.c.B2.kconfig.x86.dead

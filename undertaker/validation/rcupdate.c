@@ -304,7 +304,7 @@ I: loaded rsf model for sparc
 I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
-I: found 23 rsf models
+I: found 23 models
 I: loaded 0 items to ignorelist
 I: Using x86 as primary model
 I: creating rcupdate.c.B4.kconfig.globally.dead

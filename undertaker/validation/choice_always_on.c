@@ -30,7 +30,7 @@ I: loaded rsf model for sparc
 I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
-I: found 23 rsf models
+I: found 23 models
 I: Using x86 as primary model
 I: creating choice_always_on.c.B0.kconfig.globally.dead
  * check-output-end

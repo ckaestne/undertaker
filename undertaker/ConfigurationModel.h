@@ -82,6 +82,9 @@ public:
 
     std::string getName() const { return _name; }
 
+    //! returns the version identifier for the current model
+    virtual const char *getModelVersionIdentifier() const = 0;
+
     //! checks if a given item should be in the model space
     virtual bool inConfigurationSpace(const std::string &symbol) const = 0;
 

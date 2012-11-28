@@ -59,7 +59,7 @@ I: loaded rsf model for sparc
 I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
-I: found 23 rsf models
+I: found 23 models
 I: Using x86 as primary model
 I: creating omapfb_main-structure.c.B0.missing.x86.dead
 I: creating omapfb_main-structure.c.B10.missing.x86.dead

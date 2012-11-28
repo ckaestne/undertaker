@@ -97,6 +97,9 @@ public:
     bool isTristate(const std::string&) const;
     //@}
 
+    //! returns the version identifier for the current model
+    const char *getModelVersionIdentifier() const { return "rsf"; }
+
     //! returns the type of the given symbol
     std::string getType(const std::string &feature_name) const;
 
