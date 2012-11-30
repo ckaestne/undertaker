@@ -5,6 +5,7 @@
  * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
  * Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
  * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +55,7 @@ class CppFile : public CondBlockList {
     /**
      * \return map with defined symbol to define object
      */
-    DefineMap* getDefines() { return &define_map; };
+    DefineMap * getDefines() { return &define_map; };
 
     //! \return filename given in the constructor
     std::string getFilename() const { return filename; };
@@ -81,7 +82,7 @@ class CppFile : public CondBlockList {
 
  private:
     std::string filename;
-    ConditionalBlock *top_block;
+    ConditionalBlock *top_block = nullptr;
     std::map<std::string, CppDefine *> define_map;
     const CppFile::ItemChecker checker;
 
@@ -125,11 +126,8 @@ class ConditionalBlock : public CondBlockList {
 
     /* None virtual functions follow */
 
-    ConditionalBlock(CppFile *file,
-                     ConditionalBlock *parent,
-                     ConditionalBlock *prev)
-        : cpp_file(file), _parent(parent), _prev(prev),
-          cached_code_expression(0) {}
+    ConditionalBlock(CppFile *file, ConditionalBlock *parent, ConditionalBlock *prev)
+        : cpp_file(file), _parent(parent), _prev(prev) {};
 
     //! returns all (configuration) items of the given string
     static std::set<std::string> itemsOfString(const std::string &str);
@@ -178,7 +176,7 @@ protected:
 
 private:
     std::string _exp;
-    std::string *cached_code_expression;
+    std::string *cached_code_expression = nullptr;
 
     void insertBlockIntoFile(ConditionalBlock *prevBlock, ConditionalBlock *nblock,
             bool insertAfter = false);
@@ -189,7 +187,7 @@ public:
     CppDefine(ConditionalBlock *parent, bool define, const std::string &id);
     void newDefine(ConditionalBlock *parent, bool define);
 
-    std::string replaceDefinedSymbol(const std::string &exp);
+    void replaceDefinedSymbol(std::string &exp);
 
     std::string getConstraints(UniqueStringJoiner *and_clause = 0,
                                   std::set<ConditionalBlock *> *visited = 0);
@@ -200,8 +198,7 @@ public:
 
 private:
     std::set<std::string> isUndef;
-    std::string actual_symbol; // The defined symbol will be replaced
-                               // by this
+    std::string actual_symbol; // The defined symbol will be replaced by this
 
     std::string defined_symbol; // The defined symbol
 

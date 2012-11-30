@@ -2,6 +2,7 @@
  *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,12 +24,10 @@
 #include <map>
 
 void kconfig::BoolExpGC::sweep(BoolExp *root) {
-    std::map<BoolExp *, void *>::iterator it;
-    for (it = visited.begin(); it != visited.end(); it++) {
-        BoolExp *e = (it->first);
+    for (auto &entry : visited) {  // pair<BoolExp *, void *>
+        BoolExp *e = entry.first;
         e->gcMarked = true;
-        if (! e->isPersistent() && e != root) {
+        if (e != root)
             delete e;
-        }
     }
 }

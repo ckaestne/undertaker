@@ -4,6 +4,7 @@
  * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,26 +32,25 @@
 
 
 typedef std::deque<std::string> StringList;
-typedef std::map<std::string, StringList> RsfMap;
 
 /**
  * \brief Reads RSF files
  */
-class RsfReader : public RsfMap {
+class RsfReader : public std::map<std::string, StringList> {
 public:
 
     RsfReader(std::istream &f, const std::string metaflag = "");
-    virtual ~RsfReader() {};
+    virtual ~RsfReader() = default;
 
     const std::string *getValue(const std::string &key) const;
     const StringList *getMetaValue(const std::string &key) const;
 
     //! adds value to key in meta_information
-    void addMetaValue(const std::string &key, const std::string &value); 
+    void addMetaValue(const std::string &key, const std::string &value);
     void print_contents(std::ostream &out);
 
 protected:
-    RsfReader() : std::map<key_type, mapped_type>() {}
+    RsfReader() = default;
     std::map<std::string, StringList> meta_information;
     StringList parse(const std::string& line);
     virtual size_t read_rsf(std::istream &rsf_file);

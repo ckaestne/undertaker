@@ -5,6 +5,7 @@
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,13 +38,12 @@ static const boost::regex model_regex("^([-[:alnum:]]+)\\.(model|cnf)$");
 ConfigurationModel* ModelContainer::loadModels(std::string model) {
     ModelContainer *f = getInstance();
     int found_models = 0;
-    typedef std::list<std::string> FilenameContainer;
-    FilenameContainer filenames;
-    ConfigurationModel *ret = 0;
+    std::list<std::string> filenames;
+    ConfigurationModel *ret = nullptr;
 
     if (! boost::filesystem::exists(model)){
         logger << error << "model '" << model << "' doesn't exist (neither directory nor file)" << std::endl;
-        return 0;
+        return nullptr;
     }
     if (! boost::filesystem::is_directory(model)) {
         /* A model file was specified, so load exactly this one */
@@ -72,16 +72,15 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
     }
     filenames.sort();
 
-    for (FilenameContainer::iterator filename = filenames.begin();
-         filename != filenames.end(); filename++) {
+    for (std::string &filename : filenames) {
         boost::match_results<const char*> what;
 
-        if (boost::regex_search(filename->c_str(), what, model_regex)) {
+        if (boost::regex_search(filename.c_str(), what, model_regex)) {
             std::string found_arch = what[1];
             ModelContainer::iterator a = f->find(found_arch);
 
-            if (a == f->end()) {
-                ConfigurationModel *mod = f->registerModelFile(model + "/" + filename->c_str(), found_arch);
+            if (a == f->end()) { // not found
+                ConfigurationModel *mod = f->registerModelFile(model + "/" + filename.c_str(), found_arch);
                 /* overwrite the return value */
                 if (mod) ret = mod;
                 found_models++;
@@ -96,7 +95,7 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
         return ret;
     } else {
         logger << error << "could not find any models" << std::endl;
-        return 0;
+        return nullptr;
     }
 }
 
@@ -118,7 +117,7 @@ ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std:
         logger << error << "Failed to load model from " << filename
                << std::endl;
     }
-    this->insert(std::make_pair(arch, db));
+    this->emplace(arch, db);
     return db;
 };
 
@@ -131,18 +130,16 @@ ConfigurationModel *ModelContainer::lookupModel(const char *arch)  {
         return a->second;
     } else {
         // No model was found
-        return NULL;
+        return nullptr;
     }
 }
 
 const char *ModelContainer::lookupArch(const ConfigurationModel *model) {
-    ModelContainer *f = getInstance();
-    ModelContainer::iterator i;
-    for (i = f->begin(); i != f->end(); i++) {
-        if ((*i).second == model)
-            return (*i).first.c_str();
-    }
-    return NULL;
+    for (auto &entry : *getInstance())  // pair<string, ConfigurationModel *>
+        if (entry.second == model)
+            return entry.first.c_str();
+
+    return nullptr;
 }
 
 ConfigurationModel *ModelContainer::lookupMainModel() {
@@ -169,14 +166,14 @@ const char *ModelContainer::getMainModel() {
 
 
 ModelContainer *ModelContainer::getInstance() {
-    static ModelContainer *instance;
+    static std::unique_ptr<ModelContainer> instance;
     if (!instance) {
-        instance = new ModelContainer();
+        instance = std::unique_ptr<ModelContainer>(new ModelContainer());
     }
-    return instance;
+    return instance.get();
 }
 
 ModelContainer::~ModelContainer() {
-    for (ModelContainer::iterator i = begin(); i != end(); i++)
-        free((*i).second);
+    for (auto &entry : *this)  // pair<string, ConfigurationModel *>
+        delete entry.second;
 }

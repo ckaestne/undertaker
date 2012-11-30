@@ -59,8 +59,7 @@ namespace kconfig {
         virtual const std::string *getAssociatedSymbol(const std::string &var) const = 0;
         virtual int getVarCount(void) = 0;
         virtual int newVar(void) = 0;
-        virtual std::map<std::string, int>::const_iterator getSymbolsItBegin() = 0;
-        virtual std::map<std::string, int>::const_iterator getSymbolsItEnd() = 0;
+        virtual const std::map<std::string, int>& getSymbolMap() = 0;
         virtual const std::deque<std::string> *getMetaValue(const std::string &key) const = 0;
         virtual void addMetaValue(const std::string &key, const std::string &value) = 0;
     };

@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,7 +68,7 @@ RsfConfigurationModel::RsfConfigurationModel(const char *filename) {
 
     configuration_space_regex = _model->getMetaValue("CONFIGURATION_SPACE_REGEX");
 
-    if (configuration_space_regex != NULL && configuration_space_regex->size() > 0) {
+    if (configuration_space_regex != nullptr && configuration_space_regex->size() > 0) {
         logger << info << "Set configuration space regex to '"
                << configuration_space_regex->front() << "'" << std::endl;
         _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
@@ -108,24 +109,22 @@ const StringList *RsfConfigurationModel::getBlacklist() const {
 }
 
 std::set<std::string> RsfConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initialItems) const {
-    std::set<std::string> item_set, result;
+    std::set<std::string> result;
     std::stack<std::string> workingStack;
-    std::string tmp;
     /* Initialize the working stack with the given elements */
-    for(std::set<std::string>::iterator sit = initialItems.begin(); sit != initialItems.end(); sit++) {
-        workingStack.push(*sit);
-        result.insert(*sit);
+    for (const std::string &str : initialItems) {
+        workingStack.push(str);
+        result.insert(str);
     }
     while (!workingStack.empty()) {
         const std::string *item = _model->getValue(workingStack.top());
         workingStack.pop();
-        if (item != NULL && item->compare("") != 0) {
-            item_set = ConditionalBlock::itemsOfString(*item);
-            for(std::set<std::string>::const_iterator sit = item_set.begin(); sit != item_set.end(); sit++) {
+        if (item != nullptr && item->compare("") != 0) {
+            for (const std::string &str : ConditionalBlock::itemsOfString(*item)) {
                 /* Item already seen? continue */
-                if (result.count(*sit) == 0) {
-                    workingStack.push(*sit);
-                    result.insert(*sit);
+                if (result.count(str) == 0) {
+                    workingStack.push(str);
+                    result.insert(str);
                 }
             }
         }
@@ -159,51 +158,45 @@ int RsfConfigurationModel::doIntersect(const std::set<std::string> start_items,
     // ALWAYS_ON and ALWAYS_OFF items and their transitive dependencies
     // always need to appear in the slice.
     if (always_on) {
-        StringList::const_iterator cit;
-        for (cit = always_on->begin(); cit != always_on->end(); cit++) {
-            interesting.insert(*cit);
-        }
+        for (const std::string &str : *always_on)
+            interesting.insert(str);
     }
     if (always_off) {
-        StringList::const_iterator cit;
-        for (cit = always_off->begin(); cit != always_off->end(); cit++) {
-            interesting.insert(*cit);
-        }
+        for (const std::string &str : *always_off)
+            interesting.insert(str);
     }
-    for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); it++) {
-        const std::string *item = _model->getValue(*it);
 
-        // logger << debug << "interesting item: " << *it << std::endl;
-        if (item != NULL) {
+    for (const std::string &str : interesting) {
+        const std::string *item = _model->getValue(str);
+
+        // logger << debug << "interesting item: " << str << std::endl;
+        if (item != nullptr) {
             valid_items++;
             if (item->compare("") != 0) {
-                sj.push_back("(" + *it + " -> (" + *item + "))");
+                sj.push_back("(" + str + " -> (" + *item + "))");
             }
             if (always_on) {
-                StringList::const_iterator cit = std::find(always_on->begin(), always_on->end(), *it);
-                if (cit != always_on->end()) {
-                    sj.push_back(*it);
-                }
+                StringList::const_iterator cit = std::find(always_on->begin(), always_on->end(), str);
+                if (cit != always_on->end())
+                    sj.push_back(str);
             }
             if (always_off) {
-                StringList::const_iterator cit = std::find(always_off->begin(), always_off->end(), *it);
-                if (cit != always_off->end()) {
-                    sj.push_back("!" + *it);
-                }
+                StringList::const_iterator cit = std::find(always_off->begin(), always_off->end(), str);
+                if (cit != always_off->end())
+                    sj.push_back("!" + str);
             }
         } else {
             // check if the symbol might be in the model space. if not it can't be missing!
-            if (!inConfigurationSpace(*it)) {
+            if (!inConfigurationSpace(str))
                 continue;
-            }
+
             // if we are given a checker for items, skip if it doesn't pass the test
-            if (c && ! (*c)(*it)) {
+            if (c && ! (*c)(str))
                 continue;
-            }
+
             /* free variables are never missing */
-            if (it->size() > 1 && !boost::starts_with(*it, "__FREE__")) {
-                missing.insert(*it);
-            }
+            if (str.size() > 1 && !boost::starts_with(str, "__FREE__"))
+                missing.insert(str);
         }
     }
     intersected = sj.join("\n&& ");
@@ -224,9 +217,8 @@ bool RsfConfigurationModel::inConfigurationSpace(const std::string &symbol) cons
 
 bool RsfConfigurationModel::isComplete() const {
     const StringList *configuration_space_complete = _model->getMetaValue("CONFIGURATION_SPACE_INCOMPLETE");
-    // Reverse logic at this point to ensure Legacy models for kconfig
-    // to work
-    return !(configuration_space_complete != NULL);
+    // Reverse logic at this point to ensure Legacy models for kconfig to work
+    return !(configuration_space_complete != nullptr);
 }
 
 bool RsfConfigurationModel::isBoolean(const std::string &item) const {

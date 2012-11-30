@@ -1,10 +1,14 @@
 #undef X
+
 #define BUFFER 1000
+
 #define macro \
 1000
-#ifdef CONFIG_A	
+
+#ifdef CONFIG_A
 #define CONFIG_C
 #endif
+
 #ifdef CONFIG_C
 #endif
 /*

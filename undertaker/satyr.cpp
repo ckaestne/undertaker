@@ -2,6 +2,7 @@
  *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,14 +57,11 @@ void usage(std::ostream &out) {
 
 int process_assumptions(CNF *cnf, std::vector<boost::filesystem::path> assumptions) {
     int errors = 0;
+    for (auto &assumption : assumptions) {  // boost::filesystem::path
+        logger << info << "processing assumption " << assumption << std::endl;
 
-    for (std::vector<boost::filesystem::path>::iterator it = assumptions.begin();
-        it != assumptions.end(); it++) {
-
-        logger << info << "processing assumption " << *it << std::endl;
-
-        if (boost::filesystem::exists(*it)) {
-            std::ifstream in(it->string().c_str());
+        if (boost::filesystem::exists(assumption)) {
+            std::ifstream in(assumption.string().c_str());
             KconfigAssumptionMap a(cnf);
             a.readAssumptionsFromFile(in);
             logger << info
@@ -80,7 +78,7 @@ int process_assumptions(CNF *cnf, std::vector<boost::filesystem::path> assumptio
             }
         }
         errors += (int) !sat;
-        logger << info << *it << " is " << result << std::endl;
+        logger << info << assumption << " is " << result << std::endl;
     }
     return errors;
 }

@@ -6,6 +6,7 @@
  * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Ralf Hackner <sirahack@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,10 +69,10 @@ bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
 }
 
 SatChecker::SatChecker(const char *sat, bool mus, int debug)
-    : debug_flags(debug), _do_mus_analysis(mus), _sat(std::string(sat)), _clauses(0) { }
+    : debug_flags(debug), _do_mus_analysis(mus), _sat(std::string(sat)) { }
 
 SatChecker::SatChecker(const std::string sat, bool mus, int debug)
-    : debug_flags(debug), _do_mus_analysis(mus), _sat(std::string(sat)), _clauses(0) { }
+    : debug_flags(debug), _do_mus_analysis(mus), _sat(std::string(sat)) { }
 
 PicosatCNF *getCnfWithModelInit(const std::string &formula,
         Picosat::SATMode mode, std::string *result) {
@@ -84,7 +85,7 @@ PicosatCNF *getCnfWithModelInit(const std::string &formula,
             ModelContainer::getInstance()->lookupModel(modelname.c_str()));
         if (!cm) {
             logger << error << "Could not add model \"" << modelname  <<"\" to cnf" << std::endl;
-            return 0;
+            return nullptr;
         }
         const PicosatCNF *modelcnf = cm->getCNF();
         PicosatCNF *cnf = new PicosatCNF(*modelcnf);
@@ -113,10 +114,9 @@ bool SatChecker::operator()(Picosat::SATMode mode) throw (SatCheckerError) {
         if (res) {
             /* Let's get the assigment out of picosat, because we have to
                reset the sat solver afterwards */
-            std::map<std::string, int>::const_iterator it;
-            for (it = _cnf->getSymbolsItBegin(); it != _cnf->getSymbolsItEnd(); ++it) {
-                bool selected = this->_cnf->deref(it->second);
-                assignmentTable.insert(std::make_pair(it->first, selected));
+            for (auto &entry : _cnf->getSymbolMap()) {  // pair<string, int>
+                bool selected = this->_cnf->deref(entry.second);
+                assignmentTable.emplace(entry.first, selected);
             }
         }
         if (!_do_mus_analysis)
@@ -143,16 +143,15 @@ std::string SatChecker::pprint() {
 
 void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
     static const boost::regex block_regexp("^B(\\d+)$", boost::regex::perl);
-    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
-        const std::string &name = (*it).first;
-        const bool &valid = (*it).second;
+    for (auto &entry : *this) {  // pair<string, bool>
+        const std::string &name = entry.first;
+        const bool &valid = entry.second;
         boost::match_results<std::string::const_iterator> what;
 
         if (!valid || !boost::regex_match(name, what, block_regexp))
             continue;
 
         // Follow hack from commit e1e7f90addb15257520937c7782710caf56d4101
-
         if (what[1] == "00") {
             // B00 is first and means the whole block
             blocks[0] = true;
@@ -167,18 +166,17 @@ void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
 
 int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
                                              const MissingSet &missingSet) {
-    typedef std::map<std::string, state> SelectionType;
-    SelectionType selection, other_variables;
+    std::map<std::string, state> selection, other_variables;
 
     logger << debug << "---- Dumping new assignment map" << std::endl;
 
-    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
+    for (auto &entry : *this) {  // pair<string, bool>
         static const boost::regex item_regexp("^CONFIG_(.*[^.])$", boost::regex::perl);
         static const boost::regex module_regexp("^CONFIG_(.*)_MODULE$", boost::regex::perl);
         static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
         static const boost::regex choice_regexp("^CONFIG_CHOICE_.*$", boost::regex::perl);
-        const std::string &name = (*it).first;
-        const bool &valid = (*it).second;
+        const std::string &name = entry.first;
+        const bool &valid = entry.second;
         boost::match_results<std::string::const_iterator> what;
 
         if (valid && boost::regex_match(name, what, module_regexp)) {
@@ -234,9 +232,9 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
         }
     }
 
-    for (SelectionType::iterator s = selection.begin(); s != selection.end(); s++) {
-        const std::string &item = (*s).first;
-        const int &state = (*s).second;
+    for (auto &entry : selection) {  // pair<string, state>
+        const std::string &item = entry.first;
+        const int &state = entry.second;
 
         out << item << "=";
         if (state == no)
@@ -249,9 +247,10 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
             assert(false);
         out << std::endl;
     }
-    for (SelectionType::iterator s = other_variables.begin(); s != other_variables.end(); s++) {
-        const std::string &item = (*s).first;
-        const int &state = (*s).second;
+
+    for (auto &entry : other_variables) {  // pair<string, state>
+        const std::string &item = entry.first;
+        const int &state = entry.second;
 
         if (boost::starts_with(item, "CONFIG_CHOICE_") ||
             boost::starts_with(item, "__FREE__") ||
@@ -277,21 +276,21 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
 int SatChecker::AssignmentMap::formatModel(std::ostream &out, const ConfigurationModel *model) {
     int items = 0;
 
-    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
-        const std::string &name = (*it).first;
-        const bool &valid = (*it).second;
+    for (auto &entry : *this) {  // pair<string, bool>
+        const std::string &name = entry.first;
+        const bool &valid = entry.second;
         if (model && !model->inConfigurationSpace(name))
             continue;
         out << name << "=" << (valid ? 1 : 0) << std::endl;;
-        items ++;
+        items++;
     }
     return items;
 }
 
 int SatChecker::AssignmentMap::formatAll(std::ostream &out) {
-    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
-        const std::string &name = (*it).first;
-        const bool &valid = (*it).second;
+    for (auto &entry : *this) {  // pair<string, bool>
+        const std::string &name = entry.first;
+        const bool &valid = entry.second;
         out << name << "=" << (valid ? 1 : 0) << std::endl;;
     }
     return size();
@@ -301,8 +300,8 @@ int SatChecker::AssignmentMap::formatCPP(std::ostream &out, const ConfigurationM
     static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
     static const boost::regex valid_regexp("^[_a-zA-Z].*$", boost::regex::perl);
 
-    for (AssignmentMap::iterator it = begin(); it != end(); it++) {
-        const std::string &name = (*it).first;
+    for (auto &entry : *this) {  // pair<string, bool>
+        const std::string &name = entry.first;
         // ignoring block variables
         if (boost::regex_match(name, block_regexp))
             continue;
@@ -319,7 +318,7 @@ int SatChecker::AssignmentMap::formatCPP(std::ostream &out, const ConfigurationM
         if (model && !model->inConfigurationSpace(name))
             continue;
 
-        const bool &on = (*it).second;
+        const bool &on = entry.second;
 
         // only true symbols
         if (!on)
@@ -337,8 +336,8 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
     Puma::TokenStream stream;
     sighandler_t oldaction;
 
-    PumaConditionalBlock *top = (PumaConditionalBlock *) file.topBlock();
-    Puma::Unit *unit = top->unit();
+    PumaConditionalBlock *topBlock = (PumaConditionalBlock *) file.topBlock();
+    Puma::Unit *unit = topBlock->unit();
     if (!unit) {
         // in this case we have lost. this can happen e.g. on an empty
         // file, such as /dev/null
@@ -350,11 +349,12 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
      */
     oldaction = signal(SIGPIPE, SIG_IGN);
 
-    flag_map[top->pumaStartToken()] = true;
-    flag_map[top->pumaEndToken()] = false;
+    flag_map[topBlock->pumaStartToken()] = true;
+    flag_map[topBlock->pumaEndToken()] = false;
 
-    for (CppFile::const_iterator it = ++file.begin(); it != file.end(); ++it) {
-        PumaConditionalBlock *block = (PumaConditionalBlock *) (*it);
+    // iterator over all ConditionalBlocks but skip first block (B00)
+    for (CppFile::const_iterator it = ++(file.begin()); it != file.end(); ++it) {
+        PumaConditionalBlock *block = (PumaConditionalBlock *)(*it);
         if (block->isDummyBlock()) {
             continue;
         } else if ((*this)[block->getName()] == true) {
@@ -418,7 +418,7 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
             out << "\n";
             printed_newlines++;
         }
-        after_newline = strchr(next->text(), '\n') != NULL;
+        after_newline = strchr(next->text(), '\n') != nullptr;
     }
     signal(SIGPIPE, oldaction);
 
@@ -459,23 +459,23 @@ int SatChecker::AssignmentMap::formatExec(const CppFile &file, const char *cmd) 
 }
 
 void SatChecker::pprintAssignments(std::ostream& out,
-                                   const std::list<SatChecker::AssignmentMap> solution,
+                                   const std::list<SatChecker::AssignmentMap> solutions,
                                    const ConfigurationModel *model,
                                    const MissingSet &missingSet) {
-    out << "I: Found " << solution.size() << " assignments" << std::endl;
+    out << "I: Found " << solutions.size() << " assignments" << std::endl;
     out << "I: Entries in missingSet: " << missingSet.size() << std::endl;
 
     std::map<std::string, bool> common_subset;
 
-    for (std::list<AssignmentMap>::const_iterator conf = solution.begin(); conf != solution.end(); ++conf) {
-        for (AssignmentMap::const_iterator  it = (*conf).begin(); it != (*conf).end(); it++) {
-            const std::string &name = (*it).first;
-            const bool &valid = (*it).second;
+    for (auto &conf : solutions) {  // AssignmentMap
+        for (auto &entry : conf) {  // pair<string, bool>
+            const std::string &name = entry.first;
+            const bool &valid = entry.second;
 
             if (model && !model->inConfigurationSpace(name))
                 continue;
 
-            if (conf == solution.begin()) {
+            if (conf == solutions.front()) {
                 // Copy first assignment to common subset map
                 common_subset[name] = valid;
             } else {
@@ -489,37 +489,29 @@ void SatChecker::pprintAssignments(std::ostream& out,
         }
     }
 
-    // Remove all items from common subset, that are not in all
-    // assignments
-    for (std::map<std::string, bool>::const_iterator it = common_subset.begin();
-         it != common_subset.end(); ++it) {
-
-        const std::string &name = (*it).first;
-
-        for (std::list<AssignmentMap>::const_iterator conf = solution.begin(); conf != solution.end(); ++conf) {
-            if ((*conf).find(name) == (*conf).end()) {
+    // Remove all items from common subset, that are not in all assignments
+    for (auto &entry : common_subset) {  // pair<string, bool>
+        const std::string &name = entry.first;
+        for (auto &conf : solutions) {  // AssignmentMap
+            if (conf.find(name) == conf.end())
                 common_subset.erase(name);
-            }
         }
     }
 
     out << "I: In all assignments the following symbols are equally set" << std::endl;
-    for (std::map<std::string, bool>::const_iterator it = common_subset.begin();
-         it != common_subset.end(); ++it) {
-            const std::string &name = (*it).first;
-            const bool &valid = (*it).second;
-
+    for (auto &entry : common_subset) {  // pair<string, bool>
+            const std::string &name = entry.first;
+            const bool &valid = entry.second;
             out << name << "=" << (valid ? 1 : 0) << std::endl;
     }
 
     out << "I: All differences in the assignments" << std::endl;
-
     int i = 0;
-    for (std::list<AssignmentMap>::const_iterator conf = solution.begin(); conf != solution.end(); ++conf) {
+    for (auto &conf : solutions) {  // AssignmentMap
         out << "I: Config " << i++ << std::endl;
-        for (AssignmentMap::const_iterator  it = (*conf).begin(); it != (*conf).end(); it++) {
-            const std::string &name = (*it).first;
-            const bool &valid = (*it).second;
+        for (auto &entry : conf) {  // pair<string, bool>
+            const std::string &name = entry.first;
+            const bool &valid = entry.second;
 
             if (model && !model->inConfigurationSpace(name))
                 continue;
@@ -539,20 +531,17 @@ void SatChecker::pprintAssignments(std::ostream& out,
 bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSymbols) throw (SatCheckerError) {
     try {
         /* Assume additional all given symbols */
-        for (std::set<std::string>::const_iterator it = assumeSymbols.begin();
-                it != assumeSymbols.end(); it++) {
-            std::string a = *it;
-            _cnf->pushAssumption(a, true);
-        }
+        for (const std::string &str : assumeSymbols)
+            _cnf->pushAssumption(str, true);
+
         int res = _cnf->checkSatisfiable();
         if (res) {
             /* Let's get the assigment out of picosat, because we have to
                reset the sat solver afterwards */
             assignmentTable.clear();
-            std::map<std::string, int>::const_iterator it;
-            for (it = _cnf->getSymbolsItBegin(); it != _cnf->getSymbolsItEnd(); ++it) {
-                bool selected = this->_cnf->deref(it->second);
-                assignmentTable.insert(std::make_pair(it->first, selected));
+            for (auto &entry : _cnf->getSymbolMap()) {  // pair<string, int>
+                bool selected = this->_cnf->deref(entry.second);
+                assignmentTable.emplace(entry.first, selected);
             }
         }
         return res;

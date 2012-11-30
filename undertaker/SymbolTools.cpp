@@ -2,6 +2,7 @@
  *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +33,7 @@ expr * kconfig::visibilityExpression(struct symbol *sym) {
 
     // dependencies for symbol are included...
     struct property *prop;
-    expr *visible = 0;
+    expr *visible = nullptr;
     int promptc = 0;
     expr *cur;
 
@@ -83,7 +84,7 @@ expr * kconfig::dependsExpression(struct symbol *sym) {
 
     // dependencies for symbol are included...
     struct property *prop;
-    expr *depends = 0;
+    expr *depends = nullptr;
     for_all_properties(sym, prop, P_SYMBOL) {
         expr *current = prop->visible.expr ? expr_copy(prop->visible.expr)
                                            : expr_alloc_symbol(&symbol_yes);
@@ -112,7 +113,7 @@ expr * kconfig::defaultExpression_bool_tristate(struct symbol *sym) {
         /* default(n+1) = cur.vis ? cur.expr : default(n)
          * default(n+1) = (cur.vis && cur.expr)  || (!cur.vis && default(n))
          */
-        //cur->visible.expr == NULL <=> cur->visible.expr == yes
+        //cur->visible.expr == nullptr <=> cur->visible.expr == yes
         expr *vis = cur->visible.expr ? expr_copy(cur->visible.expr)
                                       : expr_alloc_symbol(&symbol_yes);
         def = expr_alloc_or(
@@ -135,12 +136,12 @@ expr * kconfig::choiceExpression(struct symbol *sym) {
     for_all_properties(sym, prop, P_CHOICE) {
         return prop->expr;
     }
-    return 0;
+    return nullptr;
 }
 
 expr * kconfig::selectExpression(struct symbol *sym) {
     struct property *prop;
-    expr *selects = 0;
+    expr *selects = nullptr;
 
     for_all_properties(sym, prop, P_SYMBOL) {
         selects = expr_alloc_and(selects, expr_copy(prop->visible.expr));

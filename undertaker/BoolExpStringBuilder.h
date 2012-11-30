@@ -3,6 +3,7 @@
  *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,12 +36,9 @@ namespace kconfig {
         }
 
         ~BoolExpStringBuilder() {
-            std::map<BoolExp *, void *>::iterator it;
-            for (it = visited.begin(); it != visited.end(); it++) {
-                if (it->second) {
-                    delete static_cast<std::string *>(it->second);
-                }
-            }
+            for (auto &entry : visited)  // pair<BoolExp *, void *>
+                if (entry.second)
+                    delete static_cast<std::string *>(entry.second);
         }
 
     protected:
@@ -81,10 +79,9 @@ namespace kconfig {
             bool first = true;
             std::string *res = new std::string("");
             std::string paramstring("");
-            for (std::list<BoolExp *>::const_iterator it = e->param->begin();
-                    it != e->param->end(); it++) {
+            for (auto &ptr : *e->param) {  // BoolExp *
                 paramstring += first ? "" : ", ";
-                paramstring += (*it)->str();
+                paramstring += ptr->str();
                 first = false;
             }
             *res += e->getName() + " (" + paramstring + ")";

@@ -2,6 +2,7 @@
  *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -55,7 +56,6 @@ void CNFBuilder::pushClause(BoolExp *e) {
 }
 
 int CNFBuilder::addVar(std::string symname) {
-    std::map<std::string, int>::iterator it;
     symname = ConditionalBlock::normalize_filename(symname.c_str());
     int cv = cnf->getCNFVar(symname);
 
@@ -223,8 +223,6 @@ void CNFBuilder::visit(BoolExpConst *e) {
 
 void CNFBuilder::visit(BoolExpVar *e) {
     std::string symname = e->str();
-    std::map<std::string, int>::iterator it;
-
     if (e->CNFVar) {
         return;
     }

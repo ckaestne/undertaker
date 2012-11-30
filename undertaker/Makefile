@@ -9,11 +9,11 @@ NODEPS:=clean clean-check
 # make DEBUG="-g3 -DDEBUG"
 CFLAGS = -Wall -Wextra -O2 $(DEBUG)
 CPPFLAGS = -I $(CURDIR)/../scripts/kconfig -I $(CURDIR)/../picosat
-CXXFLAGS = $(CFLAGS)
+CXXFLAGS = $(CFLAGS) -std=gnu++11
 
 LDFLAGS =
 # LDCOV = -coverage
-BOOST_LIBS = -lboost_system -lboost_regex -lboost_filesystem -lboost_thread -lboost_wave
+BOOST_LIBS = -lboost_system -lboost_regex -lboost_filesystem -lboost_thread
 LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) ../picosat/libpicosat.a -lPuma -lpthread -lm -lrt $(LDCOV)
 
 PARSEROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\

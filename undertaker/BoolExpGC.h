@@ -3,6 +3,7 @@
  *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,7 +29,7 @@
 namespace kconfig {
     class BoolExpGC : public BoolVisitor {
     public:
-        void sweep(BoolExp *root = NULL);
+        void sweep(BoolExp *root = nullptr);
 
         void trash(BoolExp * e) {
             e->accept(this);

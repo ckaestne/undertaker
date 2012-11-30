@@ -4,6 +4,7 @@
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -107,12 +108,13 @@ public:
     RsfReader::iterator begin() const { return _model->begin(); }
     RsfReader::iterator end()   const { return _model->end(); }
 
-    bool containsSymbol(const std::string &symbol) const { return (this->find(symbol) != this->end()); }
+    bool containsSymbol(const std::string &symbol) const {
+        return (this->find(symbol) != this->end());
+    }
 
     const StringList *getMetaValue(const std::string &key) const {
         return _model->getMetaValue(key);
     }
-
 
 private:
     boost::regex _inConfigurationSpace_regexp;

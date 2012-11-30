@@ -5,6 +5,7 @@
  * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,10 +87,9 @@ public:
                                                     ConfigurationModel *);
 
 protected:
-    BlockDefectAnalyzer(DEFECTTYPE defecttype)
-        : _defectType(defecttype), _isGlobal(false) {}
-    DEFECTTYPE _defectType;
-    bool _isGlobal;
+    BlockDefectAnalyzer() = default;
+    DEFECTTYPE _defectType = None;
+    bool _isGlobal = false;
     ConditionalBlock *_cb;
     std::string _suffix;
 };
@@ -110,8 +110,8 @@ public:
 
 protected:
     std::string getDefectReportFilename() const;
-    bool _needsCrosscheck;
-    const char *_arch;
+    bool _needsCrosscheck = false;
+    const char *_arch = nullptr;
     std::string _formula;
     std::string _musFormula;
 };

@@ -58,9 +58,9 @@ int cnf_test(std::string s, bool result, std::runtime_error *error = 0) {
 START_TEST(format_config_items_simple) {
     MissingSet dummy;
     SatChecker::AssignmentMap m;
-    m.insert(std::make_pair("CONFIG_FOO", true));
-    m.insert(std::make_pair("CONFIG_BAR", false));
-    m.insert(std::make_pair("CONFIG_HURZ", true));
+    m.emplace("CONFIG_FOO", true);
+    m.emplace("CONFIG_BAR", false);
+    m.emplace("CONFIG_HURZ", true);
 
     std::stringstream ss;
     int c = m.formatKconfig(ss, dummy);
@@ -74,9 +74,9 @@ START_TEST(format_config_items_simple) {
 START_TEST(format_config_items_module) {
     MissingSet dummy;
     SatChecker::AssignmentMap m;
-    m.insert(std::make_pair("CONFIG_FOO", false));
-    m.insert(std::make_pair("CONFIG_BAR", false));
-    m.insert(std::make_pair("CONFIG_FOO_MODULE", true));
+    m.emplace("CONFIG_FOO", false);
+    m.emplace("CONFIG_BAR", false);
+    m.emplace("CONFIG_FOO_MODULE", true);
 
     std::stringstream ss;
     int c = m.formatKconfig(ss, dummy);
@@ -89,9 +89,9 @@ START_TEST(format_config_items_module) {
 START_TEST(format_config_items_module_not_valid_in_kconfig) {
     MissingSet dummy;
     SatChecker::AssignmentMap m;
-    m.insert(std::make_pair("CONFIG_FOO", true));
-    m.insert(std::make_pair("CONFIG_BAR", false));
-    m.insert(std::make_pair("CONFIG_FOO_MODULE", true));
+    m.emplace("CONFIG_FOO", true);
+    m.emplace("CONFIG_BAR", false);
+    m.emplace("CONFIG_FOO_MODULE", true);
 
     std::stringstream ss;
     int c = m.formatKconfig(ss, dummy);

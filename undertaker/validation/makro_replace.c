@@ -335,9 +335,9 @@ int main(int argc, const char *argv[]) {
     } else if (IS_MODULE(CONFIG_60XX_WDT) && var) {
         if(var2)
             printf("BLUB");
-		else if(var)
+        else if(var)
             printf("BLUB");
-		else
+        else
             printf("BLUB");
     } else {
         printf("BLUB");

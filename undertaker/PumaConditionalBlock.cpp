@@ -5,6 +5,7 @@
  * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
  * Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
  * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -197,8 +198,8 @@ const std::string PumaConditionalBlock::getName() const {
 
 ConditionalBlock *PumaConditionalBlock::parse(const char *filename,
                                               CppFile *cpp_file) {
-    PumaConditionalBlockBuilder builder;
-    return builder.parse(filename, cpp_file);
+    PumaConditionalBlockBuilder builder(cpp_file);
+    return builder.parse(filename);
 }
 
 using namespace Puma;
@@ -250,15 +251,15 @@ const char * PumaConditionalBlock::ExpressionStr() const {
     if (_expressionStr_cache)
       return _expressionStr_cache;
 
-    if ((node = dynamic_cast<const PreIfDirective *>(_current_node)))
+    if ((node = dynamic_cast<const PreIfDirective *>(_current_node))) {
         _expressionStr_cache = buildString(node->son(1));
-    else if ((node = dynamic_cast<const PreIfdefDirective *>(_current_node)))
+    } else if ((node = dynamic_cast<const PreIfdefDirective *>(_current_node))) {
         _expressionStr_cache = strdup(node->son(1)->startToken()->text());
-    else if ((node = dynamic_cast<const PreIfndefDirective *>(_current_node)))
+    } else if ((node = dynamic_cast<const PreIfndefDirective *>(_current_node))) {
         _expressionStr_cache = strdup(node->son(1)->startToken()->text());
-    else if ((node = dynamic_cast<const PreElifDirective *>(_current_node)))
+    } else if ((node = dynamic_cast<const PreElifDirective *>(_current_node))) {
         _expressionStr_cache = buildString(node->son(1));
-    else if (isElseBlock()) {
+    } else if (isElseBlock()) {
         _expressionStr_cache = (char *)"";
         return _expressionStr_cache;
     }
@@ -273,21 +274,21 @@ const char * PumaConditionalBlock::ExpressionStr() const {
 }
 
 bool PumaConditionalBlock::isIfndefine() const {
-    if (dynamic_cast<const PreIfndefDirective *>(_current_node) != 0)
+    if (dynamic_cast<const PreIfndefDirective *>(_current_node) != nullptr)
         return true;
     else
         return false;
 }
 
 bool PumaConditionalBlock::isElseIfBlock() const {
-    if (dynamic_cast<const PreElifDirective *>(_current_node) != 0)
+    if (dynamic_cast<const PreElifDirective *>(_current_node) != nullptr)
         return true;
     else
         return false;
 }
 
 bool PumaConditionalBlock::isElseBlock() const {
-    if (dynamic_cast<const PreElseDirective *>(_current_node) != 0)
+    if (dynamic_cast<const PreElseDirective *>(_current_node) != nullptr)
         return true;
     else
         return false;
@@ -300,11 +301,11 @@ void PumaConditionalBlockBuilder::iterateNodes (PreTree *node) {
         i.currentItem()->accept(*this);
 }
 
-ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFile *cpp_file) {
+ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename) {
     Puma::Unit *unit = _project->scanFile(filename);
     if (!unit) {
         logger << error << "Failed to parse: " << filename << std::endl;
-        return NULL;
+        return nullptr;
     }
 
     _unit = undertaker_normalizations(unit);
@@ -321,8 +322,7 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
     _cpp->stream (&stream);
     _cpp->configure (_project->config ());
 
-    /* Resolve all #include statements, must be done after _cpp
-       initialization */
+    /* Resolve all #include statements, must be done after _cpp initialization */
     _unit = resolve_includes(_unit);
     stream.reset();
     stream.push(unit);
@@ -335,11 +335,8 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
     Puma::PreTree *ptree = _cpp->syntaxTree();
     if (!ptree) {
         logger << error << "Failed to create cpp tree from file : " << filename << std::endl;
-        return NULL;
+        return nullptr;
     }
-
-    _file = cpp_file;
-    _current = NULL;
     ptree->accept(*this);
     /* Copy the Puma::CProject to the shared_ptr instances of all
        blocks within the file */
@@ -348,16 +345,6 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
         ((PumaConditionalBlock *)(*it))->_project = sh_project ;
     }
     return _current;
-}
-
-
-PumaConditionalBlockBuilder::PumaConditionalBlockBuilder()
-    : _cpp(0), null_stream("/dev/null"), _err(null_stream), _parser() {
-    _project = new Puma::CProject(_err, 0, NULL);
-}
-
-PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
-    delete _cpp;
 }
 
 #if 0
@@ -370,7 +357,6 @@ PumaConditionalBlockBuilder::~PumaConditionalBlockBuilder() {
 #define TRACECALL
 #endif
 
-// @todo move this somwhere else
 #ifndef __unused
 #define __unused __attribute__((unused))
 #endif
@@ -384,7 +370,7 @@ void PumaConditionalBlockBuilder::visitPreProgram_Pre (PreProgram *node) {
     assert (_unit);
 
     _nodeNum = 0;
-    _current = new PumaConditionalBlock(_file, NULL, NULL, node, 0, *this);
+    _current = new PumaConditionalBlock(_file, nullptr, nullptr, node, 0, *this);
     _current->_isIfBlock = true;
     _current->_start = node->startToken();
     _current->_end   = node->endToken();
@@ -402,7 +388,7 @@ void PumaConditionalBlockBuilder::visitPreIfDirective_Pre (PreIfDirective *node)
     TRACECALL;
 
     PumaConditionalBlock *parent = _condBlockStack.top();
-    _current = new PumaConditionalBlock(_file, parent, NULL, node, _nodeNum++, *this);
+    _current = new PumaConditionalBlock(_file, parent, nullptr, node, _nodeNum++, *this);
     _current->_start = node->startToken();
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
@@ -414,7 +400,7 @@ void PumaConditionalBlockBuilder::visitPreIfdefDirective_Pre (PreIfdefDirective 
     TRACECALL;
 
     PumaConditionalBlock *parent = _condBlockStack.top();
-    _current = new PumaConditionalBlock(_file, parent, NULL, node, _nodeNum++, *this);
+    _current = new PumaConditionalBlock(_file, parent, nullptr, node, _nodeNum++, *this);
     _current->_start = node->startToken();
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
@@ -426,7 +412,7 @@ void PumaConditionalBlockBuilder::visitPreIfndefDirective_Pre (PreIfndefDirectiv
     TRACECALL;
 
     PumaConditionalBlock *parent = _condBlockStack.top();
-    _current = new PumaConditionalBlock(_file, parent, NULL, node, _nodeNum++, *this);
+    _current = new PumaConditionalBlock(_file, parent, nullptr, node, _nodeNum++, *this);
     _current->_start = node->startToken();
     _condBlockStack.push(_current);
     _current->_isIfBlock = true;
@@ -481,7 +467,7 @@ void PumaConditionalBlockBuilder::visitDefineHelper(PreTreeComposite *node, bool
     const Puma::DString &definedDFlag = node->son(1)->startToken()->dtext();
 
     /* Don't handle function macros */
-    if (cpp_parser()->macroManager()->getMacro(definedDFlag) != 0)
+    if (cpp_parser()->macroManager()->getMacro(definedDFlag) != nullptr)
         return;
 
     PumaConditionalBlock &block = *_condBlockStack.top();
@@ -548,7 +534,7 @@ void PumaConditionalBlockBuilder::addIncludePath(const char *path){
 static Puma::Unit * removeIncludeGuard(Unit *unit) {
     Puma::ManipCommander mc;
 
-    Token *guard = 0, *ifndef, *end_define, *endif;
+    Token *guard = nullptr, *ifndef, *end_define, *endif;
     Token *tok = (Token*)unit->first ();
     // skip comments and whitespace
     while (tok && (tok->is_whitespace () || tok->is_comment ()))
@@ -625,10 +611,8 @@ Puma::Unit *PumaConditionalBlockBuilder::resolve_includes(Puma::Unit *unit) {
     std::string include;
     std::set<Puma::Unit *> already_seen;
 
-    for (std::list<std::string>::const_iterator i = _includePaths.begin();
-         i != _includePaths.end(); ++i) {
-        includer.addIncludePath((*i).c_str());
-    }
+    for (std::string &str : _includePaths)
+        includer.addIncludePath(str.c_str());
 
     for (s = unit->first(); s != unit->last() && s; s = unit->next(s)) {
         if (s->type() == TOK_PRE_INCLUDE) {
@@ -642,8 +626,7 @@ Puma::Unit *PumaConditionalBlockBuilder::resolve_includes(Puma::Unit *unit) {
             Puma::Unit *file = includer.includeFile(include.c_str());
             Puma::Token *before = unit->prev(s);
             if (file && already_seen.count(file) == 0) {
-                /* Paste the included file only, if we haven't it seen
-                   until then */
+                /* Paste the included file only, if we haven't it seen until then */
                 file = removeIncludeGuard(file);
                 mc.paste_before(s, file);
                 already_seen.insert(file);

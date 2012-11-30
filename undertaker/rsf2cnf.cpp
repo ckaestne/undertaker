@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  * Copyright (C) 2012-2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,22 +50,20 @@ static void usage(void){
 }
 
 static void addTypeInfo(kconfig::CNF &cnf, ItemRsfReader *rsf){
-    ItemRsfReader::iterator it;
-
     // add all CONFIG_* items
-    for (it = rsf->begin(); it != rsf->end(); it++){
-        std::string symbolname = it->first;
-        std::string nameOfType = it->second[0];
+    for (auto &entry : *rsf) {  // pair<string, StringList>
+        std::string symbolname = entry.first;
+        std::string nameOfType = entry.second[0];
 
-        if (nameOfType == "boolean"){
+        if (nameOfType == "boolean") {
             cnf.setSymbolType(symbolname, K_S_BOOLEAN);
-        } else if (nameOfType == "tristate"){
+        } else if (nameOfType == "tristate") {
             cnf.setSymbolType(symbolname, K_S_TRISTATE);
-        } else if (nameOfType == "integer"){
+        } else if (nameOfType == "integer") {
             cnf.setSymbolType(symbolname, K_S_INT);
-        } else if (nameOfType == "hex"){
+        } else if (nameOfType == "hex") {
             cnf.setSymbolType(symbolname, K_S_HEX);
-        } else if (nameOfType == "string"){
+        } else if (nameOfType == "string") {
             cnf.setSymbolType(symbolname, K_S_STRING);
         } else {
             cnf.setSymbolType(symbolname, K_S_OTHER);
@@ -74,17 +73,15 @@ static void addTypeInfo(kconfig::CNF &cnf, ItemRsfReader *rsf){
 
 static void addClauses(kconfig::CNFBuilder &builder, RsfReader *model){
     boost::regex isconfig = boost::regex("^(CONFIG|FILE)_[^ ]+$", boost::regex::perl);
-    RsfReader::iterator it;
-
     // add all CONFIG_* items
-    for (it = model->begin(); it != model->end(); it++){
-        if(boost::regex_match(it->first, isconfig)){
-            std::string clause = it->first;
+    for (auto &entry : *model) {  // pair<string, StringList>
+        if(boost::regex_match(entry.first, isconfig)){
+            std::string clause = entry.first;
             builder.addVar(clause);
 
-            if (! it->second.empty()){
+            if (!entry.second.empty()){
                 // CONFIG_FOO depends on EXPR
-                clause += " -> (" + it->second[0] +")";
+                clause += " -> (" + entry.second[0] + ")";
                 BoolExp *exp = BoolExp::parseString(clause);
                 if (exp) {
                     builder.pushClause(exp);
@@ -107,45 +104,36 @@ static void addAllwaysOnOff(kconfig::CNFBuilder &builder, RsfReader *model){
     const std::string magic_on("ALWAYS_ON");
     const std::string magic_off("ALWAYS_OFF");
 
-    KconfigWhitelist *whitelist = KconfigWhitelist::getWhitelist();
-    for(KconfigWhitelist::const_iterator iterator = (*whitelist).begin();
-        iterator != (*whitelist).end(); ++iterator) {
-        model->addMetaValue(magic_on, *iterator);
-    }
-    KconfigWhitelist *blacklist = KconfigWhitelist::getBlacklist();
-    for(KconfigWhitelist::const_iterator iterator = (*blacklist).begin();
-        iterator != (*blacklist).end(); ++iterator) {
-        model->addMetaValue(magic_off, *iterator);
-    }
-    const StringList *aon = model->getMetaValue(magic_on);
-    if (aon) {
-        for (StringList::const_iterator cit = aon->begin();
-                cit != aon->end(); cit++){
-            std::string clause = *cit;
+    for (std::string &str : *KconfigWhitelist::getWhitelist())
+        model->addMetaValue(magic_on, str);
+
+    for (std::string &str : *KconfigWhitelist::getBlacklist())
+        model->addMetaValue(magic_off, str);
+
+    if (model->getMetaValue(magic_on)) {
+        for (const std::string &clause : *model->getMetaValue(magic_on)) {
             BoolExp *exp = BoolExp::parseString(clause);
             builder.pushClause(exp);
             delete exp;
-            builder.cnf->addMetaValue("ALWAYS_ON", *cit);
+            builder.cnf->addMetaValue("ALWAYS_ON", clause);
         }
     }
-    aon = model->getMetaValue(magic_off);
-    if (aon) {
-        for (StringList::const_iterator cit = aon->begin();
-                cit != aon->end(); cit++){
-            std::string clause = "! " + *cit;
+    if (model->getMetaValue(magic_off)) {
+        for (const std::string &str : *model->getMetaValue(magic_off)) {
+            std::string clause = "! " + str;
             BoolExp *exp = BoolExp::parseString(clause);
             builder.pushClause(exp);
             delete exp;
-            builder.cnf->addMetaValue("ALWAYS_OFF", *cit);
+            builder.cnf->addMetaValue("ALWAYS_OFF", str);
         }
     }
 }
 
 int main(int argc, char **argv) {
     int opt;
-    char *model_file = NULL;
-    char *rsf_file = NULL;
-    char *cnf_file = NULL;
+    char *model_file = nullptr;
+    char *rsf_file = nullptr;
+    char *cnf_file = nullptr;
 
     int loglevel = logger.getLogLevel();
 
@@ -208,8 +196,8 @@ int main(int argc, char **argv) {
         cnf.readFromFile(cnf_file);
 
     kconfig::CNFBuilder builder(&cnf);
-    RsfReader *model = NULL;
-    ItemRsfReader *rsf = NULL;
+    RsfReader *model = nullptr;
+    ItemRsfReader *rsf = nullptr;
 
     std::fstream model_stream (model_file, std::fstream::in);
     if (!model_stream.good()) {

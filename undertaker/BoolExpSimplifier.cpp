@@ -2,6 +2,7 @@
  *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,7 +23,7 @@
 #include "BoolExpSimplifier.h"
 
 void kconfig::BoolExpSimplifier::visit(BoolExp *) {
-    this->result = NULL;
+    this->result = nullptr;
 }
 
 void kconfig::BoolExpSimplifier::visit(BoolExpNot *) {
@@ -50,7 +51,7 @@ void kconfig::BoolExpSimplifier::visit(BoolExpAnd *) {
     BoolExpConst *right = dynamic_cast<BoolExpConst*>(sr);
     BoolExpConst *left = dynamic_cast<BoolExpConst*>(sl);
 
-    if (left != NULL || right != NULL) {
+    if (left != nullptr || right != nullptr) {
         BoolExpConst *c = left ? left : right;
         BoolExp *var = left ? sr : sl;
         if (c->value == true) {
@@ -65,7 +66,7 @@ void kconfig::BoolExpSimplifier::visit(BoolExpAnd *) {
         // X && X
         BoolExpVar *right = dynamic_cast<BoolExpVar*>(sr);
         BoolExpVar *left = dynamic_cast<BoolExpVar*>(sl);
-        if (left != NULL && right != NULL) {
+        if (left != nullptr && right != nullptr) {
             if (right->equals(left)) {
                 //delete right;
                 this->result = left;
@@ -77,11 +78,10 @@ void kconfig::BoolExpSimplifier::visit(BoolExpAnd *) {
         // X && !X
         BoolExpVar *right = dynamic_cast<BoolExpVar*>(sr);
         BoolExpVar *left = dynamic_cast<BoolExpVar*>(sl);
-        if (left != NULL || right != NULL) {
+        if (left != nullptr || right != nullptr) {
             BoolExpVar *var = left ? left : right;
             BoolExp *other = left ? sr : sl;
             BoolExpNot *inverse = dynamic_cast<BoolExpNot*>(other);
-            //TODO replace with equal()
             if (inverse && inverse->right->equals(var)) {
                  this->result = B_CONST(false);
                  return;
@@ -99,7 +99,7 @@ void kconfig::BoolExpSimplifier::visit(BoolExpOr *) {
         BoolExpConst *left = dynamic_cast<BoolExpConst*>(sl);
 
         // x || 0; X||1
-        if (left != NULL || right != NULL) {
+        if (left != nullptr || right != nullptr) {
             BoolExpConst *c = left ? left : right;
             BoolExp *var = left ? sr : sl;
             if (c->value == false) {
@@ -115,11 +115,10 @@ void kconfig::BoolExpSimplifier::visit(BoolExpOr *) {
         // X || !X
         BoolExpVar *right = dynamic_cast<BoolExpVar*>(sr);
         BoolExpVar *left = dynamic_cast<BoolExpVar*>(sl);
-        if (left != NULL || right != NULL) {
+        if (left != nullptr || right != nullptr) {
             BoolExpVar *var = left ? left : right;
             BoolExp *other = left ? sr : sl;
             BoolExpNot *inverse = dynamic_cast<BoolExpNot*>(other);
-            // TODO replace with equal()
             if (inverse && inverse->right->equals(var)) {
                  this->result = B_CONST(true);
                  return;
@@ -130,7 +129,7 @@ void kconfig::BoolExpSimplifier::visit(BoolExpOr *) {
         // X || X
         BoolExpVar *right = dynamic_cast<BoolExpVar*>(sr);
         BoolExpVar *left = dynamic_cast<BoolExpVar*>(sl);
-        if (left != NULL && right != NULL) {
+        if (left != nullptr && right != nullptr) {
             if (right->equals(left)) {
                 //delete right;
                  this->result = left;
@@ -142,7 +141,7 @@ void kconfig::BoolExpSimplifier::visit(BoolExpOr *) {
         // X || X
         BoolExpVar *right = dynamic_cast<BoolExpVar*>(sr);
         BoolExpVar *left = dynamic_cast<BoolExpVar*>(sl);
-        if (left != NULL && right != NULL) {
+        if (left != nullptr && right != nullptr) {
             if (right->equals(left)) {
                  this->result = left;
                  return;
@@ -159,14 +158,14 @@ void kconfig::BoolExpSimplifier::visit(BoolExpImpl *) {
         BoolExpConst *right = dynamic_cast<BoolExpConst*>(sr);
 
         // x -> 1;
-        if (right != NULL && right->value == true) {
+        if (right != nullptr && right->value == true) {
             //delete sr;
             //delete sl;
             this->result = B_CONST(true);
             return;
         }
         // x-> 0
-        if (right != NULL && right->value == false) {
+        if (right != nullptr && right->value == false) {
             //delete sr;
             BoolExp *notsl = B_NOT(sl);
             BoolExp *notsl_simpl =  notsl->simplify();
@@ -185,11 +184,11 @@ void kconfig::BoolExpSimplifier::visit(BoolExpEq *) {
 }
 
 void kconfig::BoolExpSimplifier::visit(BoolExpAny *) {
-    this->result = NULL;
+    this->result = nullptr;
 }
 
 void kconfig::BoolExpSimplifier::visit(BoolExpCall *) {
-    this->result = NULL;
+    this->result = nullptr;
 }
 
 void kconfig::BoolExpSimplifier::visit(BoolExpConst *e) {

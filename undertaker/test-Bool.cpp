@@ -135,7 +135,7 @@ void simplify_test(std::string input, std::string expected) {
     BoolExp *e = BoolExp::parseString(input);
     BoolExp *s = e->simplify();
     fail_unless(s->str() == expected,
-                "\"%s\" results \"%s\" insteat of \"%s\"",
+                "\"%s\" results \"%s\" instead of \"%s\"",
                 e->str().c_str(),s->str().c_str(), expected.c_str());
     delete e;
     delete s;

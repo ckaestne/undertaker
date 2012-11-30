@@ -6,6 +6,7 @@
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Ralf Hackner <sirahack@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -106,9 +107,9 @@ class SatChecker {
              * This method compares if two assignments are equivalent.
              */
             bool operator==(const AssignmentMap &other) const {
-                for (const_iterator it = begin(); it != end(); it++) {
-                    const_iterator ot = other.find((*it).first);
-                    if (ot == other.end() || (*ot).second != (*it).second)
+                for (const auto &entry : *this) {  // pair<string, bool>
+                    const_iterator ot = other.find(entry.first);
+                    if (ot == other.end() || (*ot).second != entry.second)
                         return false;
                 }
                 return true;
@@ -237,7 +238,7 @@ class SatChecker {
         bool _do_mus_analysis;
 
         const std::string _sat;
-        int _clauses;
+        int _clauses = 0;
 
         // Debugging stuff
         void _debug_parser(std::string d = "", bool newblock = true) {

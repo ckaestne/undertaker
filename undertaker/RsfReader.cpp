@@ -4,6 +4,7 @@
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,15 +29,14 @@
 #include "RsfReader.h"
 #include "Logging.h"
 
-RsfReader::RsfReader(std::istream &f, std::string metaflag)
-    : std::map<key_type, mapped_type>(), metaflag(metaflag) {
+RsfReader::RsfReader(std::istream &f, std::string metaflag) : metaflag(metaflag) {
     this->read_rsf(f);
 }
 
 
 void RsfReader::print_contents(std::ostream &out) {
-    for (iterator i = begin(); i != end(); i++)
-        out << (*i).first << " : " << (*i).second.front() << std::endl;
+    for (auto &entry : *this)  // pair<string, deque<string>>
+        out << entry.first << " : " << entry.second.front() << std::endl;
 }
 
 StringList RsfReader::parse(const std::string& line) {
@@ -87,31 +87,25 @@ size_t RsfReader::read_rsf(std::istream &rsf_file) {
                 continue;
             std::string key = columns.front();
             columns.pop_front();
-            meta_information.insert(make_pair(key, columns));
+            meta_information.emplace(key, columns);
         } else {
             static const boost::regex file_identifier("^FILE_.*$");
 
             if (boost::regex_match(key, file_identifier)) {
 //                logger << debug << "found a file presence condition for " << key << std::endl;
-
-                bool dirty=false;
-
+//                bool dirty=false;
                 for (size_t pos = 0; pos < key.length(); pos++) {
                     if (key.at(pos) == '/' || key.at(pos) == '-') {
                         key[pos] = '_';
 //                        dirty = true;
                     }
                 }
-
-                if (dirty)
-                    logger << debug << "Normalized item: "
-                           << key << std::endl;
+//                if (dirty)
+//                    logger << debug << "Normalized item: " << key << std::endl;
             }
-
-            insert(make_pair(key, columns));
+            this->emplace(key, columns);
         }
     }
-
     return this->size();
 }
 
@@ -120,7 +114,7 @@ const std::string *RsfReader::getValue(const std::string &key) const {
     const_iterator i = find(key);
 
     if (i == end())
-        return NULL;
+        return nullptr;
     if (i->second.size() == 0)
         return &null_string;
 
@@ -132,7 +126,7 @@ const StringList *RsfReader::getMetaValue(const std::string &key) const {
 
     std::map<std::string, StringList>::const_iterator i = meta_information.find(key);
     if (i == meta_information.end())
-        return NULL;
+        return nullptr;
     return &((*i).second);
 }
 
@@ -144,7 +138,7 @@ void RsfReader::addMetaValue(const std::string &key, const std::string &value) {
         meta_information.erase(key);
     }
     values.push_back(value);
-    meta_information.insert(make_pair(key, values));
+    meta_information.emplace(key, values);
 }
 
 ItemRsfReader::ItemRsfReader(std::istream &f) : RsfReader() {
@@ -169,8 +163,7 @@ size_t ItemRsfReader::read_rsf(std::istream &rsf_file) {
             continue;
 
         key = columns.front(); columns.pop_front();
-        insert(make_pair(key, columns));
+        this->emplace(key, columns);
     }
-
     return this->size();
 }

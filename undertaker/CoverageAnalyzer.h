@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,17 +30,16 @@ class CoverageAnalyzer {
 public:
     CoverageAnalyzer(const CppFile *);
 
-    virtual std::list<SatChecker::AssignmentMap>
-        blockCoverage(ConfigurationModel *) = 0;
+    virtual std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *) = 0;
 
     // NB: missingSet is filled during blockCoverage run
     MissingSet getMissingSet() const { return missingSet; }
 
 protected:
     std::string baseFileExpression(const ConfigurationModel *model,
-                                   std::set<ConditionalBlock *> *blocks = 0);
+                                   std::set<ConditionalBlock *> *blocks = nullptr);
     const CppFile * file;
-    MissingSet missingSet;
+    MissingSet missingSet; // set of strings
 };
 
 class SimpleCoverageAnalyzer : public CoverageAnalyzer {

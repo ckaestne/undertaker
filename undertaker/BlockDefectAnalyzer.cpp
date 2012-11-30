@@ -4,6 +4,7 @@
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,7 +67,7 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p
         // No defect found, block seems OK
         if(!defect->isDefect(p_model)) {
             delete defect;
-            return NULL;
+            return nullptr;
         }
     }
     assert(defect->defectType() != BlockDefectAnalyzer::None);
@@ -83,11 +84,10 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p
                  || defect->defectType() == BlockDefectAnalyzer::NoKconfig)
         return defect;
 
-    ModelContainer *f = ModelContainer::getInstance();
     const char *oldarch = defect->getArch();
     int original_classification = defect->defectType();
-    for (ModelContainer::iterator i = f->begin(); i != f->end(); i++) {
-        const ConfigurationModel *model = (*i).second;
+    for (auto &entry : *ModelContainer::getInstance()) { // pair<string, ConfigurationModel *>
+        const ConfigurationModel *model = entry.second;
 
         if (!defect->isDefect(model)) {
             if (original_classification == BlockDefectAnalyzer::Configuration)
@@ -100,9 +100,7 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p
 }
 
 
-DeadBlockDefect::DeadBlockDefect(ConditionalBlock *cb)
-    :  BlockDefectAnalyzer(None), _needsCrosscheck(false),
-       _arch(NULL) {
+DeadBlockDefect::DeadBlockDefect(ConditionalBlock *cb) {
     this->_suffix = "dead";
     this->_cb = cb;
 }
@@ -277,11 +275,9 @@ bool DeadBlockDefect::isNoKconfigDefect(const ConfigurationModel *model) {
             // Otherwise, take the expression.
             expr = _cb->ifdefExpression();
         }
-        std::set<std::string> items = ConditionalBlock::itemsOfString(expr);
-        for (std::set<std::string>::const_iterator i = items.begin(); i != items.end(); i++) {
-            if (model->inConfigurationSpace(*i))
+        for (const std::string &str : ConditionalBlock::itemsOfString(expr))
+            if (model->inConfigurationSpace(str))
                 return false;
-        }
     }
     return true;
 }
@@ -344,8 +340,9 @@ bool DeadBlockDefect::writeReportToFile(bool skip_no_kconfig) const {
     return true;
 }
 
-UndeadBlockDefect::UndeadBlockDefect(ConditionalBlock * cb)
-    : DeadBlockDefect(cb) { this->_suffix = "undead"; }
+UndeadBlockDefect::UndeadBlockDefect(ConditionalBlock * cb) : DeadBlockDefect(cb) {
+    this->_suffix = "undead";
+}
 
 bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;

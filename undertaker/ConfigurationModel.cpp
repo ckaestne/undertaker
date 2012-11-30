@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +25,8 @@
 std::string ConfigurationModel::getMissingItemsConstraints(const std::set<std::string> &missing) {
     StringJoiner sj;
 
-    for (std::set<std::string>::const_iterator it = missing.begin(); it != missing.end(); it++)
-        sj.push_back(*it);
+    for (const std::string &str : missing)
+        sj.push_back(str);
 
     std::stringstream ss;
     if (sj.size() > 0)

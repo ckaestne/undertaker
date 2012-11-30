@@ -6,6 +6,7 @@
  * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
  * Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
  * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,16 +49,16 @@ class PumaConditionalBlockBuilder;
 
 class PumaConditionalBlock : public ConditionalBlock {
     unsigned long _number;
-    Puma::Token *_start, *_end;
+    Puma::Token *_start = nullptr, *_end = nullptr;
 
     const Puma::PreTree *_current_node;
 
-    bool _isIfBlock;
-    bool _isDummyBlock;
+    bool _isIfBlock = false;
+    bool _isDummyBlock = false;
     PumaConditionalBlockBuilder &_builder;
     // For some reason, getting the expression string fails on
     // subsequent calls. We therefore cache the first result.
-    mutable char *_expressionStr_cache;
+    mutable char *_expressionStr_cache = nullptr;
 
     boost::shared_ptr<Puma::CProject> _project;
 
@@ -65,9 +66,8 @@ public:
     PumaConditionalBlock(CppFile *file, ConditionalBlock *parent, ConditionalBlock *prev,
             const Puma::PreTree *node, const unsigned long nodeNum,
             PumaConditionalBlockBuilder &builder) :
-            ConditionalBlock(file, parent, prev), _number(nodeNum), _start(0), _end(0),
-            _current_node(node), _isIfBlock(false), _isDummyBlock(false), _builder(builder),
-            _expressionStr_cache(NULL) {
+            ConditionalBlock(file, parent, prev), _number(nodeNum),
+            _current_node(node), _builder(builder) {
         lateConstructor();
     };
 
@@ -105,7 +105,7 @@ public:
     virtual const std::string getName() const;
     PumaConditionalBlockBuilder & getBuilder() const { return _builder; }
 
-    static ConditionalBlock *parse(const char *filename, CppFile *cppfile);
+    static ConditionalBlock *parse(const char *filename, CppFile *cpp_file);
 
     friend class PumaConditionalBlockBuilder;
 };
@@ -116,13 +116,12 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     // Stack of open conditional blocks. Pushed to when entering #ifdef
     // (and similar) blocks, popped from when leaving them.
     std::stack<PumaConditionalBlock*> _condBlockStack;
-    PumaConditionalBlock* _current;
+    PumaConditionalBlock* _current = nullptr;
     CppFile *_file;
-    Puma::PreprocessorParser *_cpp;
+    Puma::PreprocessorParser *_cpp = nullptr;
     std::ofstream null_stream;
     Puma::ErrorStream _err;
     Puma::CProject *_project;
-    Puma::CParser _parser;
     Puma::Unit *_unit; // the unit we are working on
 
     static std::list<std::string> _includePaths;
@@ -132,9 +131,12 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     void reset_MacroManager(Puma::Unit *unit);
 
 public:
-    PumaConditionalBlockBuilder();
-    ~PumaConditionalBlockBuilder();
-    ConditionalBlock *parse (const char *filename, CppFile *cpp_file);
+    PumaConditionalBlockBuilder(CppFile *file) : _file(file),
+            null_stream("/dev/null"), _err(null_stream) {
+        _project = new Puma::CProject(_err, 0, NULL);
+    }
+    ~PumaConditionalBlockBuilder() { delete _cpp; }
+    ConditionalBlock *parse (const char *filename);
     Puma::PreprocessorParser *cpp_parser() { return _cpp; }
 
     void visitPreProgram_Pre (Puma::PreProgram *);

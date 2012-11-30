@@ -4,6 +4,7 @@
  * Copyright (C) 2009-2011 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,10 +28,8 @@
 #include <boost/regex.hpp>
 
 bool KconfigWhitelist::isWhitelisted(const char *item) const {
-    KconfigWhitelist::const_iterator it;
-
-    for (it = begin(); it != end(); it++)
-        if((*it).compare(item) == 0)
+    for (const std::string &str : *this)
+        if(str.compare(item) == 0)
             return true;
     return false;
 }
@@ -41,26 +40,26 @@ void KconfigWhitelist::addToWhitelist(const std::string item) {
 }
 
 KconfigWhitelist *KconfigWhitelist::getIgnorelist() {
-    static KconfigWhitelist *instance;
+    static std::unique_ptr<KconfigWhitelist> instance;
     if (!instance) {
-        instance = new KconfigWhitelist();
+        instance = std::unique_ptr<KconfigWhitelist>(new KconfigWhitelist());
     }
-    return instance;
+    return instance.get();
 }
 
 KconfigWhitelist *KconfigWhitelist::getWhitelist() {
-    static KconfigWhitelist *instance;
+    static std::unique_ptr<KconfigWhitelist> instance;
     if (!instance) {
-        instance = new KconfigWhitelist();
+        instance = std::unique_ptr<KconfigWhitelist>(new KconfigWhitelist());
     }
-    return instance;
+    return instance.get();
 }
 KconfigWhitelist *KconfigWhitelist::getBlacklist() {
-    static KconfigWhitelist *instance;
+    static std::unique_ptr<KconfigWhitelist> instance;
     if (!instance) {
-        instance = new KconfigWhitelist();
+        instance = std::unique_ptr<KconfigWhitelist>(new KconfigWhitelist());
     }
-    return instance;
+    return instance.get();
 }
 
 int KconfigWhitelist::loadWhitelist(const char *file) {

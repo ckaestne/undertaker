@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  * Copyright (C) 2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -59,12 +60,12 @@ namespace kconfig {
     protected:
         std::string name;
     public:
-        bool gcMarked;
-        BoolExp *left;
-        BoolExp *right;
-        int CNFVar;
+        bool gcMarked = false;
+        BoolExp *left = nullptr;
+        BoolExp *right = nullptr;
+        int CNFVar = 0;
 
-        BoolExp(): gcMarked(false), left(NULL), right(NULL), CNFVar(0) {}
+        BoolExp() = default;
         virtual ~BoolExp();
         virtual std::string str(void);
         //! Apply obvious simplifications (if possible)
@@ -73,15 +74,14 @@ namespace kconfig {
         virtual bool equals(const BoolExp *other) const;
         virtual void accept(BoolVisitor *visitor);
         virtual std::string getName(void) const { return this->name; }
-        virtual bool isPersistent(void) const { return false; };
         static BoolExp *parseString(std::string);
     };
 
-    std::ostream& operator<< (std::ostream &s, BoolExp &exp);
+// ================================================================
 
     class BoolExpAnd : public BoolExp {
     public:
-        BoolExpAnd(BoolExp *el, BoolExp *er) :BoolExp() {
+        BoolExpAnd(BoolExp *el, BoolExp *er) {
             right = er;
             left = el;
         }
@@ -90,9 +90,11 @@ namespace kconfig {
         int getEvaluationPriority(void) const { return 50; }
     };
 
+// ================================================================
+
     class BoolExpOr : public BoolExp {
     public:
-        BoolExpOr(BoolExp *el, BoolExp *er): BoolExp() {
+        BoolExpOr(BoolExp *el, BoolExp *er) {
             right = er;
             left = el;
         }
@@ -101,67 +103,79 @@ namespace kconfig {
         int getEvaluationPriority(void) const { return 30; }
     };
 
+// ================================================================
+
     class BoolExpAny : public BoolExp {
     public:
-        BoolExpAny(std::string name, BoolExp *el, BoolExp *er):BoolExp() {
+        BoolExpAny(std::string name, BoolExp *el, BoolExp *er) {
             right = er;
             left = el;
             this->name = name;
         }
 
-        int getEvaluationPriority(void) const {return 60;}
+        int getEvaluationPriority(void) const { return 60; }
         void accept(BoolVisitor *visitor);
         bool equals(const BoolExp *other) const;
     };
 
+// ================================================================
+
     class BoolExpImpl : public BoolExp {
     public:
-        BoolExpImpl(BoolExp *el, BoolExp *er) :BoolExp() {
+        BoolExpImpl(BoolExp *el, BoolExp *er) {
             right = er;
             left = el;
         }
 
         void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const {return 20;}
+        int getEvaluationPriority(void) const { return 20; }
     };
+
+// ================================================================
 
     class BoolExpEq : public BoolExp {
     public:
-        BoolExpEq(BoolExp *el, BoolExp *er) :BoolExp() {
+        BoolExpEq(BoolExp *el, BoolExp *er) {
             right = er;
             left = el;
         }
 
         void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const {return 10;}
+        int getEvaluationPriority(void) const { return 10; }
     };
+
+// ================================================================
 
     class BoolExpCall : public BoolExp {
     public:
         std::list<BoolExp *> *param;
-        BoolExpCall(std::string name, std::list<BoolExp *> *param) :BoolExp() {
+        BoolExpCall(std::string name, std::list<BoolExp *> *param) {
             this->name = name;
             this->param = param;
         }
 
         void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const {return 90;}
+        int getEvaluationPriority(void) const { return 90; }
         bool equals(const BoolExp *other) const;
     };
 
+// ================================================================
+
     class BoolExpNot : public BoolExp {
     public:
-        BoolExpNot(BoolExp *e) :BoolExp() {
+        BoolExpNot(BoolExp *e) {
             right = e;
         }
 
         void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const {return 70;}
+        int getEvaluationPriority(void) const { return 70; }
     };
+
+// ================================================================
 
     class BoolExpConst : public BoolExp {
     private:
-        BoolExpConst(bool val):BoolExp() {
+        BoolExpConst(bool val) {
             value = val ;
         }
     public:
@@ -169,25 +183,26 @@ namespace kconfig {
 
         static BoolExpConst *getInstance(bool val);
         void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const {return 90;}
+        int getEvaluationPriority(void) const { return 90; }
         bool equals(const BoolExp *other) const;
-        bool isPersistent(void) const {return true;};
     };
+
+// ================================================================
 
     class BoolExpVar : public BoolExp {
     public:
         TristateRelation rel;
         struct symbol *sym;
 
-        BoolExpVar(std::string name, bool addPrefix=true):BoolExp() {
+        BoolExpVar(std::string name, bool addPrefix=true) {
             this->rel = rel_helper;
             this->name = addPrefix ? "CONFIG_" + name: name;
         }
 
         void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const {return 90;}
+        int getEvaluationPriority(void) const { return 90; }
 
-        BoolExpVar(struct symbol *sym, TristateRelation rel):BoolExp() {
+        BoolExpVar(struct symbol *sym, TristateRelation rel) {
             nameSymbol(sym);
             std::string name(sym->name ? sym->name : "[unnamed_menu]");
             this->rel = rel;
@@ -205,6 +220,10 @@ namespace kconfig {
 
         bool equals(const BoolExp *other) const;
     };
+
+// ================================================================
+
+    std::ostream& operator<< (std::ostream &s, BoolExp &exp);
 
     BoolExp &operator &&(BoolExp &l, BoolExp &r);
     BoolExp &operator ||(BoolExp &l, BoolExp &r);

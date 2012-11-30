@@ -25,23 +25,24 @@ preprocessor directives against different configuration models to find
 blocks than can't be selected or deselected.
 
 = Requirements =
- * libboost-wave (1.40 or above)
- * libboost-regex (1.40 or above)
- * libboost-filesystem (1.40 or above)
- * libboost (1.40 or above)
- * [http://check.sourceforge.net check] - testing suite for C
- * [http://fmv.jku.at/picosat/ picosat] (913-4 or above)
+* g++ (4.8.1 or above)
+* libboost-wave (1.40 or above)
+* libboost-regex (1.40 or above)
+* libboost-filesystem (1.40 or above)
+* libboost-thread (1.40 or above)
+* libboost (1.40 or above)
+* [http://check.sourceforge.net check] (0.9.6 or above) - testing suite for C
+* PUMA (from the http://aspectc.org project, Ubuntu / Debian users may install via apt-get libpuma-dev)
+* [http://pstreams.sourceforge.net/ pstreams] (package libpstreams-dev)
 
-= Building = 
+= Building =
 To install the dependencies in Debian or Ubuntu, you
-paste this in your shell, but be aware that the picosat package in
-Debian Lenny is far to outdated.
+paste this in your shell.
 
 ,----
-| apt-get install libboost-wave1.40-dev libboost-regex1.40-dev libboost-filesystem1.40-dev \
-|    libboost1.40-dev check picosat
+| apt-get install libboost-dev flex bison libpstreams-dev libboost-filesystem-dev libboost-regex-dev \
+| libboost-thread-dev libboost-wave-dev libpuma-dev check python-unittest2 clang sparse pylint
 `----
-
 
 Compiling and installation
 
@@ -53,7 +54,7 @@ Compiling and installation
 `----
 
 
-= Workflow (example) = 
+= Workflow (example) =
 To check a single file (or all files) in the
 Linux kernel for dead or undead preprocessor blocks, you have to
 extract the configuration models from the kconfig first. Therefore you

@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  * Copyright (C) 2012-2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -73,11 +74,11 @@ namespace kconfig {
         std::map<int, std::string> boolvars;
         std::vector<int> clauses;
         std::vector<int> assumptions;
-        std::map<std::string, std::deque<std::string> > meta_information;
+        std::map<std::string, std::deque<std::string>> meta_information;
         Picosat::SATMode defaultPhase;
-        int varcount;
-        int clausecount;
-        bool do_mus_analysis;
+        int varcount = 0;
+        int clausecount = 0;
+        bool do_mus_analysis = false;;
         std::string musTmpDirName;
 
         void loadContext(void);
@@ -120,11 +121,8 @@ namespace kconfig {
             @returns array if of failed cnf-ids
         **/
         const int *failedAssumptions(void) const;
-        /** get an Iterator over all symbols associated with this formula
-            @returns iterator over pairs of symbolnames and their type
-        **/
-        virtual std::map<std::string, int>::const_iterator getSymbolsItBegin();
-        virtual std::map<std::string, int>::const_iterator getSymbolsItEnd();
+
+        virtual const std::map<std::string, int>& getSymbolMap() { return this->cnfvars; }
         const std::deque<std::string> *getMetaValue(const std::string &key) const;
         void addMetaValue(const std::string &key, const std::string &value);
     };

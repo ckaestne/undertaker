@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
- * Copyright (C) 2013 Stefan Hengelein <stefan.hengelein@fau.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ typedef PumaConditionalBlockBuilder ConditionalBlockImplBuilder;
 
 bool ConditionalBlock::useBlockWithFilename = false;
 
-CppFile::CppFile(const char *f) : top_block(0), checker(this) {
+CppFile::CppFile(const char *f) : checker(this) {
     if (strncmp("./", f, 2))
         filename = f;
     else
@@ -46,20 +46,17 @@ CppFile::CppFile(const char *f) : top_block(0), checker(this) {
     top_block = ConditionalBlockImpl::parse(f, this);
 }
 
-CppFile::~CppFile(){
+CppFile::~CppFile() {
     /* Delete the toplevel block */
     delete topBlock();
 
-    // We are an list of ConditionalBlocks
-    for (iterator i = begin(); i != end(); ++i) {
-        delete (*i);
-    }
+    // We are a list of ConditionalBlocks
+    for (auto &condBlock : *this)  // ConditionalBlock *
+        delete condBlock;
 
     // Remove also all defines
-    for (std::map<std::string, CppDefine *>::iterator i = getDefines()->begin();
-         i != getDefines()->end(); ++i) {
-        delete (*i).second;
-    }
+    for (auto &entry : *getDefines())  // pair<string, CppDefine *>
+        delete entry.second;
 }
 
 bool CppFile::ItemChecker::operator()(const std::string &item) const {
@@ -93,25 +90,22 @@ std::set<std::string> ConditionalBlock::itemsOfString(const std::string &str) {
 
 ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
     int line = lineFromPosition(position);
-
-    ConditionalBlock *block = 0;
+    ConditionalBlock *block = nullptr;
     int block_length = -1;
 
     // Iterate over all block
-    for(iterator i = begin(); i != end(); ++i) {
-        int begin = (*i)->lineStart();
-        int last  = (*i)->lineEnd();
+    for (auto &block_it : *this) {  // ConditionalBlock *
+        int begin = block_it->lineStart();
+        int last  = block_it->lineEnd();
 
         if (last < begin) continue;
         /* Found a short block, using this one */
         if ((((last - begin) < block_length) || block_length == -1)
-            && begin < line
-            && line < last) {
-            block = *i;
+                && begin < line && line < last) {
+            block = block_it;
             block_length = last - begin;
         }
     }
-
     return block;
 }
 
@@ -154,15 +148,15 @@ void CppFile::decisionCoverage() {
 
 void CppFile::printCppFile() {
     logger << debug << "------ FILE ------" << std::endl;
-    for (std::list<ConditionalBlock *>::iterator i = this->begin(); i != this->end(); ++i) {
-        if ((*i)->ifdefExpression() == "") {
-            if ((*i)->getName().compare("B00"))
-                logger << debug << "ELSE " << (*i)->isElseBlock() << " "
-                       << (*i)->getName() << " " << (*i) << std::endl;
+    for (auto &block : *this) {  // ConditionalBlock *
+        if (block->ifdefExpression() == "") {
+            if (block->getName().compare("B00"))
+                logger << debug << "ELSE " << block->isElseBlock() << " "
+                       << block->getName() << " " << block << std::endl;
         } else {
-            logger << debug << (*i)->ifdefExpression() << " " << (*i)->isIfndefine()
-                   << " " << (*i)->isIfBlock() << " " << (*i)->isElseIfBlock() << " "
-                   << (*i)->getName() << " " << (*i) << std::endl;
+            logger << debug << block->ifdefExpression() << " " << block->isIfndefine()
+                   << " " << block->isIfBlock() << " " << block->isElseIfBlock() << " "
+                   << block->getName() << " " << block << std::endl;
         }
     }
     logger << debug << "------ END FILE ------" << std::endl;
@@ -214,39 +208,38 @@ void ConditionalBlock::processForDecisionCoverage() {
 }
 
 void ConditionalBlock::printConditionalBlocks(int indent) {
-    for (std::list<ConditionalBlock *>::iterator i = this->begin(); i != this->end(); ++i) {
-        if ((*i)->ifdefExpression() == "") {
-            logger << debug << std::string(indent, ' ') << "ELSE " << (*i)->isElseBlock()
-                   << " " << (*i)->getName() << " " << (*i) << " prev: "
-                   << (*i)->getPrev() << std::endl;
+    for (auto &block : *this) {  // ConditionalBlock *
+        if (block->ifdefExpression() == "") {
+            logger << debug << std::string(indent, ' ') << "ELSE " << block->isElseBlock()
+                   << " " << block->getName() << " " << block << " prev: "
+                   << block->getPrev() << std::endl;
         } else {
-            logger << debug << std::string(indent, ' ') << (*i)->ifdefExpression()
-                   << " " << (*i)->isIfndefine() << " " << (*i)->isIfBlock() << " "
-                   << (*i)->isElseIfBlock() << " " << (*i)->getName() << " " << (*i)
-                   << " prev: " << (*i)->getPrev() << std::endl;
+            logger << debug << std::string(indent, ' ') << block->ifdefExpression()
+                   << " " << block->isIfndefine() << " " << block->isIfBlock() << " "
+                   << block->isElseIfBlock() << " " << block->getName() << " " << block
+                   << " prev: " << block->getPrev() << std::endl;
         }
-        if ((*i)->size() > 0)
-            (*i)->printConditionalBlocks(indent + 4);
+        if (block->size() > 0)
+            block->printConditionalBlocks(indent + 4);
     }
 }
 
 void ConditionalBlock::lateConstructor() {
-    if (_parent)  { // Not the toplevel block
-        // extract expression
-        _exp = ExpressionStr();
-        if (isIfndefine())
-            _exp = "! " + _exp;
+    if (!_parent) // The toplevel block
+        return;
 
-        std::string::size_type pos = std::string::npos;
-        while ((pos = _exp.find("defined")) != std::string::npos)
-            _exp.erase(pos,7);
+    // extract expression
+    _exp = ExpressionStr();
+    if (isIfndefine())
+        _exp = "! " + _exp;
 
-        /* Define Rewriting */
-        for ( std::map<std::string, CppDefine *>::iterator i = cpp_file->getDefines()->begin();
-              i != cpp_file->getDefines()->end(); ++i) {
-            _exp = (*i).second->replaceDefinedSymbol(_exp);
-        }
-    }
+    std::string::size_type pos = std::string::npos;
+    while ((pos = _exp.find("defined")) != std::string::npos)
+        _exp.erase(pos,7);
+
+    /* Define Rewriting */
+    for (auto &entry : *cpp_file->getDefines())  // pair<string, CppDefine *>
+        entry.second->replaceDefinedSymbol(_exp);
 }
 
 std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_clause) {
@@ -258,14 +251,12 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
         and_clause = &sj; // We are the toplevel call
         join = true; // We also must return a true string
     }
-
     StringJoiner innerClause, predecessors;
 
     if (_parent != cpp_file->topBlock())
         innerClause.push_back(_parent->getName());
 
     innerClause.push_back(ifdefExpression());
-
     const ConditionalBlock *block = this;
 
     while(block) {
@@ -274,26 +265,22 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
         block = block->getPrev();
 
         predecessors.push_back(block->getName());
-        assert(block);
     }
-
-
-   if (predecessors.size() > 0)
+    if (predecessors.size() > 0)
        innerClause.push_back("( ! (" + predecessors.join(" || ") + ") )");
 
+    and_clause->push_back( "( " + getName() + " <-> " + innerClause.join(" && ") + " )");
 
-   and_clause->push_back( "( " + getName() + " <-> " + innerClause.join(" && ") + " )");
-
-   return join ? and_clause->join(" && ") : "";
+    return join ? and_clause->join(" && ") : "";
 }
 
 std::string ConditionalBlock::normalize_filename(const char * name) {
     std::string normalized(name);
 
-    for (std::string::iterator i = normalized.begin();
-         i != normalized.end(); i++)
-        if ((*i) == '/' || (*i) == '-' || (*i) == '+' || (*i) == ':')
-            *i = '_';
+    for (char &c : normalized)
+        if (c == '/' || c == '-' || c == '+' || c == ':')
+            c = '_';
+
     return normalized;
 }
 
@@ -301,12 +288,10 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                                                  std::set<ConditionalBlock *> *visited) {
     UniqueStringJoiner sj; // on our stack
     std::stringstream fi; // file identifier
-    ModelContainer *mc = ModelContainer::getInstance();
     bool join = false;
 
     fi << "FILE_";
     fi << normalize_filename(this->filename());
-
 
     if (!and_clause) {
         if (cached_code_expression)
@@ -333,15 +318,12 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
             }
 
             // Add expressions for all blocks
-            for (CppFile::iterator i = cpp_file->begin(); i != cpp_file->end(); ++i) {
-                ConditionalBlock *block = (*i);
+            for (auto &block : *cpp_file)  // ConditionalBlock *
                 block->getConstraintsHelper(and_clause);
 
-            }
             /* Get all used defines */
-            for (std::map<std::string, CppDefine *>::const_iterator def = cpp_file->getDefines()->begin();
-                  def != cpp_file->getDefines()->end(); ++def) {
-                const CppDefine *define = (*def).second;
+            for (auto &entry : *cpp_file->getDefines()) {  // pair<string, CppDefine *>
+                const CppDefine *define = entry.second;
                 define->getConstraintsHelper(and_clause);
             }
 
@@ -355,20 +337,18 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
             else
                 block = block->getPrev();
 
-            if (block && block != cpp_file->topBlock()) {
+            if (block && block != cpp_file->topBlock())
                 const_cast<ConditionalBlock *>(block)->getCodeConstraints(and_clause, visited);
 
-            }
             and_clause->push_back("B00");
-            for ( std::map<std::string, CppDefine *>::iterator i = cpp_file->getDefines()->begin();
-                  i != cpp_file->getDefines()->end(); ++i) {
-                CppDefine *define = (*i).second;
-                if (define->containsDefinedSymbol(ExpressionStr())) {
+            for (auto &entry : *cpp_file->getDefines()) {  // pair<string, CppDefine *>
+                CppDefine *define = entry.second;
+                if (define->containsDefinedSymbol(ExpressionStr()))
                     define->getConstraints(and_clause, visited);
-                }
             }
         }
 
+        ModelContainer *mc = ModelContainer::getInstance();
         if (mc && mc->size() > 0) {
             StringJoiner file_joiner;
 
@@ -381,16 +361,15 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
         }
     }
 
-    if (!cached_code_expression) {
+    if (!cached_code_expression)
         cached_code_expression = new std::string(and_clause->join("\n&& "));
-    }
 
     // Do the join of the and clause only if we are the toplevel clause
     return join ? and_clause->join("\n&& ") : "";
 }
 
 CppDefine::CppDefine(ConditionalBlock *defined_in, bool define, const std::string &id)
-    : actual_symbol(id), defined_symbol(id) {
+        : actual_symbol(id), defined_symbol(id) {
     newDefine(defined_in, define);
 }
 
@@ -422,21 +401,17 @@ void CppDefine::newDefine(ConditionalBlock *parent, bool define) {
 
     replaceRegex = boost::regex(symbolSpace + "(" + defined_symbol + ")" + symbolSpace,
                                 boost::regex::perl);
-
 }
 
-std::string CppDefine::replaceDefinedSymbol(const std::string &exp) {
-    std::string copy(exp);
+void CppDefine::replaceDefinedSymbol(std::string &exp) {
+    if (!strstr(exp.c_str(), defined_symbol.c_str()))
+        return;
+
     boost::match_results<std::string::iterator> what;
     boost::match_flag_type flags = boost::match_default;
 
-    if (!strstr(exp.c_str(), defined_symbol.c_str()))
-        return exp;
-
-    while ( boost::regex_search(copy.begin(), copy.end(), what, replaceRegex, flags)) {
-        copy.replace(what[2].first, what[2].second, actual_symbol);
-    }
-    return copy;
+    while (boost::regex_search(exp.begin(), exp.end(), what, replaceRegex, flags))
+        exp.replace(what[2].first, what[2].second, actual_symbol);
 }
 
 bool CppDefine::containsDefinedSymbol(const std::string &exp) {
@@ -447,11 +422,9 @@ bool CppDefine::containsDefinedSymbol(const std::string &exp) {
 
 
 void CppDefine::getConstraintsHelper(UniqueStringJoiner *and_clause) const {
-    for (std::list<std::string>::const_iterator i  = defineExpressions.begin(); i != defineExpressions.end(); ++i) {
-        and_clause->push_back(*i);
-    }
+    for (const std::string &str : defineExpressions)
+        and_clause->push_back(str);
 }
-
 
 std::string CppDefine::getConstraints(UniqueStringJoiner *and_clause,
         std::set<ConditionalBlock *> *visited) {
@@ -468,11 +441,10 @@ std::string CppDefine::getConstraints(UniqueStringJoiner *and_clause,
 
     getConstraintsHelper(and_clause);
 
-    for (std::deque <ConditionalBlock *>::iterator i = defined_in.begin();
-            i != defined_in.end(); i++) {
+    for (auto &block : defined_in) {  // ConditionalBlock *
         // Not yet visited and not the toplevel block
-        if (visited->count(*i) == 0 && (*i)->getParent() != 0) {
-            (*i)->getCodeConstraints(and_clause, visited);
+        if (visited->count(block) == 0 && block->getParent() != 0) {
+            block->getCodeConstraints(and_clause, visited);
         }
     }
     return join ? and_clause->join("\n&& ") : "";

@@ -2,6 +2,7 @@
  *   undertaker - analyze preprocessor blocks in code
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +38,7 @@
 
 
 CnfConfigurationModel::CnfConfigurationModel(const char *filename) {
-    const StringList *configuration_space_regex = NULL;
+    const StringList *configuration_space_regex = nullptr;
     boost::filesystem::path filepath(filename);
     _name = boost::filesystem::basename(filepath);
 
@@ -45,7 +46,7 @@ CnfConfigurationModel::CnfConfigurationModel(const char *filename) {
     _cnf->readFromFile(filename);
     configuration_space_regex = _cnf->getMetaValue("CONFIGURATION_SPACE_REGEX");
 
-    if (configuration_space_regex != NULL && configuration_space_regex->size() > 0) {
+    if (configuration_space_regex != nullptr && configuration_space_regex->size() > 0) {
         logger << info << "Set configuration space regex to '"
                << configuration_space_regex->front() << "'" << std::endl;
         _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
@@ -110,35 +111,34 @@ int CnfConfigurationModel::doIntersect(const std::set<std::string> start_items,
     const StringList *always_on = this->getMetaValue(magic_on);
     const StringList *always_off = this->getMetaValue(magic_off);
 
-    for(std::set<std::string>::const_iterator it = start_items.begin();
-            it != start_items.end(); it++) {
-        if (containsSymbol(*it)) {
+    for (const std::string &str : start_items) {
+        if (containsSymbol(str)) {
             valid_items++;
             if (always_on) {
-                StringList::const_iterator cit = std::find(always_on->begin(), always_on->end(), *it);
-                if (cit != always_on->end()) {
-                    sj.push_back(*it);
-                }
+                StringList::const_iterator cit = std::find(always_on->begin(),
+                        always_on->end(), str);
+                if (cit != always_on->end())
+                    sj.push_back(str);
             }
             if (always_off) {
-                StringList::const_iterator cit = std::find(always_off->begin(), always_off->end(), *it);
-                if (cit != always_off->end()) {
-                    sj.push_back("!" + *it);
-                }
+                StringList::const_iterator cit = std::find(always_off->begin(),
+                        always_off->end(), str);
+                if (cit != always_off->end())
+                    sj.push_back("!" + str);
             }
         } else {
             // check if the symbol might be in the model space.
             // if not it can't be missing!
-            logger << debug << *it  << std::endl;
-            if (!inConfigurationSpace(*it))
+            logger << debug << str  << std::endl;
+            if (!inConfigurationSpace(str))
                 continue;
             // iff we are given a checker for items, skip if it doesn't pass the test
-            if (c && ! (*c)(*it)) {
+            if (c && ! (*c)(str)) {
                 continue;
             }
-            /* free variables are never missing */
-            if (it->size() > 1 && !boost::starts_with(*it, "__FREE__"))
-                missing.insert(*it);
+            /* free variables are never missing -> check if str starts with __FREE__ */
+            if (str.size() > 1 && !boost::starts_with(str, "__FREE__"))
+                missing.insert(str);
         }
     }
     sj.push_back("._." + _name + "._.");
@@ -158,7 +158,7 @@ bool CnfConfigurationModel::inConfigurationSpace(const std::string &symbol) cons
 bool CnfConfigurationModel::isComplete() const {
     const StringList *configuration_space_complete = _cnf->getMetaValue("CONFIGURATION_SPACE_INCOMPLETE");
     // Reverse logic at this point to ensure Legacy models for kconfig to work
-    return !(configuration_space_complete != NULL);
+    return !(configuration_space_complete != nullptr);
 }
 
 bool CnfConfigurationModel::isBoolean(const std::string &item) const {
@@ -183,10 +183,10 @@ std::string CnfConfigurationModel::getType(const std::string &feature_name) cons
 }
 
 bool CnfConfigurationModel::containsSymbol(const std::string &symbol) const {
-    if (symbol.substr(0,5) == "FILE_") {
+    if (symbol.substr(0, 5) == "FILE_") {
         return true;
     }
-    if (_cnf->getAssociatedSymbol(symbol) != 0) {
+    if (_cnf->getAssociatedSymbol(symbol) != nullptr) {
         return true;
     }
     return false;
