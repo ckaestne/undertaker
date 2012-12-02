@@ -625,6 +625,11 @@ void process_file_dead_helper(const char *filename) {
         return;
     }
 
+    // delete potential leftovers from previous run
+    std::string pattern(filename);
+    pattern.append("*.*dead");
+    rm_pattern(pattern.c_str());
+
     ConfigurationModel *model = ModelContainer::lookupMainModel();
 
     try {
