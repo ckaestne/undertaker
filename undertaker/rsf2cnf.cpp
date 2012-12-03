@@ -114,40 +114,41 @@ static void addClauses(CNFBuilder &builder, RsfReader *model){
 static void addAllwaysOnOff(CNFBuilder &builder, RsfReader *model){
     const std::string magic_on("ALWAYS_ON");
     const std::string magic_off("ALWAYS_OFF");
-    StringList::const_iterator it1;
 
     KconfigWhitelist *whitelist = KconfigWhitelist::getWhitelist();
-    for(std::list<std::string>::const_iterator iterator = (*whitelist).begin(),
-            end = (*whitelist).end(); iterator != end; ++iterator) {
+    for(KconfigWhitelist::const_iterator iterator = (*whitelist).begin();
+        iterator != (*whitelist).end(); ++iterator) {
         model->addMetaValue(magic_on, *iterator);
     }
 
     KconfigWhitelist *blacklist = KconfigWhitelist::getBlacklist();
-    for(std::list<std::string>::const_iterator iterator = (*blacklist).begin(),
-            end = (*blacklist).end(); iterator != end; ++iterator) {
+    for(KconfigWhitelist::const_iterator iterator = (*blacklist).begin();
+        iterator != (*blacklist).end(); ++iterator) {
         model->addMetaValue(magic_off, *iterator);
     }
 
     const StringList *aon = model->getMetaValue(magic_on);
 
     if (aon) {
-        for (it1 = aon->begin(); it1 != aon->end(); it1++){
-            std::string clause = *it1;
+        for (StringList::const_iterator cit = aon->begin();
+             cit != aon->end(); cit++){
+            std::string clause = *cit;
             BoolExp *exp = BoolExp::parseString(clause);
             builder.pushClause(exp);
             delete exp;
-            builder.cnf->addMetaValue("ALWAYS_ON", clause);
+            builder.cnf->addMetaValue("ALWAYS_ON", *cit);
         }
     }
 
     aon = model->getMetaValue(magic_off);
     if (aon) {
-        for (it1 = aon->begin(); it1 != aon->end(); it1++){
-            std::string clause = "! " + *it1;
+        for (StringList::const_iterator cit = aon->begin();
+             cit != aon->end(); cit++){
+            std::string clause = "! " + *cit;
             BoolExp *exp = BoolExp::parseString(clause);
             builder.pushClause(exp);
             delete exp;
-            builder.cnf->addMetaValue("ALWAYS_OFF", clause);
+            builder.cnf->addMetaValue("ALWAYS_OFF", *cit);
         }
     }
 }

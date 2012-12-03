@@ -81,6 +81,7 @@ clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
 	rm -rf location.hh stack.hh position.hh
 	rm -rf BoolExpParser.cpp BoolExpParser.h BoolExpLexer.cpp
+	rm -rf coverage-wl.cnf
 
 test-%: test-%.cpp libparser.a
 	$(CXX) $(CXXFLAGS) -g -O0 -o $@ $< libparser.a -lcheck $(LDFLAGS) $(LDLIBS)
@@ -88,6 +89,15 @@ test-%: test-%.cpp libparser.a
 
 run-libcheck: $(TESTPROGS)
 	@for t in $^; do echo "Executing test $$t"; ./$$t || exit 1; done
+
+run-rsf2cnfcheck: rsf2cnf
+	./rsf2cnf \
+	    -m validation/coverage-wl.model \
+	    -r validation/coverage-wl.rsf \
+	    -W validation/coverage-wl.whitelist \
+	    -B validation/coverage-wl.blacklist > coverage-wl.cnf
+	@if ! diff -q coverage-wl.cnf validation/coverage-wl.cnf-ref; then \
+	    diff -u validation/coverage-wl.cnf-ref coverage-wl.cnf; false; fi
 
 # coverage analysis will create validation/sched.c.config*
 run-coveragecheck: undertaker predator
@@ -104,6 +114,7 @@ run-coveragecheck: undertaker predator
 
 check: $(PROGS)
 	@$(MAKE) -s clean-check
+	@$(MAKE) run-rsf2cnfcheck
 	@$(MAKE) run-coveragecheck
 	@$(MAKE) -C kconfig-dumps all
 	cd def-tests && env PATH=$(CURDIR):$(PATH) ./run-tests
