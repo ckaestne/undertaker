@@ -1,11 +1,12 @@
 /*
- *   satyr - compiles KConfig files to boolean formulas
+ * boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 2.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,254 +14,276 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
 #include "bool.h"
 #include "BoolExpParserException.h"
-#include <iostream>
+#include "BoolExpGC.h"
+#include "BoolExpSimplifier.h"
+#include "BoolExpStringBuilder.h"
+
 #include <sstream>
+#include <typeinfo> // for typeid()
 
-using namespace kconfig;
-using namespace std;
-
-void kconfig::BoolExp::accept(kconfig::BoolVisitor *visitor)
-{
+/* accept Methods for BoolExp and subclasses. Needed by BoolExpVisitor */
+void kconfig::BoolExp::accept(kconfig::BoolVisitor *visitor) {
+    void *l=NULL, *r=NULL;
     if (this->left) {
-        this->left->accept(visitor);
+        if (visitor->isVisited(left)) {
+            l = visitor->visited[left];
+        } else {
+               this->left->accept(visitor);
+            l = visitor->result;
+        }
     }
     if (this->right) {
-        this->right->accept(visitor);
+        if (visitor->isVisited(right)) {
+            r = visitor->visited[right];
+        } else {
+               this->right->accept(visitor);
+            r = visitor->result;
+        }
     }
+    visitor->left = l;
+    visitor->right = r;
+    visitor->result = NULL;
     visitor->visit(this);
+    visitor->visited[this] = visitor->result;
 }
 
-void kconfig::BoolExpAny::accept(kconfig::BoolVisitor *visitor)
-{
+void kconfig::BoolExpAny::accept(kconfig::BoolVisitor *visitor) {
+    void *l=NULL, *r=NULL;
     if (this->left) {
-        this->left->accept(visitor);
+        if (visitor->isVisited(left)) {
+            l = visitor->visited[left];
+        } else {
+               this->left->accept(visitor);
+            l = visitor->result;
+        }
     }
     if (this->right) {
-        this->right->accept(visitor);
+        if (visitor->isVisited(right)) {
+            r = visitor->visited[right];
+        } else {
+               this->right->accept(visitor);
+            r = visitor->result;
+        }
     }
+    visitor->left = l;
+    visitor->right = r;
+    visitor->result = NULL;
     visitor->visit(this);
+    visitor->visited[this] = visitor->result;
 }
 
-void kconfig::BoolExpAnd::accept(kconfig::BoolVisitor *visitor)
-{
+void kconfig::BoolExpAnd::accept(kconfig::BoolVisitor *visitor) {
+    void *l=NULL, *r=NULL;
     if (this->left) {
-        this->left->accept(visitor);
+        if (visitor->isVisited(left)) {
+            l = visitor->visited[left];
+        } else {
+               this->left->accept(visitor);
+            l = visitor->result;
+        }
     }
     if (this->right) {
-        this->right->accept(visitor);
+        if (visitor->isVisited(right)) {
+            r = visitor->visited[right];
+        } else {
+               this->right->accept(visitor);
+            r = visitor->result;
+        }
     }
+    visitor->left = l;
+    visitor->right = r;
+    visitor->result = NULL;
     visitor->visit(this);
+    visitor->visited[this] = visitor->result;
 }
 
-void kconfig::BoolExpOr::accept(kconfig::BoolVisitor *visitor)
-{
+void kconfig::BoolExpOr::accept(kconfig::BoolVisitor *visitor) {
+    void *l=NULL, *r=NULL;
     if (this->left) {
-        this->left->accept(visitor);
+        if (visitor->isVisited(left)) {
+            l = visitor->visited[left];
+        } else {
+               this->left->accept(visitor);
+            l = visitor->result;
+        }
     }
     if (this->right) {
-        this->right->accept(visitor);
+        if (visitor->isVisited(right)) {
+            r = visitor->visited[right];
+        } else {
+               this->right->accept(visitor);
+            r = visitor->result;
+        }
     }
+    visitor->left = l;
+    visitor->right = r;
+    visitor->result = NULL;
     visitor->visit(this);
+    visitor->visited[this] = visitor->result;
 }
 
-void kconfig::BoolExpImpl::accept(kconfig::BoolVisitor *visitor)
-{
+void kconfig::BoolExpImpl::accept(kconfig::BoolVisitor *visitor) {
+    void *l=NULL, *r=NULL;
     if (this->left) {
-        this->left->accept(visitor);
+        if (visitor->isVisited(left)) {
+            l = visitor->visited[left];
+        } else {
+               this->left->accept(visitor);
+            l = visitor->result;
+        }
     }
     if (this->right) {
-        this->right->accept(visitor);
+        if (visitor->isVisited(right)) {
+            r = visitor->visited[right];
+        } else {
+               this->right->accept(visitor);
+            r = visitor->result;
+        }
     }
+    visitor->left = l;
+    visitor->right = r;
+    visitor->result = NULL;
     visitor->visit(this);
+    visitor->visited[this] = visitor->result;
 }
 
-void kconfig::BoolExpEq::accept(kconfig::BoolVisitor *visitor)
-{
+void kconfig::BoolExpEq::accept(kconfig::BoolVisitor *visitor) {
+    void *l=NULL, *r=NULL;
     if (this->left) {
-        this->left->accept(visitor);
+        if (visitor->isVisited(left)) {
+            l = visitor->visited[left];
+        } else {
+               this->left->accept(visitor);
+            l = visitor->result;
+        }
     }
     if (this->right) {
-        this->right->accept(visitor);
+        if (visitor->isVisited(right)) {
+            r = visitor->visited[right];
+        } else {
+               this->right->accept(visitor);
+            r = visitor->result;
+        }
     }
+    visitor->left = l;
+    visitor->right = r;
+    visitor->result = NULL;
     visitor->visit(this);
+    visitor->visited[this] = visitor->result;
 }
 
-void kconfig::BoolExpNot::accept(kconfig::BoolVisitor *visitor)
-{
-    if (this->left) {
-        this->left->accept(visitor);
-    }
+void kconfig::BoolExpNot::accept(kconfig::BoolVisitor *visitor) {
+    void *r = NULL;
     if (this->right) {
-        this->right->accept(visitor);
+        if (visitor->isVisited(right)) {
+            r = visitor->visited[right];
+        } else {
+               this->right->accept(visitor);
+            r = visitor->result;
+        }
     }
+    visitor->left = NULL;
+    visitor->right = r;
+    visitor->result = NULL;
     visitor->visit(this);
+    visitor->visited[this] = visitor->result;
 }
 
-void kconfig::BoolExpConst::accept(kconfig::BoolVisitor *visitor)
-{
-    if (this->left) {
-        this->left->accept(visitor);
-    }
-    if (this->right) {
-        this->right->accept(visitor);
-    }
+void kconfig::BoolExpConst::accept(kconfig::BoolVisitor *visitor) {
+    visitor->result = NULL;
     visitor->visit(this);
+    visitor->visited[this] = visitor->result;
 }
 
-kconfig::BoolExpConst *kconfig::BoolExpConst::getInstance(bool val)
-{
-    //TODO memory management
-    //static BoolExpConst *no = new  kconfig::BoolExpConst(false);
-    //static BoolExpConst *yes = new kconfig::BoolExpConst(true);
-
-    //return val ? yes : no;
+kconfig::BoolExpConst *kconfig::BoolExpConst::getInstance(bool val) {
     return new kconfig::BoolExpConst(val);
 }
 
 void kconfig::BoolExpVar::accept(kconfig::BoolVisitor *visitor)
 {
+    visitor->result = NULL;
     visitor->visit(this);
+    visitor->visited[this] = visitor->result;
 }
 
 void kconfig::BoolExpCall::accept(kconfig::BoolVisitor *visitor)
 {
-	std::list<BoolExp *>::const_iterator it;
+    std::list<BoolExp *>::const_iterator it;
     for (it = this->param->begin(); it!= this->param->end(); it++){
         (*it)->accept(visitor);
     }
     visitor->visit(this);
 }
+/*
+ * END: accept methods
+ */
 
-/*simplification rules*/
-BoolExp *kconfig::BoolExpNot::simplify(bool useAsumtions)
-{
-    BoolExp *node = this->right->simplify(useAsumtions);
-    BoolExpConst *constant = dynamic_cast<BoolExpConst*>(node);
-    if (constant) {
-        bool v = !constant->value;
+/* Equal methods*/
 
-        BoolExp *ret = B_CONST(v);
-        delete constant;
-        return ret;
+bool kconfig::BoolExp::equals(const BoolExp *other) const {
+    if(other == NULL || typeid(*other) != typeid(*this)) {
+        return false;
     }
-
-    BoolExpNot *notExpr = dynamic_cast<BoolExpNot*>(node);
-    if (notExpr) {
-        BoolExp *x = notExpr->right;
-        notExpr->right = 0;
-        delete notExpr;
-        return x;
+    else {
+        return ( (this->left == other->left || this->left->equals(other->left))
+              && (this->right == other->right || this->right->equals(other->right)) );
     }
-    return new BoolExpNot(node);
 }
 
-BoolExp *kconfig::BoolExpAnd::simplify(bool useAsumtions)
-{
-    BoolExp *sr = this->right->simplify(useAsumtions);
-    BoolExp *sl = this->left->simplify(useAsumtions);
-    BoolExpConst *right = dynamic_cast<BoolExpConst*>(sr);
-    BoolExpConst *left = dynamic_cast<BoolExpConst*>(sl);
-
-    if (left != 0 || right != 0) {
-        BoolExpConst *c = left ? left : right;
-        BoolExp *var = left ? sr : sl;
-        if (c->value == true) {
-            delete c;
-            return var;
-        }
-        else {
-            delete var;
-            return c;            //0
+bool kconfig::BoolExpCall::equals(const BoolExp *other) const {
+    const BoolExpCall *otherc = dynamic_cast<const BoolExpCall *>(other);
+    if ( otherc == NULL
+           || this->name != otherc->name
+           || this->param->size() != otherc->param->size()) {
+        return false;
+    }
+    std::list<BoolExp *>::const_iterator itt = param->begin();
+    std::list<BoolExp *>::const_iterator ito  = otherc->param->begin();
+    for ( ; itt !=param->end(); itt++, ito++) {
+        if ( ! (*itt)->equals(*ito)) {
+            return false;
         }
     }
-    {
-        // X && X
-        BoolExpVar *right = dynamic_cast<BoolExpVar*>(sr);
-        BoolExpVar *left = dynamic_cast<BoolExpVar*>(sl);
-        if (left != 0 && right != 0) {
-            if (right->str() == left->str()) {
-                return left;
-            }
-        }
-    }
-
-    return new BoolExpAnd(sl, sr);
+    return true;
 }
 
-BoolExp *kconfig::BoolExpOr::simplify(bool useAsumtions)
-{
-    BoolExp *sr = this->right->simplify(useAsumtions);
-    BoolExp *sl = this->left->simplify(useAsumtions);
-    {
-        BoolExpConst *right = dynamic_cast<BoolExpConst*>(sr);
-        BoolExpConst *left = dynamic_cast<BoolExpConst*>(sl);
-
-        // x || 0; X||1
-        if (left != 0 || right != 0) {
-            BoolExpConst *c = left ? left : right;
-            BoolExp *var = left ? sr : sl;
-            if (c->value == false) {
-                delete c;
-                return var;
-            }
-            else {
-                delete var;
-                return c;        //1
-            }
-        }
-    }
-    {
-        // X || !X
-        BoolExpVar *right = dynamic_cast<BoolExpVar*>(sr);
-        BoolExpVar *left = dynamic_cast<BoolExpVar*>(sl);
-        if (left != 0 || right != 0) {
-            BoolExpVar *var = left ? left : right;
-            BoolExp *other = left ? sr : sl;
-            BoolExpNot *inverse = dynamic_cast<BoolExpNot*>(other);
-            //TODO replace with equal()
-            if (inverse && inverse->right->str() == var->str()) {
-                delete right;
-                delete left;
-                return B_CONST(true);
-            }
-        }
-    }
-    return new BoolExpOr(sl, sr);
+bool kconfig::BoolExpVar::equals(const BoolExp *other) const {
+    const BoolExpVar *otherv = dynamic_cast<const BoolExpVar *>(other);
+    return otherv != NULL && this->name == otherv->name;
 }
 
-BoolExp *kconfig::BoolExpImpl::simplify(bool useAsumtions)
-{
-    BoolExp *sr = this->right->simplify(useAsumtions);
-    BoolExp *sl = this->left->simplify(useAsumtions);
-    return new BoolExpImpl(sl, sr);
+bool kconfig::BoolExpConst::equals(const BoolExp *other) const {
+    const BoolExpConst *otherc = dynamic_cast<const BoolExpConst *>(other);
+    return otherc != NULL && this->value == otherc->value;
 }
 
-BoolExp *kconfig::BoolExpEq::simplify(bool useAsumtions)
-{
-    BoolExp *sr = this->right->simplify(useAsumtions);
-    BoolExp *sl = this->left->simplify(useAsumtions);
-    return new BoolExpEq(sl, sr);
+bool kconfig::BoolExpAny::equals(const BoolExp *other) const {
+    const BoolExpAny *otherc = dynamic_cast<const BoolExpAny *>(other);
+    return otherc != 0 && this->name == otherc->name
+         && ( (this->left == otherc->left || this->left->equals(otherc->left))
+         && (this->right == otherc->right || this->right->equals(otherc->right)) );
 }
 
-std::ostream& kconfig::operator<<(std::ostream &s, kconfig::BoolExp &exp)
-{
+/* END: Equal methods*/
+
+std::ostream& kconfig::operator<<(std::ostream &s, kconfig::BoolExp &exp) {
     s << exp.str();
     return s;
 }
 
-kconfig::BoolExp & kconfig::operator &&(kconfig::BoolExp &l, kconfig::BoolExp &r)
-{
+kconfig::BoolExp & kconfig::operator &&(kconfig::BoolExp &l, kconfig::BoolExp &r) {
     kconfig::BoolExp *e;
 
     BoolExpConst *right = dynamic_cast<BoolExpConst*>(&r);
     BoolExpConst *left = dynamic_cast<BoolExpConst*>(&l);
 
-    if (left != 0 || right != 0) {
+    if (left != NULL || right != NULL) {
         BoolExpConst &c = left ? *left : *right;
         BoolExp &var = left ? r : l;
         if (c.value == true) {
@@ -274,12 +297,11 @@ kconfig::BoolExp & kconfig::operator &&(kconfig::BoolExp &l, kconfig::BoolExp &r
     return *e;
 }
 
-kconfig::BoolExp & kconfig::operator ||(kconfig::BoolExp &l, kconfig::BoolExp &r)
-{
+kconfig::BoolExp & kconfig::operator ||(kconfig::BoolExp &l, kconfig::BoolExp &r) {
     BoolExpConst *right = dynamic_cast<BoolExpConst*>(&r);
     BoolExpConst *left = dynamic_cast<BoolExpConst*>(&l);
 
-    if (left != 0 || right != 0) {
+    if (left != NULL || right != NULL) {
         BoolExpConst &c = left ? *left : *right;
         BoolExp &var = left ? r : l;
         if (c.value == false) {
@@ -294,8 +316,7 @@ kconfig::BoolExp & kconfig::operator ||(kconfig::BoolExp &l, kconfig::BoolExp &r
     return *e;
 }
 
-kconfig::BoolExp & kconfig::operator !(kconfig::BoolExp &l)
-{
+kconfig::BoolExp & kconfig::operator !(kconfig::BoolExp &l) {
 
     BoolExp *e;
     BoolExpConst *lConst =  dynamic_cast<BoolExpConst *>(&l);
@@ -308,11 +329,18 @@ kconfig::BoolExp & kconfig::operator !(kconfig::BoolExp &l)
     return *e;
 }
 
-kconfig::BoolExp *kconfig::BoolExp::parseString(std::string s)
-{
+kconfig::BoolExp::~BoolExp() {
+    if (!gcMarked) {
+        BoolExpGC gc;
+        gc.trash(this);
+        gc.sweep(this);
+    }
+}
+
+kconfig::BoolExp *kconfig::BoolExp::parseString(std::string s) {
     BoolExp *result;
-    stringstream ins(s);
-    BoolExpLexer lexer(&ins,0);
+    std::stringstream ins(s);
+    BoolExpLexer lexer(&ins, NULL);
 
     BoolExpParser parser(&result, &lexer);
     try
@@ -322,7 +350,20 @@ kconfig::BoolExp *kconfig::BoolExp::parseString(std::string s)
         }
     }
     catch (BoolExpParserException *e) {
-        return 0;
+        return NULL;
     }
-    return 0;
+    return NULL;
+}
+
+std::string kconfig::BoolExp::str(void) {
+    BoolExpStringBuilder sb;
+    this->accept(&sb);
+    return sb.str();
+}
+
+kconfig::BoolExp *kconfig::BoolExp::simplify(bool useAsumtions) {
+    BoolExpSimplifier sim;
+    sim.useAsumtions = useAsumtions;
+    this->accept(&sim);
+    return sim.getResult();
 }

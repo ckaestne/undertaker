@@ -19,37 +19,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef KCONFIG_BOOLEXPSYMBOLSET_H
-#define KCONFIG_BOOLEXPSYMBOLSET_H
+#ifndef KCONFIG_BOOLSIMPLIFIER_H
+#define KCONFIG_BOOLSIMPLIFIER_H
 
 #include "bool.h"
 #include "BoolVisitor.h"
 
-#include <string>
-#include <set>
-
 namespace kconfig {
-    class BoolExpSymbolSet : public BoolVisitor {
-    private:
-        std::set<std::string> symbolset;
-        bool ignoreFunctionSymbols;
-        
+    class BoolExpSimplifier : public BoolVisitor {
     public:
-        BoolExpSymbolSet(BoolExp *e, bool ignoreFunctionSymbols = true);
-        std::set<std::string> getSymbolSet(void);
-        
+        bool useAsumtions;
+        BoolExp *getResult(void) const{
+            return static_cast<BoolExp *>(this->result);
+        }
+
     protected:
-        virtual void visit(BoolExp *){}
-        virtual void visit(BoolExpAnd *){}
-        virtual void visit(BoolExpOr *){}
-        virtual void visit(BoolExpNot *){}
-        virtual void visit(BoolExpConst *){}
+        virtual void visit(BoolExp *e);
+        virtual void visit(BoolExpAnd *e);
+        virtual void visit(BoolExpOr *e);
+        virtual void visit(BoolExpNot *e);
+        virtual void visit(BoolExpConst *e);
         virtual void visit(BoolExpVar *e);
-        virtual void visit(BoolExpImpl *){}
-        virtual void visit(BoolExpEq *){}
+        virtual void visit(BoolExpImpl *e);
+        virtual void visit(BoolExpEq *e);
         virtual void visit(BoolExpCall *e);
-        virtual void visit(BoolExpAny *){}
+        virtual void visit(BoolExpAny *e);
     };
-}
+};
 
 #endif

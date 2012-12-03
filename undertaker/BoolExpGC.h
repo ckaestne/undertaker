@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
 /*
- * boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -19,37 +19,33 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef KCONFIG_BOOLEXPSYMBOLSET_H
-#define KCONFIG_BOOLEXPSYMBOLSET_H
+#ifndef KCONFIG_BOOLEXPGC_H
+#define KCONFIG_BOOLEXPGC_H
 
 #include "bool.h"
 #include "BoolVisitor.h"
 
-#include <string>
-#include <set>
-
 namespace kconfig {
-    class BoolExpSymbolSet : public BoolVisitor {
-    private:
-        std::set<std::string> symbolset;
-        bool ignoreFunctionSymbols;
-        
+    class BoolExpGC : public BoolVisitor {
     public:
-        BoolExpSymbolSet(BoolExp *e, bool ignoreFunctionSymbols = true);
-        std::set<std::string> getSymbolSet(void);
-        
+        void sweep(BoolExp *root = NULL);
+
+        void trash(BoolExp * e) {
+            e->accept(this);
+        }
+
     protected:
-        virtual void visit(BoolExp *){}
-        virtual void visit(BoolExpAnd *){}
-        virtual void visit(BoolExpOr *){}
-        virtual void visit(BoolExpNot *){}
-        virtual void visit(BoolExpConst *){}
-        virtual void visit(BoolExpVar *e);
-        virtual void visit(BoolExpImpl *){}
-        virtual void visit(BoolExpEq *){}
-        virtual void visit(BoolExpCall *e);
-        virtual void visit(BoolExpAny *){}
+        virtual void visit(BoolExp *) {}
+        virtual void visit(BoolExpAnd *) {}
+        virtual void visit(BoolExpOr *) {}
+        virtual void visit(BoolExpNot *) {}
+        virtual void visit(BoolExpConst *) {}
+        virtual void visit(BoolExpVar *) {}
+        virtual void visit(BoolExpImpl *) {}
+        virtual void visit(BoolExpEq *) {}
+        virtual void visit(BoolExpCall *) {}
+        virtual void visit(BoolExpAny *) {}
     };
-}
+};
 
 #endif

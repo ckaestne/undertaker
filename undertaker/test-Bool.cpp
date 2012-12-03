@@ -126,12 +126,29 @@ START_TEST(parseBool)
     parse_test_reference("A ? B : C", 0, "ternary operator");
 } END_TEST;
 
+
+START_TEST(notATree)
+{
+    BoolExp *x = new BoolExpVar("X",false);
+    BoolExp *n0 = new BoolExpNot(x);
+    BoolExp *n1 = new BoolExpNot(n0);
+    BoolExp *o = new BoolExpOr(n0,n1);
+    BoolExp *p = o->simplify(false);
+    std::string s = o->str();
+    std::string t = p->str();
+    fail_unless(s == "!X || !!X", "should be %s but is %s","!X || !!X", s.c_str());
+    fail_unless(t == "1", "should be %s but is %s","1", t.c_str());
+    delete o;
+
+} END_TEST;
+
 Suite *cond_block_suite(void) {
     Suite *s  = suite_create("Suite test-Bool");
     TCase *tc = tcase_create("Bool");
     tcase_add_test(tc, parseBool);
     tcase_add_test(tc, bool_parser_test);
     tcase_add_test(tc, parseFunc);
+    tcase_add_test(tc, notATree);
     suite_add_tcase(s, tc);
     return s;
 }

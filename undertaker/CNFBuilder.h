@@ -1,5 +1,6 @@
+// -*- mode: c++ -*-
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ * boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -18,12 +19,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
-
 #ifndef KCONFIG_CNFBUILDER_H
 #define KCONFIG_CNFBUILDER_H
 
 #include "bool.h"
+#include "BoolVisitor.h"
 #include "CNF.h"
 
 #include "KconfigWhitelist.h"

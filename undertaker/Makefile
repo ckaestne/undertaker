@@ -23,7 +23,8 @@ PARSEROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
 		bool.o \
 		CNFBuilder.o \
 		PicosatCNF.o \
-		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o
+		BoolExpGC.o \
+		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o BoolExpSimplifier.o
 
 DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ)) undertaker.d
 
