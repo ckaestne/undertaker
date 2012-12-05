@@ -124,9 +124,21 @@ def apply_configuration(arch=None, subarch=None, filename=None):
         else:
             raise
 
-def guess_source_for_target(target):
+def guess_source_for_target(target, arch=None):
     """
     for the given target, try to determine its source file.
+
+    return None if no source file could be found
+    """
+    if arch is 'coreboot':
+        return guess_source_for_target_coreboot(target)
+    else:
+        return guess_source_for_target_generic(target)
+
+def guess_source_for_target_generic(target):
+    """
+    for the given target, try to determine its source file.
+    generic version for linux and busybox
 
     return None if no source file could be found
     """
@@ -135,6 +147,25 @@ def guess_source_for_target(target):
         if os.path.exists(sourcefile):
             return sourcefile
     return None
+
+def guess_source_for_target_coreboot(target):
+    """
+    for the given target, try to determine its source file.
+    more sophisticated version for coreboot
+
+    return None if no source file could be found
+    """
+    t = target.replace(".ramstage", "").replace(".romstage", "")\
+            .replace(".driver", "").replace(".smm", "").replace(" y","")
+
+    if guess_source_for_target_generic(t.replace("build", "src", 1)):
+        return guess_source_for_target_generic(t.replace("build", "src", 1))
+    # if src file is generated, search in build/
+    elif guess_source_for_target_generic(t):
+        return guess_source_for_target_generic(t)
+    else:
+        return None
+
 
 def linux_files_for_current_configuration(arch=None, subarch=None, how=False):
     """
@@ -208,7 +239,7 @@ def coreboot_get_config_for(subarch=None):
         shutil.copy('./coreboot-builds/%s_%s/config.build' % (vendor, mainboard),
                     '.config')
 
-def coreboot_files_for_current_configuration(subarch=None):
+def coreboot_files_for_current_configuration(subarch=None, how=False):
     """
     Returns a list of files that are compiled with the current
     configuration.
@@ -229,12 +260,23 @@ def coreboot_files_for_current_configuration(subarch=None):
     coreboot_get_config_for(subarch)
     (output, _) = call_makefile_generic('printall', failok=False)
 
-    files = set()
+    objects = set()
     for line in output:
-        if line.startswith("allsrcs="):
-            for f in line[len('allsrcs=')+1:].split(): # skip first item
-                files.add(f)
-    return files
+        if '-objs:=' in line:                               # obj files
+            for f in line[line.find('=')+1:].split():       # skip description
+                objects.add(f + " y")
+
+    if not how:
+        new = set()
+        for f in objects:
+            sourcefile = guess_source_for_target_coreboot(f)
+            if not sourcefile:
+                logging.debug("Failed to guess source file for %s", f)
+            else:
+                new.add(sourcefile)
+        return new
+
+    return objects
 
 def files_for_current_configuration(arch, subarch, how=False):
     """
@@ -254,7 +296,7 @@ def files_for_current_configuration(arch, subarch, how=False):
     configuration.
     """
     if arch == 'coreboot':
-        return coreboot_files_for_current_configuration(subarch)
+        return coreboot_files_for_current_configuration(subarch, how)
     else:
         return linux_files_for_current_configuration(arch, subarch, how)
 

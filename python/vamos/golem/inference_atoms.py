@@ -227,7 +227,7 @@ class LinuxInferenceAtoms(InferenceAtoms):
         return True
 
     def format_var_impl(self, var_impl):
-        sourcefile = guess_source_for_target(var_impl)
+        sourcefile = guess_source_for_target(var_impl, self.arch)
         if sourcefile:
             var_impl = sourcefile
         else:
