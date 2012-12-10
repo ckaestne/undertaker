@@ -150,7 +150,7 @@ echo "Step 1: Dead/Undead analysis"
 if $TIME -v -o undertaker.stats -- undertaker-linux-tree -t ${PROCESSORS} >>"$report" \
       2>undertaker-errors.txt; then
     cat undertaker.stats
-    find . -name '*dead' -ls > "$deadlist"
+    find . -name '*dead' > "$deadlist"
     echo "Found $(grep globally $deadlist | wc -l) globally dead blocks"
 else
     echo "Scanning for Dead features failed, check the error logfiles!"
