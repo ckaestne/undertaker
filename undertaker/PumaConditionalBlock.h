@@ -1,3 +1,4 @@
+// -*- mode: c++ -*-
 /*
  *   undertaker - analyze preprocessor blocks in code
  *

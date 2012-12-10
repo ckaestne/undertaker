@@ -26,7 +26,7 @@
 #include "Logging.h"
 
 #include <Puma/CTranslationUnit.h>
-#include <Puma/Unit.h>
+#include <Puma/CUnit.h>
 #include <Puma/UnitManager.h>
 #include <Puma/ManipCommander.h>
 #include <Puma/PreParser.h>
@@ -48,7 +48,7 @@ puma_token_next_newline(Puma::Token *e, Puma::Unit *unit) {
 }
 
 /// \brief cuts out all bad CPP statements
-Puma::Unit * remove_cpp_statements(Puma::Unit *unit) {
+Puma::Unit *remove_cpp_statements(Puma::Unit *unit) {
     Puma::ManipCommander mc;
     Puma::Token *s, *e, *prev;
 
@@ -61,9 +61,41 @@ Puma::Unit * remove_cpp_statements(Puma::Unit *unit) {
         case TOK_PRE_WARNING:
             prev = unit->prev(s);
             e = puma_token_next_newline(s, unit);
-             mc.kill(s, e);
+            mc.kill(s, e);
             mc.commit();
             s = prev ? prev : unit->first();
+        }
+    }
+    return unit;
+}
+
+/// \brief replaces #define CONFIG_FOO 0 -> #undef CONFIG_FOO
+Puma::Unit *normalize_define_null(Puma::Unit *unit) {
+    Puma::ManipCommander mc;
+    Puma::Token *s, *e, *prev;
+
+    for (s = unit->first(); s != unit->last(); s=unit->next(s)) {
+        if (!s->is_preprocessor())
+            continue;
+
+        if (s->type() == TOK_PRE_DEFINE) {
+            Puma::ErrorStream err;
+            Puma::CUnit undef(err);
+            // I have no idea why I need to skip a token here
+            Puma::Token *ident = unit->next(unit->next(s));
+            Puma::Token *what = unit->next(unit->next(ident));
+
+            if (ident->type() == Puma::TOK_ID && !strcmp(what->text(), "0")) {
+//                logger << error << "Token text is " << what->text() << std::endl;
+                prev = unit->prev(s);
+                e = puma_token_next_newline(s, unit);
+                undef << "#undef " << *ident
+                      << std::endl << Puma::endu;
+                mc.replace(s, e, undef.first(), undef.last());
+                mc.commit();
+                s = prev ? prev : unit->first();
+//                logger << error << undef << std::endl;
+            }
         }
     }
     return unit;
@@ -134,7 +166,7 @@ const char * PumaConditionalBlock::ExpressionStr() const {
 
     assert(_current_node);
 
-   if (_expressionStr_cache)
+    if (_expressionStr_cache)
       return _expressionStr_cache;
 
     if ((node = dynamic_cast<const PreIfDirective *>(_current_node)))
@@ -180,7 +212,7 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
         return NULL;
     }
 
-    _unit = remove_cpp_statements(unit);
+    _unit = normalize_define_null(remove_cpp_statements(unit));
 
     CTranslationUnit *tu = new CTranslationUnit (*_unit, *_project);
 
@@ -358,9 +390,10 @@ void PumaConditionalBlockBuilder::visitDefineHelper(PreTreeComposite *node, bool
         return;
 
     PumaConditionalBlock &block = *_condBlockStack.top();
-    
+
     CppFile::DefineMap &map = *_file->getDefines();
     CppFile::DefineMap::iterator i = map.find(definedFlag);
+
     if (i == map.end())
         // First define for this item
         map[definedFlag] = new CppDefine(&block, define, definedFlag);
@@ -490,7 +523,7 @@ static Puma::Unit * removeIncludeGuard(Unit *unit) {
     return unit;
 }
 
-Puma::Unit * PumaConditionalBlockBuilder::resolve_includes(Puma::Unit *unit) {
+Puma::Unit *PumaConditionalBlockBuilder::resolve_includes(Puma::Unit *unit) {
     Puma::PreFileIncluder includer(*_cpp);
     Puma::ManipCommander mc;
     Puma::Token *s, *e;
