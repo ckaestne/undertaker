@@ -17,4 +17,8 @@ build
 /picosat/config.h
 /picosat/libpicosat.a
 /picosat/makefile
+/picosat/picosat
+/picosat/picomus
 *.swp
+*.swo
+tags

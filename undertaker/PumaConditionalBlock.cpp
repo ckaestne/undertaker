@@ -39,8 +39,36 @@
 
 #include <set>
 
-static inline Puma::Token *
-puma_token_next_newline(Puma::Token *e, Puma::Unit *unit) {
+static inline Puma::Token *next_non_whitespace_token(Puma::Unit *unit, Puma::Token *s) {
+    do {
+        s = unit->next(s);
+    } while (s && s->is_whitespace());
+    return s;
+}
+
+static inline std::string makro_transformation(Puma::Unit *unit, Puma::Token *s) {
+    ostringstream os;
+    if (!strcmp(s->text(), "IS_BUILTIN")) {
+        os << "defined(" << unit->next(unit->next(s))->text() << ")";
+    } else if (!strcmp(s->text(), "IS_MODULE")) {
+        os << "defined(" << unit->next(unit->next(s))->text() << "_MODULE)";
+    } else if (!strcmp(s->text(), "IS_ENABLED")) {
+        const char *txt = unit->next(unit->next(s))->text();
+        os << "(defined(" << txt << ") || defined(" << txt << "_MODULE))";
+    } else {
+        assert(false); // should never happen
+    }
+    return os.str();
+}
+
+static inline bool is_relevant_makro(Puma::Token *s) {
+    if (!strcmp(s->text(), "IS_BUILTIN") || !strcmp(s->text(), "IS_MODULE")
+            || !strcmp(s->text(), "IS_ENABLED"))
+        return true;
+    return false;
+}
+
+static inline Puma::Token * puma_token_next_newline(Puma::Token *e, Puma::Unit *unit) {
     do {
         e = unit->next(e);
     } while (e && e->text()[0] != '\n' && !strchr(e->text(), '\n'));
@@ -50,54 +78,108 @@ puma_token_next_newline(Puma::Token *e, Puma::Unit *unit) {
 /// \brief cuts out all bad CPP statements
 Puma::Unit *remove_cpp_statements(Puma::Unit *unit) {
     Puma::ManipCommander mc;
-    Puma::Token *s, *e, *prev;
-
-    for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
+    for (Puma::Token *s = unit->first(); s != unit->last(); s = unit->next(s)) {
         switch(s->type()) {
         case TOK_PRE_ASSERT:
         case TOK_PRE_ERROR:
             //        case TOK_PRE_INCLUDE:
         case TOK_PRE_INCLUDE_NEXT:
         case TOK_PRE_WARNING:
-            prev = unit->prev(s);
-            e = puma_token_next_newline(s, unit);
-            mc.kill(s, e);
-            mc.commit();
-            s = prev ? prev : unit->first();
+            mc.kill(s, puma_token_next_newline(s, unit));
         }
     }
+    Puma::ManipError error = mc.valid();
+    if (!error)
+        mc.commit();
+    else
+        logger << error << "ERROR: " << error << std::endl;
     return unit;
 }
 
 /// \brief replaces #define CONFIG_FOO 0 -> #undef CONFIG_FOO
 Puma::Unit *normalize_define_null(Puma::Unit *unit) {
     Puma::ManipCommander mc;
-    Puma::Token *s, *e, *prev;
-
-    for (s = unit->first(); s != unit->last(); s=unit->next(s)) {
+    Puma::ErrorStream err;
+    for (Puma::Token *s = unit->first(); s != unit->last(); s=unit->next(s)) {
         if (!s->is_preprocessor())
             continue;
 
         if (s->type() == TOK_PRE_DEFINE) {
-            Puma::ErrorStream err;
-            Puma::CUnit undef(err);
-            // I have no idea why I need to skip a token here
+            // There is always a TOK_WSPACE. thus, one token has to be skipped
             Puma::Token *ident = unit->next(unit->next(s));
             Puma::Token *what = unit->next(unit->next(ident));
 
             if (ident->type() == Puma::TOK_ID && !strcmp(what->text(), "0")) {
-//                logger << error << "Token text is " << what->text() << std::endl;
-                prev = unit->prev(s);
-                e = puma_token_next_newline(s, unit);
-                undef << "#undef " << *ident
-                      << std::endl << Puma::endu;
-                mc.replace(s, e, undef.first(), undef.last());
-                mc.commit();
-                s = prev ? prev : unit->first();
-//                logger << error << undef << std::endl;
+                Puma::CUnit *undef = new Puma::CUnit(err);
+                mc.addBuffer(undef);
+                // always set filename for Puma::CUnits
+                undef->name(s->location().filename().name());
+                *undef << "#undef " << *ident << std::endl << Puma::endu;
+                mc.replace(s, puma_token_next_newline(s, unit),
+                        undef->first(), undef->last());
             }
         }
     }
+    Puma::ManipError error = mc.valid();
+    if (!error)
+        mc.commit();
+    else
+        logger << error << "ERROR: " << error << std::endl;
+    return unit;
+}
+
+/// \brief replaces IS_ENABLED/IS_BUILTIN/IS_MODULE - Makros
+Puma::Unit *normalize_defined_makros(Puma::Unit *unit) {
+    Puma::ManipCommander mc;
+    Puma::ErrorStream err;
+
+    // TOK_ID = id 290; TOK_WSPACE = id 400
+    for (Puma::Token *s = unit->first(); s != unit->last(); s = unit->next(s)) {
+        if (s->type() == TOK_PRE_IF || s->type() == TOK_PRE_ELIF) {
+            Puma::Token *lineEnd = puma_token_next_newline(s, unit);
+            // an #if-condition ends when a newline is found
+            // ("line continuations" aren't newlines in token representation)
+            for (s = unit->next(unit->next(s)); s != lineEnd; s = unit->next(s)) {
+                if (is_relevant_makro(s)) {
+                    Puma::CUnit *enabled = new Puma::CUnit(err);
+                    mc.addBuffer(enabled);
+                    // set filename, Puma drops the condition if tokens are anonymous in conditions
+                    enabled->name(s->location().filename().name());
+                    *enabled << makro_transformation(unit, s) << Puma::endu;
+                    mc.replace(s, unit->next(unit->next(unit->next(s))),
+                            enabled->first(), enabled->last());
+                }
+            }
+        }
+    }
+    Puma::ManipError error = mc.valid();
+    if (!error)
+        mc.commit();
+    else
+        logger << error << "ERROR: " << error << std::endl;
+    return unit;
+}
+
+Puma::Unit *print_tokens(Puma::Unit *unit) {
+    for (Puma::Token *s = unit->first(); s != unit->last(); s = unit->next(s)) {
+        std::cout << s->type() << " " << s->text() << std::endl;
+        if(s->type() == Puma::TOK_IF) {
+            Puma::Token *tmp = next_non_whitespace_token(unit, s);
+            std::cout << "next tok" << tmp->type() << " " << tmp->text() << std::endl;
+        }
+//      " " << s->is_macro_op() << " " << s->is_preprocessor() << std::endl;
+    }
+    return unit;
+}
+
+Puma::Unit *undertaker_normalizations(Puma::Unit *unit) {
+    unit = remove_cpp_statements(unit);
+    unit = normalize_define_null(unit);
+    unit = normalize_defined_makros(unit);
+// print token text and numbers for debugging
+//    print_tokens(unit);
+// print all text after transformation, puma function
+//    unit->print(std::cout);
     return unit;
 }
 
@@ -225,7 +307,7 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename, CppFi
         return NULL;
     }
 
-    _unit = normalize_define_null(remove_cpp_statements(unit));
+    _unit = undertaker_normalizations(unit);
 
     CTranslationUnit *tu = new CTranslationUnit (*_unit, *_project);
 

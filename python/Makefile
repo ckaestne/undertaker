@@ -28,6 +28,9 @@ clean-check:
                      -o -name "*.error.expected" \
                      -o -name "*.error.diff" \
                      -o -name "*.error.got" \
+                     -o -name "*.c.config*" \
+                     -o -name "*.c.cppflags*" \
+                     -o -name "*.c.source*" \
                      -o -name "*.dead" \
                      -o -name "*.undead" \
                      -o -name "*.plist" \
