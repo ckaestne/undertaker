@@ -1,5 +1,5 @@
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ * boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -20,29 +20,20 @@
 
 #include "ConditionalBlock.h"
 #include "CNFBuilder.h"
-#include "InvalidNodeException.h"
-#include "UnsupportedFeatureException.h"
 
 using namespace kconfig;
-using namespace std;
 
 CNFBuilder::CNFBuilder(bool useKconfigWhitelist, enum ConstantPolicy constPolicy)
-{
+    : boolvar(0), wl(useKconfigWhitelist ? KconfigWhitelist::getIgnorelist() : 0), constPolicy(constPolicy)
+{}
 
-    this->boolvar = 0;
-    this->wl = useKconfigWhitelist ? KconfigWhitelist::getIgnorelist() : 0;
-    this->constPolicy = constPolicy;
-
-}
-
-void CNFBuilder::pushClause(BoolExp *e)
-{
+void CNFBuilder::pushClause(BoolExp *e) {
     visited.clear();
     BoolExpConst *constant = dynamic_cast<BoolExpConst*>(e);
 
     if (constant) {
         bool v = constant->value;
-        if (v) {// ... && 1 can be filtered out 
+        if (v) { // ... && 1 can be filtered out 
             return;
         }
     }
@@ -98,11 +89,9 @@ void CNFBuilder::visit(BoolExpAnd *e) {
     cnf->pushVar(-a);
     cnf->pushVar(-b);
     cnf->pushClause();
-
 }
 
-void CNFBuilder::visit(BoolExpOr *e)
-{
+void CNFBuilder::visit(BoolExpOr *e) {
     if (e->CNFVar)
         return;
 
@@ -112,6 +101,7 @@ void CNFBuilder::visit(BoolExpOr *e)
     int h = e->CNFVar;
     int a = e->left->CNFVar;
     int b = e->right->CNFVar;
+
     // H <-> (A || B)
     // (H || !A) && ( H || !B) && ( !H || A || B)
     cnf->pushVar(h);
@@ -129,8 +119,7 @@ void CNFBuilder::visit(BoolExpOr *e)
 
 }
 
-void CNFBuilder::visit(BoolExpImpl *e)
-{
+void CNFBuilder::visit(BoolExpImpl *e) {
     if (e->CNFVar)
         return;
 
@@ -154,11 +143,9 @@ void CNFBuilder::visit(BoolExpImpl *e)
     cnf->pushVar(-a);
     cnf->pushVar(b);
     cnf->pushClause();
-
 }
 
-void CNFBuilder::visit(BoolExpEq *e)
-{
+void CNFBuilder::visit(BoolExpEq *e) {
     if (e->CNFVar)
         return;
 
@@ -188,45 +175,35 @@ void CNFBuilder::visit(BoolExpEq *e)
     cnf->pushVar(-a);
     cnf->pushVar(b);
     cnf->pushClause();
-
 }
 
-void CNFBuilder::visit(BoolExpAny *e)
-{
+void CNFBuilder::visit(BoolExpAny *e) {
     // add free variable for arith. Operators (ie, handle them later..)
-
     e->CNFVar = this->cnf->newVar();
 }
 
-void CNFBuilder::visit(BoolExpCall *e)
-{
-    // add free variable for function calls (ie, handle them later..)
-
+void CNFBuilder::visit(BoolExpCall *e) {
+    // add free variable for function calls (i.e., handle them later..)
     e->CNFVar = this->cnf->newVar();
 }
 
-void CNFBuilder::visit(BoolExpNot *e)
-{
+void CNFBuilder::visit(BoolExpNot *e) {
     if (e->CNFVar) {
         return;
     }
+
     e->CNFVar = -(e->right->CNFVar);
 }
 
-void CNFBuilder::visit(BoolExpConst *e)
-{
+void CNFBuilder::visit(BoolExpConst *e) {
     if (e->CNFVar)
         return;
 
-    // FIXME:
-    //will fail when const are unified
     if (constPolicy == CNFBuilder::FREE){
         //handle consts as free var
-
         e->CNFVar = this->cnf->newVar();
         return;
     }
-
 
     if (!this->boolvar) {
 
@@ -234,27 +211,22 @@ void CNFBuilder::visit(BoolExpConst *e)
         cnf->pushVar(boolvar);
         cnf->pushClause();
     }
+
     e->CNFVar = e->value ? boolvar : -boolvar;
 }
 
-void CNFBuilder::visit(BoolExpVar *e)
-{
+void CNFBuilder::visit(BoolExpVar *e) {
+    std::string symname = e->str();
+    std::map<std::string, int>::iterator it;
+
     if (e->CNFVar) {
         return;
     }
 
-    string symname = e->str();
-
-    std::map<std::string, int>::iterator it;
-    int cv;
-    if(this->wl && wl->isWhitelisted(symname.c_str())) {
+    if (this->wl && wl->isWhitelisted(symname.c_str())) {
         // use free variables for symbols in wl
-
-
         e->CNFVar = this->cnf->newVar();
-    }
-    else {
+    } else {
         e->CNFVar = this->addVar(symname);
     }
-
 }

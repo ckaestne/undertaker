@@ -29,62 +29,60 @@
 #include "KconfigWhitelist.h"
 
 #include <string>
-#include <sstream>
-#include <map>
 
-namespace kconfig
-{
-    class CNFBuilder : public BoolVisitor
-    {
-        public:
-            enum ConstantPolicy {BOUND = 0, FREE};
-        private:
-            int boolvar;
+namespace kconfig {
 
-            KconfigWhitelist *wl;
+    class CNFBuilder : public BoolVisitor  {
+    public:
+        enum ConstantPolicy {BOUND = 0, FREE};
+    private:
+        int boolvar;
 
-            //FIXME:
-            //dirty workaround! should be done in Parser!
-            //will conflict as soon const node unification is working
-            enum ConstantPolicy constPolicy;
+        KconfigWhitelist *wl;
 
-        public:
-            CNF *cnf;
+        //FIXME:
+        //dirty workaround! should be done in Parser!
+        //will conflict as soon const node unification is working
+        enum ConstantPolicy constPolicy;
 
-            CNFBuilder(bool useKconfigWhitelist=false, enum ConstantPolicy constPolicy=BOUND);
+    public:
+        CNF *cnf;
 
-            //! Add clauses from the parsed boolean expression e
-            /**
-             * \param[in,out] e the parsed expression
-             *
-             * Note that this triggers the traversal on the tree e,
-             * which (as every visitor), and therefrore potentially
-             * modifies the CNF variable assignment.
-             */
-            void pushClause(BoolExp *e);
+        CNFBuilder(bool useKconfigWhitelist=false, enum ConstantPolicy constPolicy=BOUND);
 
-            //! Add new variable to the CNF and returns associated var number
-            /**
-             * @param[in] the name of the variable
-             * @returns associated var number
-             *
-             * Adds a new variable to the cnf and returns the associated
-             * cnf var number. If a variable with the given name already
-             * exists, the var number of the existing var is returned.
-             */
-            int addVar(std::string s);
+        //! Add clauses from the parsed boolean expression e
+        /**
+         * \param[in,out] e the parsed expression
+         *
+         * Note that this triggers the traversal on the tree e,
+         * which (as every visitor), and therefrore potentially
+         * modifies the CNF variable assignment.
+         */
+        void pushClause(BoolExp *e);
 
-        protected:
-            virtual void visit(BoolExp *e);
-            virtual void visit(BoolExpAnd *e);
-            virtual void visit(BoolExpOr *e);
-            virtual void visit(BoolExpNot *e);
-            virtual void visit(BoolExpConst *e);
-            virtual void visit(BoolExpVar *e);
-            virtual void visit(BoolExpImpl *e);
-            virtual void visit(BoolExpEq *e);
-            virtual void visit(BoolExpCall *e);
-            virtual void visit(BoolExpAny *e);
+        //! Add new variable to the CNF and returns associated var number
+        /**
+         * @param[in] the name of the variable
+         * @returns associated var number
+         *
+         * Adds a new variable to the cnf and returns the associated
+         * cnf var number. If a variable with the given name already
+         * exists, the var number of the existing var is returned.
+         */
+        int addVar(std::string s);
+
+    protected:
+        virtual void visit(BoolExp *e);
+        virtual void visit(BoolExpAnd *e);
+        virtual void visit(BoolExpOr *e);
+        virtual void visit(BoolExpNot *e);
+        virtual void visit(BoolExpConst *e);
+        virtual void visit(BoolExpVar *e);
+        virtual void visit(BoolExpImpl *e);
+        virtual void visit(BoolExpEq *e);
+        virtual void visit(BoolExpCall *e);
+        virtual void visit(BoolExpAny *e);
     };
 }
+
 #endif
