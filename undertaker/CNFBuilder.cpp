@@ -37,17 +37,19 @@ CNFBuilder::CNFBuilder(bool useKconfigWhitelist, enum ConstantPolicy constPolicy
 
 void CNFBuilder::pushClause(BoolExp *e)
 {
+    visited.clear();
     BoolExpConst *constant = dynamic_cast<BoolExpConst*>(e);
+
     if (constant) {
         bool v = constant->value;
         if (v) {// ... && 1 can be filtered out 
             return;
         }
     }
+
     e->accept(this);
     cnf->pushVar(e->CNFVar);
     cnf->pushClause();
-
 }
 
 int CNFBuilder::addVar(std::string symname) {

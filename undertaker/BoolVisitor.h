@@ -43,12 +43,12 @@ namespace kconfig {
 
     public:
         bool isVisited(BoolExp *node) const {
-            std::map<BoolExp *, void *>::const_iterator it;it = visited.find(node);
+            std::map<BoolExp *, void *>::const_iterator it = visited.find(node);
             return it != visited.end();
         }
 
     protected:
-        std::map <BoolExp *, void *>visited;
+        std::map <BoolExp *, void *> visited;
         void *left, *right;
         void *result;
         virtual void visit(BoolExp *e) = 0;
