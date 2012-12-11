@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 using namespace kconfig;
 
@@ -312,13 +313,19 @@ std::map<string, int>::const_iterator PicosatCNF::getSymbolsItEnd()
 void PicosatCNF::addMetaValue(const std::string &key, const std::string &value) {
     std::map<std::string, std::deque<std::string> >::const_iterator i = this->meta_information.find(key);
     std::deque<std::string> values;
+    std::deque<std::string>::const_iterator j;
 
     if (i != meta_information.end()) {
         values = (*i).second;
         meta_information.erase(key);
     }
 
-    values.push_back(value);
+    j = std::find(values.begin(), values.end(), value);
+
+    if (j == values.end()) {
+        values.push_back(value);
+    }
+
     meta_information.insert(make_pair(key, values));
 }
 
@@ -339,4 +346,3 @@ int PicosatCNF::newVar(void) {
     varcount++;
     return varcount;
 }
-
