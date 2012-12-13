@@ -153,6 +153,8 @@ class Inferencer:
         return unique(ret)
 
     def calculate(self):
+        # pylint: disable=R0912
+
         empty_selection = Selection()
         base_var_impl = self.cache.get_fileset(empty_selection)
         empty_var_impl = copy.deepcopy(base_var_impl)

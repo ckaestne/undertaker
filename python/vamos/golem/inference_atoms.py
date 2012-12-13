@@ -18,12 +18,10 @@
 #
 
 from vamos.golem.kbuild import determine_buildsystem_variables_in_directory, \
-    files_for_selected_features, apply_configuration, guess_source_for_target, call_linux_makefile, \
-    call_makefile_generic
-
+    files_for_selected_features, apply_configuration, guess_source_for_target, call_linux_makefile
 
 from vamos.tools import execute, CommandFailed
-from vamos.golem.kbuild import find_scripts_basedir, NotACorebootTree
+from vamos.golem.kbuild import find_scripts_basedir
 from vamos.model import Model
 from tempfile import NamedTemporaryFile
 import glob
@@ -257,36 +255,9 @@ class CorebootInferenceAtoms(LinuxInferenceAtoms):
 
     def OP_list(self, selection):
         features = selection.to_dict()
-
-
-        fd = NamedTemporaryFile()
-        logging.debug("dumping partial configuration with %d items to %s", len(features.items()), fd.name)
-        for (key, value) in features.items():
-            fd.write("%s=%s\n" % (key, value))
-            logging.debug("%s=%s", key, value)
-        fd.flush()
-
-
-        (output, _) = call_makefile_generic('DOTCONFIG=%s -pn printall' % fd.name,
-                                            failok=False, njobs = 1)
-        # TODO: Comment, Validity check
-        files = None
-        dirs = None
-        for line in output:
-            if line.startswith("allsrcs := "):
-                line = line[len("allsrcs := "):]
-                files = set(line.split())
-            if line.startswith("MAKEFILE_LIST := "):
-                line = line[len("MAKEFILE_LIST := "):]
-                dirs = set([x for x in line.split() if ".inc" in x])
-
-
-        if not files or not dirs:
-            raise NotACorebootTree("Couldn't parse output of printall")
-
+        (files, dirs) = files_for_selected_features(features, 'coreboot')
         if len(selection) == 0:
             dirs.add("Makefile.inc")
-
         return files, dirs
 
     def OP_features_in_pov(self, point_of_variability):

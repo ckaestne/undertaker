@@ -24,7 +24,7 @@
 from vamos.Config import Config
 from vamos.tools import execute, CommandFailed
 
-from tempfile import mkstemp
+from tempfile import mkstemp, NamedTemporaryFile
 from glob import glob
 
 import logging
@@ -722,6 +722,7 @@ def get_coreboot_version():
     # Makefile.inc and src/Kconfig files exist, but no valid version is known
     return "coreboot-UNKNOWN"
 
+
 def find_scripts_basedir():
     executable = os.path.realpath(sys.argv[0])
     base_dir   = os.path.dirname(executable)
@@ -732,9 +733,10 @@ def find_scripts_basedir():
     raise RuntimeError("Failed to locate Makefile.list")
 
 
-def files_for_selected_features(features, arch, subarch):
+def files_for_selected_features(features, arch, subarch=None):
     """
-    to be run in a Linux source tree.
+    Determine what files and subdirectories are activated by a given
+    feature selection.
 
     The parameter features represents a (partial) Kconfig selection in
     the form of a dict from feature -> value e.g: {'CONFIG_X86': 'y',
@@ -744,6 +746,51 @@ def files_for_selected_features(features, arch, subarch):
     of files that are compiled with the selected features
     configuration. The second member 'dirs' is a list if directories
     that are traversed thereby.
+    """
+    if arch == 'coreboot':
+        return files_for_selected_features_coreboot(features)
+    else:
+        return files_for_selected_features_generic(features, arch, subarch)
+
+
+def files_for_selected_features_coreboot(features):
+    """
+    to be run in a coreboot source tree.
+    """
+
+    fd = NamedTemporaryFile()
+    logging.debug("dumping partial configuration with %d items to %s", len(features.items()), fd.name)
+    for (key, value) in features.items():
+        fd.write("%s=%s\n" % (key, value))
+        logging.debug("%s=%s", key, value)
+    fd.flush()
+
+    # this is a pretty crude hack that runs make and examines the collected database
+    (output, _) = call_makefile_generic('DOTCONFIG=%s --print-data-base --dry-run printall' % fd.name,
+                                        failok=False, njobs=1)
+    files = set()
+    dirs = set()
+    for line in output:
+        try:
+            if line.startswith("MAKEFILE_LIST := "):
+                line = line[len("MAKEFILE_LIST := "):]
+                dirs = set([x for x in line.split() if ".inc" in x])
+            if '-objs := ' in line:                             # obj files
+                for f in line[line.find('=')+1:].split():       # skip description
+                    files.add(f)
+        except IndexError:
+            raise RuntimeError("Failed to parse line '%s'" % line)
+
+
+    if len(dirs) == 0 or len(files) == 0:
+        raise NotACorebootTree("Couldn't parse output of printall")
+
+    return (files, dirs)
+
+
+def files_for_selected_features_generic(features, arch, subarch):
+    """
+    to be run in a Linux or busybox source tree.
     """
 
     # locate directory for supplemental makefiles

@@ -184,7 +184,7 @@ if test -f Makefile && grep -q 'This file is part of the coreboot project.' Make
 
     if [ $DO_INFERENCES = "yes" ]; then
         echo "Calculating makefile inferences for coreboot"
-        ARCH=$CBMODEL golem -i 2> $MODELS/$CBMODEL.golem-errors >> "$MODELS/$CBMODEL.model"
+        ARCH=$CBMODEL golem -i 2> $MODELS/$CBMODEL.golem-errors | sort -u >> "$MODELS/$CBMODEL.model"
     fi
 
     # disable bad CONFIG_ Symbols
