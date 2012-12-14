@@ -43,6 +43,12 @@ PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
 
 DO_INFERENCES="no"
 
+# ensure the last (rightmost) non-zero exitcode is used when piping results into
+# another program
+set -o pipefail
+
+trap "kill 0" SIGINT SIGTERM EXIT
+
 while getopts ih OPT; do
     case $OPT in
         i)
@@ -147,6 +153,45 @@ function do_convert() {
         >> "$MODELS/$ARCH.model"
 }
 
+# Parameter {Project/Arch} {Subarch}
+function do_inference() {
+    if [ $DO_INFERENCES = "yes" ]; then
+        echo "Calculating makefile inferences for $1"
+        if SUBARCH=$2 ARCH=$1 golem -i 2> $MODELS/$1.golem-errors | sort -u > \
+            "$MODELS/$1.inferences"; then
+            # Filter out annoying "AttributeError" messages
+            # This is a known upstream python bug, cf:
+            # http://bugs.python.org/issue14308
+            sed -i "/'_DummyThread' object has no attribute '_Thread__block'/d"\
+                $MODELS/$1.golem-errors
+        else
+            echo "Failed to extract inferences for $1"
+        fi
+    else
+        touch "$MODELS/$1.inferences"
+    fi
+}
+
+#Parameters {Project/Arch} Configpath ALWAYS_OFF_ITEMS ALWAYS_ON_ITEMS
+function do_rsf_call() {
+    dumpconf $2 | sort -u | grep -v '^#' > "$MODELS/$1.rsf"
+
+    # make model
+    rsf2model "$MODELS/$1.rsf" > "$MODELS/$1.model"
+
+    # append ALWAYS_OFF items to the model
+    echo "UNDERTAKER_SET ALWAYS_OFF $3" >> "$MODELS/$1.model"
+
+    # append ALWAYS_ON items to the model
+    for i in $4; do
+        sed -i "/^UNDERTAKER_SET ALWAYS_ON/s|$| \"$i\"|" "$MODELS/$1.model"
+    done
+
+    # create inferences
+    do_inference $1
+    cat "$MODELS/$1.inferences" >> "$MODELS/$1.model"
+}
+
 if [ -f scripts/gen_build_files.sh ]; then
     echo "Detected a busybox source tree"
 
@@ -156,18 +201,8 @@ if [ -f scripts/gen_build_files.sh ]; then
     # generate config files, execute dumpconf
     # remove all the comments because they will confuse rsf2model
     make gen_build_files
-    dumpconf Config.in | sort -u | grep -v '^#' > "$MODELS/busybox.rsf"
 
-    # make models for busybox
-    rsf2model "$MODELS/busybox.rsf" > "$MODELS/busybox.model"
-
-    echo "UNDERTAKER_SET ALWAYS_OFF $ALWAYS_OFF_ITEMS" >> "$MODELS/busybox.model"
-
-    if [ $DO_INFERENCES = "yes" ]; then
-        # FIXME: golem -i requires a normalized busybox tree. reenable when busyfix is ready
-        echo "Calculating makefile inferences for busybox not implemented yet."
-        # ARCH=busybox golem -i 2> $MODELS/busybox.golem-errors >> "$MODELS/busybox.model"
-    fi
+    do_rsf_call busybox Config.in "$ALWAYS_OFF_ITEMS"
 
     exit 0
 fi
@@ -199,21 +234,8 @@ if test -f Makefile && grep -q 'This file is part of the coreboot project.' Make
         sed -i "/^CFLAGS =/s|$|\nifneq (\$(KCFLAGS),)\n\tCFLAGS += (\$KCFLAGS)\nendif|" Makefile.inc
     fi
 
-    # generate config files, execute dumpconf, remove all the comments because they will confuse rsf2model
-    dumpconf ./src/Kconfig | sort -u | grep -v '^#' > "$MODELS/$CBMODEL.rsf"
+    do_rsf_call $CBMODEL ./src/Kconfig "$ALWAYS_OFF_ITEMS" "$ALWAYS_ON_ITEMS"
 
-    # make model for coreboot
-    rsf2model "$MODELS/$CBMODEL.rsf" > "$MODELS/$CBMODEL.model"
-    echo "UNDERTAKER_SET ALWAYS_OFF $ALWAYS_OFF_ITEMS" >> "$MODELS/$CBMODEL.model"
-
-    if [ $DO_INFERENCES = "yes" ]; then
-        echo "Calculating makefile inferences for coreboot"
-        ARCH=$CBMODEL golem -i 2> $MODELS/$CBMODEL.golem-errors | sort -u >> "$MODELS/$CBMODEL.model"
-        # Filter out annoying "AttributeError" messages
-        # This is a known upstream python bug, cf: http://bugs.python.org/issue14308
-        sed -i "/'_DummyThread' object has no attribute '_Thread__block'/d" \
-            $MODELS/$ARCH.golem-errors
-    fi
     exit 0
 fi
 
@@ -240,21 +262,9 @@ while [ $(jobs -r | wc -l) -gt 0 ]; do
     sleep 0.5
 done
 
-if [ $DO_INFERENCES = "yes" ]; then
-    for ARCH in $ARCHS
-    do
-        echo "Calculating makefile inferences for $ARCH"
-        if SUBARCH=$ARCH ARCH=$ARCH golem -i 2> $MODELS/$ARCH.golem-errors >> "$MODELS/$ARCH.inferences"; then
-            cat "$MODELS/$ARCH.inferences" >> "$MODELS/$ARCH.model"
-            # Filter out annoying "AttributeError" messages
-            # This is a known upstream python bug, cf: http://bugs.python.org/issue14308
-            sed -i "/'_DummyThread' object has no attribute '_Thread__block'/d" \
-                $MODELS/$ARCH.golem-errors
-            echo "$MODELS/$ARCH.model ready"
-        else
-            echo "Failed to extract inferences for arch $ARCH"
-        fi
-    done
-fi
+for ARCH in $ARCHS; do
+    do_inference $ARCH $ARCH
+    cat "$MODELS/$ARCH.inferences" >> "$MODELS/$ARCH.model"
+done
 
 exit 0
