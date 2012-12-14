@@ -102,7 +102,7 @@ function pwait() {
     [ -z "$jobs" ] && jobs=5
 
     while [ $(jobs -r | wc -l) -ge "$jobs" ]; do
-	sleep 0.5
+        sleep 0.5
     done
 }
 
@@ -118,12 +118,12 @@ function do_convert() {
     SUBARCH=$ARCH
     KCONFIG=Kconfig
     if [ x"$ARCH" = x"um" ]; then
-	SUBARCH=x86
-	if [ -r arch/um/Kconfig ]; then
-	    KCONFIG=Kconfig
-	else
-	    KCONFIG=Kconfig.um
-	fi
+        SUBARCH=x86
+        if [ -r arch/um/Kconfig ]; then
+            KCONFIG=Kconfig
+        else
+            KCONFIG=Kconfig.um
+        fi
     fi
 
     test -f arch/$ARCH/$KCONFIG || {
@@ -133,7 +133,7 @@ function do_convert() {
 
   # dumpconf, remove all the comments because they will confuse rsf2model
     SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | sort -u \
-		| grep -v '^#' > "$MODELS/$ARCH.rsf"
+        | grep -v '^#' > "$MODELS/$ARCH.rsf"
 
   # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by
   # a rule that no other architecture can be selected at the same
@@ -143,14 +143,17 @@ function do_convert() {
 
   # Add CONFIG_$i -> !CONFIG_* for every architecture
     echo $(all_linux_archs) | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | \
-	sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
-	>> "$MODELS/$ARCH.model"
+    sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
+        >> "$MODELS/$ARCH.model"
 }
 
 if [ -f scripts/gen_build_files.sh ]; then
     echo "Detected a busybox source tree"
 
-   # generate config files, execute dumpconf
+    # disable CONFIG_WERROR
+    ALWAYS_OFF_ITEMS="CONFIG_WERROR CONFIG_STATIC"
+
+    # generate config files, execute dumpconf
     # remove all the comments because they will confuse rsf2model
     make gen_build_files
     dumpconf Config.in | sort -u | grep -v '^#' > "$MODELS/busybox.rsf"
@@ -158,34 +161,20 @@ if [ -f scripts/gen_build_files.sh ]; then
     # make models for busybox
     rsf2model "$MODELS/busybox.rsf" > "$MODELS/busybox.model"
 
+    echo "UNDERTAKER_SET ALWAYS_OFF $ALWAYS_OFF_ITEMS" >> "$MODELS/busybox.model"
+
     if [ $DO_INFERENCES = "yes" ]; then
         # FIXME: golem -i requires a normalized busybox tree. reenable when busyfix is ready
         echo "Calculating makefile inferences for busybox not implemented yet."
         # ARCH=busybox golem -i 2> $MODELS/busybox.golem-errors >> "$MODELS/busybox.model"
     fi
 
-    # disable CONFIG_WERROR
-    echo 'UNDERTAKER_SET ALWAYS_OFF "CONFIG_WERROR" "CONFIG_STATIC"' >> "$MODELS/busybox.model"
-
     exit 0
 fi
 
 if test -f Makefile && grep -q 'This file is part of the coreboot project.' Makefile; then
+    echo "Detected a coreboot source tree"
     CBMODEL=coreboot
-
-    #make the Kconfig Symbol WARNINGS_ARE_ERRORS changeable
-    sed -i ':a;N;$!ba;s,config WARNINGS_ARE_ERRORS\n\tbool\n,config WARNINGS_ARE_ERRORS\n\tbool "DUMMY"\n,' src/Kconfig
-
-    # generate config files, execute dumpconf, remove all the comments because they will confuse rsf2model
-    dumpconf ./src/Kconfig | sort -u | grep -v '^#' > "$MODELS/$CBMODEL.rsf"
-
-    # make model for coreboot
-    rsf2model "$MODELS/$CBMODEL.rsf" > "$MODELS/$CBMODEL.model"
-
-    if [ $DO_INFERENCES = "yes" ]; then
-        echo "Calculating makefile inferences for coreboot"
-        ARCH=$CBMODEL golem -i 2> $MODELS/$CBMODEL.golem-errors | sort -u >> "$MODELS/$CBMODEL.model"
-    fi
 
     # disable bad CONFIG_ Symbols
     #
@@ -193,7 +182,38 @@ if test -f Makefile && grep -q 'This file is part of the coreboot project.' Make
     # the specific Kconfig file (eg. "config WARNINGS_ARE_ERRORS\n\tbool\n") then
     # it CANNOT be asured to be always off or on!
 
-    echo 'UNDERTAKER_SET ALWAYS_OFF "CONFIG_CCACHE" "CONFIG_SCANBUILD_ENABLE" "CONFIG_WARNINGS_ARE_ERRORS"' >> "$MODELS/$CBMODEL.model"
+    ALWAYS_OFF_ITEMS="CONFIG_CCACHE CONFIG_SCANBUILD_ENABLE CONFIG_WARNINGS_ARE_ERRORS CONFIG_USE_BLOBS CONFIG_PAYLOAD_SEABIOS"
+    ALWAYS_ON_ITEMS="CONFIG_PAYLOAD_NONE"
+
+    #make the Kconfig Symbol WARNINGS_ARE_ERRORS changeable
+    sed -i ':a;N;$!ba;s,config WARNINGS_ARE_ERRORS\n\tbool\n,config WARNINGS_ARE_ERRORS\n\tbool "DUMMY"\n,' src/Kconfig
+
+    #delete default usage of PAYLOAD_SEABIOS (would mess with 'make allyesconfig')
+    sed -i '/default PAYLOAD_SEABIOS/d' src/Kconfig
+    #make printall target in Makefile .PHONY
+    if test -r Makefile && ! grep '.PHONY' Makefile | grep -q printall ; then
+        sed -i "/^\.PHONY:/s|$| printall|" Makefile
+    fi
+    #add optional CFLAGS to Makefile.inc
+    if test -r Makefile.inc && ! grep -q 'KCFLAGS' Makefile.inc ; then
+        sed -i "/^CFLAGS =/s|$|\nifneq (\$(KCFLAGS),)\n\tCFLAGS += (\$KCFLAGS)\nendif|" Makefile.inc
+    fi
+
+    # generate config files, execute dumpconf, remove all the comments because they will confuse rsf2model
+    dumpconf ./src/Kconfig | sort -u | grep -v '^#' > "$MODELS/$CBMODEL.rsf"
+
+    # make model for coreboot
+    rsf2model "$MODELS/$CBMODEL.rsf" > "$MODELS/$CBMODEL.model"
+    echo "UNDERTAKER_SET ALWAYS_OFF $ALWAYS_OFF_ITEMS" >> "$MODELS/$CBMODEL.model"
+
+    if [ $DO_INFERENCES = "yes" ]; then
+        echo "Calculating makefile inferences for coreboot"
+        ARCH=$CBMODEL golem -i 2> $MODELS/$CBMODEL.golem-errors | sort -u >> "$MODELS/$CBMODEL.model"
+        # Filter out annoying "AttributeError" messages
+        # This is a known upstream python bug, cf: http://bugs.python.org/issue14308
+        sed -i "/'_DummyThread' object has no attribute '_Thread__block'/d" \
+            $MODELS/$ARCH.golem-errors
+    fi
     exit 0
 fi
 
