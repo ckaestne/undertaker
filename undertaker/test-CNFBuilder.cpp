@@ -415,6 +415,7 @@ Suite *cond_block_suite(void)
     tcase_add_test(tc, buildCNFConst);
     tcase_add_test(tc, buildAndNull);
     tcase_add_test(tc, buildImplNull);
+    tcase_add_test(tc, buildCNFVarUsedMultipleTimes);
     tcase_add_test(tc, literals);
     tcase_add_test(tc, buildCNFVarUsedMultipleTimes);
     suite_add_tcase(s, tc);

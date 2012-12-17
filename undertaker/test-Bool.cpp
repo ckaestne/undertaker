@@ -126,7 +126,6 @@ START_TEST(parseBool)
     parse_test_reference("A ? B : C", 0, "ternary operator");
 } END_TEST;
 
-
 START_TEST(notATree)
 {
     BoolExp *x = new BoolExpVar("X",false);
@@ -142,6 +141,71 @@ START_TEST(notATree)
 
 } END_TEST;
 
+void simplify_test(std::string input, std::string expected)
+{
+    BoolExp *e = BoolExp::parseString(input);
+    BoolExp *s = e->simplify(false);
+    fail_unless(s->str() == expected, "\"%s\" results \"%s\" insteat of \"%s\"", e->str().c_str(),s->str().c_str(), expected.c_str());
+    delete e;
+    delete s;
+}
+
+START_TEST(simplify)
+{
+    simplify_test("X || Y", "X || Y");
+    simplify_test("X || 1", "1");
+    simplify_test("X || 0", "X");
+    simplify_test("X && 0", "0");
+    simplify_test("X && 1", "X");
+    simplify_test("X && X", "X");
+    simplify_test("X && Y && 0", "0");
+    simplify_test("(X && Y) && 0", "0");
+    simplify_test("X && (Y && 0)", "0");
+    simplify_test("X -> (Y && 0)", "!X");
+    simplify_test("X -> (Y || 1)", "1");
+    simplify_test("(!X) -> (Y && 0)", "X");
+    simplify_test("!!!X", "!X");
+    simplify_test("!X || X", "1");
+    simplify_test("X && !X", "0");
+    simplify_test("X || X", "X");
+
+
+} END_TEST;
+
+void equals_test(std::string a, std::string b="")
+{
+    if (b=="")
+        b=a;
+    BoolExp *e = BoolExp::parseString(a);
+    BoolExp *f = BoolExp::parseString(b);
+    fail_unless(e->equals(f) == ( e->str() == f->str() ), "equals() missbehaves on \"%s\" and \"%s\"" , e->str().c_str(), f->str().c_str() );
+    delete e;
+    delete f;
+}
+
+START_TEST(equal)
+{
+    equals_test("X && Y", "X || Y");
+    equals_test("1");
+    equals_test("1 && 1");
+    equals_test("0 && 1");
+    equals_test("1 && 1", "1 && 0");
+    equals_test("X || Y");
+    equals_test("X || Y", "X || X");
+    equals_test("!(X || !Y)");
+    equals_test("!X", "X");
+    equals_test("(X && !Y || Z) -> (FOO && BAZ || BUM)");
+    equals_test("!(X && !Y || Z) -> (FOO && BAZ || BUM)", "(X && !Y || Z) -> (FOO && BAZ || BUM)");
+    equals_test("SIN(X)");
+    equals_test("COS(X)","SIN(X)");
+    equals_test("PRINTF(X,Y)","PRINTF(X)");
+    equals_test("SIN(RAD)","SIN(DEG)");
+    equals_test("A + B","A - B");
+    equals_test("A + B");
+
+} END_TEST;
+
+
 Suite *cond_block_suite(void) {
     Suite *s  = suite_create("Suite test-Bool");
     TCase *tc = tcase_create("Bool");
@@ -149,6 +213,8 @@ Suite *cond_block_suite(void) {
     tcase_add_test(tc, bool_parser_test);
     tcase_add_test(tc, parseFunc);
     tcase_add_test(tc, notATree);
+    tcase_add_test(tc, equal);
+    tcase_add_test(tc, simplify);
     suite_add_tcase(s, tc);
     return s;
 }
