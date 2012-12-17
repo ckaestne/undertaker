@@ -100,7 +100,7 @@ void PicosatCNF::readFromFile(istream &i) {
         } else if (boost::regex_match(line, what, sym_regexp)) {
             std::string varname = what[1];
             int typeId = boost::lexical_cast<int>(what[2]);
-            this->setSymbolType(varname, typeId);
+            this->setSymbolType(varname, (kconfig_symbol_type) typeId);
         } else if (boost::regex_match(line, what, dim_regexp)) {
             //todo: handle dimension descriptor line
             //(only a speedup)
@@ -138,7 +138,8 @@ void PicosatCNF::readFromFile(istream &i) {
 }
 
 void PicosatCNF::toFile(ostream &out) const {
-    std::map<string, int>::const_iterator it, it1;
+    std::map<std::string, kconfig_symbol_type>::const_iterator it;
+    std::map<std::string, int>::const_iterator it1;
     std::vector<int>::const_iterator it2;
 
     out << "c File Format Version: 2.0" << std::endl;
@@ -183,13 +184,12 @@ void PicosatCNF::toFile(ostream &out) const {
     }
 }
 
-int PicosatCNF::getSymbolType(const string &name)
-{
-    std::map<std::string, int>::const_iterator it = this->symboltypes.find(name);
-    return (it == this->symboltypes.end()) ? 0 : it->second;
+kconfig_symbol_type PicosatCNF::getSymbolType(const string &name) {
+    std::map<std::string, kconfig_symbol_type>::const_iterator it = this->symboltypes.find(name);
+    return (it == this->symboltypes.end()) ? K_S_UNKNOWN : it->second;
 }
 
-void PicosatCNF::setSymbolType(const string &sym, int type)
+void PicosatCNF::setSymbolType(const string &sym, kconfig_symbol_type type)
 {
     this->symboltypes[sym] = type;
 }

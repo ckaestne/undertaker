@@ -1,5 +1,6 @@
+// -*- mode: c++ -*-
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  * Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
@@ -56,8 +57,14 @@ namespace kconfig
 {
     class PicosatCNF: public CNF
     {
-        private:
-            std::map<string, int> symboltypes;
+        protected:
+            //! this map contains the the type of each Kconfig symbol
+            std::map<string, kconfig_symbol_type> symboltypes;
+
+            /**
+             * \brief mapping between boolean variable names and their cnf-id
+             *  Keep in sync with "booleanvars"
+             */
             std::map<string, int> cnfvars;
             std::map<int, string> boolvars;
             std::vector<int> clauses;
@@ -76,8 +83,8 @@ namespace kconfig
             void setDefaultPhase(Picosat::SATMode phase);
             virtual void readFromFile(istream &i);
             virtual void toFile(std::ostream &out) const;
-            virtual int getSymbolType(const string &name);
-            virtual void setSymbolType(const string &sym, int type);
+            virtual kconfig_symbol_type getSymbolType(const std::string &name);
+            virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type);
             virtual int getCNFVar(const string &var);
             virtual void setCNFVar(const string &var, int CNFVar);
             virtual string &getSymbolName(int CNFVar);

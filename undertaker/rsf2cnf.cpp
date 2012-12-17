@@ -32,12 +32,9 @@
 #include "KconfigWhitelist.h"
 #include "Logging.h"
 #include "bool.h"
+#include "Kconfig.h"
 
 using namespace kconfig;
-
-enum symbol_type {
-    S_UNKNOWN, S_BOOLEAN, S_TRISTATE, S_INT, S_HEX, S_STRING, S_OTHER
-};
 
 static void usage(void){
     std::cerr << "rsf2cnf [-v] [-q] -m <model> [-W <file>] [-B <file>] [-r <rsf>] [-c <cnf>]" << std::endl;
@@ -51,7 +48,7 @@ static void usage(void){
     exit(1);
 }
 
-static void addTypeInfo(CNF &cnf, ItemRsfReader *rsf){
+static void addTypeInfo(kconfig::CNF &cnf, ItemRsfReader *rsf){
     ItemRsfReader::iterator it;
 
     // add all CONFIG_* items
@@ -60,27 +57,27 @@ static void addTypeInfo(CNF &cnf, ItemRsfReader *rsf){
         std::string nameOfType = it->second[0];
 
         if (nameOfType == "boolean"){
-            cnf.setSymbolType(symbolname, (int) S_BOOLEAN);
+            cnf.setSymbolType(symbolname, K_S_BOOLEAN);
         }
         else if (nameOfType == "tristate"){
-            cnf.setSymbolType(symbolname, (int) S_TRISTATE);
+            cnf.setSymbolType(symbolname, K_S_TRISTATE);
         }
         else if (nameOfType == "integer"){
-            cnf.setSymbolType(symbolname, (int) S_INT);
+            cnf.setSymbolType(symbolname, K_S_INT);
         }
         else if (nameOfType == "hex"){
-            cnf.setSymbolType(symbolname, (int) S_HEX);
+            cnf.setSymbolType(symbolname, K_S_HEX);
         }
         else if (nameOfType == "string"){
-            cnf.setSymbolType(symbolname, (int) S_STRING);
+            cnf.setSymbolType(symbolname, K_S_STRING);
         }
         else {
-            cnf.setSymbolType(symbolname, (int) S_OTHER);
+            cnf.setSymbolType(symbolname, K_S_OTHER);
         }
     }
 }
 
-static void addClauses(CNFBuilder &builder, RsfReader *model){
+static void addClauses(kconfig::CNFBuilder &builder, RsfReader *model){
     boost::regex isconfig = boost::regex("^(CONFIG|FILE)_[^ ]+$", boost::regex::perl);
     RsfReader::iterator it;
 
@@ -111,7 +108,7 @@ static void addClauses(CNFBuilder &builder, RsfReader *model){
     }
 }
 
-static void addAllwaysOnOff(CNFBuilder &builder, RsfReader *model){
+static void addAllwaysOnOff(kconfig::CNFBuilder &builder, RsfReader *model){
     const std::string magic_on("ALWAYS_ON");
     const std::string magic_off("ALWAYS_OFF");
 
@@ -225,7 +222,7 @@ int main(int argc, char **argv) {
         cnf.readFromFile(cnf_in_stream);
     }
 
-    CNFBuilder builder;
+    kconfig::CNFBuilder builder;
     RsfReader *model = NULL;
     ItemRsfReader *rsf = NULL;
     builder.cnf = &cnf;

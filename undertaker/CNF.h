@@ -24,6 +24,8 @@
 #include<iostream>
 #include<deque>
 
+#include "Kconfig.h"
+
 using namespace std;
 namespace kconfig
 {
@@ -33,8 +35,8 @@ namespace kconfig
             virtual ~CNF(){};
             virtual void readFromFile(istream &i) = 0;
             virtual void toFile(std::ostream &out) const = 0;
-            virtual int  getSymbolType(const string &name) = 0;
-            virtual void setSymbolType(const string &sym, int type) = 0;
+            virtual kconfig_symbol_type getSymbolType(const std::string &name) = 0;
+            virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type) = 0;
             virtual int getCNFVar(const string &var) = 0;
             virtual void setCNFVar(const string &var, int CNFVar) = 0;
             virtual string &getSymbolName(int CNFVar) = 0;

@@ -46,6 +46,7 @@
 #include "PicosatCNF.h"
 #include "CNF.h"
 #include "bool.h"
+#include "Kconfig.h"
 
 bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     SatChecker c(sat.c_str());
