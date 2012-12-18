@@ -21,7 +21,7 @@ libziz.a: $(ZIZOBJ) $(HEADERS)
 	ar r $@ $(ZIZOBJ)
 
 clean: clean-check
-	rm -rf *.o *.a zizzler
+	rm -rf *.o *.a zizler
 
 clean-check:
 	rm -rf test/out

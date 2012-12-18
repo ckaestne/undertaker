@@ -28,6 +28,7 @@ clean: testclean
 	rm -f $(TARGET)
 	rm -f ftrace-initramfs.img
 	rm -f initrd.img-*
+	rm -f sample/test_ignore sample/test_out
 
 check: $(TARGET) testclean
 	@echo "Running trace..."

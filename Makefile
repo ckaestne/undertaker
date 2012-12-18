@@ -50,6 +50,7 @@ clean:
 	$(MAKE) -C ziz clean
 	$(MAKE) -C python clean
 	$(MAKE) -C tailor clean
+	rm -rf doc/*.gz
 	@python setup.py clean
 
 docs:

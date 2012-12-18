@@ -79,6 +79,8 @@ clean:
 		-o -name '.*.d' -o -name '.*.tmp' -o -name '*.mod.c' \
 		-o -name 'Module.markers' -o -name '.tmp_*.o.*' \) \
 		-type f -print | xargs rm -f -v
+	$(Q)$(MAKE) $(clean)=scripts/basic
+	$(Q)$(MAKE) $(clean)=scripts/kconfig
 
 PHONY += FORCE
 FORCE:

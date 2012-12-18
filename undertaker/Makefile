@@ -83,6 +83,7 @@ clean: clean-check
 	rm -rf location.hh stack.hh position.hh
 	rm -rf BoolExpParser.cpp BoolExpParser.h BoolExpLexer.cpp
 	rm -rf coverage-wl.cnf
+	rm -rf $(PROGS) $(TESTPROGS)
 
 test-%: test-%.cpp libparser.a
 	$(CXX) $(CXXFLAGS) -g -O0 -o $@ $< libparser.a -lcheck $(LDFLAGS) $(LDLIBS)
