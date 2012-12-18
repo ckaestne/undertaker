@@ -15,6 +15,7 @@ VERSION=$(shell cat VERSION)
 
 ifneq (,$(DESTDIR))
 SETUP_PY_EXTRA_ARG = --root=$(DESTDIR)
+SETUP_PY_INSTALL_EXTRA_ARG = $(SETUP_PY_EXTRA_ARG)
 endif
 
 all: $(PROGS)
