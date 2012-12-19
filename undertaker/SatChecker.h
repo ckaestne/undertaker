@@ -51,7 +51,7 @@ namespace Picosat
     /* Include the Limmat library header as C */
     extern "C"
     {
-        #include <picosat/picosat.h>
+        #include "picosat.h"
     }
 };
 

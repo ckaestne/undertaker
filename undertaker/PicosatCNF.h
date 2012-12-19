@@ -39,7 +39,7 @@ namespace Picosat
     using std::string;
     extern "C"
     {
-        #include <picosat/picosat.h>
+        #include "picosat.h"
     }
 
     // Modes taken from picosat.h

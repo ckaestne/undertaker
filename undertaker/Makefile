@@ -80,7 +80,7 @@ endif
 
 #This is the rule for creating the dependency files
 %.d: %.cpp
-	 @$(CXX) $(CXXFLAGS) -MM -MG $< > $@
+	 @$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MM -MG $< > $@
 
 clean: clean-check
 	rm -rf *.o *.a *.gcda *.gcno *.d
@@ -90,7 +90,7 @@ clean: clean-check
 	rm -rf $(PROGS) $(TESTPROGS)
 
 test-%: test-%.cpp libparser.a
-	$(CXX) $(CXXFLAGS) -g -O0 -o $@ $< libparser.a -lcheck $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -g -O0 -o $@ $< libparser.a -lcheck $(LDFLAGS) $(LDLIBS)
 
 
 run-libcheck: $(TESTPROGS)

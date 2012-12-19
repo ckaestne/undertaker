@@ -18,7 +18,7 @@ SETUP_PY_EXTRA_ARG = --root=$(DESTDIR)
 SETUP_PY_INSTALL_EXTRA_ARG = $(SETUP_PY_EXTRA_ARG)
 endif
 
-all: $(PROGS)
+all: picosat/libpicosat.a $(PROGS)
 
 version.h: generate-version.sh
 	./$<
@@ -26,7 +26,7 @@ version.h: generate-version.sh
 scripts/kconfig/dumpconf scripts/kconfig/conf: FORCE
 	$(MAKE) -f Makefile.kbuild $(@F)
 
-picosat/libpicosat.a: FORCE
+picosat/libpicosat.a:
 	cd picosat && ./configure -static -O
 	$(MAKE) -C picosat libpicosat.a
 
