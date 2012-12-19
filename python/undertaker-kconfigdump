@@ -47,7 +47,7 @@ DO_INFERENCES="no"
 # another program
 set -o pipefail
 
-trap "kill 0" SIGINT SIGTERM EXIT
+trap "kill 0" SIGINT SIGTERM
 
 while getopts ih OPT; do
     case $OPT in
