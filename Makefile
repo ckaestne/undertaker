@@ -26,6 +26,10 @@ version.h: generate-version.sh
 scripts/kconfig/dumpconf scripts/kconfig/conf: FORCE
 	$(MAKE) -f Makefile.kbuild $(@F)
 
+picosat/libpicosat.a: FORCE
+	cd picosat && ./configure -static -O
+	$(MAKE) -C picosat libpicosat.a
+
 undertaker/undertaker: FORCE
 	$(MAKE) -C undertaker undertaker
 
@@ -50,6 +54,7 @@ clean:
 	$(MAKE) -C ziz clean
 	$(MAKE) -C python clean
 	$(MAKE) -C tailor clean
+	test ! -f picosat/makefile || $(MAKE) -C picosat clean
 	rm -rf doc/*.gz
 	@python setup.py clean
 

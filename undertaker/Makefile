@@ -7,13 +7,14 @@ NODEPS:=clean clean-check
 # DEBUG = -g3 -DDEBUG
 # to compile with debug, compile like this:
 # make DEBUG="-g3 -DDEBUG"
-CFLAGS = -Wall -Wextra -O2 $(DEBUG) -I $(CURDIR)/../scripts/kconfig
+CFLAGS = -Wall -Wextra -O2 $(DEBUG)
+CPPFLAGS = -I $(CURDIR)/../scripts/kconfig -I $(CURDIR)/../picosat
 CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
 # LDCOV = -coverage
 BOOST_LIBS = -lboost_system -lboost_regex -lboost_filesystem -lboost_thread
-LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) -lpicosat -lboost_wave-mt -lPuma $(LDCOV)
+LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) ../picosat/libpicosat.a -lboost_wave-mt -lPuma $(LDCOV)
 
 PARSEROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
@@ -34,10 +35,13 @@ TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel \
 
 all: $(PROGS) $(TESTPROGS)
 
-undertaker: libparser.a
+undertaker: libparser.a ../picosat/libpicosat.a
 rsf2cnf: libparser.a
 KconfigIntersect: libparser.a
 predator: libparser.a predator.o PredatorVisitor.o
+
+../picosat/libpicosat.a:
+	$(MAKE) -C .. picosat/libpicosat.a
 
 ../version.h:
 	$(MAKE) -C .. version.h

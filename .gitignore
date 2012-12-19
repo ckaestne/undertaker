@@ -14,3 +14,6 @@ build
 /doc/undertaker-linux-tree.1.gz
 /doc/undertaker.1.gz
 /version.h
+/picosat/config.h
+/picosat/libpicosat.a
+/picosat/makefile
