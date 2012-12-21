@@ -1133,7 +1133,8 @@ int main (int argc, char ** argv) {
             /* Wait until fork count reaches zero */
             wait_for_forked_child(0, 0, 0, threads > 1);
         } else {
-            process_file(workfiles[0].c_str());
+            if (workfiles.size() > 0)
+                process_file(workfiles[0].c_str());
         }
     }
     return RETVALUE;
