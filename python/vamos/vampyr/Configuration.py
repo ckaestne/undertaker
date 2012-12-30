@@ -93,7 +93,7 @@ class BareConfiguration(Configuration):
         return '"' + self.get_cppflags() + '"'
 
     def switch_to(self):
-        pass
+        logging.debug("nothing to do for switching to %s", self)
 
     def __call_compiler(self, compiler, args, on_file):
         cmd = compiler + " " + args
@@ -245,17 +245,35 @@ class KbuildConfiguration(Configuration):
         shutil.copy(config, expanded_config)
         return expanded_config
 
+    def get_expanded(self):
+        """if already expanded, returns the path to the file that holds the expanded configuration
+
+        returns None otherwise
+        """
+        expanded_config = self.kconfig + '.expanded'
+        if os.path.exists(expanded_config):
+            return expanded_config
+        else:
+            return None
+
     def expand_stdconfig(self):
-        stdconfig = self.framework.options['stdconfig']
-        self.call_makefile(stdconfig, failok=False)
+        expanded = self.get_expanded()
+
+        if expanded:
+            shutil.copy(expanded, '.config')
+        else:
+            stdconfig = self.framework.options['stdconfig']
+            self.call_makefile(stdconfig, failok=False)
+
+            # mark this configuration as already expanded, now that we have saved it
+            self.expanded = self.save_expanded('.config')
+            shutil.copy(self.expanded, self.kconfig)
+
+        self.framework.apply_configuration()
 
         if not self.framework.options.has_key('stdconfig_files'):
             self.framework.options['stdconfig_files'] \
                 = set(files_for_current_configuration(self.arch, self.subarch))
-        else:
-            self.framework.apply_configuration()
-        self.kconfig = '.vampyr.' + self.framework.options['stdconfig']
-        shutil.copy('.config', self.kconfig)
 
     def verify(self, expanded_config='.config'):
         """
@@ -274,14 +292,22 @@ class KbuildConfiguration(Configuration):
         return (partial_config.keys(), conflicts)
 
     def switch_to(self):
-        if not self.expanded:
+        logging.info("Switching to configuration %s", self)
+
+        # sanity check: remove existing configuration to ensure consistent behavior
+        if os.path.exists(".config"):
+            os.unlink(".config")
+
+        if self.expanded is None:
             logging.debug("Expanding partial configuration %s", self.kconfig)
             self.expand()
-            return
+        else:
+            # now replace the old .config with our 'expanded' one
+            shutil.copyfile(self.expanded, '.config')
+            self.framework.apply_configuration()
 
-        # now replace the old .config with our 'expanded' one
-        shutil.copyfile(self.expanded, '.config')
-        self.framework.apply_configuration()
+        assert os.path.exists('.config')
+
 
     def call_make(self, on_file, extra_args):
         on_object = on_file[:-1] + "o"
@@ -486,7 +512,7 @@ class LinuxStdConfiguration(LinuxConfiguration):
 
         self.cppflags = '/dev/null'
         self.source   = basename
-        self.kconfig  = '/dev/null'
+        self.kconfig  = '.config.allyesconfig'
 
     def expand(self, verify=False):
         return self.expand_stdconfig()
@@ -496,6 +522,10 @@ class LinuxStdConfiguration(LinuxConfiguration):
 
     def filename(self):
         return self.basename + '.' + self.framework.options['stdconfig']
+
+    def __repr__(self):
+        # This may look like a proper filename, but actually is fake
+        return '%s.%s' % (self.source, self.framework.options['stdconfig'])
 
 
 class BusyboxConfiguration(KbuildConfiguration):
@@ -567,7 +597,7 @@ class BusyboxStdConfiguration(BusyboxConfiguration):
 
         self.cppflags = '/dev/null'
         self.source   = basename
-        self.kconfig  = '/dev/null'
+        self.kconfig  = '.config.allyesconfig'
 
     def expand(self, verify=False):
         return self.expand_stdconfig()
@@ -577,6 +607,10 @@ class BusyboxStdConfiguration(BusyboxConfiguration):
 
     def filename(self):
         return self.basename + '.' + self.framework.options['stdconfig']
+
+    def __repr__(self):
+        # This may look like a proper filename, but actually is fake
+        return '%s.%s' % (self.source, self.framework.options['stdconfig'])
 
 
 class CorebootConfiguration(KbuildConfiguration):
@@ -619,6 +653,7 @@ class CorebootConfiguration(KbuildConfiguration):
     def call_sparse(self, on_file):
         raise CheckerNotImplemented("call_sparse is not implemented yet")
 
+
 class CorebootPartialConfiguration(CorebootConfiguration):
     """
     This class creates a configuration object for a partial Coreboot
@@ -659,7 +694,7 @@ class CorebootStdConfiguration(CorebootConfiguration):
 
         self.cppflags = '/dev/null'
         self.source   = basename
-        self.kconfig  = '/dev/null'
+        self.kconfig  = '.config.allyesconfig'
 
     def expand(self, verify=False):
         return self.expand_stdconfig()
@@ -669,3 +704,7 @@ class CorebootStdConfiguration(CorebootConfiguration):
 
     def filename(self):
         return self.basename + '.' + self.framework.options['stdconfig']
+
+    def __repr__(self):
+        # This may look like a proper filename, but actually is fake
+        return '%s.%s' % (self.source, self.framework.options['stdconfig'])

@@ -72,19 +72,19 @@ def get_conditional_blocks(filename, autoconf_h=None, all_cpp_blocks=False,
         cmd = '%s | cpp -include %s' % (normalizer, autoconf_h)
     else:
         cmd = normalizer
-    (blocks, rc) = execute(cmd, echo=True, failok=True)
+    (stdout, rc) = execute(cmd, echo=True, failok=True)
 
-    blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), blocks)
+    blocks = filter(lambda x: len(x) != 0 and x.startswith("B"), stdout)
     # With never versions of zizler line numbers for each block are
     # also printed. By default they are stripped, to retain backward
     # compatibility
     #  "B00 23" -> "B00"
     if strip_linums and len(blocks) > 0 and " " in blocks[0]:
-        blocks = [x.split(" ",1)[0] for x in blocks]
+        blocks = [x.split(" ", 1)[0] for x in blocks]
     if rc != 0:
         logging.warning("'%s' signals exitcode: %d", cmd, rc)
         if rc == 127:
-            raise CommandFailed(cmd, 127)
+            raise CommandFailed(cmd, 127, stdout)
     return blocks
 
 

@@ -111,9 +111,9 @@ class FiascoInferenceAtoms(InferenceAtoms):
             assert ret == 0
             stdout = dict([tuple((x + " ").split(" ", 1)) for x in stdout])
             if not stdout.has_key("MAKEFILE_LIST"):
-                raise CommandFailed("Makefile.list_fiasco", -1)
+                raise CommandFailed("Makefile.list_fiasco", -1, stdout)
             if not stdout.has_key("PREPROCESS_PARTS"):
-                raise CommandFailed("Makefile.list_fiasco", -1)
+                raise CommandFailed("Makefile.list_fiasco", -1, stdout)
 
             var_impl = set([x for x in stdout["PREPROCESS_PARTS"].split()
                             if len(x) > 0])

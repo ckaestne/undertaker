@@ -54,7 +54,7 @@ def do_checks(options, filename, configs, tool):
 
     for c in configs:
         if not hasattr(c, "call_" + tool):
-            logging.error(tool + " not supported by this build system")
+            logging.error(tool + " not supported by this build system for %s", c)
             return errors
 
         try:
@@ -137,13 +137,25 @@ def do_dead_analysis(wl_dict, options):
             tmpfile.write("\n".join(wl_dict[arch]))
             tmpfile.flush()
             current_model=get_model_for_arch(arch)
+            # failok=True, if applied on a problematic file (e.g.,
+            # kernel/time.c), undertaker will signal an error. In this
+            # case, we want to proceed nevertheless!
             execute("undertaker -j dead -m %s -t %d -b %s" \
                         % (current_model, options['threads'], tmpfile.name),
-                    failok=False)
+                    failok=True)
 
 
 def analyze_variability(source_files, options):
+    # this method has too many branches and statements
+    # pylint: disable=R0912
+
     bf = options['framework']
+
+    # bf.analyze_configuration_coverage has hardcoded fields with allyesconfig
+    if bf.options.has_key('stdconfig') and bf.options['stdconfig'] != 'allyesconfig':
+        logging.error("Overriding standard config %s to 'allyesconfig",
+                      bf.options['stdconfig'])
+        bf.options['stdconfig'] = 'allyesconfig'
 
     # If there is no fixed architecture, then have to guess the 'best'
     # architecture for each file individually. However, the user might
@@ -154,6 +166,10 @@ def analyze_variability(source_files, options):
     wl_dict = dict()
     reset_arch = False
     for f in source_files:
+        if not os.path.exists(f):
+            logging.error("Skipping non-existing file %s", f)
+            continue
+
         if not options.has_key('arch') or not options['arch']:
             # NB: In that case we have to explicitly unset the architecture
             #     in the buildframework each time we analyze a new file!
@@ -162,9 +178,11 @@ def analyze_variability(source_files, options):
             reset_arch = True
         else:
             arch = options['arch']
+
         if not wl_dict.has_key(arch):
             wl_dict[arch] = set()
         wl_dict[arch].add(f)
+
         for dead in glob.glob("%s*dead" % f):
             logging.debug("Removing stale defect file %s", dead)
             os.unlink(dead)
@@ -172,6 +190,10 @@ def analyze_variability(source_files, options):
     do_dead_analysis(wl_dict, options)
 
     for f in source_files:
+        if not os.path.exists(f):
+            logging.error("Skipping non-existing file %s", f)
+            continue
+
         logging.info("Analyzing %s", f)
         if reset_arch:
             bf.options['arch'], bf.options['subarch'] = None, None

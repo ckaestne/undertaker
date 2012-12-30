@@ -331,24 +331,30 @@ def file_in_current_configuration(filename, arch=None, subarch=None):
         { 'basedir' : scriptsdir,
           'filename': filename.replace("'", "\'")}
 
-    if arch == 'busybox':
-        (make_result, _) = call_makefile_generic('list',
-                                                 failok=False,
-                                                 extra_variables=make_args)
-    elif arch == 'coreboot':
-        make_result = coreboot_files_for_current_configuration(subarch)
-        for line in make_result:
-            if filename in line:
-                return "y"
+    try:
+        if arch == 'busybox':
+            (make_result, _) = call_makefile_generic('list',
+                                                     failok=False,
+                                                     extra_variables=make_args)
+        elif arch == 'coreboot':
+            make_result = coreboot_files_for_current_configuration(subarch)
+            for line in make_result:
+                if filename in line:
+                    return "y"
+            return "n"
+        # fallback to Linux
+        else:
+            (make_result, _) = call_linux_makefile('list',
+                                                   filename=filename,
+                                                   arch=arch,
+                                                   subarch=subarch,
+                                                   failok=False,
+                                                   extra_variables=make_args)
+
+    except CommandFailed:
+        logging.error("Unable to determine if file '%s' is covered by current configuration",
+                      filename)
         return "n"
-    # fallback to Linux
-    else:
-        (make_result, _) = call_linux_makefile('list',
-                                               filename=filename,
-                                               arch=arch,
-                                               subarch=subarch,
-                                               failok=False,
-                                               extra_variables=make_args)
 
     for line in make_result:
         # these lines indicate error and warning messages

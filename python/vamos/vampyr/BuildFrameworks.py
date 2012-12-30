@@ -102,7 +102,11 @@ class BuildFramework:
         return find_autoconf()
 
     def calculate_configurations(self, filename):
-        """Calculate configurations for the given file"""
+        """Calculate configurations for the given file
+
+        returns a list of 'Configuration' objects that match the
+        buildsystem class.
+        """
 
         cmd = "undertaker -q -j coverage -C %s -O combined" % self.options['coverage_strategy']
         if self.options.has_key('model') and self.options['model']:
@@ -128,7 +132,6 @@ class BuildFramework:
             print "--"
             for i in output:
                 logging.error(i)
-            return set()
 
         return self.verify_configurations(filename)
 
@@ -339,7 +342,8 @@ class KbuildBuildFramework(BuildFramework):
         return files
 
     def verify_configurations(self, filename):
-        logging.info("Testing which configurations are actually being compiled")
+        logging.info("Testing which configurations are actually being compiled for '%s'",
+                     filename)
         configs = list()
         for cfgfile in find_configurations(filename):
             # here, we rely on the fact that find_configurations returns filenames such as
@@ -400,27 +404,24 @@ class KbuildBuildFramework(BuildFramework):
 
         """
 
-        # sanity check: remove existing configuration to ensure consistent behavior
-        if os.path.exists(".config"):
-            os.unlink(".config")
-        self.call_makefile("allyesconfig", failok=False)
-        self.apply_configuration()
-        assert os.path.exists('.config')
-        autoconf_h=self.find_autoconf()
-
         return_dict = BuildFramework.analyze_configuration_coverage(self, filename)
 
         return_dict['arch'] = self.options.get('arch', None)
         return_dict['subarch'] = self.options.get('subarch', None)
 
         # generate the configuration for 'allyesconfig'
-        self.call_makefile("allyesconfig", failok=False)
+        allyesconfig = self.make_std_configuration(filename)
+        allyesconfig.switch_to()
+        autoconf_h=self.find_autoconf()
 
         if self.file_in_current_configuration(filename) != 'n':
             return_dict['blocks_allyesconfig'] = set(["B00"]) | \
                 set(get_conditional_blocks(filename, autoconf_h, all_cpp_blocks=True))
         else:
             return_dict['blocks_allyesconfig'] = set()
+
+        print "Config %s reaches %d blocks" % \
+            (allyesconfig, len(return_dict['blocks_allyesconfig']))
 
         return return_dict
 
@@ -583,9 +584,6 @@ class CorebootBuildFramework(KbuildBuildFramework):
             self.options['expansion_strategy'] = 'allyesconfig'
 
         KbuildBuildFramework.__init__(self, options)
-
-    def identifier(self):
-        return "coreboot"
 
     def make_configuration(self, basename, nth):
         return CorebootConfiguration(self, basename, nth)
