@@ -13,8 +13,8 @@ CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
 # LDCOV = -coverage
-BOOST_LIBS = -lboost_system -lboost_regex -lboost_filesystem -lboost_thread
-LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) ../picosat/libpicosat.a -lboost_wave-mt -lPuma $(LDCOV)
+BOOST_LIBS = -lboost_system-mt -lboost_regex-mt -lboost_filesystem-mt -lboost_thread-mt -lboost_wave-mt
+LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) ../picosat/libpicosat.a -lPuma -lm $(LDCOV)
 
 PARSEROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
