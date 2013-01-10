@@ -52,9 +52,13 @@ def do_checks(options, filename, configs, tool):
     print "%s: Checking %d configuration(s): %s" \
         % (filename, len(configs), ", ".join([c.filename() for c in configs]))
 
+    logging.info("Checking file %s with tool '%s' and options: '%s'",
+                 filename, tool, options['args'][tool])
+
     for c in configs:
         if not hasattr(c, "call_" + tool):
-            logging.error(tool + " not supported by this build system for %s", c)
+            logging.error("Tool '%s' not supported by this build system for %s",
+                          tool, c)
             return errors
 
         try:
@@ -408,6 +412,7 @@ def main():
         print "Total OK: %d, Total FAIL: %d" % (len(success), len(fail))
         sys.exit(0)
 
+    # a list of tool names without arguments!
     options['call'] = []
 
     if len(opts.call) == 0:
@@ -415,25 +420,41 @@ def main():
         sys.exit(1)
 
     for call in opts.call:
+        # call may contain something like 'gcc,-fno-inline-functions-called-once -fno-unused'
+
+        # NB: options['call'][tool] must contain both tool and arguments!
         if ',' in call:
-            options['call'].extend(call.split(","))
+            tool, tool_arguments = call.split(",")
+            options['call'].append(tool)
+            options['args'][tool] = tool_arguments
         else:
-            options['call'].append(call)
+            tool = call
+            options['call'].append(tool)
 
         # check if the specified tools are available in the default search path
-        if call == 'gcc' and not check_tool('gcc --version'):
-            sys.exit(1)
-
-        if call == 'sparse' and not check_tool('sparse'):
-            sys.exit(1)
-
-        if call == 'spatch' and not (check_tool('vampyr-spatch-wrapper --help') and
+        if tool == 'gcc':
+            if not check_tool('gcc --version'):
+                sys.exit(1)
+        elif tool == 'sparse':
+            if not check_tool('sparse'):
+                sys.exit(1)
+        elif tool == 'spatch':
+            if not (check_tool('vampyr-spatch-wrapper --help') and
                                      check_tool("spatch")):
+                sys.exit(1)
+        elif tool == 'clang':
+            if not check_tool('clang --version'):
+                sys.exit(1)
+        else:
+            logging.error("Unsupported tool '%s'", tool)
             sys.exit(1)
 
         # add default options if not set by user
         if (call == 'gcc' and 'gcc' not in options['args']):
             options['args']['gcc'] = "-Wno-unused"
+
+        if (call == 'clang' and 'clang' not in options['args']):
+            options['args']['clang'] = ""
 
         if (call == 'sparse' and 'sparse' not in options['args']):
             options['args']['sparse'] = "-Wsparse-all"

@@ -351,13 +351,17 @@ class KbuildBuildFramework(BuildFramework):
             assert '.config' in cfgfile
             basename, ext = os.path.splitext(cfgfile)
             nth = int(ext[len('.config'):])
-            config_obj = self.make_configuration(basename, nth)
-            config_obj.switch_to()
-            if self.file_in_current_configuration(filename) != 'n':
-                logging.info("Configuration '%s' is actually compiled", cfgfile)
-                configs.append(config_obj)
-            else:
-                logging.info("Configuration '%s' is *not* compiled", cfgfile)
+            try:
+                config_obj = self.make_configuration(basename, nth)
+                config_obj.switch_to()
+                if self.file_in_current_configuration(filename) != 'n':
+                    logging.info("Configuration '%s' is actually compiled", cfgfile)
+                    configs.append(config_obj)
+                else:
+                    logging.info("Configuration '%s' is *not* compiled", cfgfile)
+            except RuntimeError as e:
+                logging.error("Failed to process file %s", filename)
+                logging.error(e)
 
         return configs
 
@@ -480,6 +484,8 @@ class LinuxBuildFramework(KbuildBuildFramework):
             self.options['subarch'] = guess_subarch_from_arch(self.options['arch'])
         self.options['model'] = get_model_for_arch(self.options['arch'])
         KbuildBuildFramework.__init__(self, self.options)
+        logging.info("Instantiating LinuxBuildFramework (%s/%s)",
+                     self.options['arch'], self.options['subarch'])
 
     def make_configuration(self, basename, nth):
         return LinuxConfiguration(self, basename, nth)

@@ -359,11 +359,11 @@ class KbuildConfiguration(Configuration):
 
         if statuscode != 0:
             logging.error("Running checker %s on file %s failed", cmd, on_file)
+            logging.error("contents of CC:")
+            logging.error(CC)
+            logging.error("contents of CHECK:")
+            logging.error(CHECK)
 
-        logging.debug("contents of CC:")
-        logging.debug(CC)
-        logging.debug("contents of CHECK:")
-        logging.debug(CHECK)
         return (CC, CHECK)
 
     def call_gcc(self, on_file):
