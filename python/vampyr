@@ -304,6 +304,9 @@ def main():
                       help="try to expand the given partial configuration")
     parser.add_option('-b', '--batch', dest='batch_mode', action='store_true', default=False,
                       help="operate in batch mode, read filenames from given worklists")
+    parser.add_option('-k', '--keep-configurations', dest='keep_configurations', action='store_true',
+                      default=False,
+                      help="don't calculate partial configurations when they already exist")
     parser.add_option('-t', '--threads', dest='threads', action='store', type='int',
                       default=0,
                       help="Number of parallel threads for undertaker dead analysis")
@@ -342,6 +345,7 @@ def main():
         sys.exit(1)
 
     options = { 'args': {},
+                'keep_configurations': opts.keep_configurations,
                 'cross_prefix': opts.cross_prefix,
                 'threads': get_online_processors() if opts.threads == 0 else opts.threads,
                 'exclude_others': opts.exclude_others,

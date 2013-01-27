@@ -107,7 +107,8 @@ class BuildFramework:
         returns a list of 'Configuration' objects that match the
         buildsystem class.
         """
-
+        if self.options.has_key('keep_configurations') and self.options['keep_configurations']:
+            return self.verify_configurations(filename)
         cmd = "undertaker -q -j coverage -C %s -O combined" % self.options['coverage_strategy']
         if self.options.has_key('model') and self.options['model']:
             cmd += " -m %s" % self.options['model']
