@@ -153,10 +153,9 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
         if (!kconfig_constraints()) {
             if (_defectType != Configuration) {
                 // Wasn't already identified as Configuration defect
-                // crosscheck doesn't overwrite formula
-                _formula = formula_str;
                 _arch = ModelContainer::lookupArch(model);
             }
+            _formula = formula_str;
             _defectType = Configuration;
             return true;
         } else {
@@ -170,9 +169,9 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
 
             if (!missing_constraints()) {
                 if (_defectType != Configuration) {
-                    _formula = formula_str;
                     _defectType = Referential;
                 }
+                _formula = formula_str;
                 return true;
             }
         }
@@ -306,10 +305,9 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
         if (!kconfig_constraints()) {
             if (_defectType != Configuration) {
                 // Wasn't already identified as Configuration defect
-                // crosscheck doesn't overwrite formula
-                _formula = formula_str;
                 _arch = ModelContainer::lookupArch(model);
             }
+            _formula = formula_str;
             _defectType = Configuration;
             return true;
         } else {
@@ -323,9 +321,9 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
 
             if (!missing_constraints()) {
                 if (_defectType != Configuration) {
-                    _formula = formula_str;
                     _defectType = Referential;
                 }
+                _formula = formula_str;
                 return true;
             }
         }

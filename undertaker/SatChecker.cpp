@@ -133,7 +133,10 @@ std::string SatChecker::pprint() {
         (*this)();
         debug_flags = old_debug_flags;
     }
-    return _sat + "\n\n" + debug_parser + "\n";
+    if(debug_parser.size() > 0)
+        return _sat + "\n\n" + debug_parser + "\n";
+    else
+        return _sat + "\n";
 }
 
 void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
