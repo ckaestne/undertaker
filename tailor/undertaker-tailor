@@ -60,6 +60,8 @@ function help {
     -c           generate complete config file to target
                  (this will overwrite existing .config files)
     -l           output source locations for addresses in tracefile
+    -p <string>  if provided, this string will be stripped from the paths in
+                 debug information. Otherwise the tool tries to derive it
 
   Outputlevel
     -q           be quiet (only necessary output)
@@ -99,6 +101,7 @@ dir_kernelsource=$(readlink -f . )
 dir_kernelbinary=$(readlink -f . )
 path_undertaker=""
 path_vmlinux=""
+strip_path=''
 
 # Const values
 const_ulimit=65536
@@ -136,7 +139,7 @@ if [ $# -eq 1 -a -f $1 ]; then
     autoconf=true
 else
     # Parse Arguments
-    while getopts "ab:cde:ghi:k:lm:qs:u:vdw:" options; do
+    while getopts "ab:cde:ghi:k:lm:p:qs:u:vdw:" options; do
       case $options in
         a ) autoconf=true
             ;;
@@ -191,6 +194,8 @@ else
                 output $QUIET "Model (-m): Not a valid model file: $OPTARG"
                 ((error+=1))
             fi
+            ;;
+        p ) strip_path=$OPTARG;
             ;;
         q ) if [ $outputlevel -eq 1 ]; then
                 outputlevel=0
@@ -359,18 +364,25 @@ if [ $(cat $tmptracefile | wc -l ) -eq 0 ] ; then
 fi
 
 # Finding the shortest common prefix to all paths
-output $VERBOSE "Start analyzing base path of files..."
-prefix=""
-for line in $(cat $tmptracefile | head -n $const_analyzelength) ; do
-    if [ -z $prefix ]; then
-        prefix=$line
-    else
-        prefix=$(echo "$prefix|$line" | sed -e 's/^\(.*\/\).*|\1.*$/\1/')
-    fi
-done
+if [ -z $strip_path ] ; then
+    output $VERBOSE "Trying to derive kernel source folder from debug information..."
+    prefix=""
+    for line in $(cat $tmptracefile | head -n $const_analyzelength) ; do
+        line=$(readlink -m "$line")
+        if [ -z $prefix ]; then
+            prefix=$line
+        else
+            prefix=$(echo "$prefix|$line" | sed -e 's/^\(.*\/\).*|\1.*$/\1/')
+        fi
+    done
+    output $VERBOSE "Found strippable common prefix: $prefix"
+else
+    output $VERBOSE "Path to strip from debug information paths was set to: $strip_path"
+    prefix=$strip_path
+fi
 
 # Remove the prefix, so we have relative addresses to kernel source directory
-output $VERBOSE "Starting formatting path of files..."
+output $VERBOSE "Starting to format debug information to get relative paths..."
 for line in $(sort -u $tmptracefile) ; do
     echo ${line/#$prefix/\.\/} >> $tmp_addr2line
 done
