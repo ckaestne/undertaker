@@ -374,7 +374,10 @@ def determine_buildsystem_variables(arch=None):
     """
     returns a list of kconfig variables that are mentioned in Linux Makefiles
     """
-    if arch:
+    if arch == 'coreboot':
+        cmd = r"find . \( -name Makefile.inc -o -name Makefile \) " + \
+              r"-exec sed -n '/CONFIG_/p' {} \+"
+    elif arch:
         cmd = r"find . \( -name Kbuild -o -name Makefile \) " + \
               r"\( ! -path './arch/*' -o -path './arch/%(arch)s/*' \) " + \
               r"-exec sed -n '/CONFIG_/p' {} \+"
