@@ -394,16 +394,20 @@ def determine_buildsystem_variables(arch=None):
     return ret
 
 
-def determine_buildsystem_variables_in_directory(directory):
+def determine_buildsystem_variables_in_directory(directory, arch=''):
     filenames = []
     kbuild = os.path.join(directory, "Kbuild")
     makefile = os.path.join(directory, "Makefile")
+    makefileinc = os.path.join(directory, "Makefile.inc")
 
     if os.path.exists(kbuild):
         filenames.append(kbuild)
 
     if os.path.exists(makefile):
         filenames.append(makefile)
+
+    if arch == 'coreboot' and os.path.exists(makefileinc):
+        filenames.append(makefileinc)
 
     if os.path.exists(kbuild + ".platforms"):
         filenames.append(kbuild + ".platforms")

@@ -88,6 +88,7 @@ def find_variables_in_directories(arch, args):
     if not modelfile:
         logging.error("%s not found, please generate models using undertaker-kconfigdump",
                       modelfile)
+        sys.exit(1)
     logging.info("loading model %s", modelfile)
     if len(args) is 0:
         args.append(".")
@@ -95,7 +96,7 @@ def find_variables_in_directories(arch, args):
         if not os.path.isdir(d):
             logging.warning("Skipping %s, not a directory", d)
             continue
-        variables = determine_buildsystem_variables_in_directory(d)
+        variables = determine_buildsystem_variables_in_directory(d, arch)
         logging.info("Detected %d Kconfig variables in subdir %s", len(variables), d)
         model = parse_model(modelfile)
         s = [x for x in variables if x in model]
