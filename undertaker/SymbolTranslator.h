@@ -34,8 +34,13 @@
 namespace kconfig {
     class SymbolTranslator : public SymbolParser {
     public:
-        SymbolTranslator (CNF *cnf);
+        SymbolTranslator (CNF *cnf) : symbolSet(0), cnfbuilder(cnf),
+            _featuresWithStringDep(0), _totalStringComp(0) { }
+
         std::set<struct symbol *> *symbolSet;
+
+        int featuresWithStringDependencies() { return _featuresWithStringDep; }
+        int totalStringComparisons() { return _totalStringComp; }
 
     protected:
         CNFBuilder cnfbuilder;
@@ -51,6 +56,9 @@ namespace kconfig {
 
     private:
         std::list<std::string> clauses;
+        // statistic data
+        int _featuresWithStringDep;
+        int _totalStringComp;
     };
 }
 #endif

@@ -167,7 +167,14 @@ int main(int argc, char **argv) {
         symbolSet->traverse();
         logger << debug << "translating" << std::endl;
         translator->traverse();
-        logger << debug << "done" << std::endl;
+
+        if (translator->featuresWithStringDependencies()) {
+            logger << info << "Features w string dep (" << arch << "): "
+                   << translator->featuresWithStringDependencies()
+                   << " with " << translator->totalStringComparisons()
+                   << " comparisons." << std::endl;
+        }
+        logger << info << "features in model: " << symbolSet->size() << std::endl;
     }
     if (saveTranslatedModel) {
         cnf->toFile(saveFile.string().c_str());
@@ -175,6 +182,5 @@ int main(int argc, char **argv) {
                << saveFile << std::endl;
     }
     exitstatus += process_assumptions(cnf, assumptions);
-
     return exitstatus;
 }

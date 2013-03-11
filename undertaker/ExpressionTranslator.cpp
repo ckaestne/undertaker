@@ -26,8 +26,6 @@
 #include <string.h>
 using namespace kconfig;
 
-ExpressionTranslator::ExpressionTranslator() : symbolSet(0) {}
-
 TristateRepr ExpressionTranslator::visit_symbol(struct symbol *sym) {
     if (sym == &symbol_no) {
         struct TristateRepr res = { B_CONST(false), B_CONST(false), false, S_TRISTATE };
@@ -92,6 +90,7 @@ TristateRepr ExpressionTranslator::visit_equal(struct expr *e, TristateRepr left
         counter++;
         res.yes=B_VAR(n.str());
         res.mod=B_CONST (false);
+        this->_processedValComp++;
         return res;
     }
     res.yes =  &((*left.yes && *right.yes) || (*left.mod && *right.mod) ||
@@ -111,6 +110,7 @@ TristateRepr ExpressionTranslator::visit_unequal(struct expr *e, TristateRepr le
         counter++;
         res.yes=B_VAR(n.str());
         res.mod=B_CONST (false);
+        this->_processedValComp++;
         return res;
     }
     res.yes = &((!*left.yes || !*right.yes) && (!*left.mod || !*right.mod) &&

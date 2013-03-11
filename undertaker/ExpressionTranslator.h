@@ -41,9 +41,15 @@ namespace kconfig {
     };
 
     class ExpressionTranslator : public ExpressionVisitor<TristateRepr> {
+    private:
+        //some statistical data
+        int _processedValComp;
+
     public:
-        ExpressionTranslator();
+        ExpressionTranslator() : _processedValComp(0), symbolSet(0) {};
         std::set<struct symbol *> *symbolSet;
+
+        int getValueComparisonCounter() { return _processedValComp; }
 
     protected:
         virtual TristateRepr visit_symbol(struct symbol *sym);

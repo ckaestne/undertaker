@@ -30,8 +30,6 @@
 #include <string.h>
 #include <fstream>
 
-kconfig::SymbolTranslator::SymbolTranslator(CNF *cnf) : symbolSet(0), cnfbuilder(cnf) { }
-
 
 void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {
     if (!sym)
@@ -77,6 +75,9 @@ void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {
     this->addClause(FRevYes.simplify());
     this->addClause(FRevMod.simplify());
     this->addClause(completeInv.simplify());
+
+    this->_featuresWithStringDep += (expTranslator.getValueComparisonCounter() > 0) ? 1 : 0;
+    this->_totalStringComp += expTranslator.getValueComparisonCounter();
 
     expr_free(def);
     expr_free(dep);
@@ -136,6 +137,9 @@ void kconfig::SymbolTranslator::visit_tristate_symbol(struct symbol *sym) {
     this->addClause(completeInv.simplify());
     this->addClause(&guard);
 
+    this->_featuresWithStringDep += (expTranslator.getValueComparisonCounter() > 0) ? 1 : 0;
+    this->_totalStringComp += expTranslator.getValueComparisonCounter();
+
     expr_free(def);
     expr_free(dep);
     expr_free(vis);
@@ -165,15 +169,18 @@ void kconfig::SymbolTranslator::visit_string_symbol(struct symbol *sym) {
     expr *rev = reverseDepExpression(sym);
     expr *dep = dependsExpression(sym);
 
-    //BoolExp &f1yes = *B_VAR(sym, rel_yes);
+//    BoolExp &f1yes = *B_VAR(sym, rel_yes);
 
-    //TristateRepr transDep = expTranslator.process(dep);
-    //TristateRepr transRev = expTranslator.process(rev);
+//    TristateRepr transDep = expTranslator.process(dep);
+//    TristateRepr transRev = expTranslator.process(rev);
 
 
     // (rev.yes || rev.mod || dep.yes ||dep.mod) -> f1
-    //BoolExp &F2 = !(*transDep.yes || *transDep.mod || *transRev.yes  || *transRev.mod) || f1yes;
+//    BoolExp &F2 = !(*transDep.yes || *transDep.mod || *transRev.yes  || *transRev.mod) || f1yes;
     this->cnfbuilder.pushSymbolInfo(sym);
+
+    this->_featuresWithStringDep += (expTranslator.getValueComparisonCounter() > 0) ? 1 : 0;
+    this->_totalStringComp += expTranslator.getValueComparisonCounter();
 
     expr_free(dep);
     expr_free(rev);
@@ -206,6 +213,9 @@ void kconfig::SymbolTranslator::visit_choice_symbol(struct symbol *sym) {
     } else {
         throw "Invalid choice type";
     }
+
+    this->_featuresWithStringDep += (expTranslator.getValueComparisonCounter() > 0) ? 1 : 0;
+    this->_totalStringComp += expTranslator.getValueComparisonCounter();
 }
 
 void kconfig::SymbolTranslator::visit_symbol(struct symbol *) {
