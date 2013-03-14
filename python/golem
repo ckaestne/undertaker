@@ -72,7 +72,7 @@ def do_inference(args, arch, subarch):
         try:
             get_coreboot_version()
             atoms = CorebootInferenceAtoms(path)
-        except NotALinuxTree:
+        except NotACorebootTree:
             pass
 
 
