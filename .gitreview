@@ -1,0 +1,6 @@
+[gerrit]
+host=vamos.informatik.uni-erlangen.de
+port=29418
+project=undertaker.git
+defaultbranch=master
+
