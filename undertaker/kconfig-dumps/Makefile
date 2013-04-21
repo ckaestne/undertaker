@@ -12,7 +12,7 @@ build_models: $(MODELS) $(CNF_MODELS)
 
 models/%.model: kconfig-%.rsf
 	@mkdir -p models
-	@cp -lv $< models/$*.rsf
+	@cp -flv $< models/$*.rsf
 	$(RSF2MODEL) $< > $@
 
 cnfmodels/%.cnf: models/%.model kconfig-%.rsf
