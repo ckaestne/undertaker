@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
 /*
- *    satyr - compiles KConfig files to boolean formulas
+ *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -33,7 +33,6 @@
 #include "InvalidNodeException.h"
 
 namespace kconfig {
-
     struct TristateRepr {
         BoolExp *yes;
         BoolExp *mod;
@@ -42,7 +41,6 @@ namespace kconfig {
     };
 
     class ExpressionTranslator : public ExpressionVisitor<TristateRepr> {
-
     public:
         ExpressionTranslator();
         std::set<struct symbol *> *symbolSet;

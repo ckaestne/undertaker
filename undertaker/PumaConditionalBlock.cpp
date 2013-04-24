@@ -122,8 +122,7 @@ ConditionalBlock *PumaConditionalBlock::parse(const char *filename,
 using namespace Puma;
 
 // Build a string from a subtree of the preprocessor syntax tree.
-char* buildString (const PreTree* node)
-{
+char* buildString (const PreTree* node) {
     assert(node);
 
     char *result, *ptr;

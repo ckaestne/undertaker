@@ -63,10 +63,10 @@ class PumaConditionalBlock : public ConditionalBlock {
 
 public:
     PumaConditionalBlock(CppFile *file, ConditionalBlock *parent, ConditionalBlock *prev,
-                         const Puma::PreTree *node, const unsigned long nodeNum,
-                         PumaConditionalBlockBuilder &builder) :
-        ConditionalBlock(file, parent, prev), _number(nodeNum), _start(0), _end(0),
-        _current_node(node), _isIfBlock(false), _isDummyBlock(false), _builder(builder),
+            const Puma::PreTree *node, const unsigned long nodeNum,
+            PumaConditionalBlockBuilder &builder) :
+            ConditionalBlock(file, parent, prev), _number(nodeNum), _start(0), _end(0),
+            _current_node(node), _isIfBlock(false), _isDummyBlock(false), _builder(builder),
             _expressionStr_cache(NULL) {
         lateConstructor();
     };
@@ -111,7 +111,6 @@ public:
 };
 
 class PumaConditionalBlockBuilder : public Puma::PreVisitor {
-
     unsigned long _nodeNum;
     void iterateNodes (Puma::PreTree *);
     // Stack of open conditional blocks. Pushed to when entering #ifdef
@@ -132,7 +131,6 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     Puma::Unit *resolve_includes(Puma::Unit *);
     void reset_MacroManager(Puma::Unit *unit);
 
-
 public:
     PumaConditionalBlockBuilder();
     ~PumaConditionalBlockBuilder();
@@ -152,8 +150,6 @@ public:
     void visitPreUndefDirective_Pre (Puma::PreUndefDirective *);
 
     unsigned long * getNodeNum() { return &_nodeNum; }
-
     static void addIncludePath(const char *);
 };
-
 #endif

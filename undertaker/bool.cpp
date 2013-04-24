@@ -1,5 +1,5 @@
 /*
- * boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -228,22 +228,21 @@ bool kconfig::BoolExp::equals(const BoolExp *other) const {
     if (other == NULL || typeid(*other) != typeid(*this)) {
         return false;
     } else {
-        return ( (this->left == other->left || this->left->equals(other->left))
-              && (this->right == other->right || this->right->equals(other->right)) );
+        return ((this->left == other->left || this->left->equals(other->left))
+              && (this->right == other->right || this->right->equals(other->right)));
     }
 }
 
 bool kconfig::BoolExpCall::equals(const BoolExp *other) const {
     const BoolExpCall *otherc = dynamic_cast<const BoolExpCall *>(other);
-    if ( otherc == NULL
-           || this->name != otherc->name
-           || this->param->size() != otherc->param->size()) {
+    if (otherc == NULL || this->name != otherc->name
+                       || this->param->size() != otherc->param->size()) {
         return false;
     }
     std::list<BoolExp *>::const_iterator itt = param->begin();
     std::list<BoolExp *>::const_iterator ito  = otherc->param->begin();
     for ( ; itt !=param->end(); itt++, ito++) {
-        if ( ! (*itt)->equals(*ito)) {
+        if (! (*itt)->equals(*ito)) {
             return false;
         }
     }

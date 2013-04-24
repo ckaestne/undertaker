@@ -1,5 +1,6 @@
+// -*- mode: c++ -*-
 /*
- * satyr - compiles KConfig files to boolean formulas
+ *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *

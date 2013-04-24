@@ -1,5 +1,5 @@
 /*
- *    satyr - compiles KConfig files to boolean formulas
+ *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -28,9 +28,7 @@
 using namespace kconfig;
 
 expr * kconfig::visibilityExpression(struct symbol *sym) {
-    /* symbol is visible (ie modifiable) if
-     * prompt1 or prompt2 or ... is visible.
-     */
+    // symbol is visible (ie modifiable) if prompt1 or prompt2 or ... is visible.
 
     // dependencies for symbol are included...
     struct property *prop;
@@ -43,13 +41,11 @@ expr * kconfig::visibilityExpression(struct symbol *sym) {
         cur = prop->visible.expr ? expr_copy(prop->visible.expr) : expr_alloc_symbol(&symbol_yes);
         visible = expr_alloc_or(visible, cur);
     }
-
     for_all_properties(sym, prop, P_MENU) {
         promptc++;
         cur = prop->visible.expr ? expr_copy(prop->visible.expr) : expr_alloc_symbol(&symbol_yes);
         visible = expr_alloc_or(visible, cur);
     }
-
     if (promptc == 1) {
         struct gstr s = str_new();
         struct gstr t = str_new();
@@ -65,13 +61,11 @@ expr * kconfig::visibilityExpression(struct symbol *sym) {
         str_free(&s);
         str_free(&t);
     }
-
     if (sym && sym->name) {
         logger << debug
                << sym->name << " " << visible<< " pc: " << promptc
                << std::endl;
     }
-
     return visible ? visible : expr_alloc_symbol(&symbol_no);
 }
 
@@ -85,10 +79,9 @@ bool kconfig::hasPrompt(struct symbol *sym) {
 }
 
 expr * kconfig::dependsExpression(struct symbol *sym) {
-/* symbol is visible (ie modifiable) if
- * prompt1 or prompt2 or ... is visible.
- */
-// dependencies for symbol are included...
+    // symbol is visible (ie modifiable) if prompt1 or prompt2 or ... is visible.
+
+    // dependencies for symbol are included...
     struct property *prop;
     expr *depends = 0;
     for_all_properties(sym, prop, P_SYMBOL) {
@@ -113,7 +106,6 @@ expr * kconfig::defaultExpression_bool_tristate(struct symbol *sym) {
     for_all_properties(sym, prop, P_DEFAULT) {
         propStack.push(prop);
     }
-
     while (!propStack.empty()) {
         struct property *cur = propStack.top();
         propStack.pop();

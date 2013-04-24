@@ -1,5 +1,5 @@
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -21,29 +21,24 @@
 #include "BoolExpSymbolSet.h"
 
 using namespace kconfig;
-using namespace std;
 
-BoolExpSymbolSet::BoolExpSymbolSet(BoolExp *e, bool ignoreFunctionSymbols)
-{
+BoolExpSymbolSet::BoolExpSymbolSet(BoolExp *e, bool ignoreFunctionSymbols) {
     this->ignoreFunctionSymbols = ignoreFunctionSymbols;
     if(e)
         e->accept(this);
-
 }
-std::set<std::string> BoolExpSymbolSet::getSymbolSet(void){
+
+std::set<std::string> BoolExpSymbolSet::getSymbolSet(void) {
      return symbolset;
 }
 
-void BoolExpSymbolSet::visit(BoolExpCall *e)
-{
+void BoolExpSymbolSet::visit(BoolExpCall *e) {
     if(ignoreFunctionSymbols)
         return;
 
     symbolset.insert(e->getName());
 }
 
-void BoolExpSymbolSet::visit(BoolExpVar *e)
-{
+void BoolExpSymbolSet::visit(BoolExpVar *e) {
     symbolset.insert(e->str());
-
 }

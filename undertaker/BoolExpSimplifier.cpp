@@ -1,5 +1,5 @@
 /*
- * boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -35,14 +35,12 @@ void kconfig::BoolExpSimplifier::visit(BoolExpNot *) {
         this->result = ret;
         return;
     }
-
     BoolExpNot *notExpr = dynamic_cast<BoolExpNot*>(node);
     if (notExpr) {
         BoolExp *x = notExpr->right;
         this->result = x;
         return;
     }
-
     this->result = new BoolExpNot(node);
 }
 
@@ -90,7 +88,6 @@ void kconfig::BoolExpSimplifier::visit(BoolExpAnd *) {
             }
         }
     }
-
     this->result = B_AND(sl, sr);
 }
 
@@ -152,7 +149,6 @@ void kconfig::BoolExpSimplifier::visit(BoolExpOr *) {
             }
         }
     }
-
     this->result = B_OR(sl, sr);
 }
 
@@ -179,7 +175,6 @@ void kconfig::BoolExpSimplifier::visit(BoolExpImpl *) {
             return;
         }
     }
-
     this->result = new BoolExpImpl(sl, sr);
 }
 

@@ -1,5 +1,6 @@
+// -*- mode: c++ -*-
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -42,23 +43,18 @@
 
 #include "BoolExpParser.h"
 
-namespace kconfig
-{
+namespace kconfig {
+    class BoolExpLexer : public KconfigFlexLexer {
+    public:
+        BoolExpLexer(std::istream* arg_yyin = 0, std::ostream* arg_yyout = 0);
 
-    class BoolExpLexer : public KconfigFlexLexer
-    {
-        public:
-            BoolExpLexer(std::istream* arg_yyin = 0, std::ostream* arg_yyout = 0);
+        virtual ~BoolExpLexer();
 
-            virtual ~BoolExpLexer();
-
-            virtual BoolExpParser::token_type lex(
+        virtual BoolExpParser::token_type lex(
                 BoolExpParser::semantic_type* yylval,
-                BoolExpParser::location_type* yylloc
-                );
+                BoolExpParser::location_type* yylloc);
 
-            void set_debug(bool b);
+        void set_debug(bool b);
     };
-
 }
 #endif

@@ -1,5 +1,6 @@
+// -*- mode: c++ -*-
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -23,16 +24,10 @@
 
 #include <stdexcept>
 
-namespace kconfig
-{
-
-    struct InvalidNodeException : public std::logic_error
-    {
-        InvalidNodeException(const char *s)
-            : logic_error(s) {}
-        InvalidNodeException(std::string s)
-            : logic_error(s.c_str()) {}
+namespace kconfig {
+    struct InvalidNodeException : public std::logic_error {
+        InvalidNodeException(const char *s) : logic_error(s) {}
+        InvalidNodeException(std::string s) : logic_error(s.c_str()) {}
     };
-
 }
 #endif

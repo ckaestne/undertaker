@@ -1,5 +1,5 @@
 /*
- *    satyr - compiles KConfig files to boolean formulas
+ *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -55,7 +55,6 @@ TristateRepr ExpressionTranslator::visit_symbol(struct symbol *sym) {
         } else {
             res.mod = B_CONST(false);
         }
-
         res.invalid = !(sym->type == S_BOOLEAN || sym->type == S_TRISTATE);
         res.type = sym->type;
         return res;

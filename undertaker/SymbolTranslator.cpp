@@ -1,5 +1,5 @@
 /*
- * satyr - compiles KConfig files to boolean formulas
+ *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -64,7 +64,7 @@ void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {
     BoolExp &FDef =  !f1yes || *transDef.yes || *transDef.mod || *transRev.yes  || *transRev.mod;
     // ((def.yes||def.mod) && (dep.yes ||dep.mod)) -> f1
     BoolExp &FDefRev = !((*transDef.yes || *transDef.mod ) && (*transDep.yes || *transDep.mod)) || f1yes;
-    //!vis -> (FDef && FDefRev)
+    // !vis -> (FDef && FDefRev)
     BoolExp &completeInv = *transVis.yes || *transVis.mod || (FDef && FDefRev);
 
     //visible symbols:
@@ -104,13 +104,13 @@ void kconfig::SymbolTranslator::visit_tristate_symbol(struct symbol *sym) {
     TristateRepr transRev = expTranslator.process(rev);
 
     //invisible  symbols
-    //f1->(s1|r1)
+    // f1->(s1|r1)
     BoolExp &Inv0 = !f1yes||(*transDef.yes||*transRev.yes);
-    //f0 -> (s1|s0|r0)
+    // f0 -> (s1|s0|r0)
     BoolExp &Inv1 = !f1mod || (*transDef.yes||*transDef.mod||*transRev.mod);
-    //(s0|s1) -> (~(d1|d0) |f1 |f0)
+    // (s0|s1) -> (~(d1|d0) |f1 |f0)
     BoolExp &Inv2 = !(*transDef.mod||*transDef.yes) || (!(*transDep.yes||*transDep.mod) ||f1yes ||f1mod);
-    //(s1 & d1)-> f1
+    // (s1 & d1)-> f1
     BoolExp &Inv3 = !(*transDef.yes && *transDep.yes)||f1yes;
 
     BoolExp &completeInv = (*transVis.yes||*transVis.mod)|| (Inv0 && Inv1 && Inv2 &&Inv3);
@@ -125,11 +125,11 @@ void kconfig::SymbolTranslator::visit_tristate_symbol(struct symbol *sym) {
     // rev.mod -> F1.yes || F1.mod
     BoolExp &FRevMod = !*transRev.mod || f1yes || f1mod;
 
-    //mustn't become '11'
+    // mustn't become '11'
     BoolExp &guard = sym->type == S_BOOLEAN ? (!f1mod ) : (!(f1yes && f1mod));
 
     this->cnfbuilder.pushSymbolInfo(sym);
-    //this->addComment(sym->name ? sym->name : "Unnamed Menu Or Choice");
+    // this->addComment(sym->name ? sym->name : "Unnamed Menu Or Choice");
     this->addClause(FYes.simplify());
 
     this->addClause(FMod.simplify());

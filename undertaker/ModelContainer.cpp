@@ -45,7 +45,6 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
         logger << error << "model '" << model << "' doesn't exist (neither directory nor file)" << std::endl;
         return 0;
     }
-
     if (! boost::filesystem::is_directory(model)) {
         /* A model file was specified, so load exactly this one */
         boost::match_results<const char*> what;
@@ -59,10 +58,8 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
             logger << error << "failed to load model from " << model
                    << std::endl;
         }
-
         return ret;
     }
-
 
     for (boost::filesystem::directory_iterator dir(model);
          dir != boost::filesystem::directory_iterator();
@@ -94,7 +91,6 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
             }
         }
     }
-
     if (found_models > 0) {
         logger << info << "found " << found_models << " models" << std::endl;
         return ret;
@@ -107,27 +103,22 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
 // parameter filename will look like: 'models/x86.model', string like 'x86'
 ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std::string arch) {
     ConfigurationModel *db;
-
     /* Was already loaded */
     if ((db = lookupModel(arch.c_str()))) {
         logger << info << "A model for " << arch << " was already loaded" << std::endl;
         return db;
     }
-
     boost::filesystem::path filepath(filename);
     if (filepath.extension() == ".cnf") {
         db = new CnfConfigurationModel(filename.c_str());
-    }
-    else {
+    } else {
         db = new RsfConfigurationModel(filename.c_str());
     }
     if (!db) {
         logger << error << "Failed to load model from " << filename
                << std::endl;
     }
-
     this->insert(std::make_pair(arch, db));
-
     return db;
 };
 
@@ -179,7 +170,6 @@ const char *ModelContainer::getMainModel() {
 
 ModelContainer *ModelContainer::getInstance() {
     static ModelContainer *instance;
-
     if (!instance) {
         instance = new ModelContainer();
     }

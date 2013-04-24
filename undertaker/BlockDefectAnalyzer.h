@@ -79,7 +79,6 @@ struct BlockDefectAnalyzer {
     virtual int defectType() const { return _defectType; }
     virtual ~BlockDefectAnalyzer() {}
 
-
     static const BlockDefectAnalyzer * analyzeBlock(ConditionalBlock *,
                                                     ConfigurationModel *);
 
@@ -109,7 +108,6 @@ public:
 
 protected:
     bool _needsCrosscheck;
-
     const char *_arch;
     std::string _formula;
 };

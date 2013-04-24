@@ -55,8 +55,7 @@ int cnf_test(std::string s, bool result, std::runtime_error *error = 0) {
     return checker.countClauses();
 }
 
-START_TEST(format_config_items_simple)
-{
+START_TEST(format_config_items_simple) {
     MissingSet dummy;
     SatChecker::AssignmentMap m;
     m.insert(std::make_pair("CONFIG_FOO", true));
@@ -70,11 +69,9 @@ START_TEST(format_config_items_simple)
                      "CONFIG_BAR=n\n"
                      "CONFIG_FOO=y\n"
                      "CONFIG_HURZ=y\n");
-}
-END_TEST
+} END_TEST
 
-START_TEST(format_config_items_module)
-{
+START_TEST(format_config_items_module) {
     MissingSet dummy;
     SatChecker::AssignmentMap m;
     m.insert(std::make_pair("CONFIG_FOO", false));
@@ -87,11 +84,9 @@ START_TEST(format_config_items_module)
     ck_assert_str_eq(ss.str().c_str(),
                      "CONFIG_BAR=n\n"
                      "CONFIG_FOO=m\n");
-}
-END_TEST
+} END_TEST
 
-START_TEST(format_config_items_module_not_valid_in_kconfig)
-{
+START_TEST(format_config_items_module_not_valid_in_kconfig) {
     MissingSet dummy;
     SatChecker::AssignmentMap m;
     m.insert(std::make_pair("CONFIG_FOO", true));
@@ -104,11 +99,9 @@ START_TEST(format_config_items_module_not_valid_in_kconfig)
     ck_assert_str_eq(ss.str().c_str(),
                      "CONFIG_BAR=n\n"
                      "CONFIG_FOO=m\n");
-}
-END_TEST
+} END_TEST
 
-START_TEST(test_base_expression)
-{
+START_TEST(test_base_expression) {
     BaseExpressionSatChecker sat("X && Y  && !Z",0);
     std::set<std::string> a1;
     a1.insert("X");
@@ -116,12 +109,9 @@ START_TEST(test_base_expression)
 
     a1.insert("Z");
     fail_if(sat(a1));
+} END_TEST
 
-}
-END_TEST
-
-Suite *
-satchecker_suite(void) {
+Suite * satchecker_suite(void) {
     Suite *s  = suite_create("SatChecker");
     TCase *tc = tcase_create("SatChecker");
     tcase_add_test(tc, format_config_items_simple);

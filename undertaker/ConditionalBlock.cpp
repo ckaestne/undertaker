@@ -48,14 +48,14 @@ CppFile::CppFile(const char *f) : top_block(0), checker(this) {
 
 CppFile::~CppFile(){
     /* Delete the toplevel block */
-
     delete topBlock();
+
     // We are an list of ConditionalBlocks
     for (iterator i = begin(); i != end(); ++i) {
         delete (*i);
     }
-    // Remove also all defines
 
+    // Remove also all defines
     for (std::map<std::string, CppDefine *>::iterator i = getDefines()->begin();
          i != getDefines()->end(); ++i) {
         delete (*i).second;
@@ -319,7 +319,7 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
     if (!visited)
         visited = &vs;
 
-    if (visited->count(this) == 0 ) {
+    if (visited->count(this) == 0) {
         // Mark our node as visited
         visited->insert(this);
 
@@ -346,7 +346,6 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
             }
 
             and_clause->push_back("B00");
-
         } else {
             const ConditionalBlock *block = this;
             const_cast<ConditionalBlock *>(block)->getConstraintsHelper(and_clause);
@@ -395,8 +394,7 @@ CppDefine::CppDefine(ConditionalBlock *defined_in, bool define, const std::strin
     newDefine(defined_in, define);
 }
 
-void
-CppDefine::newDefine(ConditionalBlock *parent, bool define) {
+void CppDefine::newDefine(ConditionalBlock *parent, bool define) {
     const char *rewriteToken = ".";
     std::string new_symbol = actual_symbol + rewriteToken;
 
@@ -455,7 +453,8 @@ void CppDefine::getConstraintsHelper(UniqueStringJoiner *and_clause) const {
 }
 
 
-std::string CppDefine::getConstraints(UniqueStringJoiner *and_clause, std::set<ConditionalBlock *> *visited) {
+std::string CppDefine::getConstraints(UniqueStringJoiner *and_clause,
+        std::set<ConditionalBlock *> *visited) {
     UniqueStringJoiner sj; // on our stack
     bool join = false;
     if (!and_clause) {
@@ -469,12 +468,12 @@ std::string CppDefine::getConstraints(UniqueStringJoiner *and_clause, std::set<C
 
     getConstraintsHelper(and_clause);
 
-    for (std::deque <ConditionalBlock *>::iterator i = defined_in.begin(); i != defined_in.end(); i++) {
+    for (std::deque <ConditionalBlock *>::iterator i = defined_in.begin();
+            i != defined_in.end(); i++) {
         // Not yet visited and not the toplevel block
         if (visited->count(*i) == 0 && (*i)->getParent() != 0) {
             (*i)->getCodeConstraints(and_clause, visited);
         }
     }
-
     return join ? and_clause->join("\n&& ") : "";
 }

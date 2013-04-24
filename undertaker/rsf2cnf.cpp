@@ -58,20 +58,15 @@ static void addTypeInfo(kconfig::CNF &cnf, ItemRsfReader *rsf){
 
         if (nameOfType == "boolean"){
             cnf.setSymbolType(symbolname, K_S_BOOLEAN);
-        }
-        else if (nameOfType == "tristate"){
+        } else if (nameOfType == "tristate"){
             cnf.setSymbolType(symbolname, K_S_TRISTATE);
-        }
-        else if (nameOfType == "integer"){
+        } else if (nameOfType == "integer"){
             cnf.setSymbolType(symbolname, K_S_INT);
-        }
-        else if (nameOfType == "hex"){
+        } else if (nameOfType == "hex"){
             cnf.setSymbolType(symbolname, K_S_HEX);
-        }
-        else if (nameOfType == "string"){
+        } else if (nameOfType == "string"){
             cnf.setSymbolType(symbolname, K_S_STRING);
-        }
-        else {
+        } else {
             cnf.setSymbolType(symbolname, K_S_OTHER);
         }
     }
@@ -117,18 +112,15 @@ static void addAllwaysOnOff(kconfig::CNFBuilder &builder, RsfReader *model){
         iterator != (*whitelist).end(); ++iterator) {
         model->addMetaValue(magic_on, *iterator);
     }
-
     KconfigWhitelist *blacklist = KconfigWhitelist::getBlacklist();
     for(KconfigWhitelist::const_iterator iterator = (*blacklist).begin();
         iterator != (*blacklist).end(); ++iterator) {
         model->addMetaValue(magic_off, *iterator);
     }
-
     const StringList *aon = model->getMetaValue(magic_on);
-
     if (aon) {
         for (StringList::const_iterator cit = aon->begin();
-             cit != aon->end(); cit++){
+                cit != aon->end(); cit++){
             std::string clause = *cit;
             BoolExp *exp = BoolExp::parseString(clause);
             builder.pushClause(exp);
@@ -136,11 +128,10 @@ static void addAllwaysOnOff(kconfig::CNFBuilder &builder, RsfReader *model){
             builder.cnf->addMetaValue("ALWAYS_ON", *cit);
         }
     }
-
     aon = model->getMetaValue(magic_off);
     if (aon) {
         for (StringList::const_iterator cit = aon->begin();
-             cit != aon->end(); cit++){
+                cit != aon->end(); cit++){
             std::string clause = "! " + *cit;
             BoolExp *exp = BoolExp::parseString(clause);
             builder.pushClause(exp);
@@ -232,7 +223,6 @@ int main(int argc, char **argv) {
         logger << error << "could not open modelfile \"" << model_file << "\"" << std::endl;
         return 1;
     }
-
     model = new RsfReader(model_stream, "UNDERTAKER_SET");
 
     if (rsf_file) {
@@ -243,7 +233,6 @@ int main(int argc, char **argv) {
         }
         rsf = new ItemRsfReader(rsf_stream);
     }
-
     addClauses(builder, model);
     addAllwaysOnOff(builder, model);
     if (rsf)
@@ -254,14 +243,12 @@ int main(int argc, char **argv) {
     if (model->getMetaValue(magic_inc)) {
         cnf.addMetaValue("CONFIGURATION_SPACE_INCOMPLETE", "True");
     }
-
     try {
         cnf.toFile(std::cout);
     } catch (IOException e) {
         logger << error << e.what() << std::endl;
         return 1;
     }
-
     delete model;
     delete rsf;
 }

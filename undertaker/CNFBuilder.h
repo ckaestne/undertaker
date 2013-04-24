@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
 /*
- * boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -40,7 +40,6 @@
 #include <string>
 
 namespace kconfig {
-
     class CNFBuilder : public BoolVisitor {
     public:
         enum ConstantPolicy {BOUND = 0, FREE};
@@ -63,7 +62,6 @@ namespace kconfig {
             }
         }
         #endif
-
 
         //! Add clauses from the parsed boolean expression e
         /**
@@ -99,5 +97,4 @@ namespace kconfig {
         virtual void visit(BoolExpAny *e);
     };
 }
-
 #endif

@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
 /*
- * boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -27,9 +27,7 @@
 #include <map>
 
 namespace kconfig {
-
     class BoolVisitor {
-
         friend class BoolExpVar;
         friend class BoolExpNot;
         friend class BoolExpConst;
@@ -63,5 +61,4 @@ namespace kconfig {
         virtual void visit(BoolExpAny *e) = 0;
     };
 }
-
 #endif

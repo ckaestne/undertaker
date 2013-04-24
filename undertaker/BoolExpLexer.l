@@ -1,5 +1,5 @@
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -134,20 +134,14 @@ typedef kconfig::BoolExpParser::token_type token_type;
 %%
 
 namespace kconfig {
+    BoolExpLexer::BoolExpLexer(std::istream* in, std::ostream* out)
+        : KconfigFlexLexer(in, out) {}
 
-BoolExpLexer::BoolExpLexer(std::istream* in,
-         std::ostream* out)
-    : KconfigFlexLexer(in, out)
-{
-}
+    BoolExpLexer::~BoolExpLexer() {}
 
-BoolExpLexer::~BoolExpLexer(){}
-
-void BoolExpLexer::set_debug(bool b)
-{
-    yy_flex_debug = b;
-}
-
+    void BoolExpLexer::set_debug(bool b) {
+        yy_flex_debug = b;
+    }
 }
 
 /* dummydecl */
@@ -155,13 +149,11 @@ void BoolExpLexer::set_debug(bool b)
 #undef yylex
 #endif
 
-int KconfigFlexLexer::yylex()
-{
+int KconfigFlexLexer::yylex() {
     std::cerr << "function yylex()" << std::endl;
     return 0;
 }
 
-int KconfigFlexLexer::yywrap()
-{
+int KconfigFlexLexer::yywrap() {
     return 1;
 }

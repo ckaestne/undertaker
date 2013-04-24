@@ -1,3 +1,4 @@
+// -*- mode: c++ -*-
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
@@ -17,8 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-// -*- mode: c++ -*-
 #ifndef cnf_configuration_model_h__
 #define cnf_configuration_model_h__
 
@@ -36,7 +35,6 @@ std::list<std::string> itemsOfString(const std::string &str);
 
 class CnfConfigurationModel: public ConfigurationModel {
 public:
-
     CnfConfigurationModel(const char *filename);
 
     //! destructor
@@ -111,7 +109,6 @@ public:
         return _cnf;
     }
 
-
 private:
     std::string _name;
     boost::regex _inConfigurationSpace_regexp;
@@ -119,5 +116,4 @@ private:
     std::istream *_rsf_stream;
     kconfig::PicosatCNF *_cnf;
 };
-
 #endif

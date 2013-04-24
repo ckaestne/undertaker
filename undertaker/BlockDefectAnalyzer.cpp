@@ -42,7 +42,6 @@ std::string BlockDefectAnalyzer::getBlockPrecondition(const ConfigurationModel *
     formula.push_back(_cb->getName());
     formula.push_back(code_formula);
 
-
     if (model) {
         /* Adding kconfig constraints and kconfig missing */
         std::set<std::string> missingSet;
@@ -72,7 +71,6 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p
             return NULL;
         }
     }
-
     assert(defect->defectType() != BlockDefectAnalyzer::None);
 
     // Implementation (i.e., Code) defects do not require a crosscheck
@@ -131,7 +129,6 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
         // if we do not have a model, this defect should always be reported
         _inConfigurationSpace = true;
     }
-
     SatChecker code_constraints(_formula);
 
     if (!code_constraints()) {
@@ -139,7 +136,6 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
         _isGlobal = true;
         return true;
     }
-
     if (model) {
         std::set<std::string> missingSet;
         std::string kconfig_formula = _cb->getCodeConstraints();
@@ -180,6 +176,7 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
 }
 
 bool DeadBlockDefect::isGlobal() const { return _isGlobal; }
+
 bool DeadBlockDefect::needsCrosscheck() const {
     switch(_defectType) {
     case None:

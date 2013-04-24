@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
 /*
- * boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -81,7 +81,8 @@ namespace kconfig {
             bool first = true;
             std::string *res = new std::string("");
             std::string paramstring("");
-            for (std::list<BoolExp *>::const_iterator it = e->param->begin(); it != e->param->end(); it++) {
+            for (std::list<BoolExp *>::const_iterator it = e->param->begin();
+                    it != e->param->end(); it++) {
                 paramstring += first ? "" : ", ";
                 paramstring += (*it)->str();
                 first = false;

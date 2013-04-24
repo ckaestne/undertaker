@@ -38,34 +38,23 @@
 
 typedef std::set<std::string> MissingSet;
 
-namespace Picosat
-{
+namespace Picosat {
     #include <ctype.h>
     #include <assert.h>
 
     /* Include the Limmat library header as C */
-    extern "C"
-    {
+    extern "C" {
         #include "picosat.h"
     }
 };
 
-struct SatCheckerError : public std::runtime_error
-{
-    SatCheckerError(const char *s)
-        : runtime_error(s) {}
-    SatCheckerError(std::string s)
-        : runtime_error(s.c_str()) {}
+struct SatCheckerError : public std::runtime_error {
+    SatCheckerError(const char *s) : runtime_error(s) {}
+    SatCheckerError(std::string s) : runtime_error(s.c_str()) {}
 };
 
-class SatChecker
-{
-
-    protected:
-        kconfig::CNF *_cnf;
+class SatChecker {
     public:
-        typedef char const* iterator_t;
-
         SatChecker(const char *sat, int debug = 0);
         SatChecker(const std::string sat, int debug = 0);
         virtual ~SatChecker() {};
@@ -93,8 +82,7 @@ class SatChecker
         /** pretty prints the saved expression */
         std::string pprint();
 
-        enum Debug
-        {
+        enum Debug {
             DEBUG_NONE = 0,
             DEBUG_PARSER = 1,
             DEBUG_CNF = 2
@@ -111,16 +99,13 @@ class SatChecker
          *   - key:   something like 'B42'
          *   - value: true if set, false if unset or unknown
          */
-        struct AssignmentMap : public std::map<std::string, bool>
-        {
-
+        struct AssignmentMap : public std::map<std::string, bool> {
             /**
              * \brief order independent content comparison
              *
              * This method compares if two assignments are equivalent.
              */
-            bool operator==(const AssignmentMap &other) const
-            {
+            bool operator==(const AssignmentMap &other) const {
                 for (const_iterator it = begin(); it != end(); it++) {
                     const_iterator ot = other.find((*it).first);
                     if (ot == other.end() || (*ot).second != (*it).second)
@@ -151,8 +136,7 @@ class SatChecker
              * \param out an output stream on which the solution shall be printed
              * \param missingSet set of items that are not available in the model
              */
-            int formatKconfig(std::ostream &out,
-                const MissingSet &missingSet);
+            int formatKconfig(std::ostream &out, const MissingSet &missingSet);
 
             /**
              * \brief format solutions (model)
@@ -237,6 +221,7 @@ class SatChecker
         int countClauses() { return _clauses; };
 
     protected:
+        kconfig::CNF *_cnf;
         std::map<std::string, int> symbolTable;
         AssignmentMap assignmentTable;
         int debug_flags;
@@ -260,8 +245,7 @@ class SatChecker
                     debug_parser += d;
                     if (newblock)
                         debug_parser_indent += 2;
-                }
-                else {
+                } else {
                     debug_parser_indent -= 2;
                 }
             }
@@ -269,8 +253,7 @@ class SatChecker
         enum state {no, yes, module};
 };
 
-class BaseExpressionSatChecker : public SatChecker
-{
+class BaseExpressionSatChecker : public SatChecker {
     public:
         BaseExpressionSatChecker(const char *base_expression, int debug = 0);
 

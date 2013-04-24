@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
 /*
- * boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  * Copyright (C) 2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
@@ -210,5 +210,4 @@ namespace kconfig {
     BoolExp &operator ||(BoolExp &l, BoolExp &r);
     BoolExp &operator !(BoolExp &l);
 }
-
 #endif

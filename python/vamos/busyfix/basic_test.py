@@ -414,5 +414,4 @@ NULL
 
 
 if __name__ == '__main__':
-    setup_logging(logging.INFO)
     unittest2.main()

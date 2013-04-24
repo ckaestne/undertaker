@@ -53,7 +53,6 @@ RsfConfigurationModel::RsfConfigurationModel(const char *filename) {
         } else {
             _rsf_stream = new std::ifstream("/dev/null");
         }
-
         if (!have_rsf || !_rsf_stream->good()) {
             logger << warn << "could not open file for reading: "      << filename << std::endl;
             logger << warn << "checking the type of symbols will fail" << std::endl;
@@ -63,7 +62,6 @@ RsfConfigurationModel::RsfConfigurationModel(const char *filename) {
         _model_stream = new std::ifstream("/dev/null");
         _rsf_stream = new std::ifstream("/dev/null");
     }
-
     _model = new RsfReader(*_model_stream, "UNDERTAKER_SET");
     _rsf   = new ItemRsfReader(*_rsf_stream);
 
@@ -73,9 +71,9 @@ RsfConfigurationModel::RsfConfigurationModel(const char *filename) {
         logger << info << "Set configuration space regex to '"
                << configuration_space_regex->front() << "'" << std::endl;
         _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
-    } else
+    } else {
         _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);
-
+    }
     if (_model->size() == 0) {
         // if the model is empty (e.g., if /dev/null was loaded), it cannot possibly be complete
         _model->addMetaValue("CONFIGURATION_SPACE_INCOMPLETE", "1");
@@ -113,13 +111,11 @@ std::set<std::string> RsfConfigurationModel::findSetOfInterestingItems(const std
     std::set<std::string> item_set, result;
     std::stack<std::string> workingStack;
     std::string tmp;
-
     /* Initialize the working stack with the given elements */
     for(std::set<std::string>::iterator sit = initialItems.begin(); sit != initialItems.end(); sit++) {
         workingStack.push(*sit);
         result.insert(*sit);
     }
-
     while (!workingStack.empty()) {
         const std::string *item = _model->getValue(workingStack.top());
         workingStack.pop();
@@ -134,7 +130,6 @@ std::set<std::string> RsfConfigurationModel::findSetOfInterestingItems(const std
             }
         }
     }
-
     return result;
 }
 
@@ -169,52 +164,46 @@ int RsfConfigurationModel::doIntersect(const std::set<std::string> start_items,
             interesting.insert(*cit);
         }
     }
-
     if (always_off) {
         StringList::const_iterator cit;
         for (cit = always_off->begin(); cit != always_off->end(); cit++) {
             interesting.insert(*cit);
         }
     }
-
     for(std::set<std::string>::const_iterator it = interesting.begin(); it != interesting.end(); it++) {
         const std::string *item = _model->getValue(*it);
 
         // logger << debug << "interesting item: " << *it << std::endl;
-
         if (item != NULL) {
             valid_items++;
-            if (item->compare("") != 0)
+            if (item->compare("") != 0) {
                 sj.push_back("(" + *it + " -> (" + *item + "))");
-
+            }
             if (always_on) {
                 StringList::const_iterator cit = std::find(always_on->begin(), always_on->end(), *it);
                 if (cit != always_on->end()) {
                     sj.push_back(*it);
                 }
             }
-
             if (always_off) {
                 StringList::const_iterator cit = std::find(always_off->begin(), always_off->end(), *it);
                 if (cit != always_off->end()) {
                     sj.push_back("!" + *it);
                 }
             }
-
         } else {
-            // check if the symbol might be in the model space.
-            // if not it can't be missing!
-            if (!inConfigurationSpace(*it))
+            // check if the symbol might be in the model space. if not it can't be missing!
+            if (!inConfigurationSpace(*it)) {
                 continue;
-
-            // iff we are given a checker for items, skip if it doesn't pass the test
+            }
+            // if we are given a checker for items, skip if it doesn't pass the test
             if (c && ! (*c)(*it)) {
                 continue;
             }
-
             /* free variables are never missing */
-            if (it->size() > 1 && !boost::starts_with(*it, "__FREE__"))
+            if (it->size() > 1 && !boost::starts_with(*it, "__FREE__")) {
                 missing.insert(*it);
+            }
         }
     }
     intersected = sj.join("\n&& ");
@@ -227,8 +216,9 @@ int RsfConfigurationModel::doIntersect(const std::set<std::string> start_items,
 }
 
 bool RsfConfigurationModel::inConfigurationSpace(const std::string &symbol) const {
-    if (boost::regex_match(symbol, _inConfigurationSpace_regexp))
+    if (boost::regex_match(symbol, _inConfigurationSpace_regexp)) {
         return true;
+    }
     return false;
 }
 
@@ -242,18 +232,18 @@ bool RsfConfigurationModel::isComplete() const {
 bool RsfConfigurationModel::isBoolean(const std::string &item) const {
     const std::string *value = _rsf->getValue(item);
 
-    if (value && 0 == value->compare("boolean"))
+    if (value && 0 == value->compare("boolean")) {
         return true;
-
+    }
     return false;
 }
 
 bool RsfConfigurationModel::isTristate(const std::string &item) const {
     const std::string *value = _rsf->getValue(item);
 
-    if (value && 0 == value->compare("tristate"))
+    if (value && 0 == value->compare("tristate")) {
         return true;
-
+    }
     return false;
 }
 

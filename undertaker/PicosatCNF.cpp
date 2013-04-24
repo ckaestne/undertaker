@@ -1,5 +1,5 @@
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  * Copyright (C) 2012-2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
@@ -46,7 +46,7 @@ PicosatCNF::PicosatCNF(Picosat::SATMode defaultPhase)
 }
 
 PicosatCNF::~PicosatCNF() {
-    if (this == currentContext ) {
+    if (this == currentContext) {
         currentContext = 0;
     }
 }
@@ -129,7 +129,6 @@ void PicosatCNF::readFromFile(std::istream &i) {
             //ignore
         } else {
             logger << error << "Failed to parse line: '" << line << "'" << std::endl;
-
             throw IOException("parse error while reading CNF file");
         }
     }
@@ -223,7 +222,7 @@ void PicosatCNF::pushVar(int v) {
     clauses.push_back(v);
 }
 
-void PicosatCNF::pushVar(std::string  &v, bool val) {
+void PicosatCNF::pushVar(std::string &v, bool val) {
     int sign = val ? 1 : -1;
     int cnfvar = this->getCNFVar(v);
     this->pushVar(sign * cnfvar);
@@ -254,14 +253,13 @@ void PicosatCNF::pushAssumption(const std::string &v, bool val) {
                << "as it has not been registered yet!" << std::endl;
         return;
     }
-
     if (val)
         this->pushAssumption(cnfvar);
     else
         this->pushAssumption(-cnfvar);
 }
 
-void PicosatCNF::pushAssumption(const char *v,bool val) {
+void PicosatCNF::pushAssumption(const char *v, bool val) {
     std::string s(v);
     this->pushAssumption(s, val);
 }

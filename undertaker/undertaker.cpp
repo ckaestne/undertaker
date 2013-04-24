@@ -1,7 +1,7 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
@@ -50,35 +50,31 @@
 #include "Logging.h"
 #include "../version.h"
 
-
-#define __cpp_str(x) #x
-#define _cpp_str(x) __cpp_str(x)
-
 typedef void (* process_file_cb_t) (const char *filename);
 
 enum WorkMode {
-    MODE_DEAD, // Detect dead and undead files
-    MODE_COVERAGE, // Calculate the coverage
-    MODE_CPPPC, // CPP Preconditions for whole file
-    MODE_BLOCKPC, // Block precondition
+    MODE_DEAD,      // Detect dead and undead files
+    MODE_COVERAGE,  // Calculate the coverage
+    MODE_CPPPC,     // CPP Preconditions for whole file
+    MODE_BLOCKPC,   // Block precondition
 };
 
 enum CoverageOutputMode {
-    COVERAGE_MODE_KCONFIG, // kconfig specific mode
-    COVERAGE_MODE_STDOUT,  // prints out on stdout generated configurations
-    COVERAGE_MODE_MODEL,   // prints all configuration space itms, no blocks
-    COVERAGE_MODE_CPP,     // prints all cpp items as cpp cmd-line arguments
-    COVERAGE_MODE_EXEC,    // pipe file for every configuration to cmd
-    COVERAGE_MODE_ALL,     // prints all items and blocks
-    COVERAGE_MODE_COMBINED,// create files for configuration, kconfig and modified source file
+    COVERAGE_MODE_KCONFIG,      // kconfig specific mode
+    COVERAGE_MODE_STDOUT,       // prints out on stdout generated configurations
+    COVERAGE_MODE_MODEL,        // prints all configuration space itms, no blocks
+    COVERAGE_MODE_CPP,          // prints all cpp items as cpp cmd-line arguments
+    COVERAGE_MODE_EXEC,         // pipe file for every configuration to cmd
+    COVERAGE_MODE_ALL,          // prints all items and blocks
+    COVERAGE_MODE_COMBINED,     // create files for configuration, kconfig and modified source file
     COVERAGE_MODE_COMMENTED,    // creates file contining modified source
 } coverageOutputMode;
 
 enum CoverageOperationMode {
-    COVERAGE_OP_SIMPLE,   // simple, fast
-    COVERAGE_OP_MINIMIZE, // hopefully minimal configuration set
-    COVERAGE_OP_SIMPLE_DECISION,   // simple, fast + decision coverage
-    COVERAGE_OP_MINIMIZE_DECISION, // hopefully minimal configuration set + decision coverage
+    COVERAGE_OP_SIMPLE,             // simple, fast
+    COVERAGE_OP_MINIMIZE,           // hopefully minimal configuration set
+    COVERAGE_OP_SIMPLE_DECISION,    // simple, fast + decision coverage
+    COVERAGE_OP_MINIMIZE_DECISION,  // hopefully minimal configuration set + decision coverage
 } coverageOperationMode = COVERAGE_OP_SIMPLE;
 
 static const char *coverage_exec_cmd = "cat";
@@ -182,9 +178,9 @@ bool process_blockconf_helper(StringJoiner &sj,
     std::string fileVar(fileCondition.str());
 
     // if file precondition has already been tested...
-    if(filesolvable.find(fileVar) != filesolvable.end()) {
+    if (filesolvable.find(fileVar) != filesolvable.end()) {
         // and conflicts with user defined lists, don't add it to formula
-        if(!filesolvable[fileVar]) {
+        if (!filesolvable[fileVar]) {
             logger << warn << "File " << file << " not included - " <<
                 "conflict with white-/blacklist" << std::endl;
             return false;
@@ -201,7 +197,7 @@ bool process_blockconf_helper(StringJoiner &sj,
             }
 
             SatChecker fileChecker(fileCondition.str());
-            if(!fileChecker()) {
+            if (!fileChecker()) {
                 filesolvable[fileVar] = false;
                 logger << warn << "File condition for location " << locationname
                     << " conflicting with black-/whitelist - not added"
@@ -230,7 +226,7 @@ bool process_blockconf_helper(StringJoiner &sj,
     // check for satisfiability of block precondition before joining it
     try {
         SatChecker constraintChecker(precondition);
-        if(!constraintChecker()) {
+        if (!constraintChecker()) {
             logger << warn << "Code constraints for " << block->getName() <<
                 " not satisfiable - override by black-/whitelist" << std::endl;
             return false;
@@ -278,7 +274,7 @@ void process_mergeblockconf(const char *filepath) {
     MissingSet missingSet;
 
     // We want minimal configs, so we try to get many 'n's from the sat checker
-    if(sc(Picosat::SAT_MIN)) {
+    if (sc(Picosat::SAT_MIN)) {
         logger << info << "Solution found, result:" << std::endl;
         SatChecker::AssignmentMap current_solution = sc.getAssignment();
         stringstream configstream;
@@ -298,7 +294,7 @@ void process_blockconf(const char *locationname) {
     SatChecker sc(sj.join("\n&&\n"));
 
     MissingSet missingSet;
-    if(sc(Picosat::SAT_MIN)) {
+    if (sc(Picosat::SAT_MIN)) {
         SatChecker::AssignmentMap current_solution = sc.getAssignment();
         stringstream configstream;
         current_solution.formatKconfig(configstream, missingSet);
@@ -371,11 +367,6 @@ void process_file_coverage_helper(const char *filename) {
     logger << info << "Removed " << cruft << " leftovers for "
            << filename << std::endl;
 
-    if (0 == file.size()) {
-        logger << info << filename
-               << " does not contain any conditional block" << std::endl;
-    }
-
     int config_count = 1;
     std::vector<bool> blocks(file.size(), false); // bitvector
 
@@ -445,8 +436,7 @@ void process_file_coverage_helper(const char *filename) {
 
     float ratio = 100.0 * enabled_blocks / file.size();
 
-    logger << info
-           << filename << ", "
+    logger << info << filename << ", "
            << "Found Solutions: " << solution.size() << ", " // #found solutions
            << "Coverage: " << enabled_blocks << "/" << file.size() << " blocks enabled "
            << "(" << ratio <<  "%)" << std::endl;

@@ -74,8 +74,7 @@ SatChecker::SatChecker(const std::string sat, int debug)
     : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
 
 PicosatCNF *getCnfWithModelInit(const std::string &formula,
-                                Picosat::SATMode mode,
-                                std::string *result) {
+                                Picosat::SATMode mode, std::string *result) {
      static const boost::regex modelvar_regexp("\\._\\.(.+)\\._\\.");
      boost::match_results<std::string::const_iterator> what;
 
@@ -99,11 +98,9 @@ PicosatCNF *getCnfWithModelInit(const std::string &formula,
 }
 
 bool SatChecker::operator()(Picosat::SATMode mode) throw (SatCheckerError) {
-
     std::string sat;
     _cnf = getCnfWithModelInit(_sat, mode, &sat );
     try {
-
         BoolExp *exp = BoolExp::parseString(sat);
         if (!exp) {
            throw SatCheckerError("SatChecker: Couldn't parse: " + sat);
@@ -127,8 +124,7 @@ bool SatChecker::operator()(Picosat::SATMode mode) throw (SatCheckerError) {
         delete _cnf;
         delete exp;
         return res;
-    }
-    catch (std::bad_alloc &exception) {
+    } catch (std::bad_alloc &exception) {
         throw SatCheckerError("SatChecker: out of memory");
     }
 }
@@ -231,11 +227,12 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
                 continue;
             }
 
-        } else if (boost::regex_match(name, block_regexp))
+        } else if (boost::regex_match(name, block_regexp)) {
             // ignore block variables
             continue;
-        else
+        } else {
             other_variables[name] = valid ? yes : no;
+        }
     }
 
     for (SelectionType::iterator s = selection.begin(); s != selection.end(); s++) {
@@ -349,9 +346,9 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
         return 0;
     }
 
-        /* If the child process terminates before reading all of stdin
-         * undertaker gets a SIGPIPE which we don't want to handle
-         */
+    /* If the child process terminates before reading all of stdin
+     * undertaker gets a SIGPIPE which we don't want to handle
+     */
     oldaction = signal(SIGPIPE, SIG_IGN);
 
     flag_map[top->pumaStartToken()] = true;
@@ -414,18 +411,16 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
                 out << "\n";
                 // if (!print_flag)
                 //    out << "// ";
-            } else
+            } else {
                 out << *p;
+            }
         }
-
         while (after_newline && printed_newlines < next->location().line()) {
             out << "\n";
             printed_newlines++;
         }
-
         after_newline = strchr(next->text(), '\n') != NULL;
     }
-
     signal(SIGPIPE, oldaction);
 
     return size();
@@ -564,8 +559,7 @@ bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSym
         }
 
         return res;
-    }
-    catch (std::bad_alloc &exception) {
+    } catch (std::bad_alloc &exception) {
         throw SatCheckerError("SatChecker: out of memory");
     }
     return false;
@@ -580,12 +574,10 @@ BaseExpressionSatChecker::BaseExpressionSatChecker(const char *base_expression, 
     if (!exp){
         throw SatCheckerError("SatChecker: Couldn't parse: " + base_expression_s);
     }
-
     CNFBuilder builder(true, CNFBuilder::BOUND);
 
     builder.cnf = _cnf;
     builder.pushClause(exp);
-
 }
 
 BaseExpressionSatChecker::~BaseExpressionSatChecker() {

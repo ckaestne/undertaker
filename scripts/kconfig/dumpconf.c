@@ -271,7 +271,6 @@ void myconfdump(FILE *out)
 
 int main(int ac, char **av)
 {
-	int opt;
 	struct stat tmpstat;
 	char *arch = getenv("ARCH");
 

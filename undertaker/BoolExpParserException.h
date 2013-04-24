@@ -1,5 +1,5 @@
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -20,13 +20,11 @@
 
 #ifndef KCONFIG_BOOL_EXP_PARSER_EXCEPTION_H
 #define KCONFIG_BOOL_EXP_PARSER_EXCEPTION_H
+
 #include <stdexcept>
 
-struct BoolExpParserException : public std::runtime_error
-{
-    BoolExpParserException(const char *s)
-        : runtime_error(s) {}
-    BoolExpParserException(std::string s)
-        : runtime_error(s.c_str()) {}
+struct BoolExpParserException : public std::runtime_error {
+    BoolExpParserException(const char *s) : runtime_error(s) {}
+    BoolExpParserException(std::string s) : runtime_error(s.c_str()) {}
 };
 #endif

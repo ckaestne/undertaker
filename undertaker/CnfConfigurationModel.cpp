@@ -51,9 +51,9 @@ CnfConfigurationModel::CnfConfigurationModel(const char *filename) {
         logger << info << "Set configuration space regex to '"
                << configuration_space_regex->front() << "'" << std::endl;
         _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
-    } else
+    } else {
         _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);
-
+    }
     if (_cnf->getVarCount() == 0) {
         // if the model is empty (e.g., if /dev/null was loaded), it cannot possibly be complete
         _cnf->addMetaValue("CONFIGURATION_SPACE_INCOMPLETE", "1");
@@ -85,7 +85,8 @@ const StringList *CnfConfigurationModel::getBlacklist() const {
     return _cnf->getMetaValue(magic);
 }
 
-std::set<std::string> CnfConfigurationModel::findSetOfInterestingItems(const std::set<std::string> &initialItems) const {
+std::set<std::string> CnfConfigurationModel::findSetOfInterestingItems(
+                                    const std::set<std::string> &initialItems) const {
     std::set<std::string> result;
     return result;
 }
@@ -112,37 +113,32 @@ int CnfConfigurationModel::doIntersect(const std::set<std::string> start_items,
     const StringList *always_on = this->getMetaValue(magic_on);
     const StringList *always_off = this->getMetaValue(magic_off);
 
-    for(std::set<std::string>::const_iterator it = start_items.begin(); it != start_items.end(); it++) {
-
+    for(std::set<std::string>::const_iterator it = start_items.begin();
+            it != start_items.end(); it++) {
         if (containsSymbol(*it)) {
             valid_items++;
-
             if (always_on) {
                 StringList::const_iterator cit = std::find(always_on->begin(), always_on->end(), *it);
                 if (cit != always_on->end()) {
                     sj.push_back(*it);
                 }
             }
-
             if (always_off) {
                 StringList::const_iterator cit = std::find(always_off->begin(), always_off->end(), *it);
                 if (cit != always_off->end()) {
                     sj.push_back("!" + *it);
                 }
             }
-
         } else {
             // check if the symbol might be in the model space.
             // if not it can't be missing!
             logger << debug << *it  << std::endl;
             if (!inConfigurationSpace(*it))
                 continue;
-
             // iff we are given a checker for items, skip if it doesn't pass the test
             if (c && ! (*c)(*it)) {
                 continue;
             }
-
             /* free variables are never missing */
             if (it->size() > 1 && !boost::starts_with(*it, "__FREE__"))
                 missing.insert(*it);
@@ -153,7 +149,6 @@ int CnfConfigurationModel::doIntersect(const std::set<std::string> start_items,
     logger << debug << "Out of " << start_items.size() << " items "
            << missing.size() << " have been put in the MissingSet" << " using " << _name
            << std::endl;
-
     return valid_items;
 }
 
@@ -195,10 +190,8 @@ bool CnfConfigurationModel::containsSymbol(const std::string &symbol) const {
     if (symbol.substr(0,5) == "FILE_") {
         return true;
     }
-
     if (_cnf->getAssociatedSymbol(symbol) != 0) {
         return true;
     }
-
     return false;
 }

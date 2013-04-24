@@ -54,8 +54,7 @@ void usage(std::ostream &out) {
     exit(EXIT_FAILURE);
 }
 
-int process_assumptions(CNF *cnf,
-                        std::vector<boost::filesystem::path> assumptions) {
+int process_assumptions(CNF *cnf, std::vector<boost::filesystem::path> assumptions) {
     int errors = 0;
 
     for (std::vector<boost::filesystem::path>::iterator it = assumptions.begin();
@@ -71,7 +70,6 @@ int process_assumptions(CNF *cnf,
                    << "processed " << a.size() << " items" << std::endl;
             cnf->pushAssumptions(a);
         }
-
         bool sat = cnf->checkSatisfiable();
         const char* result = sat ? "satisfiable" : "not satisfiable";
         if (!sat) {
@@ -124,16 +122,15 @@ int main(int argc, char **argv) {
 
     logger.setLogLevel(loglevel);
 
-    if (optind >= argc)
+    if (optind >= argc) {
         usage(std::cerr);
-
+    }
     boost::filesystem::path filepath(argv[optind]);
     if (!boost::filesystem::exists(filepath)) {
         logger << error << "File '" << filepath << "' does not exist"
                << std::endl;
         exit(EXIT_FAILURE);
     }
-
     setlocale(LC_ALL, "");
     bindtextdomain(PACKAGE, LOCALEDIR);
     textdomain(PACKAGE);
@@ -147,7 +144,6 @@ int main(int argc, char **argv) {
     if (!srcarch) {
         srcarch = arch;
     }
-
     fprintf(stderr, "using arch %s\n", arch);
 
     setenv("ARCH", arch, 1);
@@ -178,7 +174,6 @@ int main(int argc, char **argv) {
         translator->traverse();
         logger << debug << "done" << std::endl;
     }
-
     if (saveTranslatedModel) {
         std::ofstream saveStream(saveFile.string().c_str());
         if (saveStream.good()) {
@@ -187,7 +182,6 @@ int main(int argc, char **argv) {
         logger << info << cnf->getVarCount() << " variables written to "
                << saveFile << std::endl;
     }
-
     exitstatus += process_assumptions(cnf, assumptions);
 
     return exitstatus;

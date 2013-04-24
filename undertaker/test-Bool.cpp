@@ -1,5 +1,5 @@
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -23,18 +23,15 @@
 #include <check.h>
 
 using namespace kconfig;
-using namespace std;
 
-void parse_test(std::string input, bool good)
-{
+void parse_test(std::string input, bool good) {
     BoolExp *e = BoolExp::parseString(input);
     fail_unless(good == (e!=0), input.c_str());
     delete e;
 }
 
 //from test-SatChecker
-START_TEST(bool_parser_test)
-{
+START_TEST(bool_parser_test) {
     parse_test("", false);
     parse_test("A", true);
     parse_test("! A", true);
@@ -66,11 +63,9 @@ START_TEST(bool_parser_test)
     parse_test("._.model.x86._.", true);
     parse_test("B2 && ( B2 <-> B1 && __STDC_VERSION__ >= 199901L )" , true);
     parse_test("B2 && ( B2 <-> B1 && __STDC_VERSION__ >= 199901L ) && ( B1 <-> ! FLEXINT_H ) && B00 && (B1 -> FLEXINT_H.) && (!B1 -> (FLEXINT_H <-> FLEXINT_H.)) && ( B00 <-> FILE_build_util_kconfig_lex.zconf.c )" , true);
-}
-END_TEST
+} END_TEST
 
-START_TEST(parseFunc)
-{
+START_TEST(parseFunc) {
     //function tests
     parse_test("foo(x)", true);
     parse_test("foo(!x)", true);
@@ -82,7 +77,6 @@ START_TEST(parseFunc)
     parse_test("B00 && ( B0 <-> FOO( BAR(1,2), 3) ) && ( B1 <-> ( ! (B0) ) ) && B00 && ( B00 <-> FILE_normalize_expressions5.c )", true);
     //                                                               ^
     parse_test("B00 && ( B0 <-> ON. && A > 23 ) && ( B1 <-> ! ON. || 12 + (24 & 12) ) && (B00 -> ON.) && (!B00 -> (ON <-> ON.)) && B00 && ( B00 <-> FILE_comparator.c )", true);
-
 } END_TEST;
 
 void parse_test_reference(const char *expression, const char *reference, const char *comment) {
@@ -92,7 +86,6 @@ void parse_test_reference(const char *expression, const char *reference, const c
         fail("Failed to parse expression '%s'", expression);
         return;
     }
-
     if (!reference)
         reference = expression;
 
@@ -102,8 +95,7 @@ void parse_test_reference(const char *expression, const char *reference, const c
     delete e;
 }
 
-START_TEST(parseBool)
-{
+START_TEST(parseBool) {
     parse_test_reference("X || Y && Z",    0, "");
     parse_test_reference("(X || Y) && Z",  0, "");
     parse_test_reference("(X || !Y) && Z", 0, "");
@@ -126,8 +118,7 @@ START_TEST(parseBool)
     parse_test_reference("A ? B : C", 0, "ternary operator");
 } END_TEST;
 
-START_TEST(notATree)
-{
+START_TEST(notATree) {
     BoolExp *x = new BoolExpVar("X",false);
     BoolExp *n0 = new BoolExpNot(x);
     BoolExp *n1 = new BoolExpNot(n0);
@@ -140,8 +131,7 @@ START_TEST(notATree)
     delete o;
 } END_TEST;
 
-void simplify_test(std::string input, std::string expected)
-{
+void simplify_test(std::string input, std::string expected) {
     BoolExp *e = BoolExp::parseString(input);
     BoolExp *s = e->simplify();
     fail_unless(s->str() == expected,
@@ -151,8 +141,7 @@ void simplify_test(std::string input, std::string expected)
     delete s;
 }
 
-START_TEST(simplify)
-{
+START_TEST(simplify) {
     simplify_test("X || Y", "X || Y");
     simplify_test("X || 1", "1");
     simplify_test("X || 0", "X");
@@ -169,12 +158,9 @@ START_TEST(simplify)
     simplify_test("!X || X", "1");
     simplify_test("X && !X", "0");
     simplify_test("X || X", "X");
-
-
 } END_TEST;
 
-void equals_test(std::string a, std::string b="")
-{
+void equals_test(std::string a, std::string b="") {
     if (b=="")
         b=a;
     BoolExp *e = BoolExp::parseString(a);
@@ -186,8 +172,7 @@ void equals_test(std::string a, std::string b="")
     delete f;
 }
 
-START_TEST(equal)
-{
+START_TEST(equal) {
     equals_test("X && Y", "X || Y");
     equals_test("1");
     equals_test("1 && 1");
@@ -205,7 +190,6 @@ START_TEST(equal)
     equals_test("SIN(RAD)","SIN(DEG)");
     equals_test("A + B","A - B");
     equals_test("A + B");
-
 } END_TEST;
 
 

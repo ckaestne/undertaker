@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
 /*
- * boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -23,12 +23,11 @@
 #define KCONFIG_H
 
 /**
- * \brief Kconfig symbols types
- * To be kept in sync with symbol_type in expression.h from kconfig
- * and SymbolTools.cpp
+ * \brief Kconfig symbols types to be kept in sync with symbol_type
+ * in expression.h from kconfig and SymbolTools.cpp
  */
+// FIXME why isn't this enum in 'namespace kconfig'?
 enum kconfig_symbol_type {
     K_S_UNKNOWN, K_S_BOOLEAN, K_S_TRISTATE, K_S_INT, K_S_HEX, K_S_STRING, K_S_OTHER
 };
-
 #endif

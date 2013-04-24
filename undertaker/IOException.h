@@ -1,5 +1,6 @@
+// -*- mode: c++ -*-
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -18,22 +19,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
 #ifndef KCONFIG_IO_EXCEPTION_H
 #define KCONFIG_IO_EXCEPTION_H
 
 #include <stdexcept>
 
-namespace kconfig
-{
-
-    struct IOException : public std::runtime_error
-    {
-        IOException(const char *s)
-            : runtime_error(s) {}
-        IOException(std::string s)
-            : runtime_error(s.c_str()) {}
+namespace kconfig {
+    struct IOException : public std::runtime_error {
+        IOException(const char *s) : runtime_error(s) {}
+        IOException(std::string s) : runtime_error(s.c_str()) {}
     };
-
 }
 #endif

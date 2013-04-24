@@ -1,5 +1,5 @@
 /*
- *   boolframwork - boolean framework for undertaker and satyr
+ *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  *
@@ -28,7 +28,6 @@
 using namespace kconfig;
 
 START_TEST(simpleModel) {
-
     PicosatCNF cnf;
     // building the model
 
@@ -66,8 +65,6 @@ START_TEST(simpleModel) {
     cnf.pushAssumption(-1);
 
     fail_if(cnf.checkSatisfiable());
-
-
 } END_TEST;
 
 START_TEST(moreComplexModel) {
@@ -121,12 +118,10 @@ START_TEST(moreComplexModel) {
     cnf.pushClause();
 
     fail_unless(cnf.checkSatisfiable());
-
 } END_TEST;
 
 START_TEST(sequentialUsage) {
     PicosatCNF satisfiable;  // build a satisfiable model
-
 
     // v1 || !v1
     satisfiable.pushVar(1);
@@ -153,11 +148,9 @@ START_TEST(sequentialUsage) {
     satisfiable1.pushClause();
 
     fail_unless(satisfiable1.checkSatisfiable());
-
 } END_TEST;
 
 START_TEST(parallelUsage) {
-
     PicosatCNF satisfiable;
     PicosatCNF unsatisfiable;
     // building the model
@@ -188,7 +181,6 @@ START_TEST(parallelUsage) {
 
     fail_unless(satisfiable.checkSatisfiable());
     fail_if(unsatisfiable.checkSatisfiable());
-
 } END_TEST;
 
 START_TEST(toFile) {
@@ -232,7 +224,6 @@ START_TEST(toFile) {
     );
     fail_unless(file.str() == cmp,
                 "Expected:\n%s\n\nGot:\n%s", cmp.c_str(), file.str().c_str());
-
 } END_TEST;
 
 START_TEST(toFileWithSymbolTable) {
@@ -295,7 +286,6 @@ START_TEST(toFileWithSymbolTable) {
     );
     fail_unless(file.str() == cmp,
                 "Expected:\n%s\n\nGot:\n%s", cmp.c_str(), file.str().c_str());
-
 } END_TEST;
 
 START_TEST(readCnfFileWithInts) {
@@ -330,7 +320,6 @@ START_TEST(readCnfFileWithInts) {
     fail_unless(cnf.deref(4) == true);
     fail_unless(cnf.deref(5) == true);
     fail_unless(cnf.deref(6) == true);
-
 } END_TEST;
 
 START_TEST(readCnfFileWithStrings) {
@@ -378,7 +367,6 @@ START_TEST(readCnfFileWithStrings) {
     fail_unless(cnf.deref(v4) == true);
     fail_unless(cnf.deref(v5) == true);
     fail_unless(cnf.deref(v6) == true);
-
 } END_TEST;
 
 START_TEST(addClausesToCnfFromFile) {
@@ -427,7 +415,6 @@ START_TEST(addClausesToCnfFromFile) {
     fail_unless(cnf.deref(v4) == true);
     fail_unless(cnf.deref(v5) == true);
     fail_unless(cnf.deref(v6) == true);
-
 } END_TEST;
 
 Suite *cond_block_suite(void) {
