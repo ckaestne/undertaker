@@ -79,8 +79,8 @@ static int lineFromPosition(std::string line) {
 
 
 std::set<std::string> ConditionalBlock::itemsOfString(const std::string &str) {
-    BoolExp *e = BoolExp::parseString(str);
-    BoolExpSymbolSet symset(e);
+    kconfig::BoolExp *e = kconfig::BoolExp::parseString(str);
+    kconfig::BoolExpSymbolSet symset(e);
     delete e;
     return symset.getSymbolSet();
 }

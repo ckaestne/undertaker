@@ -2,6 +2,7 @@
  *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,46 +20,44 @@
 #ifndef KCONFIG_CNF_H
 #define KCONFIG_CNF_H
 
-#include<map>
-#include<string>
-#include<iostream>
-#include<deque>
+#include <map>
+#include <string>
+#include <iostream>
+#include <deque>
 
 #include "Kconfig.h"
 
-using namespace std;
 namespace kconfig
 {
     class CNF
     {
         public:
             virtual ~CNF(){};
-            virtual void readFromFile(istream &i) = 0;
+            virtual void readFromFile(std::istream &i) = 0;
             virtual void toFile(std::ostream &out) const = 0;
             virtual kconfig_symbol_type getSymbolType(const std::string &name) = 0;
             virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type) = 0;
-            virtual int getCNFVar(const string &var) = 0;
-            virtual void setCNFVar(const string &var, int CNFVar) = 0;
-            virtual string &getSymbolName(int CNFVar) = 0;
+            virtual int getCNFVar(const std::string &var) = 0;
+            virtual void setCNFVar(const std::string &var, int CNFVar) = 0;
+            virtual std::string &getSymbolName(int CNFVar) = 0;
             virtual void pushVar(int v) = 0;
-            virtual void pushVar(string  &v, bool val) = 0;
+            virtual void pushVar(std::string  &v, bool val) = 0;
             virtual void pushClause(void) = 0;
             virtual void pushClause(int *c) = 0;
             virtual void pushAssumption(int v)= 0;
-            virtual void pushAssumption(string &v,bool val)= 0;
-            virtual void pushAssumption(const char *v,bool val)= 0;
+            virtual void pushAssumption(const std::string &v, bool val)= 0;
+            virtual void pushAssumption(const char *v, bool val)= 0;
             virtual bool checkSatisfiable(void)= 0;
             virtual bool deref(int s) = 0;
-            virtual bool deref(string &s) = 0;
+            virtual bool deref(std::string &s) = 0;
             virtual bool deref(const char *c) = 0;
             virtual const std::string *getAssociatedSymbol(const std::string &var) const = 0;
             virtual int getVarCount(void) = 0;
             virtual int newVar(void) = 0;
-            virtual std::map<string, int>::const_iterator getSymbolsItBegin() = 0;
-            virtual std::map<string, int>::const_iterator getSymbolsItEnd() = 0;
+            virtual std::map<std::string, int>::const_iterator getSymbolsItBegin() = 0;
+            virtual std::map<std::string, int>::const_iterator getSymbolsItEnd() = 0;
             virtual const std::deque<std::string> *getMetaValue(const std::string &key) const = 0;
             virtual void addMetaValue(const std::string &key, const std::string &value) = 0;
-
     };
 }
 #endif

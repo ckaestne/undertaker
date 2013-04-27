@@ -1,7 +1,7 @@
 /*
  *   undertaker - analyze preprocessor blocks in code
  *
- * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2009-2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
@@ -32,21 +32,16 @@
 #include <list>
 #include <vector>
 
+#include "ConfigurationModel.h"
+#include "ConditionalBlock.h"
 #include "PicosatCNF.h"
-// Forward declaration for configuration model, becasue the boost
-// namespace seems to break, when we include ConfigurationModel
-class ConfigurationModel;
-class CppFile;
-typedef std::set<std::string> MissingSet;
 
-using namespace kconfig;
+typedef std::set<std::string> MissingSet;
 
 namespace Picosat
 {
     #include <ctype.h>
     #include <assert.h>
-
-    using std::string;
 
     /* Include the Limmat library header as C */
     extern "C"
@@ -65,10 +60,11 @@ struct SatCheckerError : public std::runtime_error
 
 class SatChecker
 {
+
     protected:
-        CNF *_cnf;
+        kconfig::CNF *_cnf;
     public:
-        typedef char const*                              iterator_t;
+        typedef char const* iterator_t;
 
         SatChecker(const char *sat, int debug = 0);
         SatChecker(const std::string sat, int debug = 0);

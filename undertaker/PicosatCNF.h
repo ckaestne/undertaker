@@ -3,7 +3,7 @@
  *   boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
- * Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2012-2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,12 +23,13 @@
 #ifndef KCONFIG_PICOSATCNF_H
 #define KCONFIG_PICOSATCNF_H
 
-#include<map>
-#include<vector>
-#include<string>
-#include<deque>
-#include<stdio.h>
-#include<stdlib.h>
+#include <map>
+#include <vector>
+#include <string>
+#include <deque>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "CNF.h"
 
 namespace Picosat
@@ -36,7 +37,6 @@ namespace Picosat
     #include <ctype.h>
     #include <assert.h>
 
-    using std::string;
     extern "C"
     {
         #include "picosat.h"
@@ -59,24 +59,24 @@ namespace kconfig
     {
         protected:
             //! this map contains the the type of each Kconfig symbol
-            std::map<string, kconfig_symbol_type> symboltypes;
+            std::map<std::string, kconfig_symbol_type> symboltypes;
 
             /**
              * \brief mapping between boolean variable names and their cnf-id
              *  Keep in sync with "booleanvars"
              */
-            std::map<string, int> cnfvars;
+            std::map<std::string, int> cnfvars;
             /** mapping between the names of boolean variables and symbols
             Some boolean variable represent model symbols. if so, the have
             to be stored in this map.
             Example:
             { "CONFIG_FOO"  -> "FOO", "CONFIG_FOO_MODULE" -> "FOO" }
             **/
-            std::map<string, string> associatedSymbols;
+            std::map<std::string, std::string> associatedSymbols;
             /** contains the variable name for cnf-id.
             Not all cnf-id will have a name. Must kept in sync with "symboltypes"
             **/
-            std::map<int, string> boolvars;
+            std::map<int, std::string> boolvars;
             std::vector<int> clauses;
             std::vector<int> assumptions;
             std::map<std::string, std::deque<std::string> > meta_information;
@@ -91,23 +91,23 @@ namespace kconfig
             PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
             virtual ~PicosatCNF();
             void setDefaultPhase(Picosat::SATMode phase);
-            virtual void readFromFile(istream &i);
+            virtual void readFromFile(std::istream &i);
             virtual void toFile(std::ostream &out) const;
             virtual kconfig_symbol_type getSymbolType(const std::string &name);
             virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type);
-            virtual int getCNFVar(const string &var);
-            virtual void setCNFVar(const string &var, int CNFVar);
-            virtual string &getSymbolName(int CNFVar);
+            virtual int getCNFVar(const std::string &var);
+            virtual void setCNFVar(const std::string &var, int CNFVar);
+            virtual std::string &getSymbolName(int CNFVar);
             virtual void pushVar(int v);
-            virtual void pushVar(string  &v, bool val);
+            virtual void pushVar(std::string  &v, bool val);
             virtual void pushClause(void);
             virtual void pushClause(int *c);
             virtual void pushAssumption(int v);
-            virtual void pushAssumption(string &v,bool val);
+            virtual void pushAssumption(const std::string &v,bool val);
             virtual void pushAssumption(const char *v,bool val);
             virtual bool checkSatisfiable(void);
             virtual bool deref(int s);
-            virtual bool deref(string &s);
+            virtual bool deref(std::string &s);
             virtual int getVarCount(void);
             virtual int newVar(void);
             virtual bool deref(const char *c);
@@ -122,8 +122,8 @@ namespace kconfig
             /** get an Iterator over all symbols associated with this formula
             @returns iterator over pairs of symbolnames and their type
             **/
-            virtual std::map<string, int>::const_iterator getSymbolsItBegin();
-            virtual std::map<string, int>::const_iterator getSymbolsItEnd();
+            virtual std::map<std::string, int>::const_iterator getSymbolsItBegin();
+            virtual std::map<std::string, int>::const_iterator getSymbolsItEnd();
             const std::deque<std::string> *getMetaValue(const std::string &key) const;
             void addMetaValue(const std::string &key, const std::string &value);
     };

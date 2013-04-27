@@ -2,7 +2,7 @@
  *   boolframwork - boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
- * Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2012-2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -60,7 +60,7 @@ void PicosatCNF::setDefaultPhase(Picosat::SATMode phase) {
 }
 
 void PicosatCNF::loadContext(void) {
-    vector<int>::iterator it;
+    std::vector<int>::iterator it;
 
     resetContext();
     currentContext = this;
@@ -81,7 +81,7 @@ void PicosatCNF::resetContext(void) {
     currentContext = 0;
 }
 
-void PicosatCNF::readFromFile(istream &i) {
+void PicosatCNF::readFromFile(std::istream &i) {
     std::string line;
 
     while(std::getline (i, line)) {
@@ -137,7 +137,7 @@ void PicosatCNF::readFromFile(istream &i) {
     }
 }
 
-void PicosatCNF::toFile(ostream &out) const {
+void PicosatCNF::toFile(std::ostream &out) const {
     std::map<std::string, kconfig_symbol_type>::const_iterator it;
     std::map<std::string, int>::const_iterator it1;
     std::vector<int>::const_iterator it2;
@@ -164,16 +164,16 @@ void PicosatCNF::toFile(ostream &out) const {
     }
 
     for (it = this->symboltypes.begin(); it != this->symboltypes.end(); it++) {
-        const string &sym = it->first;
+        const std::string &sym = it->first;
 
         int type = it->second;
-        out << "c sym " << sym.c_str() << " " << type << endl;
+        out << "c sym " << sym.c_str() << " " << type << std::endl;
     }
 
     for (it1 = this->cnfvars.begin(); it1 != this->cnfvars.end(); it1++) {
-        const string &sym = it1->first;
+        const std::string &sym = it1->first;
         int var = it1->second;
-        out << "c var " << sym.c_str() << " " << var << endl;
+        out << "c var " << sym.c_str() << " " << var << std::endl;
     }
 
     out << "p cnf " << varcount << " " << this->clausecount << std::endl;
@@ -184,12 +184,12 @@ void PicosatCNF::toFile(ostream &out) const {
     }
 }
 
-kconfig_symbol_type PicosatCNF::getSymbolType(const string &name) {
+kconfig_symbol_type PicosatCNF::getSymbolType(const std::string &name) {
     std::map<std::string, kconfig_symbol_type>::const_iterator it = this->symboltypes.find(name);
     return (it == this->symboltypes.end()) ? K_S_UNKNOWN : it->second;
 }
 
-void PicosatCNF::setSymbolType(const string &sym, kconfig_symbol_type type)
+void PicosatCNF::setSymbolType(const std::string &sym, kconfig_symbol_type type)
 {
     std::string config_sym = "CONFIG_" + sym;
     this->associatedSymbols[config_sym] = sym;
@@ -202,13 +202,13 @@ void PicosatCNF::setSymbolType(const string &sym, kconfig_symbol_type type)
     this->symboltypes[sym] = type;
 }
 
-int PicosatCNF::getCNFVar(const string &var)
+int PicosatCNF::getCNFVar(const std::string &var)
 {
     std::map<std::string, int>::const_iterator it = this->cnfvars.find(var);
     return (it == this->cnfvars.end()) ? 0 : it->second;
 }
 
-void PicosatCNF::setCNFVar(const string &var, int CNFVar)
+void PicosatCNF::setCNFVar(const std::string &var, int CNFVar)
 {
     if (abs(CNFVar) > this->varcount) {
         this->varcount = abs(CNFVar);
@@ -217,7 +217,7 @@ void PicosatCNF::setCNFVar(const string &var, int CNFVar)
     this->boolvars[CNFVar] = var;
 }
 
-string &PicosatCNF::getSymbolName(int CNFVar)
+std::string &PicosatCNF::getSymbolName(int CNFVar)
 {
     return this->boolvars[CNFVar];
 }
@@ -235,7 +235,7 @@ void PicosatCNF::pushVar(int v)
     clauses.push_back(v);
 }
 
-void PicosatCNF::pushVar(string  &v, bool val)
+void PicosatCNF::pushVar(std::string  &v, bool val)
 {
     int sign = val ? 1 : -1;
     int cnfvar = this->getCNFVar(v);
@@ -263,10 +263,11 @@ void PicosatCNF::pushAssumption(int v)
     assumptions.push_back(v);
 }
 
-void PicosatCNF::pushAssumption(string &v,bool val)
+void PicosatCNF::pushAssumption(const std::string &v, bool val)
 {
     int cnfvar = this->getCNFVar(v);
-    if(val)
+
+    if (val)
         this->pushAssumption(cnfvar);
     else
         this->pushAssumption(-cnfvar);
@@ -281,7 +282,7 @@ void PicosatCNF::pushAssumption(const char *v,bool val)
 
 bool PicosatCNF::checkSatisfiable(void)
 {
-    vector<int>::iterator it;
+    std::vector<int>::iterator it;
 
     if (this != currentContext){
         this->loadContext();
@@ -300,7 +301,7 @@ bool PicosatCNF::deref(int s)
     return Picosat::picosat_deref(s) == 1;
 }
 
-bool PicosatCNF::deref(string &s)
+bool PicosatCNF::deref(std::string &s)
 {
     int cnfvar = this->getCNFVar(s);
     return this->deref(cnfvar);
@@ -308,7 +309,7 @@ bool PicosatCNF::deref(string &s)
 
 bool PicosatCNF::deref(const char *c)
 {
-    string s(c);
+    std::string s(c);
     int cnfvar = this->getCNFVar(s);
     return this->deref(cnfvar);
 }
@@ -322,12 +323,12 @@ const int *PicosatCNF::failedAssumptions(void) const {
     return Picosat::picosat_failed_assumptions();
 }
 
-std::map<string, int>::const_iterator PicosatCNF::getSymbolsItBegin()
+std::map<std::string, int>::const_iterator PicosatCNF::getSymbolsItBegin()
 {
     return this->cnfvars.begin();
 }
 
-std::map<string, int>::const_iterator PicosatCNF::getSymbolsItEnd()
+std::map<std::string, int>::const_iterator PicosatCNF::getSymbolsItEnd()
 {
     return this->cnfvars.end();
 }

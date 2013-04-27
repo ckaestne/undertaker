@@ -49,6 +49,10 @@
 #include "bool.h"
 #include "Kconfig.h"
 
+using kconfig::PicosatCNF;
+using kconfig::BoolExp;
+using kconfig::CNFBuilder;
+
 bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     SatChecker c(sat.c_str());
 
@@ -69,9 +73,12 @@ SatChecker::SatChecker(const char *sat, int debug)
 SatChecker::SatChecker(const std::string sat, int debug)
     : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
 
-PicosatCNF *getCnfWithModelInit (const std::string &formula, Picosat::SATMode mode, std::string *result) {
+PicosatCNF *getCnfWithModelInit(const std::string &formula,
+                                Picosat::SATMode mode,
+                                std::string *result) {
      static const boost::regex modelvar_regexp("\\._\\.(.+)\\._\\.");
      boost::match_results<std::string::const_iterator> what;
+
      if (boost::regex_search(formula, what, modelvar_regexp)) {
         std::string modelname = what[1];
         CnfConfigurationModel *cm = dynamic_cast<CnfConfigurationModel *>(

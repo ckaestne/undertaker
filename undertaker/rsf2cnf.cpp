@@ -2,7 +2,7 @@
  *   rsf2cnf - converts rsf files to dimacs cnf files
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
- * Copyright (C) 2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2012-2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -214,7 +214,7 @@ int main(int argc, char **argv) {
     PicosatCNF cnf;
 
     if (cnf_file) {
-        std::fstream cnf_in_stream(cnf_file, fstream::in);
+        std::fstream cnf_in_stream(cnf_file, std::fstream::in);
         if (!cnf_in_stream.good()) {
             logger << error << "could not open cnffile \"" << cnf_file << "\"" << std::endl;
             return 1;
@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
     ItemRsfReader *rsf = NULL;
     builder.cnf = &cnf;
 
-    std::fstream model_stream (model_file, fstream::in);
+    std::fstream model_stream (model_file, std::fstream::in);
     if (!model_stream.good()) {
         logger << error << "could not open modelfile \"" << model_file << "\"" << std::endl;
         return 1;
@@ -236,7 +236,7 @@ int main(int argc, char **argv) {
     model = new RsfReader(model_stream, "UNDERTAKER_SET");
 
     if (rsf_file) {
-        std::fstream rsf_stream (rsf_file, fstream::in);
+        std::fstream rsf_stream (rsf_file, std::fstream::in);
         if (!rsf_stream.good()) {
             logger << error << "could not open rsffile \"" << argv[2] << "\"" << std::endl;
             return 1;
