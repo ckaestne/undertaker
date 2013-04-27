@@ -33,9 +33,19 @@ void CNFBuilder::pushClause(BoolExp *e) {
 
     if (constant) {
         bool v = constant->value;
-        if (v) { // ... && 1 can be filtered out 
+        if (v) { // ... && 1 can be filtered out
             return;
         }
+    }
+
+    // If we push a variable directly to the stack of clauses, we can
+    // assume that it is always set. Therefore, also add it to the
+    // ALWAYS_ON meta variable, to preserve this observation so that
+    // it can be exploited in a later stage.
+    BoolExpVar *variable = dynamic_cast<BoolExpVar*>(e);
+    if (variable) {
+        const std::string always_on("ALWAYS_ON");
+        cnf->addMetaValue(always_on, variable->str());
     }
 
     e->accept(this);
