@@ -38,6 +38,8 @@
 #undef yyFlexLexer
 #endif
 
+#include <list>
+
 #include "BoolExpParser.h"
 
 namespace kconfig

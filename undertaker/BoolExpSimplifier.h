@@ -28,7 +28,6 @@
 namespace kconfig {
     class BoolExpSimplifier : public BoolVisitor {
     public:
-        bool useAsumtions;
         BoolExp *getResult(void) const{
             return static_cast<BoolExp *>(this->result);
         }

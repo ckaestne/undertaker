@@ -361,9 +361,8 @@ std::string kconfig::BoolExp::str(void) {
     return sb.str();
 }
 
-kconfig::BoolExp *kconfig::BoolExp::simplify(bool useAsumtions) {
+kconfig::BoolExp *kconfig::BoolExp::simplify() {
     BoolExpSimplifier sim;
-    sim.useAsumtions = useAsumtions;
     this->accept(&sim);
     return sim.getResult();
 }

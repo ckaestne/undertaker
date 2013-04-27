@@ -132,20 +132,21 @@ START_TEST(notATree)
     BoolExp *n0 = new BoolExpNot(x);
     BoolExp *n1 = new BoolExpNot(n0);
     BoolExp *o = new BoolExpOr(n0,n1);
-    BoolExp *p = o->simplify(false);
+    BoolExp *p = o->simplify();
     std::string s = o->str();
     std::string t = p->str();
     fail_unless(s == "!X || !!X", "should be %s but is %s","!X || !!X", s.c_str());
     fail_unless(t == "1", "should be %s but is %s","1", t.c_str());
     delete o;
-
 } END_TEST;
 
 void simplify_test(std::string input, std::string expected)
 {
     BoolExp *e = BoolExp::parseString(input);
-    BoolExp *s = e->simplify(false);
-    fail_unless(s->str() == expected, "\"%s\" results \"%s\" insteat of \"%s\"", e->str().c_str(),s->str().c_str(), expected.c_str());
+    BoolExp *s = e->simplify();
+    fail_unless(s->str() == expected,
+                "\"%s\" results \"%s\" insteat of \"%s\"",
+                e->str().c_str(),s->str().c_str(), expected.c_str());
     delete e;
     delete s;
 }
@@ -178,7 +179,9 @@ void equals_test(std::string a, std::string b="")
         b=a;
     BoolExp *e = BoolExp::parseString(a);
     BoolExp *f = BoolExp::parseString(b);
-    fail_unless(e->equals(f) == ( e->str() == f->str() ), "equals() missbehaves on \"%s\" and \"%s\"" , e->str().c_str(), f->str().c_str() );
+    fail_unless(e->equals(f) == ( e->str() == f->str() ),
+                "equals() missbehaves on \"%s\" and \"%s\"",
+                e->str().c_str(), f->str().c_str() );
     delete e;
     delete f;
 }

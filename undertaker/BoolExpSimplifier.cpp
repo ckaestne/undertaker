@@ -175,7 +175,7 @@ void kconfig::BoolExpSimplifier::visit(BoolExpImpl *) {
         if (right != NULL && right->value == false) {
             //delete sr;
             BoolExp *notsl = B_NOT(sl);
-            BoolExp *notsl_simpl =  notsl->simplify(useAsumtions);
+            BoolExp *notsl_simpl =  notsl->simplify();
             //delete notsl;
             this->result = notsl_simpl;
             return;

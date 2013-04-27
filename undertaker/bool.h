@@ -3,6 +3,7 @@
  * boolean framework for undertaker and satyr
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,10 +23,11 @@
 #ifndef KCONFIG_BOOL_H
 #define KCONFIG_BOOL_H
 
+#include "BoolExpLexer.h"
+
 #include <string>
 #include <list>
 #include <ostream>
-#include "BoolExpLexer.h"
 
 #define B_AND new kconfig::BoolExpAnd
 #define B_OR new kconfig::BoolExpOr
@@ -61,7 +63,8 @@ namespace kconfig {
             int CNFVar;
             BoolExp(): gcMarked(false), left(NULL), right(NULL), CNFVar(0) {}
             virtual std::string str(void);
-            virtual BoolExp *simplify(bool);
+            //! Apply obvious simplifications (if possible)
+            virtual BoolExp *simplify();
             virtual int getEvaluationPriority(void) const {return -1;}
             virtual bool equals(const BoolExp *other) const;
             virtual void accept(BoolVisitor *visitor);
