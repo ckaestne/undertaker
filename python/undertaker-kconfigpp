@@ -27,8 +27,14 @@ import sys
 import os.path
 import logging
 
-from vamos.tools import setup_logging
+from os.path import join, dirname
 from optparse import OptionParser
+
+sys.path = [join(dirname(sys.path[0]), 'lib', 'python%d.%d' % \
+                     (sys.version_info[0], sys.version_info[1]), 'site-packages')] \
+                     + sys.path
+
+from vamos.tools import setup_logging
 
 env_regex    = re.compile(r'"[^$]*\$([\w]+)[^"]*"')
 source_regex = re.compile(r"^\s*source\s+\"?([\w/\$\.\-]+)\"?")
