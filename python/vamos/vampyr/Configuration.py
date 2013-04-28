@@ -332,15 +332,15 @@ class KbuildConfiguration(Configuration):
         CHECK = []
 
         while len(messages) > 0:
-            if re.match("^\s*CC\s*(\[M\]\s*)?" + on_object, messages[0]):
+            if re.match(r"^\s*CC\s*(\[M\]\s*)?" + on_object, messages[0]):
                 state = "CC"
                 del messages[0]
                 continue
-            if re.match("^\s*CHECK\s*(\[M\]\s*)?" + on_file, messages[0]):
+            if re.match(r"^\s*CHECK\s*(\[M\]\s*)?" + on_file, messages[0]):
                 state = "CHECK"
                 del messages[0]
                 continue
-            if re.match("fixdep: [\S]* is empty", messages[0]):
+            if re.match(r"fixdep: [\S]* is empty", messages[0]):
                 del messages[0]
                 continue
 

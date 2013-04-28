@@ -123,7 +123,7 @@ def get_loc_coverage(filename, autoconf_h=None):
     """
 
     assert(os.path.exists(filename))
-    cmd = "grep -v -E '^\s*#\s*include' %s " % filename
+    cmd = r"grep -v -E '^\s*#\s*include' %s " % filename
 
     if autoconf_h and os.path.exists(autoconf_h):
         cmd += ' | cpp -include %s' % autoconf_h

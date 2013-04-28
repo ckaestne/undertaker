@@ -717,7 +717,7 @@ def get_coreboot_version():
                               git_version)
 
     if os.path.exists('build/autoconf.h'):
-        regx = re.compile(" \* coreboot version: ([a-zA-Z_0-9_.-]+)")
+        regx = re.compile(r" \* coreboot version: ([a-zA-Z_0-9_.-]+)")
         with open('build/autoconf.h') as conf:
             for line in conf:
                 if regx.match(line):

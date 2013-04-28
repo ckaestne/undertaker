@@ -23,6 +23,7 @@ import logging
 import os.path
 
 class MessageContainer(set):
+    # pylint: disable=R0924
     def add_message(self, configuration, message):
         for msg in self:
             if msg == message:
@@ -43,7 +44,7 @@ class SparseMessage:
         # Strip coloumn numbers
         lines = map(lambda x: re.sub(r'(:\d+):\d+: ', r'\1: ', x), lines)
         for line in lines:
-            m = re.match('^\s*([^ \t]+)([ \t]+)(.*)', line)
+            m = re.match(r'^\s*([^ \t]+)([ \t]+)(.*)', line)
             if not m:
                 logging.error("Failed to parse '%s'", line)
                 continue
@@ -112,7 +113,7 @@ class GccMessage(SparseMessage):
     @staticmethod
     def preprocess_messages(messages):
         # Remove [-W<flag>]$ messages
-        expr = re.compile("\s*\[(-W[^[]+|enabled by default)\]$")
+        expr = re.compile(r"\s*\[(-W[^[]+|enabled by default)\]$")
         messages = map(lambda x: re.sub(expr, "", x), messages)
         messages = SparseMessage.preprocess_messages(messages)
         messages = filter(lambda x: re.match(".*:[0-9]+: (fatal )?(warning|error):", x), messages)
@@ -141,7 +142,7 @@ class ClangMessage(SparseMessage):
     @staticmethod
     def preprocess_messages(messages):
         # Remove [-W<flag>]$ messages
-        expr = re.compile("\s*\[(-W[^[]+|enabled by default)\]$")
+        expr = re.compile(r"\s*\[(-W[^[]+|enabled by default)\]$")
         messages = map(lambda x: re.sub(expr, "", x), messages)
 
         messages = filter(lambda x: re.match(".*:[0-9]+:.*(warning|error):", x), messages)
@@ -174,14 +175,14 @@ class SpatchMessage(SparseMessage):
         lines = filter(lambda x: len(x) > 0, lines)
         lines = filter(lambda x: not x.startswith("  "), lines)
         lines = filter(lambda x: not "***" in x, lines)
-        lines = filter(lambda x: not "Killed" == x , lines)        
+        lines = filter(lambda x: not "Killed" == x , lines)
         return lines
 
     def __init__(self, configuration, line, filename, test):
-        self.location = re.sub('.source([\d]+)$', '', filename)
+        self.location = re.sub(r'.source([\d]+)$', '', filename)
         self.test = test
         SparseMessage.__init__(self, configuration,
-                               re.sub('.source([\d]+)', '', line))
+                               re.sub(r'.source([\d]+)', '', line))
 
     def parse(self):
         try:

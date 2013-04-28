@@ -56,6 +56,7 @@ def setup_logging(log_level):
 
 
 def execute(command, echo=True, failok=True):
+    # pylint: disable=E1101
     """
     executes 'command' in a shell.
 
@@ -74,8 +75,10 @@ def execute(command, echo=True, failok=True):
 
     if echo:
         logging.debug("executing: " + command)
+#   stderr is merged into STDOUT
     p = Popen(command, stdout=PIPE, stderr=STDOUT, shell=True)
-    (stdout, _)  = p.communicate() # stderr is merged into STDOUT
+#   communicate() waits for the process to terminate and sets p.returncode
+    (stdout, _)  = p.communicate()
     if not failok and p.returncode != 0:
         raise CommandFailed(command, p.returncode, stdout.__str__().rsplit('\n'))
     if len(stdout) > 0 and stdout[-1] == '\n':

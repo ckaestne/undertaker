@@ -27,6 +27,7 @@ def unique(seq):
     return noDupes
 
 class Selection:
+    # pylint: disable=R0924
     """A selection is a selection of symbols (derived from kconfig
     features). """
 
@@ -98,6 +99,7 @@ class Selection:
 
     def __hash__(self):
         return hash(str(self))
+
     def __eq__(self, other):
         return str(self) == str(other)
 
