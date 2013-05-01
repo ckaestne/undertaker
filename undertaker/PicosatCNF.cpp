@@ -267,7 +267,13 @@ void PicosatCNF::pushAssumption(const std::string &v, bool val)
 {
     int cnfvar = this->getCNFVar(v);
 
-    if (val)
+    if (cnfvar == 0) {
+        logger << error << "Picosat: ignoring variable " << v
+               << "as it has not been registered yet!" << std::endl;
+        return;
+    }
+
+    if(val)
         this->pushAssumption(cnfvar);
     else
         this->pushAssumption(-cnfvar);
