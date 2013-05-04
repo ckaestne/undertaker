@@ -59,6 +59,7 @@ clean:
 	$(MAKE) -C ziz clean
 	$(MAKE) -C python clean
 	$(MAKE) -C tailor clean
+	$(MAKE) -C fm clean
 	test ! -f picosat/makefile || $(MAKE) -C picosat clean
 	rm -rf doc/*.gz
 	@python setup.py clean
@@ -71,7 +72,10 @@ check:
 	$(MAKE) -C ziz $@
 	$(MAKE) -C python $@
 	$(MAKE) -C tailor $@
-	$(MAKE) -C fm $@
+	$(MAKE) -s -C fm $@
+
+models: picosat/libpicosat.a
+	$(MAKE) -C undertaker/kconfig-dumps/
 
 install: all $(MANPAGES)
 	@install -d -v $(DESTDIR)$(BINDIR)

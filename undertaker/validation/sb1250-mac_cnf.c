@@ -2699,13 +2699,14 @@ I: loaded cnf model for blackfin
 I: loaded cnf model for cris
 I: loaded cnf model for frv
 I: loaded cnf model for h8300
+I: loaded cnf model for hexagon
 I: loaded cnf model for ia64
 I: loaded cnf model for m32r
 I: loaded cnf model for m68k
-I: loaded cnf model for m68knommu
 I: loaded cnf model for microblaze
 I: loaded cnf model for mips
 I: loaded cnf model for mn10300
+I: loaded cnf model for openrisc
 I: loaded cnf model for parisc
 I: loaded cnf model for powerpc
 I: loaded cnf model for s390
@@ -2713,12 +2714,14 @@ I: loaded cnf model for score
 I: loaded cnf model for sh
 I: loaded cnf model for sparc
 I: loaded cnf model for tile
+I: loaded cnf model for um
+I: loaded cnf model for unicore32
 I: loaded cnf model for x86
 I: loaded cnf model for xtensa
-I: found 23 models
+I: found 26 models
 I: Using x86 as primary model
 I: creating sb1250-mac_cnf.c.B0.code.globally.undead
-I: creating sb1250-mac_cnf.c.B1.missing.x86.dead
+I: creating sb1250-mac_cnf.c.B1.kconfig.globally.dead
 I: creating sb1250-mac_cnf.c.B10.code.globally.undead
 I: creating sb1250-mac_cnf.c.B12.code.globally.undead
 I: creating sb1250-mac_cnf.c.B13.code.globally.undead
@@ -2731,7 +2734,7 @@ I: creating sb1250-mac_cnf.c.B2.missing.x86.dead
 I: creating sb1250-mac_cnf.c.B20.code.globally.dead
 I: creating sb1250-mac_cnf.c.B21.missing.x86.dead
 I: creating sb1250-mac_cnf.c.B22.missing.x86.undead
-I: creating sb1250-mac_cnf.c.B23.missing.x86.dead
+I: creating sb1250-mac_cnf.c.B23.kconfig.globally.dead
 I: creating sb1250-mac_cnf.c.B24.missing.x86.dead
 I: creating sb1250-mac_cnf.c.B25.missing.x86.undead
 I: creating sb1250-mac_cnf.c.B26.code.globally.undead
@@ -2739,7 +2742,7 @@ I: creating sb1250-mac_cnf.c.B27.code.globally.dead
 I: creating sb1250-mac_cnf.c.B29.code.globally.undead
 I: creating sb1250-mac_cnf.c.B3.missing.x86.undead
 I: creating sb1250-mac_cnf.c.B30.code.globally.dead
-I: creating sb1250-mac_cnf.c.B4.missing.x86.dead
+I: creating sb1250-mac_cnf.c.B4.kconfig.globally.dead
 I: creating sb1250-mac_cnf.c.B5.missing.x86.dead
 I: creating sb1250-mac_cnf.c.B6.missing.x86.undead
 I: creating sb1250-mac_cnf.c.B9.code.globally.undead

@@ -19,3 +19,4 @@ BoolExpLexer.cpp
 stack.hh
 position.hh
 location.hh
+*.got

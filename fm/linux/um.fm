@@ -1,0 +1,724 @@
+config STATIC_LINK
+	bool "Force a static link"
+	default n
+	help
+	  This option gives you the ability to force a static link of UML.
+	  Normally, UML is linked as a shared binary.  This is inconvenient for
+	  use in a chroot jail.  So, if you intend to run UML inside a chroot,
+	  you probably want to say Y here.
+	  Additionally, this option enables using higher memory spaces (up to
+	  2.75G) for UML.
+
+config SELECT_MEMORY_MODEL
+	def_bool y
+	depends on EXPERIMENTAL || ARCH_SELECT_MEMORY_MODEL
+
+choice
+	prompt "Memory model"
+	depends on SELECT_MEMORY_MODEL
+	default DISCONTIGMEM_MANUAL if ARCH_DISCONTIGMEM_DEFAULT
+	default SPARSEMEM_MANUAL if ARCH_SPARSEMEM_DEFAULT
+	default FLATMEM_MANUAL
+
+config FLATMEM_MANUAL
+	bool "Flat Memory"
+	depends on !(ARCH_DISCONTIGMEM_ENABLE || ARCH_SPARSEMEM_ENABLE) || ARCH_FLATMEM_ENABLE
+	help
+	  This option allows you to change some of the ways that
+	  Linux manages its memory internally.  Most users will
+	  only have one option here: FLATMEM.  This is normal
+	  and a correct option.
+
+	  Some users of more advanced features like NUMA and
+	  memory hotplug may have different options here.
+	  DISCONTIGMEM is an more mature, better tested system,
+	  but is incompatible with memory hotplug and may suffer
+	  decreased performance over SPARSEMEM.  If unsure between
+	  "Sparse Memory" and "Discontiguous Memory", choose
+	  "Discontiguous Memory".
+
+	  If unsure, choose this option (Flat Memory) over any other.
+
+config DISCONTIGMEM_MANUAL
+	bool "Discontiguous Memory"
+	depends on ARCH_DISCONTIGMEM_ENABLE
+	help
+	  This option provides enhanced support for discontiguous
+	  memory systems, over FLATMEM.  These systems have holes
+	  in their physical address spaces, and this option provides
+	  more efficient handling of these holes.  However, the vast
+	  majority of hardware has quite flat address spaces, and
+	  can have degraded performance from the extra overhead that
+	  this option imposes.
+
+	  Many NUMA configurations will have this as the only option.
+
+	  If unsure, choose "Flat Memory" over this option.
+
+config SPARSEMEM_MANUAL
+	bool "Sparse Memory"
+	depends on ARCH_SPARSEMEM_ENABLE
+	help
+	  This will be the only option for some systems, including
+	  memory hotplug systems.  This is normal.
+
+	  For many other systems, this will be an alternative to
+	  "Discontiguous Memory".  This option provides some potential
+	  performance benefits, along with decreased code complexity,
+	  but it is newer, and more experimental.
+
+	  If unsure, choose "Discontiguous Memory" or "Flat Memory"
+	  over this option.
+
+endchoice
+
+config DISCONTIGMEM
+	def_bool y
+	depends on (!SELECT_MEMORY_MODEL && ARCH_DISCONTIGMEM_ENABLE) || DISCONTIGMEM_MANUAL
+
+config SPARSEMEM
+	def_bool y
+	depends on (!SELECT_MEMORY_MODEL && ARCH_SPARSEMEM_ENABLE) || SPARSEMEM_MANUAL
+
+config FLATMEM
+	def_bool y
+	depends on (!DISCONTIGMEM && !SPARSEMEM) || FLATMEM_MANUAL
+
+config FLAT_NODE_MEM_MAP
+	def_bool y
+	depends on !SPARSEMEM
+
+#
+# Both the NUMA code and DISCONTIGMEM use arrays of pg_data_t's
+# to represent different areas of memory.  This variable allows
+# those dependencies to exist individually.
+#
+config NEED_MULTIPLE_NODES
+	def_bool y
+	depends on DISCONTIGMEM || NUMA
+
+config HAVE_MEMORY_PRESENT
+	def_bool y
+	depends on ARCH_HAVE_MEMORY_PRESENT || SPARSEMEM
+
+#
+# SPARSEMEM_EXTREME (which is the default) does some bootmem
+# allocations when memory_present() is called.  If this cannot
+# be done on your architecture, select this option.  However,
+# statically allocating the mem_section[] array can potentially
+# consume vast quantities of .bss, so be careful.
+#
+# This option will also potentially produce smaller runtime code
+# with gcc 3.4 and later.
+#
+config SPARSEMEM_STATIC
+	bool
+
+#
+# Architecture platforms which require a two level mem_section in SPARSEMEM
+# must select this option. This is usually for architecture platforms with
+# an extremely sparse physical address space.
+#
+config SPARSEMEM_EXTREME
+	def_bool y
+	depends on SPARSEMEM && !SPARSEMEM_STATIC
+
+config SPARSEMEM_VMEMMAP_ENABLE
+	bool
+
+config SPARSEMEM_ALLOC_MEM_MAP_TOGETHER
+	def_bool y
+	depends on SPARSEMEM && X86_64
+
+config SPARSEMEM_VMEMMAP
+	bool "Sparse Memory virtual memmap"
+	depends on SPARSEMEM && SPARSEMEM_VMEMMAP_ENABLE
+	default y
+	help
+	 SPARSEMEM_VMEMMAP uses a virtually mapped memmap to optimise
+	 pfn_to_page and page_to_pfn operations.  This is the most
+	 efficient option when sufficient kernel resources are available.
+
+config HAVE_MEMBLOCK
+	boolean
+
+config NO_BOOTMEM
+	boolean
+
+# eventually, we can have this option just 'select SPARSEMEM'
+config MEMORY_HOTPLUG
+	bool "Allow for memory hot-add"
+	depends on SPARSEMEM || X86_64_ACPI_NUMA
+	depends on HOTPLUG && ARCH_ENABLE_MEMORY_HOTPLUG
+	depends on (IA64 || X86 || PPC_BOOK3S_64 || SUPERH || S390)
+
+config MEMORY_HOTPLUG_SPARSE
+	def_bool y
+	depends on SPARSEMEM && MEMORY_HOTPLUG
+
+config MEMORY_HOTREMOVE
+	bool "Allow for memory hot remove"
+	depends on MEMORY_HOTPLUG && ARCH_ENABLE_MEMORY_HOTREMOVE
+	depends on MIGRATION
+
+#
+# If we have space for more page flags then we can enable additional
+# optimizations and functionality.
+#
+# Regular Sparsemem takes page flag bits for the sectionid if it does not
+# use a virtual memmap. Disable extended page flags for 32 bit platforms
+# that require the use of a sectionid in the page flags.
+#
+config PAGEFLAGS_EXTENDED
+	def_bool y
+	depends on 64BIT || SPARSEMEM_VMEMMAP || !SPARSEMEM
+
+# Heavily threaded applications may benefit from splitting the mm-wide
+# page_table_lock, so that faults on different parts of the user address
+# space can be handled with less contention: split it at this NR_CPUS.
+# Default to 4 for wider testing, though 8 might be more appropriate.
+# ARM's adjust_pte (unused if VIPT) depends on mm-wide page_table_lock.
+# PA-RISC 7xxx's spinlock_t would enlarge struct page from 32 to 44 bytes.
+# DEBUG_SPINLOCK and DEBUG_LOCK_ALLOC spinlock_t also enlarge struct page.
+#
+config SPLIT_PTLOCK_CPUS
+	int
+	default "999999" if ARM && !CPU_CACHE_VIPT
+	default "999999" if PARISC && !PA20
+	default "999999" if DEBUG_SPINLOCK || DEBUG_LOCK_ALLOC
+	default "4"
+
+#
+# support for memory compaction
+config COMPACTION
+	bool "Allow for memory compaction"
+	select MIGRATION
+	depends on MMU
+	help
+	  Allows the compaction of memory for the allocation of huge pages.
+
+#
+# support for page migration
+#
+config MIGRATION
+	bool "Page migration"
+	def_bool y
+	depends on NUMA || ARCH_ENABLE_MEMORY_HOTREMOVE || COMPACTION
+	help
+	  Allows the migration of the physical location of pages of processes
+	  while the virtual addresses are not changed. This is useful in
+	  two situations. The first is on NUMA systems to put pages nearer
+	  to the processors accessing. The second is when allocating huge
+	  pages as migration can relocate pages to satisfy a huge page
+	  allocation instead of reclaiming.
+
+config PHYS_ADDR_T_64BIT
+	def_bool 64BIT || ARCH_PHYS_ADDR_T_64BIT
+
+config ZONE_DMA_FLAG
+	int
+	default "0" if !ZONE_DMA
+	default "1"
+
+config BOUNCE
+	def_bool y
+	depends on BLOCK && MMU && (ZONE_DMA || HIGHMEM)
+
+config NR_QUICK
+	int
+	depends on QUICKLIST
+	default "2" if AVR32
+	default "1"
+
+config VIRT_TO_BUS
+	def_bool y
+	depends on !ARCH_NO_VIRT_TO_BUS
+
+config MMU_NOTIFIER
+	bool
+
+config KSM
+	bool "Enable KSM for page merging"
+	depends on MMU
+	help
+	  Enable Kernel Samepage Merging: KSM periodically scans those areas
+	  of an application's address space that an app has advised may be
+	  mergeable.  When it finds pages of identical content, it replaces
+	  the many instances by a single page with that content, so
+	  saving memory until one or another app needs to modify the content.
+	  Recommended for use with KVM, or with other duplicative applications.
+	  See Documentation/vm/ksm.txt for more information: KSM is inactive
+	  until a program has madvised that an area is MADV_MERGEABLE, and
+	  root has set /sys/kernel/mm/ksm/run to 1 (if CONFIG_SYSFS is set).
+
+config DEFAULT_MMAP_MIN_ADDR
+        int "Low address space to protect from user allocation"
+	depends on MMU
+        default 4096
+        help
+	  This is the portion of low virtual memory which should be protected
+	  from userspace allocation.  Keeping a user from writing to low pages
+	  can help reduce the impact of kernel NULL pointer bugs.
+
+	  For most ia64, ppc64 and x86 users with lots of address space
+	  a value of 65536 is reasonable and should cause no problems.
+	  On arm and other archs it should not be higher than 32768.
+	  Programs which use vm86 functionality or have some need to map
+	  this low address space will need CAP_SYS_RAWIO or disable this
+	  protection by setting the value to 0.
+
+	  This value can be changed after boot using the
+	  /proc/sys/vm/mmap_min_addr tunable.
+
+config ARCH_SUPPORTS_MEMORY_FAILURE
+	bool
+
+config MEMORY_FAILURE
+	depends on MMU
+	depends on ARCH_SUPPORTS_MEMORY_FAILURE
+	bool "Enable recovery from hardware memory errors"
+	help
+	  Enables code to recover from some memory failures on systems
+	  with MCA recovery. This allows a system to continue running
+	  even when some of its memory has uncorrected errors. This requires
+	  special hardware support and typically ECC memory.
+
+config HWPOISON_INJECT
+	tristate "HWPoison pages injector"
+	depends on MEMORY_FAILURE && DEBUG_KERNEL && PROC_FS
+	select PROC_PAGE_MONITOR
+
+config NOMMU_INITIAL_TRIM_EXCESS
+	int "Turn on mmap() excess space trimming before booting"
+	depends on !MMU
+	default 1
+	help
+	  The NOMMU mmap() frequently needs to allocate large contiguous chunks
+	  of memory on which to store mappings, but it can only ask the system
+	  allocator for chunks in 2^N*PAGE_SIZE amounts - which is frequently
+	  more than it requires.  To deal with this, mmap() is able to trim off
+	  the excess and return it to the allocator.
+
+	  If trimming is enabled, the excess is trimmed off and returned to the
+	  system allocator, which can cause extra fragmentation, particularly
+	  if there are a lot of transient processes.
+
+	  If trimming is disabled, the excess is kept, but not used, which for
+	  long-term mappings means that the space is wasted.
+
+	  Trimming can be dynamically controlled through a sysctl option
+	  (/proc/sys/vm/nr_trim_pages) which specifies the minimum number of
+	  excess pages there must be before trimming should occur, or zero if
+	  no trimming is to occur.
+
+	  This option specifies the initial value of this option.  The default
+	  of 1 says that all excess pages should be trimmed.
+
+	  See Documentation/nommu-mmap.txt for more information.
+
+config TRANSPARENT_HUGEPAGE
+	bool "Transparent Hugepage Support"
+	depends on X86 && MMU
+	select COMPACTION
+	help
+	  Transparent Hugepages allows the kernel to use huge pages and
+	  huge tlb transparently to the applications whenever possible.
+	  This feature can improve computing performance to certain
+	  applications by speeding up page faults during memory
+	  allocation, by reducing the number of tlb misses and by speeding
+	  up the pagetable walking.
+
+	  If memory constrained on embedded, you may want to say N.
+
+choice
+	prompt "Transparent Hugepage Support sysfs defaults"
+	depends on TRANSPARENT_HUGEPAGE
+	default TRANSPARENT_HUGEPAGE_ALWAYS
+	help
+	  Selects the sysfs defaults for Transparent Hugepage Support.
+
+	config TRANSPARENT_HUGEPAGE_ALWAYS
+		bool "always"
+	help
+	  Enabling Transparent Hugepage always, can increase the
+	  memory footprint of applications without a guaranteed
+	  benefit but it will work automatically for all applications.
+
+	config TRANSPARENT_HUGEPAGE_MADVISE
+		bool "madvise"
+	help
+	  Enabling Transparent Hugepage madvise, will only provide a
+	  performance improvement benefit to the applications using
+	  madvise(MADV_HUGEPAGE) but it won't risk to increase the
+	  memory footprint of applications without a guaranteed
+	  benefit.
+endchoice
+
+#
+# UP and nommu archs use km based percpu allocator
+#
+config NEED_PER_CPU_KM
+	depends on !SMP
+	bool
+	default y
+
+config CLEANCACHE
+	bool "Enable cleancache driver to cache clean pages if tmem is present"
+	default n
+	help
+	  Cleancache can be thought of as a page-granularity victim cache
+	  for clean pages that the kernel's pageframe replacement algorithm
+	  (PFRA) would like to keep around, but can't since there isn't enough
+	  memory.  So when the PFRA "evicts" a page, it first attempts to use
+	  cleancache code to put the data contained in that page into
+	  "transcendent memory", memory that is not directly accessible or
+	  addressable by the kernel and is of unknown and possibly
+	  time-varying size.  And when a cleancache-enabled
+	  filesystem wishes to access a page in a file on disk, it first
+	  checks cleancache to see if it already contains it; if it does,
+	  the page is copied into the kernel and a disk access is avoided.
+	  When a transcendent memory driver is available (such as zcache or
+	  Xen transcendent memory), a significant I/O reduction
+	  may be achieved.  When none is available, all cleancache calls
+	  are reduced to a single pointer-compare-against-NULL resulting
+	  in a negligible performance hit.
+
+	  If unsure, say Y to enable cleancache
+#
+# Timer subsystem related configuration options
+#
+config TICK_ONESHOT
+	bool
+
+config NO_HZ
+	bool "Tickless System (Dynamic Ticks)"
+	depends on !ARCH_USES_GETTIMEOFFSET && GENERIC_CLOCKEVENTS
+	select TICK_ONESHOT
+	help
+	  This option enables a tickless system: timer interrupts will
+	  only trigger on an as-needed basis both when the system is
+	  busy and when the system is idle.
+
+config HIGH_RES_TIMERS
+	bool "High Resolution Timer Support"
+	depends on !ARCH_USES_GETTIMEOFFSET && GENERIC_CLOCKEVENTS
+	select TICK_ONESHOT
+	help
+	  This option enables high resolution timer support. If your
+	  hardware is not capable then this option only increases
+	  the size of the kernel image.
+
+config GENERIC_CLOCKEVENTS_BUILD
+	bool
+	default y
+	depends on GENERIC_CLOCKEVENTS || GENERIC_CLOCKEVENTS_MIGR
+
+config GENERIC_CLOCKEVENTS_MIN_ADJUST
+	bool
+
+config LD_SCRIPT_STATIC
+	bool
+	default y
+	depends on STATIC_LINK
+
+config LD_SCRIPT_DYN
+	bool
+	default y
+	depends on !LD_SCRIPT_STATIC
+
+config BINFMT_ELF
+	bool "Kernel support for ELF binaries"
+	depends on MMU && (BROKEN || !FRV)
+	default y
+	---help---
+	  ELF (Executable and Linkable Format) is a format for libraries and
+	  executables used across different architectures and operating
+	  systems. Saying Y here will enable your kernel to run ELF binaries
+	  and enlarge it by about 13 KB. ELF support under Linux has now all
+	  but replaced the traditional Linux a.out formats (QMAGIC and ZMAGIC)
+	  because it is portable (this does *not* mean that you will be able
+	  to run executables from different architectures or operating systems
+	  however) and makes building run-time libraries very easy. Many new
+	  executables are distributed solely in ELF format. You definitely
+	  want to say Y here.
+
+	  Information about ELF is contained in the ELF HOWTO available from
+	  <http://www.tldp.org/docs.html#howto>.
+
+	  If you find that after upgrading from Linux kernel 1.2 and saying Y
+	  here, you still can't run any ELF binaries (they just crash), then
+	  you'll have to install the newest ELF runtime libraries, including
+	  ld.so (check the file <file:Documentation/Changes> for location and
+	  latest version).
+
+config COMPAT_BINFMT_ELF
+	bool
+	depends on COMPAT && BINFMT_ELF
+
+config BINFMT_ELF_FDPIC
+	bool "Kernel support for FDPIC ELF binaries"
+	default y
+	depends on (FRV || BLACKFIN || (SUPERH32 && !MMU))
+	help
+	  ELF FDPIC binaries are based on ELF, but allow the individual load
+	  segments of a binary to be located in memory independently of each
+	  other. This makes this format ideal for use in environments where no
+	  MMU is available as it still permits text segments to be shared,
+	  even if data segments are not.
+
+	  It is also possible to run FDPIC ELF binaries on MMU linux also.
+
+config CORE_DUMP_DEFAULT_ELF_HEADERS
+	bool "Write ELF core dumps with partial segments"
+	default y
+	depends on BINFMT_ELF && ELF_CORE
+	help
+	  ELF core dump files describe each memory mapping of the crashed
+	  process, and can contain or omit the memory contents of each one.
+	  The contents of an unmodified text mapping are omitted by default.
+
+	  For an unmodified text mapping of an ELF object, including just
+	  the first page of the file in a core dump makes it possible to
+	  identify the build ID bits in the file, without paying the i/o
+	  cost and disk space to dump all the text.  However, versions of
+	  GDB before 6.7 are confused by ELF core dump files in this format.
+
+	  The core dump behavior can be controlled per process using
+	  the /proc/PID/coredump_filter pseudo-file; this setting is
+	  inherited.  See Documentation/filesystems/proc.txt for details.
+
+	  This config option changes the default setting of coredump_filter
+	  seen at boot time.  If unsure, say Y.
+
+config BINFMT_FLAT
+	bool "Kernel support for flat binaries"
+	depends on !MMU && (!FRV || BROKEN)
+	help
+	  Support uClinux FLAT format binaries.
+
+config BINFMT_ZFLAT
+	bool "Enable ZFLAT support"
+	depends on BINFMT_FLAT
+	select ZLIB_INFLATE
+	help
+	  Support FLAT format compressed binaries
+
+config BINFMT_SHARED_FLAT
+	bool "Enable shared FLAT support"
+	depends on BINFMT_FLAT
+	help
+	  Support FLAT shared libraries
+
+config HAVE_AOUT
+       def_bool n
+
+config BINFMT_AOUT
+	tristate "Kernel support for a.out and ECOFF binaries"
+	depends on HAVE_AOUT
+	---help---
+	  A.out (Assembler.OUTput) is a set of formats for libraries and
+	  executables used in the earliest versions of UNIX.  Linux used
+	  the a.out formats QMAGIC and ZMAGIC until they were replaced
+	  with the ELF format.
+
+	  The conversion to ELF started in 1995.  This option is primarily
+	  provided for historical interest and for the benefit of those
+	  who need to run binaries from that era.
+
+	  Most people should answer N here.  If you think you may have
+	  occasional use for this format, enable module support above
+	  and answer M here to compile this support as a module called
+	  binfmt_aout.
+
+	  If any crucial components of your system (such as /sbin/init
+	  or /lib/ld.so) are still in a.out format, you will have to
+	  say Y here.
+
+config OSF4_COMPAT
+	bool "OSF/1 v4 readv/writev compatibility"
+	depends on ALPHA && BINFMT_AOUT
+	help
+	  Say Y if you are using OSF/1 binaries (like Netscape and Acrobat)
+	  with v4 shared libraries freely available from Compaq. If you're
+	  going to use shared libraries from Tru64 version 5.0 or later, say N.
+
+config BINFMT_EM86
+	tristate "Kernel support for Linux/Intel ELF binaries"
+	depends on ALPHA
+	---help---
+	  Say Y here if you want to be able to execute Linux/Intel ELF
+	  binaries just like native Alpha binaries on your Alpha machine. For
+	  this to work, you need to have the emulator /usr/bin/em86 in place.
+
+	  You can get the same functionality by saying N here and saying Y to
+	  "Kernel support for MISC binaries".
+
+	  You may answer M to compile the emulation support as a module and
+	  later load the module when you want to use a Linux/Intel binary. The
+	  module will be called binfmt_em86. If unsure, say Y.
+
+config BINFMT_SOM
+	tristate "Kernel support for SOM binaries"
+	depends on PARISC && HPUX
+	help
+	  SOM is a binary executable format inherited from HP/UX.  Say
+	  Y here to be able to load and execute SOM binaries directly.
+
+config BINFMT_MISC
+	tristate "Kernel support for MISC binaries"
+	---help---
+	  If you say Y here, it will be possible to plug wrapper-driven binary
+	  formats into the kernel. You will like this especially when you use
+	  programs that need an interpreter to run like Java, Python, .NET or
+	  Emacs-Lisp. It's also useful if you often run DOS executables under
+	  the Linux DOS emulator DOSEMU (read the DOSEMU-HOWTO, available from
+	  <http://www.tldp.org/docs.html#howto>). Once you have
+	  registered such a binary class with the kernel, you can start one of
+	  those programs simply by typing in its name at a shell prompt; Linux
+	  will automatically feed it to the correct interpreter.
+
+	  You can do other nice things, too. Read the file
+	  <file:Documentation/binfmt_misc.txt> to learn how to use this
+	  feature, <file:Documentation/java.txt> for information about how
+	  to include Java support. and <file:Documentation/mono.txt> for
+          information about how to include Mono-based .NET support.
+
+          To use binfmt_misc, you will need to mount it:
+		mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
+
+	  You may say M here for module support and later load the module when
+	  you have use for it; the module is called binfmt_misc. If you
+	  don't know what to answer at this point, say Y.
+
+config HOSTFS
+	tristate "Host filesystem"
+	help
+          While the User-Mode Linux port uses its own root file system for
+          booting and normal file access, this module lets the UML user
+          access files stored on the host.  It does not require any
+          network connection between the Host and UML.  An example use of
+          this might be:
+
+          mount none /tmp/fromhost -t hostfs -o /tmp/umlshare
+
+          where /tmp/fromhost is an empty directory inside UML and
+          /tmp/umlshare is a directory on the host with files the UML user
+          wishes to access.
+
+          For more information, see
+          <http://user-mode-linux.sourceforge.net/hostfs.html>.
+
+          If you'd like to be able to work with files stored on the host,
+          say Y or M here; otherwise say N.
+
+config HPPFS
+	tristate "HoneyPot ProcFS (EXPERIMENTAL)"
+	depends on EXPERIMENTAL && PROC_FS
+	help
+	  hppfs (HoneyPot ProcFS) is a filesystem which allows UML /proc
+	  entries to be overridden, removed, or fabricated from the host.
+	  Its purpose is to allow a UML to appear to be a physical machine
+	  by removing or changing anything in /proc which gives away the
+	  identity of a UML.
+
+	  See <http://user-mode-linux.sf.net/old/hppfs.html> for more information.
+
+	  You only need this if you are setting up a UML honeypot.  Otherwise,
+	  it is safe to say 'N' here.
+
+config MCONSOLE
+	bool "Management console"
+	default y
+	help
+          The user mode linux management console is a low-level interface to
+          the kernel, somewhat like the i386 SysRq interface.  Since there is
+          a full-blown operating system running under every user mode linux
+          instance, there is much greater flexibility possible than with the
+          SysRq mechanism.
+
+          If you answer 'Y' to this option, to use this feature, you need the
+          mconsole client (called uml_mconsole) which is present in CVS in
+          2.4.5-9um and later (path /tools/mconsole), and is also in the
+          distribution RPM package in 2.4.6 and later.
+
+          It is safe to say 'Y' here.
+
+config MAGIC_SYSRQ
+	bool "Magic SysRq key"
+	depends on MCONSOLE
+	help
+	  If you say Y here, you will have some control over the system even
+	  if the system crashes for example during kernel debugging (e.g., you
+	  will be able to flush the buffer cache to disk, reboot the system
+	  immediately or dump some status information). A key for each of the
+	  possible requests is provided.
+
+	  This is the feature normally accomplished by pressing a key
+	  while holding SysRq (Alt+PrintScreen).
+
+	  On UML, this is accomplished by sending a "sysrq" command with
+	  mconsole, followed by the letter for the requested command.
+
+	  The keys are documented in <file:Documentation/sysrq.txt>. Don't say Y
+	  unless you really know what this hack does.
+
+config SMP
+	bool "Symmetric multi-processing support (EXPERIMENTAL)"
+	default n
+	depends on BROKEN
+	help
+	  This option enables UML SMP support.
+	  It is NOT related to having a real SMP box. Not directly, at least.
+
+	  UML implements virtual SMP by allowing as many processes to run
+	  simultaneously on the host as there are virtual processors configured.
+
+	  Obviously, if the host is a uniprocessor, those processes will
+	  timeshare, but, inside UML, will appear to be running simultaneously.
+	  If the host is a multiprocessor, then UML processes may run
+	  simultaneously, depending on the host scheduler.
+
+	  This, however, is supported only in TT mode. So, if you use the SKAS
+	  patch on your host, switching to TT mode and enabling SMP usually
+	  gives	you worse performances.
+	  Also, since the support for SMP has been under-developed, there could
+	  be some bugs being exposed by enabling SMP.
+
+	  If you don't know what to do, say N.
+
+config NR_CPUS
+	int "Maximum number of CPUs (2-32)"
+	range 2 32
+	depends on SMP
+	default "32"
+
+config HIGHMEM
+	bool "Highmem support (EXPERIMENTAL)"
+	depends on !64BIT && BROKEN
+	default n
+	help
+	  This was used to allow UML to run with big amounts of memory.
+	  Currently it is unstable, so if unsure say N.
+
+	  To use big amounts of memory, it is recommended enable static
+	  linking (i.e. CONFIG_STATIC_LINK) - this should allow the
+	  guest to use up to 2.75G of memory.
+
+config KERNEL_STACK_ORDER
+	int "Kernel stack size order"
+	default 1 if 64BIT
+	range 1 10 if 64BIT
+	default 0 if !64BIT
+	help
+	  This option determines the size of UML kernel stacks.  They will
+	  be 1 << order pages.  The default is OK unless you're running Valgrind
+	  on UML, in which case, set this to 3.
+
+config MMAPPER
+	tristate "iomem emulation driver"
+	help
+	  This driver allows a host file to be used as emulated IO memory inside
+	  UML.
+
+config NO_DMA
+	def_bool y

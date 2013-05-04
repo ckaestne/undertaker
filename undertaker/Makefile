@@ -139,7 +139,7 @@ check: $(PROGS)
 	@$(MAKE) -s clean-check
 	@$(MAKE) run-rsf2cnfcheck
 	@$(MAKE) run-coveragecheck
-	@$(MAKE) -C kconfig-dumps all
+	@$(MAKE) -C kconfig-dumps
 	cd def-tests && env PATH=$(CURDIR):$(PATH) ./run-tests
 	cd coverage-tests && env PATH=$(CURDIR):$(PATH) ./run-tests
 	cd validation && env PATH=$(CURDIR):$(PATH) ./test-suite -t $$(getconf _NPROCESSORS_ONLN)
@@ -156,10 +156,9 @@ clean-check:
 	                 -o -name "*.c.error.got" \
 	                 -o -name "*.c.error.diff" \
 	                 -o -name "*.c.config*" \
-	                 -o -name "*.c:[0-9].config" \
-	                 -o -name "*.c:[0-9][0-9].config" \
+	                 -o -name "*.c.cppflags*" \
+	                 -o -name "*.c.source*" \
 	                 -o -name "*.dead" \
-	                 -o -name "_block.config" \
 	                 -o -name "*.undead" \
 	                 \) -exec rm {} \;
 

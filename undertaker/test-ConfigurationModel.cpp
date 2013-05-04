@@ -53,12 +53,12 @@ START_TEST(whitelistManagement) {
     always_on = model->getWhitelist();
     fail_unless (always_on != NULL);
 
-    fail_unless (always_on->size() == 39,
+    fail_unless (always_on->size() == 35,
                  "Whitelist size: %d", always_on->size());
     model->addFeatureToWhitelist("CONFIG_SHINY_FEATURE");
 
     always_on = model->getWhitelist();
-    fail_unless (always_on->size() == 40,
+    fail_unless (always_on->size() == 36,
                  "Whitelist size: %d", always_on->size());
 
     for (StringList::const_iterator it = always_on->begin();
