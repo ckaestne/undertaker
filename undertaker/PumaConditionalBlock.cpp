@@ -173,26 +173,40 @@ const char * PumaConditionalBlock::ExpressionStr() const {
         _expressionStr_cache = buildString(node->son(1));
     else if ((node = dynamic_cast<const PreIfdefDirective *>(_current_node)))
         _expressionStr_cache = strdup(node->son(1)->startToken()->text());
-    else if ((node = dynamic_cast<const PreIfndefDirective *>(_current_node))) {
+    else if ((node = dynamic_cast<const PreIfndefDirective *>(_current_node)))
         _expressionStr_cache = strdup(node->son(1)->startToken()->text());
-    } else if ((node = dynamic_cast<const PreElifDirective *>(_current_node)))
+    else if ((node = dynamic_cast<const PreElifDirective *>(_current_node)))
         _expressionStr_cache = buildString(node->son(1));
-    else if ((node = dynamic_cast<const PreElseDirective *>(_current_node)))
+    else if (isElseBlock()) {
         _expressionStr_cache = (char *)"";
-
+        return _expressionStr_cache;
+    }
 
     if (_expressionStr_cache) {
         PreMacroExpander expander(_builder.cpp_parser());
         _expressionStr_cache = expander.expandMacros(_expressionStr_cache);
         return _expressionStr_cache;
-    }
-    else {
+    } else {
         return "??";
     }
 }
 
 bool PumaConditionalBlock::isIfndefine() const {
     if (dynamic_cast<const PreIfndefDirective *>(_current_node) != 0)
+        return true;
+    else
+        return false;
+}
+
+bool PumaConditionalBlock::isElseIfBlock() const {
+    if (dynamic_cast<const PreElifDirective *>(_current_node) != 0)
+        return true;
+    else
+        return false;
+}
+
+bool PumaConditionalBlock::isElseBlock() const {
+    if (dynamic_cast<const PreElseDirective *>(_current_node) != 0)
         return true;
     else
         return false;

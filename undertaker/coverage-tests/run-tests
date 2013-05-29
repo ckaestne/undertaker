@@ -64,7 +64,7 @@ else
     passed=$(( $passed + 1 ))
 fi
 
-undertaker -q -j coverage -C min -B blacklist -m /dev/null -O exec:cat blacklist.c > blacklist.c.blacklist.got
+undertaker -q -j coverage -C min_decision -B blacklist -m /dev/null -O exec:cat blacklist.c > blacklist.c.blacklist.got
 total=$(( $total + 1 ))
 if ! diff -q blacklist.c.blacklist{,.got}; then
     echo "FAILED: blacklist functionality"
@@ -73,7 +73,7 @@ else
     passed=$(( $passed + 1 ))
 fi
 
-undertaker -q -j coverage -C min -W blacklist -m /dev/null -O exec:cat blacklist.c > blacklist.c.whitelist.got
+undertaker -q -j coverage -C min_decision -W blacklist -m /dev/null -O exec:cat blacklist.c > blacklist.c.whitelist.got
 total=$(( $total + 1 ))
 if ! diff -q blacklist.c.whitelist{,.got}; then
     echo "FAILED: whitelist functionality"

@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2013 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,9 +25,13 @@
 
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
+typedef PumaConditionalBlockBuilder ConditionalBlockImplBuilder;
+#include <Puma/PreParser.h>
 
 #include "SatChecker.h"
 #include "BoolExpSymbolSet.h"
+
+#include "Logging.h"
 
 #include <boost/regex.hpp>
 #include <set>
@@ -110,6 +115,120 @@ ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
     return block;
 }
 
+static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
+        ConditionalBlock *parent, ConditionalBlock *prev) {
+    ConditionalBlockImpl *superblock = dynamic_cast<ConditionalBlockImpl *>(i);
+    if (!superblock) {
+        logger << error << "failed to access the super-class of Conditionalblock" << std::endl;
+        exit(1);
+    }
+    ConditionalBlockImplBuilder &builder = superblock->getBuilder();
+
+    Puma::Token *tok = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "#else");
+    Puma::PreTreeToken *ptok = new Puma::PreTreeToken(tok);
+
+    Puma::Token *tok2 = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "");
+    Puma::PreTreeToken *ptok2 = new Puma::PreTreeToken(tok2);
+
+    Puma::PreElseDirective *node = new Puma::PreElseDirective(ptok, ptok2);
+    unsigned long *nodeNum = builder.getNodeNum();
+
+    ConditionalBlockImpl *newBlock = new ConditionalBlockImpl(i->getFile(), parent,
+            prev, node, (*nodeNum)++, builder);
+    newBlock->setDummyBlock();
+    return newBlock;
+}
+
+void CppFile::decisionCoverage() {
+#if 0
+    logger << debug << "======== before TRANSFORMATION ========" << std::endl;
+    this->topBlock()->printConditionalBlocks(0);
+#endif
+    this->topBlock()->processForDecisionCoverage();
+#if 0
+    logger << debug << "======== after TRANSFORMATION ========" << std::endl;
+    this->topBlock()->printConditionalBlocks(0);
+    printCppFile();
+#endif
+}
+
+void CppFile::printCppFile() {
+    logger << debug << "------ FILE ------" << std::endl;
+    for (std::list<ConditionalBlock *>::iterator i = this->begin(); i != this->end(); ++i) {
+        if ((*i)->ifdefExpression() == "") {
+            if ((*i)->getName().compare("B00"))
+                logger << debug << "ELSE " << (*i)->isElseBlock() << " "
+                       << (*i)->getName() << " " << (*i) << std::endl;
+        } else {
+            logger << debug << (*i)->ifdefExpression() << " " << (*i)->isIfndefine()
+                   << " " << (*i)->isIfBlock() << " " << (*i)->isElseIfBlock() << " "
+                   << (*i)->getName() << " " << (*i) << std::endl;
+        }
+    }
+    logger << debug << "------ END FILE ------" << std::endl;
+}
+
+void ConditionalBlock::insertBlockIntoFile(ConditionalBlock *prevBlock, ConditionalBlock *nblock,
+        bool insertAfter) {
+    CppFile *file = this->getFile();
+    for (std::list<ConditionalBlock *>::iterator i = file->begin(); i != file->end(); ++i) {
+        if ((*i) == prevBlock) {
+            if (insertAfter)
+                file->insert(++i, nblock);
+            else
+                file->insert(i, nblock);
+            break;
+        }
+    }
+}
+
+void ConditionalBlock::processForDecisionCoverage() {
+    for (std::list<ConditionalBlock *>::iterator i = this->begin(), prev = this->end();
+            i != this->end(); prev = i, ++i) {
+
+        // insert else when:  1. we are in an if-block 2. the previous block was a if / elseif
+        if (prev != this->end() && (*i)->isIfBlock() &&
+                ((*prev)->isIfBlock() || (*prev)->isElseIfBlock())) {
+            ConditionalBlock *parent = const_cast<ConditionalBlock *>((*i)->_parent);
+            ConditionalBlockImpl *nblock = createDummyElseBlock(*i, parent, *prev);
+            parent->insert(i, nblock);
+            // this inserts the Block also into the correct position in the CppFile List
+            insertBlockIntoFile(*i, nblock);
+        }
+        // when the last element of the list is an if-expression
+        if (*i == this->back() && ((*i)->isIfBlock() || (*i)->isElseIfBlock())) {
+            ConditionalBlock *parent = const_cast<ConditionalBlock *>((*i)->_parent);
+            ConditionalBlockImpl *nblock = createDummyElseBlock(*i, parent, *i);
+            parent->push_back(nblock);
+            // this inserts the Block also into the correct position in the CppFile List
+            if (*i == this->getFile()->back())
+                this->getFile()->push_back(nblock);
+            else if ((*i)->size() > 0)
+                insertBlockIntoFile((*i)->back(), nblock, true);
+            else
+                insertBlockIntoFile(*i, nblock, true);
+        }
+        if ((*i)->size() > 0)
+            (*i)->processForDecisionCoverage();
+    }
+}
+
+void ConditionalBlock::printConditionalBlocks(int indent) {
+    for (std::list<ConditionalBlock *>::iterator i = this->begin(); i != this->end(); ++i) {
+        if ((*i)->ifdefExpression() == "") {
+            logger << debug << std::string(indent, ' ') << "ELSE " << (*i)->isElseBlock()
+                   << " " << (*i)->getName() << " " << (*i) << " prev: "
+                   << (*i)->getPrev() << std::endl;
+        } else {
+            logger << debug << std::string(indent, ' ') << (*i)->ifdefExpression()
+                   << " " << (*i)->isIfndefine() << " " << (*i)->isIfBlock() << " "
+                   << (*i)->isElseIfBlock() << " " << (*i)->getName() << " " << (*i)
+                   << " prev: " << (*i)->getPrev() << std::endl;
+        }
+        if ((*i)->size() > 0)
+            (*i)->printConditionalBlocks(indent + 4);
+    }
+}
 
 void ConditionalBlock::lateConstructor() {
     if (_parent)  { // Not the toplevel block

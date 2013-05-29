@@ -359,7 +359,9 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
 
     for (CppFile::const_iterator it = ++file.begin(); it != file.end(); ++it) {
         PumaConditionalBlock *block = (PumaConditionalBlock *) (*it);
-        if ((*this)[block->getName()] == true) {
+        if (block->isDummyBlock()) {
+            continue;
+        } else if ((*this)[block->getName()] == true) {
             // Block is enabled in this assignment
             next = block->pumaStartToken();
             flag_map[next] = false;

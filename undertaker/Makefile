@@ -108,7 +108,7 @@ run-rsf2cnfcheck: rsf2cnf
 # coverage analysis will create validation/sched.c.config*
 run-coveragecheck: undertaker predator
 	@$(MAKE) -C kconfig-dumps all
-	./undertaker -j coverage -m kconfig-dumps/models validation/sched.c
+	./undertaker -j coverage -C simple_decision -m kconfig-dumps/models validation/sched.c
 #	we expect between 5 and 30 solutions
 	test `find validation -name 'sched.c.config*' | wc -l` -gt 5
 	test `find validation -name 'sched.c.config*' | wc -l` -lt 30

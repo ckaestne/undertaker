@@ -53,6 +53,7 @@ class PumaConditionalBlock : public ConditionalBlock {
     const Puma::PreTree *_current_node;
 
     bool _isIfBlock;
+    bool _isDummyBlock;
     PumaConditionalBlockBuilder &_builder;
     // For some reason, getting the expression string fails on
     // subsequent calls. We therefore cache the first result.
@@ -64,9 +65,8 @@ public:
     PumaConditionalBlock(CppFile *file, ConditionalBlock *parent, ConditionalBlock *prev,
                          const Puma::PreTree *node, const unsigned long nodeNum,
                          PumaConditionalBlockBuilder &builder) :
-        ConditionalBlock(file, parent, prev),
-        _number(nodeNum), _start(0), _end(0), _current_node(node),
-        _isIfBlock(false), _builder(builder),
+        ConditionalBlock(file, parent, prev), _number(nodeNum), _start(0), _end(0),
+        _current_node(node), _isIfBlock(false), _isDummyBlock(false), _builder(builder),
             _expressionStr_cache(NULL) {
         lateConstructor();
     };
@@ -98,7 +98,12 @@ public:
     virtual const char * ExpressionStr() const;
     virtual bool isIfBlock() const { return _isIfBlock; }
     virtual bool isIfndefine() const;
+    virtual bool isElseIfBlock() const;
+    virtual bool isElseBlock() const;
+    virtual bool isDummyBlock() const { return _isDummyBlock; }
+    virtual void setDummyBlock() { _isDummyBlock = true; }
     virtual const std::string getName() const;
+    PumaConditionalBlockBuilder & getBuilder() const { return _builder; }
 
     static ConditionalBlock *parse(const char *filename, CppFile *cppfile);
 
@@ -145,6 +150,8 @@ public:
     void visitPreDefineConstantDirective_Pre (Puma::PreDefineConstantDirective *);
     void visitPreDefineFunctionDirective_Pre (Puma::PreDefineFunctionDirective *);
     void visitPreUndefDirective_Pre (Puma::PreUndefDirective *);
+
+    unsigned long * getNodeNum() { return &_nodeNum; }
 
     static void addIncludePath(const char *);
 };

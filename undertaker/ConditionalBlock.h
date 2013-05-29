@@ -50,7 +50,6 @@ class CppFile : public CondBlockList {
     */
     ConditionalBlock *topBlock() const { return top_block; };
 
-
     typedef std::map<std::string, CppDefine*> DefineMap;
     /**
      * \return map with defined symbol to define object
@@ -66,6 +65,8 @@ class CppFile : public CondBlockList {
      */
     ConditionalBlock *getBlockAtPosition(const std::string &position);
 
+    //! start modification of ConditionalBlocks for decision coverage analysis
+    void decisionCoverage();
 
     //! Functor that checks if a given symbol was touched by an define
     class ItemChecker : public ConfigurationModel::Checker {
@@ -83,6 +84,8 @@ class CppFile : public CondBlockList {
     ConditionalBlock *top_block;
     std::map<std::string, CppDefine *> define_map;
     const CppFile::ItemChecker checker;
+
+    void printCppFile();
 };
 
 
@@ -98,20 +101,25 @@ class ConditionalBlock : public CondBlockList {
 
     //! \return original untouched expression
     virtual const char * ExpressionStr() const = 0;
-    virtual bool isIfBlock() const            = 0; //!< is if or ifdef block
-    virtual bool isIfndefine() const          = 0; //!< is ifndef
-    virtual const std::string getName() const = 0; //!< unique identifier for block
+    virtual bool isIfBlock() const             = 0; //!< is if or ifdef block
+    virtual bool isIfndefine() const           = 0; //!< is ifndef
+    virtual bool isElseIfBlock() const         = 0; //!< is elif
+    virtual bool isElseBlock() const           = 0; //!< is else
+    virtual bool isDummyBlock() const          = 0; //!< is Dummy-Block
+    virtual void setDummyBlock()               = 0; //!< set Block to dummy state
+    virtual const std::string getName() const  = 0; //!< unique identifier for block
 
     /**
      * This function doesn't affect the logic of the CPPPC algorithm, but changes
      * the presentation of blocks in the generated formulas
-     * With 'verbose_blocks' set, all block names in the generated formulas 
+     * With 'verbose_blocks' set, all block names in the generated formulas
      * additionally encode the complete (normalized) filename.
      * This allows to combine formulas for blocks from different files.
      * \param verbose_blocks if set, normalized filenames are appended to the block name
      */
     static void setBlocknameWithFilename(bool verbose_blocks){ useBlockWithFilename = verbose_blocks; }
-    static std::string normalize_filename(const char *); //!< replaces invalid characters with '_'
+    //!< replaces invalid characters with '_'
+    static std::string normalize_filename(const char *);
 
     /* None virtual functions follow */
 
@@ -132,7 +140,10 @@ class ConditionalBlock : public CondBlockList {
     //! \return enclosing block or 0 if == cpp_file->topBlock()
     const ConditionalBlock * getParent() const { return _parent; }
     //! \return previous block on current level or 0 if first block on level
+    //! note: a level is from an #if-Directive to an #endif-Directive
+    //! there is no connection from one #if-Directive to a preceeding #if/#elif/#else
     const ConditionalBlock * getPrev() const { return _prev; }
+
     //! \return associated file
     CppFile * getFile() const { return cpp_file; }
 
@@ -147,6 +158,16 @@ class ConditionalBlock : public CondBlockList {
     std::string getConstraintsHelper(UniqueStringJoiner *and_clause = 0);
     const std::list<CppDefine *> &getDefines() const { return _defines; };
 
+    //! the following functions have to be public because decisionCoverage() is
+    // called on the CppFile-Object to be able to print the contents of the CppFile.
+    // Even though CppFile and ConditionalBlock share a common predecessor, protected
+    // methods aren't visibile to the other, thus protected is no option either.
+    //
+    //! recursive function to modify ConditionalBlock for decision coverage analysis
+    void processForDecisionCoverage();
+    //! print ConditionalBlockList / CppFile for debugging
+    void printConditionalBlocks(int indent);
+
 protected:
     CppFile * cpp_file;
     const ConditionalBlock *_parent, *_prev;
@@ -156,6 +177,9 @@ protected:
 private:
     std::string _exp;
     std::string *cached_code_expression;
+
+    void insertBlockIntoFile(ConditionalBlock *prevBlock, ConditionalBlock *nblock,
+            bool insertAfter = false);
 };
 
 class CppDefine {
