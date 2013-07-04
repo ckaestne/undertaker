@@ -36,6 +36,8 @@ std::string PredatorVisitor::buildExpression(Puma::PreTree *node) {
 
     for (Puma::Token *t = node->startToken(); t != node->endToken(); t = t->unit()->next(t))
         tmp << *t;
+    if(node->startToken() == node->endToken())
+        tmp << *node->startToken();
     tmp << Puma::endu;
     char *s = Puma::StrCol::buildString(&tmp);
     std::string ret(s);
@@ -60,8 +62,7 @@ void PredatorVisitor::visitPreIfndefDirective_Pre (Puma::PreIfndefDirective *nod
 }
 
 void PredatorVisitor::visitPreElseDirective_Pre (Puma::PreElseDirective *node) {
-//    std::cout << buildExpression(node) << std::endl; //XXX FIXE: why doesn't this work like it is?
-    std::cout << "#else" << std::endl;
+    std::cout << buildExpression(node) << std::endl;
     std::cout << "B" << _nodeNum++ << std::endl;
 }
 
