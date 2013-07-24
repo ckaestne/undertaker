@@ -716,9 +716,10 @@ def get_coreboot_version():
         raise NotACorebootTree("Only 4.x versions are supported, but not %s",
                               git_version)
 
-    if os.path.exists('build/autoconf.h'):
+    if os.path.exists('build/config.h'):
         regx = re.compile(r" \* coreboot version: ([a-zA-Z_0-9_.-]+)")
-        with open('build/autoconf.h') as conf:
+        with open('build/config.h') as conf:
+            version = None
             for line in conf:
                 if regx.match(line):
                     m = regx.match(line)
@@ -726,7 +727,7 @@ def get_coreboot_version():
                     break
 
         # 'standard' Coreboot repository descriptions start with 4.
-        if version.startswith("4."):
+        if version and version.startswith("4."):
             return version
         raise NotACorebootTree("Only 4.x versions are supported, but not %s",
                               version)
