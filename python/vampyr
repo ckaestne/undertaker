@@ -298,6 +298,8 @@ def main():
     parser.add_option("-m", '--model', dest='model', action='store', type="string",
                       default=None,
                       help="Use the given model. Only useful with the bare-build framework")
+    parser.add_option('-A', '--algorithm', dest='coverage_strategy', action='store', default='min',
+                      help='Coverage calculation algorithm, default "min"')
     parser.add_option('-a', '--analyze', dest='do_analyze', action='store_true', default=False,
                       help="analyze variability")
     parser.add_option('-e', '--expand', dest='do_expansion', action='store_true',
@@ -350,6 +352,7 @@ def main():
                 'threads': get_online_processors() if opts.threads == 0 else opts.threads,
                 'exclude_others': opts.exclude_others,
                 'model': opts.model,
+                'coverage_strategy': opts.coverage_strategy,
                 'expansion_strategy': opts.strategy,
                 'loglevel': logging.getLogger().getEffectiveLevel(),
                 }
