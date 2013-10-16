@@ -241,9 +241,14 @@ void Parser::HandleDefines(bool define, lexer_type& lexer) {
     }
     _p_curCodeBlock->AppendContent(std::string("\n"));
 
-
+#if 0
+// FIXME this breaks when DEBUG is defined, pos and id have to be readout from the lexer
 #ifdef DEBUG
-    std::cout << (define ? "#define " : "#undef ") << flag.str() << " at: " << pos << ", in B" << id << std::endl;
+    std::cout << (define ? "#define " : "#undef ") << flag.str()
+        << " at: " << pos
+        << ", in B" << id
+        << std::endl;
+#endif
 #endif
 }
 
