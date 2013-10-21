@@ -188,16 +188,16 @@ inline bool addModuleAddr(unsigned long long addr) {
                     numberBuffer[numberSize++] = decToHexChar[addr%16];
                     addr /= 16;
                 }
-                // copy reversed
-                for (j=numberSize-1; j>=0; j--) {
-                    outputBuffer[outputSize++]=numberBuffer[j];
-                }
-                // Print module name
-                outputBuffer[outputSize++]=' ';
-                for (j=0; loadedModule[moduleNameSize].name[j]!='\0'; j++) {
-                    outputBuffer[outputSize++] =
-                            loadedModule[moduleNameSize].name[j];
-                }
+            }
+            // copy reversed
+            for (j=numberSize-1; j>=0; j--) {
+                outputBuffer[outputSize++]=numberBuffer[j];
+            }
+            // Print module name
+            outputBuffer[outputSize++]=' ';
+            for (j=0; loadedModule[moduleNameSize].name[j]!='\0'; j++) {
+                outputBuffer[outputSize++] =
+                        loadedModule[moduleNameSize].name[j];
             }
             // terminate string
             outputBuffer[outputSize++]='\n';
@@ -485,10 +485,10 @@ int main(int argc, const char *argv[]) {
                     callerBuffer[callerSize++] = '\n';
                     callerBuffer[callerSize] = '\0';
                     parsingMode=FTRACE_IGNORE_ZERO;
-                } else if (callerSize >= FUNCNAMELENGTH) {
+                } else if (callerSize >= FUNCNAMELENGTH || inputBuffer[position] == ' ') {
                     // ignore name
                     callerSize = 0;
-                    parsingMode=FTRACE_IGNORE_ZERO;
+                    parsingMode=FTRACE_DROP;
                 } else {
                     callerBuffer[callerSize++] = inputBuffer[position];
                 }
