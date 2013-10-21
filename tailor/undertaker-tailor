@@ -104,7 +104,8 @@ path_vmlinux=""
 strip_path=''
 
 # Const values
-const_ulimit=65536
+const_ulimit=0
+# the ulimit must be >128 mb for arm - no joke...
 starttime=$(date "+%s")
 const_minlines=1000
 const_analyzelength=1000
@@ -394,8 +395,11 @@ if [ $onlylines = "true" ]; then
 fi
 
 # setting ulimit for the undertaker
-if [ $(ulimit -s) -lt $const_ulimit ]; then
-    output $VERBOSE "Setting ulimit up to $const_ulimit"
+if [ $const_ulimit -eq 0 ]; then
+    output $VERBOSE "Setting unlimited stack limit"
+    ulimit -s unlimited
+elif [[ "$(ulimit -s)" != "unlimited" && $(ulimit -s) -lt $const_ulimit ]]; then
+    output $VERBOSE "Setting stack limit up to $const_ulimit"
     ulimit -s $const_ulimit
 fi
 
