@@ -81,12 +81,12 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
             ModelContainer::iterator a = f->find(found_arch);
 
             if (a == f->end()) {
-                ConfigurationModel *a = f->registerModelFile(model + "/" + filename->c_str(), found_arch);
+                ConfigurationModel *mod = f->registerModelFile(model + "/" + filename->c_str(), found_arch);
                 /* overwrite the return value */
-                if (a) ret = a;
+                if (mod) ret = mod;
                 found_models++;
 
-                logger << info << "loaded " << a->getModelVersionIdentifier()
+                logger << info << "loaded " << mod->getModelVersionIdentifier()
                        << " model for " << found_arch << std::endl;
             }
         }

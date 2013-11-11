@@ -873,7 +873,7 @@ int main (int argc, char ** argv) {
     int opt;
     char *worklist = NULL;
     long threads = 1;
-    std::list<std::string> models;
+    std::list<std::string> models_from_parameters;
     std::string main_model = "x86";
     /* Default is dead/undead analysis */
     std::string process_mode = "dead";
@@ -986,7 +986,7 @@ int main (int argc, char ** argv) {
             main_model = std::string(optarg);
             break;
         case 'm':
-            models.push_back(std::string(optarg));
+            models_from_parameters.push_back(std::string(optarg));
             break;
         case 's':
             skip_non_configuration_based_defects = true;
@@ -1038,36 +1038,35 @@ int main (int argc, char ** argv) {
         return EXIT_FAILURE;
     }
 
-    ModelContainer *f = ModelContainer::getInstance();
+    ModelContainer *model_container = ModelContainer::getInstance();
     KconfigWhitelist *bl = KconfigWhitelist::getBlacklist();
     KconfigWhitelist *wl = KconfigWhitelist::getWhitelist();
 
-    if (0 == models.size() && (!bl->empty() || !wl->empty())) {
+    if (0 == models_from_parameters.size() && (!bl->empty() || !wl->empty())) {
         usage(std::cout, "please specify a model to use white- or blacklists");
         return EXIT_FAILURE;
     }
 
     /* Load all specified models */
-    for (std::list<std::string>::const_iterator i = models.begin(); i != models.end(); ++i) {
-        ConfigurationModel *model;
-
-        model = f->loadModels(*i);
-        /* Add white- and blacklisted features to model */
-        if (model) {
-            std::list<std::string>::iterator itl;
-            for (itl = bl->begin(); !bl->empty() && itl != bl->end(); itl++) {
-                model->addFeatureToBlacklist(*itl);
-            }
-
-            for (itl = wl->begin(); !wl->empty() && itl != wl->end(); itl++) {
-                model->addFeatureToWhitelist(*itl);
-            }
-        } else
+    for (std::list<std::string>::const_iterator i = models_from_parameters.begin();
+            i != models_from_parameters.end(); ++i) {
+        if (!model_container->loadModels(*i))
             logger << error << "Failed to load model " << *i << std::endl;
+    }
+    /* Add white- and blacklisted features to all models */
+    for (std::map<std::string, ConfigurationModel *>::const_iterator i = model_container->begin();
+            i != model_container->end(); ++i) {
+        ConfigurationModel *model = (*i).second;
+        std::list<std::string>::iterator itl;
+        for (itl = bl->begin(); !bl->empty() && itl != bl->end(); itl++)
+            model->addFeatureToBlacklist(*itl);
+
+        for (itl = wl->begin(); !wl->empty() && itl != wl->end(); itl++)
+            model->addFeatureToWhitelist(*itl);
     }
 
     /* skip non-configuration based defect reports if more than one model is loaded */
-    if (f->size() > 1)
+    if (model_container->size() > 1)
         skip_non_configuration_based_defects = true;
 
     std::vector<std::string> workfiles;
@@ -1092,11 +1091,11 @@ int main (int argc, char ** argv) {
     }
 
     /* Specify main model, if models where loaded */
-    if (f->size() == 1) {
+    if (model_container->size() == 1) {
         /* If there is only one model file loaded use this */
-        f->setMainModel(f->begin()->first);
-    } else if (f->size() > 1) {
-        f->setMainModel(main_model);
+        model_container->setMainModel(model_container->begin()->first);
+    } else if (model_container->size() > 1) {
+        model_container->setMainModel(main_model);
     }
 
     /* Read from stdin after loading all models and whitelist */
@@ -1122,12 +1121,12 @@ int main (int argc, char ** argv) {
                     line = line.substr(space + 1);
                 }
                 if (new_mode.compare("load") == 0) {
-                    f->loadModels(line);
+                    model_container->loadModels(line);
                     continue;
                 } else if (new_mode.compare("main-model") == 0) {
-                    ConfigurationModel *db = f->loadModels(line);
+                    ConfigurationModel *db = model_container->loadModels(line);
                     if (db) {
-                        f->setMainModel(db->getName());
+                        model_container->setMainModel(db->getName());
                     }
                     continue;
                 } else { /* Change working mode */
