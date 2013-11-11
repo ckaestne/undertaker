@@ -1067,7 +1067,7 @@ int main (int argc, char ** argv) {
     }
 
     /* skip non-configuration based defect reports if more than one model is loaded */
-    if (models.size() > 1)
+    if (f->size() > 1)
         skip_non_configuration_based_defects = true;
 
     std::vector<std::string> workfiles;
