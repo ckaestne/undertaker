@@ -240,6 +240,7 @@ def normalize_file(infile):
 
     returns an array of lines
     """
+    # pylint: disable=W0702
 
     global open_brackets
 
@@ -261,8 +262,7 @@ def normalize_file(infile):
                 else:
                     ret.append(out + '\n')
             except:
-                """ at the moment we catch every exception here """
-                # pylint: disable=W0702
+                # at the moment we catch every exception here
                 logging.error("Failed to process %s:%s, skipping line", infile, i)
                 continue
 

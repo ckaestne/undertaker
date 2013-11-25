@@ -19,11 +19,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import logging
 import unittest2
 
 from vamos.busyfix.normalizer import normalize_line as nl
-from vamos.tools import setup_logging
 
 class BasicTests(unittest2.TestCase):
 
