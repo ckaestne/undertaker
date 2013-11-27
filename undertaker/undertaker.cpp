@@ -102,7 +102,6 @@ void usage(std::ostream &out, const char *error) {
     out << "  -d  enable decision mode preprocessing for cpppc/cppsym/mergeblockconf/blockpc/dead - Modes\n";
     out << "  -I  add an include path for #include directives\n";
     out << "  -s  skip non-configuration based defect reports\n";
-    out << "      (enabled by default if more than one model is loaded)\n";
     out << "  -j  specify the jobs which should be done\n";
     out << "      - dead: dead/undead file analysis (default)\n";
     out << "      - coverage: coverage file analysis\n";
@@ -989,9 +988,6 @@ int main (int argc, char ** argv) {
         case 'm':
             models_from_parameters.push_back(std::string(optarg));
             break;
-        case 's':
-            skip_non_configuration_based_defects = true;
-            break;
         case 'd':
             decision_coverage = true;
             break;
@@ -1007,6 +1003,9 @@ int main (int argc, char ** argv) {
             break;
         case 'I':
             PumaConditionalBlockBuilder::addIncludePath(optarg);
+            break;
+        case 's':
+            skip_non_configuration_based_defects = true;
             break;
         case 'h':
             usage(std::cout, NULL);
@@ -1064,10 +1063,6 @@ int main (int argc, char ** argv) {
         for (itl = wl->begin(); !wl->empty() && itl != wl->end(); itl++)
             model->addFeatureToWhitelist(*itl);
     }
-
-    /* skip non-configuration based defect reports if more than one model is loaded */
-    if (model_container->size() > 1)
-        skip_non_configuration_based_defects = true;
 
     std::vector<std::string> workfiles;
     if (!worklist) {

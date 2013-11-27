@@ -39,6 +39,7 @@ struct BlockDefectAnalyzer {
 
     virtual bool isDefect(const ConfigurationModel *model) = 0; //!< checks for a defect
     virtual bool isGlobal() const = 0; //!< checks if the defect applies to all models
+    virtual bool isInConfigurationSpace(const ConfigurationModel *model) = 0;
     virtual bool needsCrosscheck() const = 0; //!< defect will be present on every model
     virtual void defectIsGlobal();  //!< mark defect als valid on all models
     const std::string defectTypeToString() const; //!< human readable identifier for the defect type
@@ -69,11 +70,12 @@ struct BlockDefectAnalyzer {
      * only_in_model parameter.
      *
      * This method returns 'true' if the file was successfully
-     * written. The return code 'false' indicates either a file-system
-     * permission problem or, if only_in_model is set to true, that the
-     * defect does not contain any item in the configuration space.
+     * written. The return code 'false' indicates a file-system
+     * permission problem, or if skip_no_kconfig is set to true,
+     * indicating that only items in the configurations space will
+     * be reported.
      */
-    virtual bool writeReportToFile(bool only_in_model) const = 0;
+    virtual bool writeReportToFile(bool skip_no_kconfig) const = 0;
     virtual void markOk(const std::string &arch);
     virtual std::list<std::string> getOKList() { return _OKList; }
     virtual int defectType() const { return _defectType; }
@@ -100,9 +102,9 @@ public:
     DeadBlockDefect(ConditionalBlock *);
     virtual bool isDefect(const ConfigurationModel *model); //!< checks for a defect
     virtual bool isGlobal() const; //!< checks if the defect applies to all models
+    virtual bool isInConfigurationSpace(const ConfigurationModel *model);
     virtual bool needsCrosscheck() const; //!< defect will be present on every model
-    virtual bool writeReportToFile(bool only_in_model) const;
-
+    virtual bool writeReportToFile(bool skip_no_kconfig) const;
     virtual const char *getArch() { return _arch; }
     virtual void setArch(const char *arch) { _arch = arch; }
 

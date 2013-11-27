@@ -113,22 +113,8 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     formula.push_back(_cb->getName());
     formula.push_back(code_formula);
     _formula = formula.join("\n&&\n");
+    _inConfigurationSpace = isInConfigurationSpace(model);
 
-    // The idea is that the expression needs to contain at least one
-    // item that is in the configuration space. Otherwise, the block is
-    // not configuration dependent and must not be reported as
-    // configuration defect.
-    if (model) {
-        const std::string expr = _formula;
-        std::set<std::string> items = ConditionalBlock::itemsOfString(expr);
-        for (std::set<std::string>::const_iterator i = items.begin(); i != items.end(); i++) {
-            if (model->inConfigurationSpace(*i))
-                _inConfigurationSpace = true;
-        }
-    } else {
-        // if we do not have a model, this defect should always be reported
-        _inConfigurationSpace = true;
-    }
     SatChecker code_constraints(_formula);
 
     if (!code_constraints()) {
@@ -188,6 +174,22 @@ bool DeadBlockDefect::needsCrosscheck() const {
     }
 }
 
+bool DeadBlockDefect::isInConfigurationSpace(const ConfigurationModel *model) {
+    // The idea is that the expression needs to contain at least one
+    // item that is in the configuration space. Otherwise, the block is
+    // not configuration dependent and must not be reported as
+    // configuration defect.
+    if (model) {
+        const std::string expr = _formula;
+        std::set<std::string> items = ConditionalBlock::itemsOfString(expr);
+        for (std::set<std::string>::const_iterator i = items.begin(); i != items.end(); i++) {
+            if (model->inConfigurationSpace(*i))
+                return true;
+        }
+    }
+    return false;
+}
+
 void BlockDefectAnalyzer::defectIsGlobal() { _isGlobal = true; }
 
 const std::string BlockDefectAnalyzer::defectTypeToString() const {
@@ -205,10 +207,10 @@ const std::string BlockDefectAnalyzer::defectTypeToString() const {
     return "";
 }
 
-bool DeadBlockDefect::writeReportToFile(bool only_in_model) const {
+bool DeadBlockDefect::writeReportToFile(bool skip_no_kconfig) const {
     StringJoiner fname_joiner;
 
-    if (only_in_model && !_inConfigurationSpace)
+    if (skip_no_kconfig && !_inConfigurationSpace)
         return false;
 
     fname_joiner.push_back(_cb->getFile()->getFilename());
@@ -220,7 +222,9 @@ bool DeadBlockDefect::writeReportToFile(bool only_in_model) const {
         fname_joiner.push_back(defectTypeToString());
     }
 
-    if (_isGlobal)
+    if (!_inConfigurationSpace)
+        fname_joiner.push_back("no_kconfig");
+    else if (_isGlobal)
         fname_joiner.push_back("globally");
     else
         fname_joiner.push_back(_arch);
@@ -255,7 +259,7 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;
     const ConditionalBlock *parent = _cb->getParent();
 
-    // no parent -> impossible to be undead
+    // no parent -> it's B00 -> impossible to be undead
     if (!parent)
         return false;
 
@@ -266,22 +270,7 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
     formula.push_back("( " + parent->getName() + " && ! " + _cb->getName() + " )");
     formula.push_back(code_formula);
     _formula = formula.join("\n&&\n");
-
-    // The idea is that the expression needs to contain at least one
-    // item that is in the configuration space. Otherwise, the block is
-    // not configuration dependent and must not be reported as
-    // configuration defect.
-    if (model) {
-        const std::string expr = _formula;
-        std::set<std::string> items = ConditionalBlock::itemsOfString(expr);
-        for (std::set<std::string>::const_iterator i = items.begin(); i != items.end(); i++) {
-            if (model->inConfigurationSpace(*i))
-                _inConfigurationSpace = true;
-        }
-    } else {
-        // if we do not have a model, this defect should always be reported
-        _inConfigurationSpace = true;
-    }
+    _inConfigurationSpace = isInConfigurationSpace(model);
 
     SatChecker code_constraints(_formula);
 

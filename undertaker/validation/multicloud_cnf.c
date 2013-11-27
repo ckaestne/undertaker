@@ -25,6 +25,6 @@
  * check-output-start
 I: loaded cnf model for epsilon
 I: Using epsilon as primary model
-I: creating multicloud_cnf.c.B4.code.globally.dead
+I: creating multicloud_cnf.c.B4.code.no_kconfig.dead
  * check-output-end
  */
