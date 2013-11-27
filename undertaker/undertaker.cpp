@@ -85,7 +85,8 @@ static bool decision_coverage = false;
 void usage(std::ostream &out, const char *error) {
     if (error)
         out << error << std::endl << std::endl;
-    out << "`undertaker' analyzes conditional C code with #ifdefs.\n\n";
+    out << "`undertaker' analyzes conditional C code with #ifdefs.\n";
+    out << version << "\n\n";
     out << "Usage: undertaker [OPTIONS] <file..>\n";
     out << "\nOptions:\n";
     out << "  -V  print version information\n";
@@ -1008,12 +1009,11 @@ int main (int argc, char ** argv) {
             PumaConditionalBlockBuilder::addIncludePath(optarg);
             break;
         case 'h':
-            logger << info << "undertaker " << version << std::endl;
             usage(std::cout, NULL);
             exit(0);
             break;
         case 'V':
-            logger << info << "undertaker " << version << std::endl;
+            std::cout << "undertaker " << version << std::endl;
             exit(0);
             break;
         case 'q':
