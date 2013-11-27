@@ -4,7 +4,7 @@ DEBUG = -g3
 CFLAGS = -Wall -Wextra -O2 $(DEBUG)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS =
-LDLIBS = -lboost_regex -lboost_wave-mt -lboost_system-mt $(LDCOV)
+LDLIBS = -lboost_regex -lboost_wave -lboost_system $(LDCOV)
 
 ZIZOBJ = Ziz.o
 HEADERS = $(wildcard *.h)

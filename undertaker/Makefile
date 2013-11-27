@@ -13,8 +13,8 @@ CXXFLAGS = $(CFLAGS)
 
 LDFLAGS =
 # LDCOV = -coverage
-BOOST_LIBS = -lboost_system-mt -lboost_regex-mt -lboost_filesystem-mt -lboost_thread-mt -lboost_wave-mt
-LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) ../picosat/libpicosat.a -lPuma -lm $(LDCOV)
+BOOST_LIBS = -lboost_system -lboost_regex -lboost_filesystem -lboost_thread -lboost_wave
+LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) ../picosat/libpicosat.a -lPuma -lpthread -lm -lrt $(LDCOV)
 
 PARSEROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
@@ -179,4 +179,4 @@ run-lcov:
 	genhtml -o coverage-html coverage-html/undertaker.info
 
 FORCE:
-.PHONY: all clean clean-check FORCE run-% docs validation run-lcov run-coveragecheck zconf.tab.o
+.PHONY: all clean clean-check FORCE run-% docs validation run-lcov run-coveragecheck
