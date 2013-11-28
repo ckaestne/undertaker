@@ -19,7 +19,7 @@
  * current->executable is only used by the procfs.  This allows a dispatch
  * table to check for several different types  of binary formats.  We keep
  * trying until we recognize the file or we run out of supported binary
- * formats. 
+ * formats.
  */
 
 #include <linux/slab.h>
@@ -85,7 +85,7 @@ int __register_binfmt(struct linux_binfmt * fmt, int insert)
 	insert ? list_add(&fmt->lh, &formats) :
 		 list_add_tail(&fmt->lh, &formats);
 	write_unlock(&binfmt_lock);
-	return 0;	
+	return 0;
 }
 
 EXPORT_SYMBOL(__register_binfmt);
@@ -1075,7 +1075,7 @@ void setup_new_exec(struct linux_binprm * bprm)
 	   group */
 
 	current->self_exec_id++;
-			
+
 	flush_signal_handlers(current, 0);
 	flush_old_files(current->files);
 }
@@ -1165,8 +1165,8 @@ int check_unsafe_exec(struct linux_binprm *bprm)
 	return res;
 }
 
-/* 
- * Fill the binprm structure from the inode. 
+/*
+ * Fill the binprm structure from the inode.
  * Check permissions, then read the first 128 (BINPRM_BUF_SIZE) bytes
  *
  * This may be called multiple times for binary chains (scripts for example).
@@ -2122,8 +2122,10 @@ I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 models
 I: Using x86 as primary model
+I: creating exec.c.B0.kconfig.x86.undead
 I: creating exec.c.B1.missing.x86.dead
 I: creating exec.c.B2.kconfig.x86.dead
+I: creating exec.c.B3.kconfig.x86.undead
 I: creating exec.c.B4.missing.x86.dead
 I: creating exec.c.B5.missing.x86.undead
 I: creating exec.c.B6.missing.x86.dead

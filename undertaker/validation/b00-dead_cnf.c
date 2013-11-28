@@ -38,6 +38,7 @@ I: loaded cnf model for x86
 I: loaded cnf model for xtensa
 I: found 23 models
 I: Using x86 as primary model
+I: creating b00-dead_cnf.c.B0.code.globally.undead
 I: creating b00-dead_cnf.c.B1.missing.globally.dead
  * check-output-end
  */

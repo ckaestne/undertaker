@@ -210,6 +210,7 @@ I: loaded rsf model for xtensa
 I: found 23 models
 I: Using x86 as primary model
 I: creating intc.c.B0.missing.x86.dead
+I: creating intc.c.B1.missing.x86.undead
 I: creating intc.c.B2.missing.x86.dead
 I: creating intc.c.B3.missing.x86.dead
  * check-output-end

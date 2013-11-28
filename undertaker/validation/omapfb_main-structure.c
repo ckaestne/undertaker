@@ -62,11 +62,14 @@ I: loaded rsf model for xtensa
 I: found 23 models
 I: Using x86 as primary model
 I: creating omapfb_main-structure.c.B0.missing.x86.dead
+I: creating omapfb_main-structure.c.B1.missing.x86.undead
 I: creating omapfb_main-structure.c.B10.missing.x86.dead
 I: creating omapfb_main-structure.c.B11.missing.x86.dead
+I: creating omapfb_main-structure.c.B12.missing.x86.undead
 I: creating omapfb_main-structure.c.B13.missing.x86.dead
 I: creating omapfb_main-structure.c.B14.missing.x86.dead
 I: creating omapfb_main-structure.c.B2.missing.x86.dead
+I: creating omapfb_main-structure.c.B3.missing.x86.undead
 I: creating omapfb_main-structure.c.B4.missing.x86.dead
 I: creating omapfb_main-structure.c.B5.missing.x86.dead
 I: creating omapfb_main-structure.c.B6.missing.x86.dead

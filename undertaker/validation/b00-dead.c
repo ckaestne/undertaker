@@ -37,6 +37,7 @@ I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 models
 I: Using x86 as primary model
+I: creating b00-dead.c.B0.code.globally.undead
 I: creating b00-dead.c.B1.missing.globally.dead
  * check-output-end
  */

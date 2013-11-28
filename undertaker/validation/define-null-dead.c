@@ -34,14 +34,6 @@
 /*
  * check-name: Complex Conditions
  * check-output-start
-I: Using x86 as primary model
-I: creating define-null-dead.c.B1.code.globally.dead
-I: creating define-null-dead.c.B2.code.globally.undead
-I: creating define-null-dead.c.B3.code.globally.undead
-I: creating define-null-dead.c.B4.code.globally.dead
-I: creating define-null-dead.c.B5.code.globally.dead
-I: creating define-null-dead.c.B8.code.globally.dead
-I: found 23 models
 I: loaded rsf model for alpha
 I: loaded rsf model for arm
 I: loaded rsf model for avr32
@@ -65,5 +57,15 @@ I: loaded rsf model for sparc
 I: loaded rsf model for tile
 I: loaded rsf model for x86
 I: loaded rsf model for xtensa
+I: found 23 models
+I: Using x86 as primary model
+I: creating define-null-dead.c.B1.code.globally.dead
+I: creating define-null-dead.c.B2.code.globally.undead
+I: creating define-null-dead.c.B3.code.globally.undead
+I: creating define-null-dead.c.B4.code.globally.dead
+I: creating define-null-dead.c.B5.code.globally.dead
+I: creating define-null-dead.c.B6.code.globally.undead
+I: creating define-null-dead.c.B7.code.globally.undead
+I: creating define-null-dead.c.B8.code.globally.dead
  * check-output-end
  */

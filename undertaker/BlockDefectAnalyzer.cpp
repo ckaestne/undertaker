@@ -255,8 +255,8 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;
     const ConditionalBlock *parent = _cb->getParent();
 
-    // no parent (or parent is file) -> impossible to be undead
-    if (!parent || parent == _cb->getFile()->topBlock())
+    // no parent -> impossible to be undead
+    if (!parent)
         return false;
 
     if (!_arch)

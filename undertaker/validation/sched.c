@@ -9432,7 +9432,9 @@ I: loaded rsf model for xtensa
 I: found 23 models
 I: loaded 0 items to ignorelist
 I: Using x86 as primary model
+I: creating sched.c.B91.missing.x86.undead
 I: creating sched.c.B92.missing.x86.dead
+I: creating sched.c.B93.missing.x86.undead
 I: creating sched.c.B132.missing.x86.dead
 I: creating sched.c.B133.missing.x86.dead
 I: creating sched.c.B134.kconfig.globally.dead
