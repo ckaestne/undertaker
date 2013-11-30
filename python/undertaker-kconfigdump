@@ -45,6 +45,7 @@ PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
 DO_INFERENCES="no"
 MODE="rsf"
 USE_BUSYFIX="no"
+CALC_FM="no"
 
 # ensure the last (rightmost) non-zero exitcode is used when piping results into
 # another program
@@ -52,7 +53,7 @@ set -o pipefail
 
 trap "kill 0" SIGINT SIGTERM
 
-while getopts irchb OPT; do
+while getopts ifrchb OPT; do
     case $OPT in
         i)
             DO_INFERENCES="yes"
@@ -66,15 +67,19 @@ while getopts irchb OPT; do
         b)
             USE_BUSYFIX="yes"
             ;;
+        f)
+            CALC_FM="yes"
+            ;;
         h)
             echo "\`undertaker-kconfigdump' generates models for a linux, busybox"
             echo "and coreboot"
-            echo "Usage: ${0##*/} [-r] [-c] [-i] [-h] [-b]"
-            echo " -i  calculate inferences"
+            echo "Usage: ${0##*/} [-r] [-c] [-i] [-h] [-f] [-b]"
             echo " -r  generate Format 1.0 (RSF) Models (default)"
             echo " -c  generate Format 2.0 (CNF) Models"
-            echo " -b  use busyfix to transform busybox trees"
+            echo " -i  calculate inferences"
             echo " -h  displays this message"
+            echo " -f  create .fm files for all arches"
+            echo " -b  use busyfix to transform busybox trees"
             exit
             ;;
     esac
@@ -98,7 +103,13 @@ function find_undertaker_basepath () {
 PATH="`find_undertaker_basepath`/lib/undertaker:$PATH"
 debug "PATH=$PATH\n"
 
-if [ $MODE = "rsf" ]; then
+if [ $CALC_FM = "yes" ]; then
+    if ! which undertaker-kconfigpp > /dev/null; then
+        echo "No undertaker-kconfigpp program found."
+        exit 1
+    fi
+    echo "creating .fm files for all arches in directory $MODELS"
+elif [ $MODE = "rsf" ]; then
     if ! which dumpconf > /dev/null; then
         echo "No dumpconf binary found."
         exit 1
@@ -120,6 +131,7 @@ fi
 debug "rsf2model: $(which rsf2model)"
 debug "dumpconf: $(which dumpconf)"
 debug "satyr: $(which satyr)"
+debug "undertaker-kconfigpp: $(which undertaker-kconfigpp)"
 
 function all_linux_archs () {
     echo "$(ls arch/*/Kconfig* | cut -d '/' -f 2 | sort -u)"
@@ -333,6 +345,17 @@ if ! [ -f arch/x86/Kconfig -o -f arch/i386/Kconfig ]; then
     echo "This version supports Linux, busybox and coreboot"
     echo "Please run this programm inside an source tree without arguments"
     exit 1
+fi
+
+if [ $CALC_FM = "yes" ]; then
+    for i in $(all_linux_archs); do
+        if [[ $i = "um" && -r arch/um/Kconfig.um ]]; then
+            ARCH=$i undertaker-kconfigpp arch/$i/Kconfig.um > $MODELS/$i.fm
+        else
+            ARCH=$i undertaker-kconfigpp arch/$i/Kconfig > $MODELS/$i.fm
+        fi
+    done
+    exit 0
 fi
 
 if [ -z "$1" ]; then
