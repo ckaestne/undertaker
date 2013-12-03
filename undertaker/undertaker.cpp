@@ -681,7 +681,7 @@ void process_file_dead(const char *filename) {
     static unsigned int timeout = 120; // default timeout in seconds
 
     ConfigurationModel *model = ModelContainer::lookupMainModel();
-    if (model && strcmp("cnf", model->getModelVersionIdentifier())) {
+    if (model && !strcmp("cnf", model->getModelVersionIdentifier())) {
         logger << debug << "Increasing timeout for dead analysis to 3600 seconds" << std::endl;
         timeout = 3600;
     }
