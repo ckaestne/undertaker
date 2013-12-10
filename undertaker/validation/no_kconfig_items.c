@@ -46,10 +46,10 @@ I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 23 models
 I: Using x86 as primary model
-I: creating no_kconfig_items.cpp.B0.code.no_kconfig.undead
-I: creating no_kconfig_items.cpp.B1.code.no_kconfig.dead
-I: creating no_kconfig_items.cpp.B2.code.no_kconfig.dead
-I: creating no_kconfig_items.cpp.B3.kconfig.x86.undead
-I: creating no_kconfig_items.cpp.B4.kconfig.x86.dead
+I: creating no_kconfig_items.c.B0.code.no_kconfig.undead
+I: creating no_kconfig_items.c.B1.code.no_kconfig.dead
+I: creating no_kconfig_items.c.B2.code.no_kconfig.dead
+I: creating no_kconfig_items.c.B3.kconfig.x86.undead
+I: creating no_kconfig_items.c.B4.kconfig.x86.dead
  * check-output-end
  */
