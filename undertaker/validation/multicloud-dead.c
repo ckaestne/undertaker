@@ -17,7 +17,7 @@ int main(void) {
  * check-name: multicloud
  * check-command: undertaker -v $file
  * check-output-start
-I: creating multicloud-dead.c.B0.code.no_kconfig.undead
-I: creating multicloud-dead.c.B1.code.no_kconfig.dead
+I: creating multicloud-dead.c.B0.no_kconfig.globally.undead
+I: creating multicloud-dead.c.B1.no_kconfig.globally.dead
  * check-output-end
  */

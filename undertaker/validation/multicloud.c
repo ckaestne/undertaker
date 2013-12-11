@@ -23,6 +23,6 @@
  * check-name: multicloud
  * check-command: undertaker -v $file
  * check-output-start
-I: creating multicloud.c.B4.code.no_kconfig.dead
+I: creating multicloud.c.B4.no_kconfig.globally.dead
  * check-output-end
  */

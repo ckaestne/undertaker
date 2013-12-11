@@ -34,12 +34,14 @@
  * DEFECTTYPE. It provides facilities to test a given block number for a
  * defect and report its results.
  */
-struct BlockDefectAnalyzer {
-    enum DEFECTTYPE { None, Implementation, Configuration, Referential };
+class BlockDefectAnalyzer {
+public:
+    // FIXME change this to 'enum class DEFECTTYPE' when implementing c++11
+    enum DEFECTTYPE { None, Implementation, Configuration, Referential, NoKconfig };
 
     virtual bool isDefect(const ConfigurationModel *model) = 0; //!< checks for a defect
     virtual bool isGlobal() const = 0; //!< checks if the defect applies to all models
-    virtual bool isInConfigurationSpace(const ConfigurationModel *model) = 0;
+    virtual bool isNoKconfigDefect(const ConfigurationModel *model) = 0;
     virtual bool needsCrosscheck() const = 0; //!< defect will be present on every model
     virtual void defectIsGlobal();  //!< mark defect als valid on all models
     const std::string defectTypeToString() const; //!< human readable identifier for the defect type
@@ -78,18 +80,17 @@ struct BlockDefectAnalyzer {
     virtual bool writeReportToFile(bool skip_no_kconfig) const = 0;
     virtual void markOk(const std::string &arch);
     virtual std::list<std::string> getOKList() { return _OKList; }
-    virtual int defectType() const { return _defectType; }
+    virtual DEFECTTYPE defectType() const { return _defectType; }
     virtual ~BlockDefectAnalyzer() {}
 
     static const BlockDefectAnalyzer * analyzeBlock(ConditionalBlock *,
                                                     ConfigurationModel *);
 
 protected:
-    BlockDefectAnalyzer(int defecttype)
-        : _defectType(defecttype), _isGlobal(false), _inConfigurationSpace(false), _OKList() {}
-    int _defectType;
+    BlockDefectAnalyzer(DEFECTTYPE defecttype)
+        : _defectType(defecttype), _isGlobal(false), _OKList() {}
+    DEFECTTYPE _defectType;
     bool _isGlobal;
-    bool _inConfigurationSpace;
     ConditionalBlock *_cb;
     const char *_suffix;
     std::list<std::string> _OKList; //!< List of architectures on which this is proved to be OK
@@ -102,7 +103,7 @@ public:
     DeadBlockDefect(ConditionalBlock *);
     virtual bool isDefect(const ConfigurationModel *model); //!< checks for a defect
     virtual bool isGlobal() const; //!< checks if the defect applies to all models
-    virtual bool isInConfigurationSpace(const ConfigurationModel *model);
+    virtual bool isNoKconfigDefect(const ConfigurationModel *model);
     virtual bool needsCrosscheck() const; //!< defect will be present on every model
     virtual bool writeReportToFile(bool skip_no_kconfig) const;
     virtual const char *getArch() { return _arch; }

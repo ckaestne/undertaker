@@ -9450,7 +9450,7 @@ I: creating sched.c.B166.kconfig.globally.dead
 I: creating sched.c.B193.kconfig.globally.undead
 I: creating sched.c.B195.kconfig.globally.undead
 I: creating sched.c.B203.missing.globally.dead
-I: creating sched.c.B204.missing.globally.dead
+I: creating sched.c.B204.no_kconfig.globally.dead
 I: creating sched.c.B208.kconfig.x86.dead
  * check-output-end
  */

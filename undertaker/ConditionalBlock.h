@@ -91,6 +91,8 @@ class CppFile : public CondBlockList {
 
 class ConditionalBlock : public CondBlockList {
  public:
+    //! defect type used in block defect analysis
+    int defectType;
     //! location related accessors
     virtual const char *filename()   const = 0;
     virtual unsigned int lineStart() const = 0;

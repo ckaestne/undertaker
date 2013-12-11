@@ -19,7 +19,7 @@ int main(void) {
  * check-output-start
 I: loaded cnf model for epsilon
 I: Using epsilon as primary model
-I: creating multicloud-dead_cnf.c.B0.code.no_kconfig.undead
-I: creating multicloud-dead_cnf.c.B1.code.no_kconfig.dead
+I: creating multicloud-dead_cnf.c.B0.no_kconfig.globally.undead
+I: creating multicloud-dead_cnf.c.B1.no_kconfig.globally.dead
  * check-output-end
  */

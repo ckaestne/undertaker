@@ -1,20 +1,44 @@
-#define DEAD
+#define FOO
+#define BAR
 
-#ifdef DEAD
+// UNDEAD if, DEAD else
+#ifdef FOO
     //B0: UNDEAD
-    #undef DEAD
+    #undef FOO
 #else
     //B1: DEAD
 #endif
 
-#ifdef DEAD
+// DEAD if, UNDEAD else
+#ifdef FOO
     //B2: DEAD
+#else
+    //B3: UNDEAD
 #endif
 
-#ifdef CONFIG_X86
-    //B3: X86 UNDEAD
+// DEAD if, UNDEAD elif, DEAD else
+#ifdef FOO
+    //B4: DEAD
+#elif BAR
+    //B5: UNDEAD
 #else
-    //B4: X86 DEAD
+    //B6: DEAD
+#endif
+
+// UNDEAD if, DEAD elif, DEAD else
+#ifdef BAR
+    //B7: UNDEAD
+#elif FOO
+    //B8: DEAD
+#else
+    //B9: DEAD
+#endif
+
+// UNDEAD if, DEAD elif
+#ifdef CONFIG_X86
+    //B10: UNDEAD
+#elif FOO
+    //B11: DEAD
 #endif
 
 /*
@@ -49,10 +73,17 @@ I: loaded rsf model for x86
 I: loaded rsf model for xtensa
 I: found 26 models
 I: Using x86 as primary model
-I: creating no_kconfig_items.c.B0.code.no_kconfig.undead
-I: creating no_kconfig_items.c.B1.code.no_kconfig.dead
-I: creating no_kconfig_items.c.B2.code.no_kconfig.dead
-I: creating no_kconfig_items.c.B3.kconfig.x86.undead
-I: creating no_kconfig_items.c.B4.kconfig.x86.dead
+I: creating no_kconfig_items.c.B0.no_kconfig.globally.undead
+I: creating no_kconfig_items.c.B1.no_kconfig.globally.dead
+I: creating no_kconfig_items.c.B2.no_kconfig.globally.dead
+I: creating no_kconfig_items.c.B3.no_kconfig.globally.undead
+I: creating no_kconfig_items.c.B4.no_kconfig.globally.dead
+I: creating no_kconfig_items.c.B5.no_kconfig.globally.undead
+I: creating no_kconfig_items.c.B6.no_kconfig.globally.dead
+I: creating no_kconfig_items.c.B7.no_kconfig.globally.undead
+I: creating no_kconfig_items.c.B8.no_kconfig.globally.dead
+I: creating no_kconfig_items.c.B9.no_kconfig.globally.dead
+I: creating no_kconfig_items.c.B10.kconfig.x86.undead
+I: creating no_kconfig_items.c.B11.no_kconfig.globally.dead
  * check-output-end
  */
