@@ -197,7 +197,7 @@ function do_convert() {
         rsf2model "$MODELS/$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
 
         # Add CONFIG_$i -> !CONFIG_* for every architecture
-        echo $(all_linux_archs) | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | sed 's/ *$//g' | \
+        echo $(all_linux_archs) | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | sed 's/ *$//g' | sed 's/^ *//g' | \
             sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
             >> "$MODELS/$ARCH.model"
     fi
