@@ -190,16 +190,22 @@ function do_convert() {
         SUBARCH=$SUBARCH ARCH=$ARCH dumpconf arch/$ARCH/$KCONFIG | sort -u \
             | grep -v '^#' > "$MODELS/$ARCH.rsf"
 
-        # rsf2model, but CONFIG_$UPCASE_ARCH will be replaced by
-        # a rule that no other architecture can be selected at the same
-        # time. E.g. X86 -> !ARM && !S390
-
+        # if there is a 'CONFIG_$UPCASE_ARCH' without conditions, it will be filtered out
         rsf2model "$MODELS/$ARCH.rsf" | grep -v '^CONFIG_'"$UPCASE_ARCH"'$' > "$MODELS/$ARCH.model"
 
-        # Add CONFIG_$i -> !CONFIG_* for every architecture
-        echo $(all_linux_archs) | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' | sed 's/ *$//g' | sed 's/^ *//g' | \
-            sed 's/$/"/; s/\</!CONFIG_/g; s/ / \&\& /g; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
-            >> "$MODELS/$ARCH.model"
+        # if there is already a 'CONFIG_$UPCASE_ARCH' rule in the model, conditions
+        # that no other architecture can be selected at the same time will
+        # be appended and if CONFIG_$UPCASE_ARCH is not present, a new rule is created.
+        # E.g. X86 -> !ARM && !S390
+        ALL_NOT_CONFIG_ARCH=$(echo $(all_linux_archs) | sed "s/ *$ARCH */ /" | tr 'a-z' 'A-Z' \
+            | sed 's/ *$//g; s/^ *//g; s/\</!CONFIG_/g;')
+        if grep -q CONFIG_$UPCASE_ARCH $MODELS/$ARCH.model; then
+            sed -i '/^CONFIG_'"$UPCASE_ARCH"' / s/"$/ \&\& '"$(echo $ALL_NOT_CONFIG_ARCH | \
+                sed 's/ / \\\&\\\& /g')"'"/' $MODELS/$ARCH.model
+        else
+            echo $ALL_NOT_CONFIG_ARCH | sed 's/ / \&\& /g; s/$/"/; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
+                >> "$MODELS/$ARCH.model"
+        fi
     fi
 
     if [ $MODE = "cnf" ]; then
