@@ -6,7 +6,7 @@
  * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Christoph Egger <siccegge@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
- * Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
+ * Copyright (C) 2012-2014 Valentin Rothberg <valentinrothberg@gmail.com>
  * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
  * Copyright (C) 2013 Stefan Hengelein <stefan.hengelein@fau.de>
  *
@@ -107,6 +107,7 @@ void usage(std::ostream &out, const char *error) {
     out << "      - coverage: coverage file analysis\n";
     out << "      - cpppc: CPP Preconditions for whole file\n";
     out << "      - cppsym: statistics over CPP symbols mentioned in source files\n";
+    out << "      - blockrange: List all blocks with corresponding ranges (format: <file>:<blockID>:<start>:<end>\n";
     out << "      - blockpc: Block precondition (format: <file>:<line>:<column>)\n";
     out << "      - symbolpc: Symbol precondition (format <symbol>)\n";
     out << "      - checkexpr: Find a configuration that satisfies expression\n";
@@ -577,6 +578,27 @@ void process_file_cppsym(const char *filename) {
                << std::endl;
 }
 
+void process_file_blockrange(const char *filename) {
+    CppFile cpp(filename);
+
+    if (!cpp.good()) {
+        logger << error << "failed to open file: `" << filename << "'" << std::endl;
+        return;
+    } else if (decision_coverage) {
+        cpp.decisionCoverage();
+    }
+
+    ConditionalBlock *block = cpp.topBlock();
+    std::cout << filename << ":" << block->getName() << ":";
+    std::cout << block->lineStart() << ":" << block->lineEnd() << std::endl;
+    /* Iterate over all Blocks */
+    for (CppFile::iterator c = cpp.begin(); c != cpp.end(); ++c) {
+        block = *c;
+        std::cout << filename << ":" << block->getName() << ":";
+        std::cout << block->lineStart() << ":" << block->lineEnd() << std::endl;
+    }
+}
+
 void process_file_blockpc(const char *filename) {
     std::string fname = std::string(filename);
     std::string file, position;
@@ -801,6 +823,8 @@ process_file_cb_t parse_job_argument(const char *arg) {
         return process_file_cppsym;
     } else if (strcmp(arg, "blockpc") == 0) {
         return process_file_blockpc;
+    }  else if (strcmp(arg, "blockrange") == 0) {
+        return process_file_blockrange;
     } else if (strcmp(arg, "interesting") == 0) {
         return process_file_interesting;
     } else if (strcmp(arg, "checkexpr") == 0) {
