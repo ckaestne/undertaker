@@ -8,7 +8,7 @@
  * Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
  * Copyright (C) 2012-2014 Valentin Rothberg <valentinrothberg@gmail.com>
  * Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
- * Copyright (C) 2013 Stefan Hengelein <stefan.hengelein@fau.de>
+ * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,8 +73,6 @@ enum CoverageOutputMode {
 enum CoverageOperationMode {
     COVERAGE_OP_SIMPLE,             // simple, fast
     COVERAGE_OP_MINIMIZE,           // hopefully minimal configuration set
-    COVERAGE_OP_SIMPLE_DECISION,    // simple, fast + decision coverage
-    COVERAGE_OP_MINIMIZE_DECISION,  // hopefully minimal configuration set + decision coverage
 } coverageOperationMode = COVERAGE_OP_SIMPLE;
 
 static const char *coverage_exec_cmd = "cat";
@@ -99,13 +97,13 @@ void usage(std::ostream &out, const char *error) {
     out << "  -B  specify a blacklist\n";
     out << "  -b  specify a worklist (batch mode)\n";
     out << "  -t  specify count of parallel processes\n";
-    out << "  -d  enable decision mode preprocessing for cpppc/cppsym/mergeblockconf/blockpc/dead - Modes\n";
     out << "  -I  add an include path for #include directives\n";
     out << "  -s  skip non-configuration based defect reports\n";
     out << "  -j  specify the jobs which should be done\n";
     out << "      - dead: dead/undead file analysis (default)\n";
     out << "      - coverage: coverage file analysis\n";
     out << "      - cpppc: CPP Preconditions for whole file\n";
+    out << "      - cpppc_decision: CPP Preconditions for whole file with decision mode preprocessing\n";
     out << "      - cppsym: statistics over CPP symbols mentioned in source files\n";
     out << "      - blockrange: List all blocks with corresponding ranges (format: <file>:<blockID>:<start>:<end>\n";
     out << "      - blockpc: Block precondition (format: <file>:<line>:<column>)\n";
@@ -168,8 +166,6 @@ bool process_blockconf_helper(StringJoiner &sj,
     if (!cpp.good()) {
         logger << error << "failed to open file: `" << file << "'" << std::endl;
         return false;
-    } else if (decision_coverage) {
-        cpp.decisionCoverage();
     }
 
     int offset = strncmp("./", file.c_str(), 2)?0:2;
@@ -309,6 +305,8 @@ void process_file_coverage_helper(const char *filename) {
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
+    } else if (decision_coverage) {
+        file.decisionCoverage();
     }
 
     std::list<SatChecker::AssignmentMap> solution;
@@ -327,18 +325,12 @@ void process_file_coverage_helper(const char *filename) {
     MinimizeCoverageAnalyzer minimize_analyzer(&file);
     CoverageAnalyzer *analyzer = 0;
     if (coverageOperationMode == COVERAGE_OP_MINIMIZE) {
-        logger << debug << "Calculating configurations using the 'greedy' approach" << std::endl;
+        logger << debug << "Calculating configurations using the 'greedy"
+               << (decision_coverage ? " and decision coverage'" : "'") << " approach" << std::endl;
         analyzer = &minimize_analyzer;
     } else if (coverageOperationMode == COVERAGE_OP_SIMPLE) {
-        logger << debug << "Calculating configurations using the 'simple' approach" << std::endl;
-        analyzer = &simple_analyzer;
-    } else if (coverageOperationMode == COVERAGE_OP_MINIMIZE_DECISION) {
-        logger << debug << "Calculating configurations using the 'greedy and decision coverage' approach" << std::endl;
-        file.decisionCoverage();
-        analyzer = &minimize_analyzer;
-    } else if (coverageOperationMode == COVERAGE_OP_SIMPLE_DECISION) {
-        logger << debug << "Calculating configurations using the 'simple and decision coverage' approach" << std::endl;
-        file.decisionCoverage();
+        logger << debug << "Calculating configurations using the 'simple"
+               << (decision_coverage ? " and decision coverage'" : "'") << " approach" << std::endl;
         analyzer = &simple_analyzer;
     } else
         assert(false);
@@ -496,8 +488,6 @@ void process_file_cppsym_helper(const char *filename) {
     if (!s.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
-    } else if (decision_coverage) {
-        s.decisionCoverage();
     }
 
     ModelContainer *f = ModelContainer::getInstance();
@@ -584,8 +574,6 @@ void process_file_blockrange(const char *filename) {
     if (!cpp.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
-    } else if (decision_coverage) {
-        cpp.decisionCoverage();
     }
 
     ConditionalBlock *block = cpp.topBlock();
@@ -616,8 +604,6 @@ void process_file_blockpc(const char *filename) {
     if (!cpp.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
-    } else if (decision_coverage) {
-        cpp.decisionCoverage();
     }
 
     ConditionalBlock * block = cpp.getBlockAtPosition(filename);
@@ -658,8 +644,6 @@ void process_file_dead_helper(const char *filename) {
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
-    } else if (decision_coverage) {
-        file.decisionCoverage();
     }
 
     // delete potential leftovers from previous run
@@ -819,6 +803,9 @@ process_file_cb_t parse_job_argument(const char *arg) {
         return process_file_coverage;
     } else if (strcmp(arg, "cpppc") == 0) {
         return process_file_cpppc;
+    } else if (strcmp(arg, "cpppc_decision") == 0) {
+        decision_coverage = true;
+        return process_file_cpppc;
     } else if (strcmp(arg, "cppsym") == 0) {
         return process_file_cppsym;
     } else if (strcmp(arg, "blockpc") == 0) {
@@ -916,7 +903,7 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "dcb:M:m:t:i:B:W:sj:O:C:I:Vhvq")) != -1) {
+    while ((opt = getopt(argc, argv, "cb:M:m:t:i:B:W:sj:O:C:I:Vhvq")) != -1) {
         switch (opt) {
             int n;
             KconfigWhitelist *wl;
@@ -981,17 +968,20 @@ int main (int argc, char ** argv) {
                        << std::endl;
             break;
         case 'C':
-            if (0 == strcmp(optarg, "simple"))
+            if (0 == strcmp(optarg, "simple")) {
                 coverageOperationMode = COVERAGE_OP_SIMPLE;
-            else if (0 == strcmp(optarg, "min"))
+            } else if (0 == strcmp(optarg, "min")) {
                 coverageOperationMode = COVERAGE_OP_MINIMIZE;
-            else if (0 == strcmp(optarg, "simple_decision"))
-                coverageOperationMode = COVERAGE_OP_SIMPLE_DECISION;
-            else if (0 == strcmp(optarg, "min_decision"))
-                coverageOperationMode = COVERAGE_OP_MINIMIZE_DECISION;
-            else
+            } else if (0 == strcmp(optarg, "simple_decision")) {
+                decision_coverage = true;
+                coverageOperationMode = COVERAGE_OP_SIMPLE;
+            } else if (0 == strcmp(optarg, "min_decision")) {
+                decision_coverage = true;
+                coverageOperationMode = COVERAGE_OP_MINIMIZE;
+            } else {
                 logger << warn << "mode " << optarg << " is unknown, using 'simple' instead"
                        << std::endl;
+            }
             break;
         case 't':
             threads = strtol(optarg, (char **)0, 10);
@@ -1011,9 +1001,6 @@ int main (int argc, char ** argv) {
             break;
         case 'm':
             models_from_parameters.push_back(std::string(optarg));
-            break;
-        case 'd':
-            decision_coverage = true;
             break;
         case 'j':
             /* assign a new function pointer according to the jobs
