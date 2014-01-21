@@ -110,7 +110,7 @@ function find_undertaker_basepath () {
 }
 
 # This adds the correct path for dumpconf
-PATH="$(readlink -f $(find_undertaker_basepath)/lib/undertaker):$PATH"
+PATH="$(find_undertaker_basepath)/lib/undertaker:$PATH"
 debug "PATH=$PATH\n"
 
 if [ "$CALC_FM" = "yes" ]; then
