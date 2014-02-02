@@ -151,7 +151,7 @@ if $TIME -v -o undertaker.stats -- undertaker-linux-tree -t ${PROCESSORS} >>"$re
       2>undertaker-errors.txt; then
     cat undertaker.stats
     find . -name '*dead' > "$deadlist"
-    echo "Found $(grep globally $deadlist | wc -l) globally dead blocks"
+    echo "Found $(grep globally $deadlist | grep -v no_kconfig | wc -l) globally dead blocks"
 else
     echo "Scanning for Dead features failed, check the error logfiles!"
     cat undertaker-errors.txt
