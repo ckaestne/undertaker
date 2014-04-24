@@ -3,7 +3,7 @@
 
 PREREQ=""
 MOUNTPOINT="/sys/kernel/debug"
-SUBDIR="${MOUNTPOINT}/tracing"
+SUBDIR="$MOUNTPOINT/tracing"
 
 # Output pre-requisites
 prereqs()
@@ -18,19 +18,22 @@ case "$1" in
         ;;
 esac
 
-
 echo "Starting with undertaker tracing enabled"
-touch /run/ftrace.start
-[ -d ${MOUNTPOINT} ] || mkdir ${MOUNTPOINT}
-grep -q debugfs /proc/mounts || mount -t debugfs nodev ${MOUNTPOINT}
-touch /run/ftrace.mounted
-sleep 1
-echo 0 > ${SUBDIR}/tracing_on
-echo sym-addr > ${SUBDIR}/trace_options
-echo sym-offset > ${SUBDIR}/trace_options
-echo "function" > ${SUBDIR}/current_tracer
-echo > ${SUBDIR}/set_ftrace_notrace
-echo 1 > ${SUBDIR}/tracing_on
-touch /run/ftrace.tracing
-sleep 1
-cat ${SUBDIR}/trace_options > /run/ftrace.options
+touch /run/ftrace.boot.start
+[ -d "$MOUNTPOINT" ] || mkdir "$MOUNTPOINT"
+grep -q debugfs /proc/mounts || mount -t debugfs nodev "$MOUNTPOINT"
+touch /run/ftrace.boot.mounted
+if [ "$(cat /sys/kernel/debug/tracing/current_tracer)" == "function" ]; then
+    touch /run/ftrace.kernelparam
+else
+    sleep 1
+    echo 0 > "$SUBDIR/tracing_on"
+    echo "sym-addr" > "$SUBDIR/trace_options"
+    echo "sym-offset" > "$SUBDIR/trace_options"
+    echo "function" > "$SUBDIR/current_tracer"
+    echo > "$SUBDIR/set_ftrace_notrace"
+    echo 1 > "$SUBDIR/tracing_on"
+    touch /run/ftrace.boot.tracing
+    sleep 1
+fi
+cat "$SUBDIR/trace_options" > /run/ftrace.boot.options

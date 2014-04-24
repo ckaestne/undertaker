@@ -96,7 +96,8 @@ install: all $(MANPAGES)
 	@install -v scripts/kconfig/dumpconf $(DESTDIR)$(LIBDIR)/undertaker
 
 	@install -v tailor/undertaker-tailor $(DESTDIR)$(BINDIR)
-	@install -v tailor/undertaker-tracecontrol-prepare $(DESTDIR)$(BINDIR)
+	@install -v tailor/undertaker-tracecontrol-prepare-debian $(DESTDIR)$(BINDIR)
+	@install -v tailor/undertaker-tracecontrol-prepare-ubuntu $(DESTDIR)$(BINDIR)
 	@install -v tailor/undertaker-tracecontrol $(DESTDIR)$(BINDIR)
 	@install -v tailor/undertaker-traceutil $(DESTDIR)$(SBINDIR)
 	@cp -v tailor/lists/* $(DESTDIR)$(ETCDIR)/undertaker/

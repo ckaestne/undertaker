@@ -26,7 +26,8 @@ if [ ! `id -u` -eq 0 ] ; then
     echo "This operation requires root - aborting..."
     exit 1
 fi
-if ! cat /boot/config-`uname -r` | grep -q "CONFIG_FTRACE=y" ; then
+if ( ! cat /boot/config-`uname -r` | grep -q "CONFIG_FTRACE=y" ) && \
+   ( ! zcat /proc/config.gz | grep -q "CONFIG_FTRACE=y" ) ; then
     echo "Warning: No ftrace in current kernel available..."
 fi
 

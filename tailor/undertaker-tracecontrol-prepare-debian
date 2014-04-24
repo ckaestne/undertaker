@@ -18,12 +18,12 @@
 set -e
 
 TRACEUTIL=undertaker-traceutil
-SCRIPTDIRINSTALLED=$(dirname $(readlink -f $0))/../lib/undertaker/tailor/ubuntu-boot
-SCRIPTDIR=$(dirname $(readlink -f $0))/boot
+SCRIPTDIRINSTALLED="$(dirname "$(readlink -f "$0")")/../lib/undertaker/tailor/ubuntu-boot"
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")/boot"
 FORCE=false
 
-INITRAMFS=$(mktemp)
-INITRD=$(mktemp)
+INITRAMFS="$(mktemp)"
+INITRD="$(mktemp)"
 
 function help {
     echo "Usage $0 [arguments]"
@@ -35,22 +35,22 @@ function help {
     echo "  -f          Force the actions"
 }
 
-while getopts "fs:t:h" options; do
-    case $options in
+while getopts "fs:t:h" options ; do
+    case "$options" in
         h)  help
             exit 0
             ;;
         f)  FORCE=true
             ;;
-        s)  if [ -d $OPTARG ] ;then
-                SCRIPTDIR=$OPTARG
+        s)  if [[ -d "$OPTARG" ]] ; then
+                SCRIPTDIR="$OPTARG"
             else
                 echo "scriptdir '$OPTARG' is not a directory - aborting"
                 exit 1
             fi
             ;;
-        t)  if [ -x $OPTARG ] ;then
-                TRACEUTIL=$(readlink -f $OPTARG)
+        t)  if [[ -x "$OPTARG" ]] ; then
+                TRACEUTIL="$(readlink -f "$OPTARG" )"
             else
                 echo "traceutil '$OPTARG' is not an executable file - aborting"
                 exit 1
@@ -63,16 +63,16 @@ while getopts "fs:t:h" options; do
     esac
 done
 
-if ! $FORCE ; then
-    if ! which lsb_release > /dev/null 2>&1 || [ ! `lsb_release -i -s` = "Ubuntu" ] ; then
-        echo "This is not Ubuntu..."
+if [[ "$FORCE" = "false" ]] ; then
+    if ! which lsb_release > /dev/null 2>&1 || [[ ! "$(lsb_release -i -s)" = "Debian" ]] ; then
+        echo "This is not Debian..."
         exit 1
     fi
 fi
 
-if [ ! -d $SCRIPTDIR ] ; then
-    if [ -d $SCRIPTDIRINSTALLED ] ; then
-        SCRIPTDIR=$SCRIPTDIRINSTALLED
+if [[ ! -d "$SCRIPTDIR" ]] ; then
+    if [[ -d "$SCRIPTDIRINSTALLED" ]] ; then
+        SCRIPTDIR="$SCRIPTDIRINSTALLED"
     else
         echo "Could not find scriptdir at $SCRIPTDIR - aborting..."
         exit 1
@@ -80,10 +80,10 @@ if [ ! -d $SCRIPTDIR ] ; then
 fi
 
 # Check for presence of traceutil
-if [ ! -x $TRACEUTIL ] ; then
-    TRACEUTIL=$(type -P $TRACEUTIL)
+if [[ ! -x "$TRACEUTIL" ]] ; then
+    TRACEUTIL="$(type -P "$TRACEUTIL")"
 fi
-if [[ -z $TRACEUTIL ]] || [[ ! -x $TRACEUTIL ]] ; then
+if [[ -z "$TRACEUTIL" || ! -x "$TRACEUTIL" ]] ; then
     echo "ERROR: undertaker-traceutil was not found."
     echo "If you only downloaded and\
  compiled the undertaker sources, please provide the -t parameter with the\
@@ -92,9 +92,9 @@ if [[ -z $TRACEUTIL ]] || [[ ! -x $TRACEUTIL ]] ; then
 fi
 
 # If traceutil is not in the right spot, copy it there or issue warning
-if [[ "$FORCE" != "false" ]] || [[ `id -u` -eq 0 && "$TRACEUTIL" != "/usr/sbin/undertaker-traceutil" ]] ; then
-    cp -v $TRACEUTIL /usr/sbin/undertaker-traceutil
-elif [ ! `id -u` -eq 0 ] ; then
+if [[ "$FORCE" = "true" || ( "$(id -u)" = "0" && "$TRACEUTIL" != "/usr/sbin/undertaker-traceutil" ) ]] ; then
+    cp -v "$TRACEUTIL" /usr/sbin/undertaker-traceutil
+elif [[ "$(id -u)" != "0" ]] ; then
     echo "WARNING: You are not root."
     echo "Please make sure that \"$TRACEUTIL\" is somewhere \
 under /usr/ (preferrably /usr/sbin/) to use early boot tracing. If it is not, \
@@ -102,24 +102,26 @@ copy it there yourself!"
 fi
 
 # Copy configuration file to /etc/init
-if [[ "$FORCE" != "false" ]] || [[ `id -u` -eq 0 ]] ; then
-    cp -v $SCRIPTDIR/undertaker-trace.conf /etc/init/undertaker-trace.conf
+if [[ "$FORCE" = "true" || "$(id -u)" = "0" ]] ; then
+    cp -v "$SCRIPTDIR/undertaker-trace" /etc/init.d/undertaker-trace
+    chmod +x /etc/init.d/undertaker-trace
+    update-rc.d undertaker-trace defaults
 else
     echo "WARNING: $SCRIPTDIR/undertaker-trace.conf could not be copied to /etc/init."
     echo "     You MUST do this if early boot tracing is desired!"
 fi
 
 # Create initrd in local directory, try to copy it to /boot afterwards
-cd $SCRIPTDIR && find scripts/ | grep -v .svn | cpio -ov --format=newc | gzip -9 > $INITRAMFS
-cd $OLDPWD
-zcat $INITRAMFS | cpio -tv
-cat  /boot/initrd.img-`uname -r` $INITRAMFS > $INITRD
+cd "$SCRIPTDIR" && find scripts/ | grep -v .svn | cpio -ov --format=newc | gzip -9 > "$INITRAMFS"
+cd "$OLDPWD"
+zcat "$INITRAMFS" | cpio -tv
+cat "/boot/initrd.img-$(uname -r)" "$INITRAMFS" > "$INITRD"
 
 # This needs root, otherwise warn user to copy the file.
-if [[ $FORCE != "false" ]] || [[ `id -u` -eq 0 ]] ; then
-    cp -v $INITRD /boot/initrd.img-`uname -r`.ftrace
+if [[ "$FORCE" = "true" || "$(id -u)" = "0" ]] ; then
+    cp -v "$INITRD" "/boot/initrd.img-$(uname -r).ftrace"
 else
-    cp -v $INITRD ./initrd.img-`uname -r`.ftrace
-    echo "WARNING: You are not root, new initrd created as ./initrd.img-`uname -r`.ftrace."
+    cp -v "$INITRD" "./initrd.img-$(uname -r).ftrace"
+    echo "WARNING: You are not root, new initrd created as ./initrd.img-$(uname -r).ftrace."
     echo "Please copy it to /boot as root."
 fi

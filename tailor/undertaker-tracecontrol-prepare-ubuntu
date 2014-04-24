@@ -1,0 +1,125 @@
+#!/bin/bash
+# Copyright (C) 2012 Bernhard Heinloth <bernhard@heinloth.net>
+# Copyright (C) 2012 Valentin Rothberg <valentinrothberg@gmail.com>
+# Copyright (C) 2012 Andreas Ruprecht  <rupran@einserver.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+set -e
+
+TRACEUTIL=undertaker-traceutil
+SCRIPTDIRINSTALLED="$(dirname "$(readlink -f "$0")")/../lib/undertaker/tailor/ubuntu-boot"
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")/boot"
+FORCE=false
+
+INITRAMFS="$(mktemp)"
+INITRD="$(mktemp)"
+
+function help {
+    echo "Usage $0 [arguments]"
+    echo
+    echo "Possible arguments:"
+    echo "  -s <dir>    Path to dir with bootscripts"
+    echo "  -t <file>   Path to trace util excecutable"
+    echo "  -h          Print this help"
+    echo "  -f          Force the actions"
+}
+
+while getopts "fs:t:h" options ; do
+    case "$options" in
+        h)  help
+            exit 0
+            ;;
+        f)  FORCE=true
+            ;;
+        s)  if [[ -d "$OPTARG" ]] ; then
+                SCRIPTDIR="$OPTARG"
+            else
+                echo "scriptdir '$OPTARG' is not a directory - aborting"
+                exit 1
+            fi
+            ;;
+        t)  if [[ -x "$OPTARG" ]] ; then
+                TRACEUTIL="$(readlink -f "$OPTARG" )"
+            else
+                echo "traceutil '$OPTARG' is not an executable file - aborting"
+                exit 1
+            fi
+            ;;
+        *)  echo "Unknown Argument..."
+            help
+            exit 1
+            ;;
+    esac
+done
+
+if [[ "$FORCE" = "false" ]] ; then
+    if ! which lsb_release > /dev/null 2>&1 || [[ "$(lsb_release -i -s)" != "Ubuntu" ]] ; then
+        echo "This is not Ubuntu..."
+        exit 1
+    fi
+fi
+
+if [[ ! -d "$SCRIPTDIR" ]] ; then
+    if [[ -d "$SCRIPTDIRINSTALLED" ]] ; then
+        SCRIPTDIR="$SCRIPTDIRINSTALLED"
+    else
+        echo "Could not find scriptdir at $SCRIPTDIR - aborting..."
+        exit 1
+    fi
+fi
+
+# Check for presence of traceutil
+if [[ ! -x "$TRACEUTIL" ]] ; then
+    TRACEUTIL="$(type -P "$TRACEUTIL")"
+fi
+if [[ -z "$TRACEUTIL" || ! -x "$TRACEUTIL" ]] ; then
+    echo "ERROR: undertaker-traceutil was not found."
+    echo "If you only downloaded and\
+ compiled the undertaker sources, please provide the -t parameter with the\
+ path to the compiled undertaker-traceutil binary."
+    exit 1
+fi
+
+# If traceutil is not in the right spot, copy it there or issue warning
+if [[ "$FORCE" = "true" || ( "$(id -u)" = "0" && "$TRACEUTIL" != "/usr/sbin/undertaker-traceutil" ) ]] ; then
+    cp -v "$TRACEUTIL" /usr/sbin/undertaker-traceutil
+elif [[ "$(id -u)" != "0" ]] ; then
+    echo "WARNING: You are not root."
+    echo "Please make sure that \"$TRACEUTIL\" is somewhere \
+under /usr/ (preferrably /usr/sbin/) to use early boot tracing. If it is not, \
+copy it there yourself!"
+fi
+
+# Copy configuration file to /etc/init
+if [[ "$FORCE" = "true" || "$(id -u)" = "0" ]] ; then
+    cp -v "$SCRIPTDIR/undertaker-trace.conf" /etc/init/undertaker-trace.conf
+else
+    echo "WARNING: $SCRIPTDIR/undertaker-trace.conf could not be copied to /etc/init."
+    echo "     You MUST do this if early boot tracing is desired!"
+fi
+
+# Create initrd in local directory, try to copy it to /boot afterwards
+cd "$SCRIPTDIR" && find scripts/ | grep -v .svn | cpio -ov --format=newc | gzip -9 > "$INITRAMFS"
+cd "$OLDPWD"
+zcat "$INITRAMFS" | cpio -tv
+cat "/boot/initrd.img-$(uname -r)" "$INITRAMFS" > "$INITRD"
+
+# This needs root, otherwise warn user to copy the file.
+if [[ "$FORCE" = "true" || "$(id -u)" = "0" ]] ; then
+    cp -v "$INITRD" "/boot/initrd.img-$(uname -r).ftrace"
+else
+    cp -v "$INITRD" "./initrd.img-$(uname -r).ftrace"
+    echo "WARNING: You are not root, new initrd created as ./initrd.img-$(uname -r).ftrace."
+    echo "Please copy it to /boot as root."
+fi

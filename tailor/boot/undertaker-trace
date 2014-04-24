@@ -1,0 +1,144 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          tailor tracer
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start ftrace and parse
+# Description:       This helper mounts the debug filesystems and starts tracing
+### END INIT INFO
+
+# Author: Bernhard Heinloth <bernhard@heinloth.net>
+
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="tailor log saver"
+NAME=undertaker-trace
+DAEMON=/usr/sbin/undertaker-traceutil
+DAEMON_ARGS="/sys/kernel/debug/tracing/trace_pipe /run/undertaker-trace.out /sys/kernel/debug/tracing/set_ftrace_notrace /proc/modules"
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+    start-stop-daemon --start --quiet --background --pidfile $PIDFILE \
+        --exec $DAEMON --test > /dev/null || return 1
+    touch /run/ftrace.init.start
+    if [ ! -f /sys/kernel/debug/tracing/trace_pipe -o "$(cat /sys/kernel/debug/tracing/current_tracer)" != "function" ]; then
+        [ -d /sys/kernel/debug ] || mkdir /sys/kernel/debug
+        if [ ! -d /sys/kernel/debug/tracing ] ; then
+            mount -t debugfs none /sys/kernel/debug
+        fi
+        if [ ! -d /sys/kernel/debug/tracing ] ; then
+            return 2
+        fi
+        touch /run/ftrace.init.mounted
+        sleep 1
+        echo 0 > /sys/kernel/debug/tracing/tracing_on
+        echo sym-addr > /sys/kernel/debug/tracing/trace_options
+        echo sym-offset > /sys/kernel/debug/tracing/trace_options
+        echo "function" > /sys/kernel/debug/tracing/current_tracer
+        echo > /sys/kernel/debug/tracing/set_ftrace_notrace
+    fi
+    cat  /sys/kernel/debug/tracing/trace_options > /run/ftrace.init.options
+    if [ "$(cat /sys/kernel/debug/tracing/tracing_on)" != "1" ]; then
+        echo 1 > /sys/kernel/debug/tracing/tracing_on
+        touch /run/ftrace.init.tracing
+        sleep 1
+    fi
+    start-stop-daemon --start --quiet --background --pidfile $PIDFILE \
+        --exec $DAEMON -- $DAEMON_ARGS || return 2
+}
+
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+    if [ -f /run/undertaker.out ] ; then
+        start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE --name $NAME
+        RETVAL="$?"
+        [ "$RETVAL" = 2 ] && return 2
+        start-stop-daemon --stop --quiet --oknodo --retry=0/30/KILL/5 --exec $DAEMON
+        [ "$?" = 2 ] && return 2
+        echo 0 > /sys/kernel/debug/tracing/tracing_on
+        echo > /sys/kernel/debug/tracing/set_ftrace_notrace
+        touch /run/ftrace.stop
+        cp /run/undertaker-trace.out /var/tmp/trace--`date +%F--%H-%M-%S`-shutdown.log
+        rm -f $PIDFILE
+        return "$RETVAL"
+    else
+        return 0
+    fi
+}
+
+#
+# Function that sends a SIGHUP to the daemon/service
+#
+do_reload() {
+    start-stop-daemon --stop --signal 1 --quiet --pidfile $PIDFILE --name $NAME
+    return 0
+}
+
+case "$1" in
+  start)
+    [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+    do_start
+    case "$?" in
+        0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+        2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+    esac
+    ;;
+  stop)
+    [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+    do_stop
+    case "$?" in
+        0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+        2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+    esac
+    ;;
+  status)
+    status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+    ;;
+  restart|force-reload)
+    log_daemon_msg "Restarting $DESC" "$NAME"
+    do_stop
+    case "$?" in
+      0|1)
+        do_start
+        case "$?" in
+            0) log_end_msg 0 ;;
+            1) log_end_msg 1 ;; # Old process is still running
+            *) log_end_msg 1 ;; # Failed to start
+        esac
+        ;;
+      *)
+        log_end_msg 1
+        ;;
+    esac
+    ;;
+  *)
+    echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
+    exit 3
+    ;;
+esac
+
