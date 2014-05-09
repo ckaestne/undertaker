@@ -78,6 +78,7 @@ public:
      * be reported.
      */
     virtual bool writeReportToFile(bool skip_no_kconfig) const = 0;
+    virtual void reportMUS() const = 0;
     virtual void markOk(const std::string &arch);
     virtual std::list<std::string> getOKList() { return _OKList; }
     virtual DEFECTTYPE defectType() const { return _defectType; }
@@ -92,7 +93,7 @@ protected:
     DEFECTTYPE _defectType;
     bool _isGlobal;
     ConditionalBlock *_cb;
-    const char *_suffix;
+    std::string _suffix;
     std::list<std::string> _OKList; //!< List of architectures on which this is proved to be OK
 };
 
@@ -106,13 +107,16 @@ public:
     virtual bool isNoKconfigDefect(const ConfigurationModel *model);
     virtual bool needsCrosscheck() const; //!< defect will be present on every model
     virtual bool writeReportToFile(bool skip_no_kconfig) const;
+    virtual void reportMUS() const;
     virtual const char *getArch() { return _arch; }
     virtual void setArch(const char *arch) { _arch = arch; }
 
 protected:
+    std::string getDefectReportFilename() const;
     bool _needsCrosscheck;
     const char *_arch;
     std::string _formula;
+    std::string _musFormula;
 };
 
 //! Checks a given block for "un-deselectable block" defects.

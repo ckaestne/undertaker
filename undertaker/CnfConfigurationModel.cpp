@@ -157,8 +157,7 @@ bool CnfConfigurationModel::inConfigurationSpace(const std::string &symbol) cons
 
 bool CnfConfigurationModel::isComplete() const {
     const StringList *configuration_space_complete = _cnf->getMetaValue("CONFIGURATION_SPACE_INCOMPLETE");
-    // Reverse logic at this point to ensure Legacy models for kconfig
-    // to work
+    // Reverse logic at this point to ensure Legacy models for kconfig to work
     return !(configuration_space_complete != NULL);
 }
 

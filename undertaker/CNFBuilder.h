@@ -50,7 +50,8 @@ namespace kconfig {
         enum ConstantPolicy constPolicy;
 
     public:
-        CNFBuilder(bool useKconfigWhitelist=false, enum ConstantPolicy constPolicy=BOUND);
+        CNFBuilder(CNF *cnf, BoolExp *exp=NULL,
+                bool useKconfigWhitelist=false, enum ConstantPolicy constPolicy=BOUND);
         #ifdef USE_ZCONF
         void pushSymbolInfo(struct symbol * sym) {
             std::string name(sym->name);

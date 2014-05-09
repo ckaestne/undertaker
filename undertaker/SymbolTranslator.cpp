@@ -30,9 +30,7 @@
 #include <string.h>
 #include <fstream>
 
-kconfig::SymbolTranslator::SymbolTranslator(CNF *cnf) : symbolSet(0) {
-    this-> cnfbuilder.cnf = cnf;
-}
+kconfig::SymbolTranslator::SymbolTranslator(CNF *cnf) : symbolSet(0), cnfbuilder(cnf) { }
 
 
 void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {

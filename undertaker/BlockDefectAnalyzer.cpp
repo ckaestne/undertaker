@@ -26,8 +26,10 @@
 #include "StringJoiner.h"
 #include "BlockDefectAnalyzer.h"
 #include "SatChecker.h"
+#include "PicosatCNF.h"
 #include "ModelContainer.h"
 #include "Logging.h"
+#include "boost/filesystem.hpp"
 
 
 void BlockDefectAnalyzer::markOk(const std::string &arch) {
@@ -111,6 +113,83 @@ DeadBlockDefect::DeadBlockDefect(ConditionalBlock *cb)
     this->_cb = cb;
 }
 
+void DeadBlockDefect::reportMUS() const {
+    // MUS only works on {code, kconfig} dead blocks
+    if (_suffix != "dead" || _defectType == BlockDefectAnalyzer::None)
+        return;
+    SatChecker code_constraints(_musFormula, true);
+    code_constraints();
+    kconfig::CNF *cnf = code_constraints.getCNF();
+
+    std::string inf(cnf->getMusDirName());
+    inf += "/infile";
+    std::string outf(cnf->getMusDirName());
+    outf += "/outfile";
+    // call "picomus infile outfile"
+    std::ostringstream cmd;
+    cmd << "picomus " << inf << " " << outf << " > /dev/null";
+    int ret = std::system(cmd.str().c_str());
+    if(ret != 5120) { // i have no idea why this is 5120 and not 20
+        logger << error << "PICOMUS ERROR " << ret << std::endl;
+        boost::filesystem::remove_all(cnf->getMusDirName());
+        exit(ret);
+    }
+    std::ifstream ifs(outf.c_str());
+    if(!ifs.good()) {
+        logger << error << "Couldn't open picomus output file " << outf << std::endl;
+        boost::filesystem::remove_all(cnf->getMusDirName());
+        exit(512);
+    }
+    // create a string from DIMACs CNF Format (=picomus result) to a more readable CNF Format
+    // Note: The formula is nearly empty since a lot operators create new CNF-IDs without having a
+    // destinct Symbolname
+    std::ostringstream formula;
+    int vars, lines; std::string p, cnfstr;
+    ifs >> p; ifs >> cnfstr; ifs >> vars; ifs >> lines;
+
+    for (int i = 0, tmp; i < lines; i++) {
+        formula << "(";
+        ifs >> tmp;
+        while(tmp != 0) {
+            if (tmp < 0)
+                formula << "!";
+            formula << cnf->getSymbolName(abs(tmp));
+            ifs >> tmp;
+            if(tmp != 0)
+                formula << " v ";
+        }
+        formula << ")";
+        if(i < lines-1)
+            formula << " ^ ";
+    }
+    // create filename for mus-defect report and open the outputfilestream
+    std::string filename = getDefectReportFilename();
+    filename += ".mus";
+
+    std::ofstream ofs(filename.c_str());
+    if (!ofs.good()) {
+        logger << error << "Failed to open " << filename << " for writing." << std::endl;
+        return;
+    }
+    // some statistics about the picomus performance
+    std::ifstream pic_infile(inf.c_str());
+    if(!pic_infile.good()) {
+        logger << error << "Couldn't open picomus input file " << inf << std::endl;
+        boost::filesystem::remove_all(cnf->getMusDirName());
+        exit(512);
+    }
+    logger << info << "creating " << filename << std::endl;
+    std::string l;
+    std::getline(pic_infile, l); // get first line of the picosat inputfile
+    ofs << "Minimized Formula from:" << std::endl << l << std::endl << "to" << std::endl;
+    ofs << p << " " << cnfstr << " " << vars << " " << lines << std::endl;
+    ofs << formula.str() << std::endl;
+
+    // remove tmp directory and the cnf object we kept
+    boost::filesystem::remove_all(cnf->getMusDirName());
+    delete cnf;
+}
+
 bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     StringJoiner formula;
 
@@ -127,6 +206,7 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     if (!code_constraints()) {
         _defectType = BlockDefectAnalyzer::Implementation;
         _isGlobal = true;
+        _musFormula = _formula;
         return true;
     }
     if (model) {
@@ -145,6 +225,8 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
                 _arch = ModelContainer::lookupArch(model);
             }
             _formula = formula_str;
+            if (model == ModelContainer::lookupMainModel())
+                _musFormula = formula_str;
             _defectType = BlockDefectAnalyzer::Configuration;
             return true;
         } else {
@@ -160,6 +242,8 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
                 if (_defectType != BlockDefectAnalyzer::Configuration) {
                     _defectType = BlockDefectAnalyzer::Referential;
                 }
+                if (model == ModelContainer::lookupMainModel())
+                    _musFormula = formula_str;
                 _formula = formula_str;
                 return true;
             }
@@ -227,19 +311,11 @@ const std::string BlockDefectAnalyzer::defectTypeToString() const {
     return "";
 }
 
-bool DeadBlockDefect::writeReportToFile(bool skip_no_kconfig) const {
+std::string DeadBlockDefect::getDefectReportFilename() const {
     StringJoiner fname_joiner;
-
-    if (skip_no_kconfig && _defectType == BlockDefectAnalyzer::NoKconfig)
-        return false;
-
     fname_joiner.push_back(_cb->getFile()->getFilename());
     fname_joiner.push_back(_cb->getName());
-
-    if (_defectType == BlockDefectAnalyzer::None)
-        return false;
-    else
-        fname_joiner.push_back(defectTypeToString());
+    fname_joiner.push_back(defectTypeToString());
 
     if (_isGlobal || _defectType == BlockDefectAnalyzer::NoKconfig)
         fname_joiner.push_back("globally");
@@ -247,8 +323,14 @@ bool DeadBlockDefect::writeReportToFile(bool skip_no_kconfig) const {
         fname_joiner.push_back(_arch);
 
     fname_joiner.push_back(_suffix);
+    return fname_joiner.join(".");
+}
 
-    const std::string filename = fname_joiner.join(".");
+bool DeadBlockDefect::writeReportToFile(bool skip_no_kconfig) const {
+    if ((skip_no_kconfig && _defectType == BlockDefectAnalyzer::NoKconfig)
+            || _defectType == BlockDefectAnalyzer::None)
+        return false;
+    const std::string filename = getDefectReportFilename();
     const std::string &contents = _formula;
 
     std::ofstream out(filename.c_str());
@@ -265,7 +347,6 @@ bool DeadBlockDefect::writeReportToFile(bool skip_no_kconfig) const {
         out << SatChecker::pprinter(contents.c_str());
         out.close();
     }
-
     return true;
 }
 

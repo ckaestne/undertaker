@@ -67,18 +67,18 @@ bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     return false;
 }
 
-SatChecker::SatChecker(const char *sat, int debug)
-    : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
+SatChecker::SatChecker(const char *sat, bool mus, int debug)
+    : debug_flags(debug), _do_mus_analysis(mus), _sat(std::string(sat)), _clauses(0) { }
 
-SatChecker::SatChecker(const std::string sat, int debug)
-    : debug_flags(debug), _sat(std::string(sat)), _clauses(0) { }
+SatChecker::SatChecker(const std::string sat, bool mus, int debug)
+    : debug_flags(debug), _do_mus_analysis(mus), _sat(std::string(sat)), _clauses(0) { }
 
 PicosatCNF *getCnfWithModelInit(const std::string &formula,
-                                Picosat::SATMode mode, std::string *result) {
-     static const boost::regex modelvar_regexp("\\._\\.(.+)\\._\\.");
-     boost::match_results<std::string::const_iterator> what;
-
-     if (boost::regex_search(formula, what, modelvar_regexp)) {
+        Picosat::SATMode mode, std::string *result) {
+    static const boost::regex modelvar_regexp("\\._\\.(.+)\\._\\.");
+    boost::match_results<std::string::const_iterator> what;
+    if (boost::regex_search(formula, what, modelvar_regexp)) {
+        // CNF model
         std::string modelname = what[1];
         CnfConfigurationModel *cm = dynamic_cast<CnfConfigurationModel *>(
             ModelContainer::getInstance()->lookupModel(modelname.c_str()));
@@ -91,25 +91,23 @@ PicosatCNF *getCnfWithModelInit(const std::string &formula,
         cnf->setDefaultPhase(mode);
         *result = boost::regex_replace(formula, modelvar_regexp , "1");
         return cnf;
-     } else {
+    } else {
+        // RSF model
         *result = formula;
         return new PicosatCNF(mode);
-     }
+    }
 }
 
 bool SatChecker::operator()(Picosat::SATMode mode) throw (SatCheckerError) {
     std::string sat;
     _cnf = getCnfWithModelInit(_sat, mode, &sat );
+    _cnf->setMusAnalysis(_do_mus_analysis);
     try {
         BoolExp *exp = BoolExp::parseString(sat);
         if (!exp) {
            throw SatCheckerError("SatChecker: Couldn't parse: " + sat);
         }
-
-        CNFBuilder builder(true, CNFBuilder::FREE);
-
-        builder.cnf = _cnf;
-        builder.pushClause(exp);
+        CNFBuilder builder(_cnf, exp, true, CNFBuilder::FREE);
 
         int res = _cnf->checkSatisfiable();
         if (res) {
@@ -121,7 +119,8 @@ bool SatChecker::operator()(Picosat::SATMode mode) throw (SatCheckerError) {
                 assignmentTable.insert(std::make_pair(it->first, selected));
             }
         }
-        delete _cnf;
+        if (!_do_mus_analysis)
+            delete _cnf;
         delete exp;
         return res;
     } catch (std::bad_alloc &exception) {
@@ -545,7 +544,6 @@ bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSym
             std::string a = *it;
             _cnf->pushAssumption(a, true);
         }
-
         int res = _cnf->checkSatisfiable();
         if (res) {
             /* Let's get the assigment out of picosat, because we have to
@@ -557,7 +555,6 @@ bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSym
                 assignmentTable.insert(std::make_pair(it->first, selected));
             }
         }
-
         return res;
     } catch (std::bad_alloc &exception) {
         throw SatCheckerError("SatChecker: out of memory");
@@ -566,18 +563,14 @@ bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSym
 }
 
 BaseExpressionSatChecker::BaseExpressionSatChecker(const char *base_expression, int debug)
-: SatChecker(base_expression, debug) {
-
+        : SatChecker(base_expression, false, debug) {
     std::string base_expression_s(base_expression);
     _cnf = getCnfWithModelInit(base_expression_s, Picosat::SAT_MAX, &base_expression_s);
     BoolExp *exp = BoolExp::parseString(base_expression_s);
     if (!exp){
         throw SatCheckerError("SatChecker: Couldn't parse: " + base_expression_s);
     }
-    CNFBuilder builder(true, CNFBuilder::BOUND);
-
-    builder.cnf = _cnf;
-    builder.pushClause(exp);
+    CNFBuilder builder(_cnf, exp, true, CNFBuilder::BOUND);
 }
 
 BaseExpressionSatChecker::~BaseExpressionSatChecker() {

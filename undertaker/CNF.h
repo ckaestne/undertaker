@@ -32,6 +32,8 @@ namespace kconfig {
     class CNF {
     public:
         virtual ~CNF(){};
+        virtual void setMusAnalysis(bool mus_analysis) = 0;
+        virtual std::string getMusDirName() = 0;
         virtual void readFromFile(const char *filename) = 0;
         virtual void readFromStream(std::istream &i) = 0;
         virtual void toFile(const char *filename) const = 0;

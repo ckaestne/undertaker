@@ -207,10 +207,9 @@ int main(int argc, char **argv) {
     if (cnf_file)
         cnf.readFromFile(cnf_file);
 
-    kconfig::CNFBuilder builder;
+    kconfig::CNFBuilder builder(&cnf);
     RsfReader *model = NULL;
     ItemRsfReader *rsf = NULL;
-    builder.cnf = &cnf;
 
     std::fstream model_stream (model_file, std::fstream::in);
     if (!model_stream.good()) {

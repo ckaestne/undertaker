@@ -19,7 +19,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <boost/assert.hpp>
 #include <boost/regex.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -35,6 +34,7 @@
 #include <sstream>
 #include <fstream>
 #include <algorithm>
+#include <fstream>
 
 using namespace kconfig;
 
@@ -42,7 +42,7 @@ static bool picosatIsInitalized = false;
 static PicosatCNF *currentContext = 0;
 
 PicosatCNF::PicosatCNF(Picosat::SATMode defaultPhase)
-    : defaultPhase (defaultPhase), varcount (0), clausecount (0) {
+    : defaultPhase (defaultPhase), varcount (0), clausecount (0), do_mus_analysis(false) {
     resetContext();
 }
 
@@ -67,8 +67,29 @@ void PicosatCNF::loadContext(void) {
     currentContext = this;
     Picosat::picosat_set_global_default_phase(defaultPhase);
 
-    for (it = clauses.begin(); it != clauses.end(); it++) {
+    for (it = clauses.begin(); it != clauses.end(); it++)
         Picosat::picosat_add(*it);
+
+    if (do_mus_analysis) {
+        // create a unique temporary directory
+        std::string pref("/tmp/undertakermusXXXXXX");
+        char *t =  mkdtemp(&pref[0]);
+        if(!t) {
+            logger << error << "Couldn't create tmpdir" << std::endl;
+            exit(1);
+        }
+        musTmpDirName = t;
+        std::string tmpf = t;
+        tmpf += "/infile";
+
+        std::ofstream out(tmpf.c_str());
+        out << "p cnf " << varcount << " " << this->clausecount << std::endl;
+
+        for (it = clauses.begin(); it != clauses.end(); it++) {
+            char sep = (*it == 0) ? '\n' : ' ';
+            out <<  *it << sep;
+        }
+        out.close();
     }
 }
 

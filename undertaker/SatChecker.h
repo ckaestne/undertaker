@@ -55,8 +55,8 @@ struct SatCheckerError : public std::runtime_error {
 
 class SatChecker {
     public:
-        SatChecker(const char *sat, int debug = 0);
-        SatChecker(const std::string sat, int debug = 0);
+        SatChecker(const char *sat, bool mus = false, int debug = 0);
+        SatChecker(const std::string sat, bool mus = false, int debug = 0);
         virtual ~SatChecker() {};
 
         /**
@@ -210,6 +210,10 @@ class SatChecker {
             return assignmentTable;
         }
 
+        kconfig::CNF *getCNF() {
+            return _cnf;
+        }
+
         /**
          * Prints the assignments in an human readable way on stdout
          */
@@ -230,6 +234,7 @@ class SatChecker {
         std::string debug_cnf;
 
         Picosat::SATMode mode;
+        bool _do_mus_analysis;
 
         const std::string _sat;
         int _clauses;

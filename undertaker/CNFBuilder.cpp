@@ -23,9 +23,12 @@
 
 using namespace kconfig;
 
-CNFBuilder::CNFBuilder(bool useKconfigWhitelist, enum ConstantPolicy constPolicy)
-    : boolvar(0), wl(useKconfigWhitelist ? KconfigWhitelist::getIgnorelist() : 0),
-    constPolicy(constPolicy) {}
+CNFBuilder::CNFBuilder(CNF *cnf, BoolExp *exp, bool useKconfigWhitelist,
+        enum ConstantPolicy constPolicy) : cnf(cnf), boolvar(0),
+        wl(useKconfigWhitelist ? KconfigWhitelist::getIgnorelist() : 0), constPolicy(constPolicy) {
+    if(exp)
+        this->pushClause(exp);
+}
 
 void CNFBuilder::pushClause(BoolExp *e) {
     visited.clear();
@@ -162,6 +165,7 @@ void CNFBuilder::visit(BoolExpEq *e) {
     int a = e->left->CNFVar;
     int b = e->right->CNFVar;
     // H <-> (A <-> B)
+    // (H || !A || !B) && (H || A || B) && (!H || A || !B) && (!H || !A || B)
     cnf->pushVar(h);
     cnf->pushVar(-a);
     cnf->pushVar(-b);

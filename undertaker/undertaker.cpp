@@ -79,6 +79,7 @@ static const char *coverage_exec_cmd = "cat";
 static int RETVALUE = EXIT_SUCCESS;
 static bool skip_non_configuration_based_defects = false;
 static bool decision_coverage = false;
+static bool do_mus_analysis = false;
 
 void usage(std::ostream &out, const char *error) {
     if (error)
@@ -99,6 +100,7 @@ void usage(std::ostream &out, const char *error) {
     out << "  -t  specify count of parallel processes\n";
     out << "  -I  add an include path for #include directives\n";
     out << "  -s  skip non-configuration based defect reports\n";
+    out << "  -u  report a 'minimal unsatisfiable subset' of the defect-formula\n";
     out << "  -j  specify the jobs which should be done\n";
     out << "      - dead: dead/undead file analysis (default)\n";
     out << "      - coverage: coverage file analysis\n";
@@ -640,7 +642,6 @@ void process_file_blockpc(const char *filename) {
 
 void process_file_dead_helper(const char *filename) {
     CppFile file(filename);
-
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
@@ -651,12 +652,16 @@ void process_file_dead_helper(const char *filename) {
     pattern.append("*.*dead");
     rm_pattern(pattern.c_str());
 
-    ConfigurationModel *model = ModelContainer::lookupMainModel();
+    ConfigurationModel *mainModel = ModelContainer::lookupMainModel();
 
+    /* process File (B00 Block) */
     try {
-        const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(file.topBlock(), model);
+        const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(file.topBlock(), mainModel);
         if (defect) {
             defect->writeReportToFile(skip_non_configuration_based_defects);
+            if (do_mus_analysis) {
+                defect->reportMUS();
+            }
             delete defect;
         }
     } catch (SatCheckerError &e) {
@@ -669,9 +674,12 @@ void process_file_dead_helper(const char *filename) {
         ConditionalBlock *block = *c;
 
         try {
-            const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(block, model);
+            const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(block, mainModel);
             if (defect) {
                 defect->writeReportToFile(skip_non_configuration_based_defects);
+                if (do_mus_analysis) {
+                    defect->reportMUS();
+                }
                 delete defect;
             }
         } catch (SatCheckerError &e) {
@@ -703,8 +711,6 @@ void process_file_interesting(const char *filename) {
         logger << error << "for finding interessting items a (rsf based) model must be loaded" << std::endl;
         return;
     }
-
-    assert(model != NULL); // there should always be a main model loaded
 
     std::set<std::string> initialItems;
     initialItems.insert(filename);
@@ -903,7 +909,7 @@ int main (int argc, char ** argv) {
     */
     coverageOutputMode = COVERAGE_MODE_KCONFIG;
 
-    while ((opt = getopt(argc, argv, "cb:M:m:t:i:B:W:sj:O:C:I:Vhvq")) != -1) {
+    while ((opt = getopt(argc, argv, "ucb:M:m:t:i:B:W:sj:O:C:I:Vhvq")) != -1) {
         switch (opt) {
             int n;
             KconfigWhitelist *wl;
@@ -939,6 +945,12 @@ int main (int argc, char ** argv) {
             break;
         case 'b':
             worklist = strdup(optarg);
+            break;
+        case 'u':
+            if (std::system("which picomus > /dev/null") == 0)
+                do_mus_analysis = true;
+            else
+                logger << error << "Cannot do MUS-Analysis: picomus not in PATH. Continuing without MUS-Analysis." << std::endl;
             break;
         case 'c':
             process_file = process_file_coverage;

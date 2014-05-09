@@ -1,5 +1,5 @@
 PROGS = scripts/kconfig/dumpconf scripts/kconfig/conf undertaker/undertaker undertaker/predator undertaker/rsf2cnf \
-	undertaker/satyr python/rsf2model tailor/undertaker-traceutil ziz/zizler
+	undertaker/satyr python/rsf2model tailor/undertaker-traceutil ziz/zizler picosat/picomus
 MANPAGES = doc/undertaker.1.gz doc/undertaker-linux-tree.1.gz doc/undertaker-kconfigdump.1.gz \
 	doc/undertaker-kconfigpp.1.gz
 
@@ -28,7 +28,7 @@ scripts/kconfig/dumpconf scripts/kconfig/conf: FORCE
 
 picosat/libpicosat.a:
 	cd picosat && ./configure -static -O
-	$(MAKE) -C picosat libpicosat.a
+	$(MAKE) -C picosat
 
 undertaker/undertaker: FORCE
 	$(MAKE) -C undertaker undertaker

@@ -77,6 +77,8 @@ namespace kconfig {
         Picosat::SATMode defaultPhase;
         int varcount;
         int clausecount;
+        bool do_mus_analysis;
+        std::string musTmpDirName;
 
         void loadContext(void);
         void resetContext(void);
@@ -85,6 +87,8 @@ namespace kconfig {
         PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
         virtual ~PicosatCNF();
         void setDefaultPhase(Picosat::SATMode phase);
+        virtual void setMusAnalysis(bool mus_analysis) { this->do_mus_analysis = mus_analysis; }
+        virtual std::string getMusDirName() { return musTmpDirName; }
         virtual void readFromFile(const char *filename);
         virtual void readFromStream(std::istream &i);
         virtual void toFile(const char *filename) const;

@@ -29,9 +29,7 @@ using namespace kconfig;
 START_TEST(buildCNFVarUsedMultipleTimes) {
     BoolExp *e = BoolExp::parseString("x && !x");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
 
     fail_if(cnf->checkSatisfiable());
 } END_TEST;
@@ -39,9 +37,7 @@ START_TEST(buildCNFVarUsedMultipleTimes) {
 START_TEST(buildCNFOr) {
     BoolExp *e = BoolExp::parseString("x || y");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
 
     cnf->pushAssumption("x",true);
     cnf->pushAssumption("y",true);
@@ -63,9 +59,7 @@ START_TEST(buildCNFOr) {
 START_TEST(buildCNFAnd) {
     BoolExp *e = BoolExp::parseString("x && y");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
 
     cnf->pushAssumption("x",true);
     cnf->pushAssumption("y",true);
@@ -87,9 +81,7 @@ START_TEST(buildCNFAnd) {
 START_TEST(buildCNFImplies) {
     BoolExp *e = BoolExp::parseString("x -> y");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
 
     cnf->pushAssumption("x",true);
     cnf->pushAssumption("y",true);
@@ -111,9 +103,7 @@ START_TEST(buildCNFImplies) {
 START_TEST(buildCNFEqual) {
     BoolExp *e = BoolExp::parseString("x <-> y");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
 
     cnf->pushAssumption("x",true);
     cnf->pushAssumption("y",true);
@@ -135,9 +125,7 @@ START_TEST(buildCNFEqual) {
 START_TEST(buildCNFNot) {
     BoolExp *e = BoolExp::parseString("x <-> !y");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
 
     cnf->pushAssumption("x",true);
     cnf->pushAssumption("y",false);
@@ -159,9 +147,7 @@ START_TEST(buildCNFNot) {
 START_TEST(buildCNFMultiNot0) {
     BoolExp *e = BoolExp::parseString("!!!x");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
 
     cnf->pushAssumption("x",true);
     fail_if(cnf->checkSatisfiable());
@@ -173,9 +159,7 @@ START_TEST(buildCNFMultiNot0) {
 START_TEST(buildCNFMultiNot1) {
     BoolExp *e = BoolExp::parseString("x <-> !!!y");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
 
     cnf->pushAssumption("x",true);
     cnf->pushAssumption("y",false);
@@ -197,9 +181,7 @@ START_TEST(buildCNFMultiNot1) {
 START_TEST(buildCNFConst) {
     BoolExp *e = BoolExp::parseString("(x || 0) && (y && 1)");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
 
     cnf->pushAssumption("x",true);
     cnf->pushAssumption("y",false);
@@ -221,9 +203,8 @@ START_TEST(buildCNFConst) {
 START_TEST(buildCNFComplex0) {
     BoolExp *e = BoolExp::parseString("a -> (b || !c && d)");
     PicosatCNF *cnf = new PicosatCNF();
-    CNFBuilder builder;
-    builder.cnf = cnf;
-    builder.pushClause(e);
+    CNFBuilder builder(cnf, e);
+
     /*
       A B C D  |  A -> (B v (~C & D))
       ---------+---------------------
@@ -281,9 +262,7 @@ void build_and_evaluate_strategy(const char *expression,
     }
     // now bind '0' and '1' to false/true
     cnf = new PicosatCNF();
-    CNFBuilder builder1(false, CNFBuilder::BOUND);
-    builder1.cnf = cnf;
-    builder1.pushClause(e);
+    CNFBuilder builder1(cnf, e, false, CNFBuilder::BOUND);
     if (bound_strategy) {
         fail_unless(builder1.cnf->checkSatisfiable(),
                     "%s is unsatisfiable (strategy: BOUND), but should be", expression);
@@ -305,9 +284,7 @@ void build_and_evaluate_strategy(const char *expression,
     }
 
     cnf = new PicosatCNF();
-    CNFBuilder builder2(false, CNFBuilder::FREE);
-    builder2.cnf = cnf;
-    builder2.pushClause(e);
+    CNFBuilder builder2(cnf, e, false, CNFBuilder::FREE);
     if (free_strategy) {
         fail_unless(cnf->checkSatisfiable(),
                     "%s is unsatisfiable (strategy: FREE), but should be", expression);
@@ -325,9 +302,7 @@ void build_and_evaluate_strategy(const char *expression,
         return;
     }
     cnf = new PicosatCNF();
-    CNFBuilder builder3(false, CNFBuilder::BOUND);
-    builder3.cnf = cnf;
-    builder3.pushClause(e);
+    CNFBuilder builder3(cnf, e, false, CNFBuilder::BOUND);
     if (bound_strategy) {
         fail_unless(cnf->checkSatisfiable(),
                     "%s is unsatisfiable (strategy: BOUND, pass2), but should be", expression);
@@ -345,9 +320,7 @@ void build_and_evaluate_strategy(const char *expression,
         return;
     }
     cnf = new PicosatCNF();
-    CNFBuilder builder4(false, CNFBuilder::FREE);
-    builder4.cnf = cnf;
-    builder4.pushClause(e);
+    CNFBuilder builder4(cnf, e, false, CNFBuilder::FREE);
     if (free_strategy) {
         fail_unless(cnf->checkSatisfiable(),
                     "%s is unsatisfiable (strategy: FREE), but should be", expression);
