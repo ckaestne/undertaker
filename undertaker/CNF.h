@@ -32,8 +32,10 @@ namespace kconfig {
     class CNF {
     public:
         virtual ~CNF(){};
-        virtual void readFromFile(std::istream &i) = 0;
-        virtual void toFile(std::ostream &out) const = 0;
+        virtual void readFromFile(const char *filename) = 0;
+        virtual void readFromStream(std::istream &i) = 0;
+        virtual void toFile(const char *filename) const = 0;
+        virtual void toStream(std::ostream &out) const = 0;
         virtual kconfig_symbol_type getSymbolType(const std::string &name) = 0;
         virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type) = 0;
         virtual int getCNFVar(const std::string &var) = 0;

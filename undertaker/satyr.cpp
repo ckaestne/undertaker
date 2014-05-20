@@ -154,12 +154,7 @@ int main(int argc, char **argv) {
 
     if (filepath.extension() == ".cnf") {
         logger << info << "Loading CNF model " << filepath << std::endl;
-        std::ifstream modelstream(filepath.string().c_str());
-        if(!modelstream.good()) {
-            logger << error << "Could not open " << filepath << std::endl;
-            return 1;
-        }
-        cnf->readFromFile(modelstream);
+        cnf->readFromFile(filepath.string().c_str());
     } else {
         logger << info << "Parsing Kconfig file " << filepath << std::endl;
         SymbolTranslator *translator = new SymbolTranslator(cnf);
@@ -175,10 +170,7 @@ int main(int argc, char **argv) {
         logger << debug << "done" << std::endl;
     }
     if (saveTranslatedModel) {
-        std::ofstream saveStream(saveFile.string().c_str());
-        if (saveStream.good()) {
-            cnf->toFile(saveStream);
-        }
+        cnf->toFile(saveFile.string().c_str());
         logger << info << cnf->getVarCount() << " variables written to "
                << saveFile << std::endl;
     }

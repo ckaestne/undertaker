@@ -39,12 +39,10 @@
 CnfConfigurationModel::CnfConfigurationModel(const char *filename) {
     const StringList *configuration_space_regex = NULL;
     boost::filesystem::path filepath(filename);
-
     _name = boost::filesystem::basename(filepath);
-    _model_stream = new std::ifstream(filename);
 
     _cnf = new kconfig::PicosatCNF();
-    _cnf->readFromFile(*_model_stream);
+    _cnf->readFromFile(filename);
     configuration_space_regex = _cnf->getMetaValue("CONFIGURATION_SPACE_REGEX");
 
     if (configuration_space_regex != NULL && configuration_space_regex->size() > 0) {
@@ -61,7 +59,6 @@ CnfConfigurationModel::CnfConfigurationModel(const char *filename) {
 }
 
 CnfConfigurationModel::~CnfConfigurationModel() {
-    delete _model_stream;
     delete _cnf;
 }
 

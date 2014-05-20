@@ -112,8 +112,6 @@ public:
 private:
     std::string _name;
     boost::regex _inConfigurationSpace_regexp;
-    std::istream *_model_stream;
-    std::istream *_rsf_stream;
     kconfig::PicosatCNF *_cnf;
 };
 #endif

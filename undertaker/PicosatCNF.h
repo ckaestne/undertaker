@@ -85,8 +85,10 @@ namespace kconfig {
         PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
         virtual ~PicosatCNF();
         void setDefaultPhase(Picosat::SATMode phase);
-        virtual void readFromFile(std::istream &i);
-        virtual void toFile(std::ostream &out) const;
+        virtual void readFromFile(const char *filename);
+        virtual void readFromStream(std::istream &i);
+        virtual void toFile(const char *filename) const;
+        virtual void toStream(std::ostream &out) const;
         virtual kconfig_symbol_type getSymbolType(const std::string &name);
         virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type);
         virtual int getCNFVar(const std::string &var);

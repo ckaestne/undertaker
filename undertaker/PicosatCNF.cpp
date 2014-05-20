@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <algorithm>
 
 using namespace kconfig;
@@ -80,15 +81,21 @@ void PicosatCNF::resetContext(void) {
     currentContext = 0;
 }
 
-void PicosatCNF::readFromFile(std::istream &i) {
-    std::string line;
+void PicosatCNF::readFromFile(const char *filename) {
+    std::ifstream i(filename);
+    if (!i.good()) {
+        throw IOException("Could not open CNF-File");
+    }
+    readFromStream(i);
+}
 
+void PicosatCNF::readFromStream(std::istream &i) {
+    std::string line;
     while(std::getline (i, line)) {
         static const boost::regex var_regexp("^c var (.+) (\\d+)$");
         static const boost::regex sym_regexp("^c sym (.+) (\\d)$");
         static const boost::regex dim_regexp("^p cnf (\\d+) (\\d+)$");
         static const boost::regex meta_regexp("^c meta_value ([^\\s]+)\\s+(.+)$");
-        static const boost::regex cls_regexp("^-?\\d+");
         static const boost::regex comment_regexp("^c ");
         boost::match_results<std::string::const_iterator> what;
 
@@ -100,33 +107,26 @@ void PicosatCNF::readFromFile(std::istream &i) {
             std::string varname = what[1];
             int typeId = boost::lexical_cast<int>(what[2]);
             this->setSymbolType(varname, (kconfig_symbol_type) typeId);
-        } else if (boost::regex_match(line, what, dim_regexp)) {
-            //todo: handle dimension descriptor line
-            //(only a speedup)
-            // int variables = boost::lexical_cast<int>(what[1]);
-            // int clauses = boost::lexical_cast<int>(what[2]));
         } else if (boost::regex_match(line, what, meta_regexp)) {
             std::string metavalue = what[1];
             std::stringstream content(what[2]);
             std::string item;
 
-            while (content >> item) {
+            while (content >> item)
                 this->addMetaValue(metavalue, item);
-            }
-        } else if (boost::regex_search(line, cls_regexp)) {
-            std::stringstream l(line);
+        } else if (boost::regex_search(line, comment_regexp)) {
+            //ignore
+        } else if (boost::regex_match(line, what, dim_regexp)) {
+            // handle dimension descriptor line: after this, only lines in DIMACs CNF Format remain
             int val;
-
-            while (l.good()){
-                l >> val;
-                if (val == 0){
-                    this->pushClause();
-                } else {
+            while(i >> val) {
+                switch(val) {
+                case 0:
+                    this->pushClause(); break;
+                default:
                     this->pushVar(val);
                 }
             }
-        } else if (boost::regex_search(line, comment_regexp)) {
-            //ignore
         } else {
             logger << error << "Failed to parse line: '" << line << "'" << std::endl;
             throw IOException("parse error while reading CNF file");
@@ -134,7 +134,16 @@ void PicosatCNF::readFromFile(std::istream &i) {
     }
 }
 
-void PicosatCNF::toFile(std::ostream &out) const {
+void PicosatCNF::toFile(const char *filename) const {
+    std::ofstream out(filename);
+    if (!out.good()) {
+        logger << error << "Couldn't write to " << filename << std::endl;
+        return;
+    }
+    toStream(out);
+}
+
+void PicosatCNF::toStream(std::ostream &out) const {
     std::map<std::string, kconfig_symbol_type>::const_iterator it;
     std::map<std::string, int>::const_iterator it1;
     std::vector<int>::const_iterator it2;

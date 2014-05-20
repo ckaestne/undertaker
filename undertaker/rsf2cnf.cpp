@@ -204,14 +204,8 @@ int main(int argc, char **argv) {
 
     PicosatCNF cnf;
 
-    if (cnf_file) {
-        std::fstream cnf_in_stream(cnf_file, std::fstream::in);
-        if (!cnf_in_stream.good()) {
-            logger << error << "could not open cnffile \"" << cnf_file << "\"" << std::endl;
-            return 1;
-        }
-        cnf.readFromFile(cnf_in_stream);
-    }
+    if (cnf_file)
+        cnf.readFromFile(cnf_file);
 
     kconfig::CNFBuilder builder;
     RsfReader *model = NULL;
@@ -244,7 +238,7 @@ int main(int argc, char **argv) {
         cnf.addMetaValue("CONFIGURATION_SPACE_INCOMPLETE", "True");
     }
     try {
-        cnf.toFile(std::cout);
+        cnf.toStream(std::cout);
     } catch (IOException e) {
         logger << error << e.what() << std::endl;
         return 1;

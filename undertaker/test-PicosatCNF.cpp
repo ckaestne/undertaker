@@ -206,7 +206,7 @@ START_TEST(toFile) {
     cnf.pushVar(3);
     cnf.pushClause();
 
-    cnf.toFile(file);
+    cnf.toStream(file);
 
     std::string cmp(
         "c File Format Version: 2.0\n"
@@ -262,7 +262,7 @@ START_TEST(toFileWithSymbolTable) {
     cnf.pushVar(v3, true);
     cnf.pushClause();
 
-    cnf.toFile(file);
+    cnf.toStream(file);
 
     std::string cmp(
         "c File Format Version: 2.0\n"
@@ -311,7 +311,7 @@ START_TEST(readCnfFileWithInts) {
     file << "6 0\n";
 
     PicosatCNF cnf;
-    cnf.readFromFile(file);
+    cnf.readFromStream(file);
 
     fail_unless(cnf.checkSatisfiable());
     fail_unless(cnf.deref(1) == true);
@@ -347,7 +347,7 @@ START_TEST(readCnfFileWithStrings) {
     file << "-6 2 4 0\n";
 
     PicosatCNF cnf;
-    cnf.readFromFile(file);
+    cnf.readFromStream(file);
 
     std::string v1("v1");
     std::string v2("v2");
@@ -396,7 +396,7 @@ START_TEST(addClausesToCnfFromFile) {
     file << "-5 2 -3 0\n";
 
     PicosatCNF cnf;
-    cnf.readFromFile(file);
+    cnf.readFromStream(file);
 
     // v6 -> (v2 || v4)
     cnf.pushVar(-6);
