@@ -133,7 +133,7 @@ if [[ "$#" = "0" ]] ; then
     exit 1
 # parse last argument as tracefile
 elif [[ -f "${@: -1}" ]] ; then
-    file_tracefile="$(readlink -f ${@: -1})"
+    file_tracefile="$(readlink -f "${@: -1}")"
 else
     echo "No valid tracefile found" >&2
     ((error+=1))
@@ -256,7 +256,7 @@ fi
 
 # autoconf
 if [[ "$autoconf" = "true" ]] ; then
-    dir_script=$(dirname $path_script)
+    dir_script="$(dirname "$path_script")"
     # determine, if we have 64 or 32 bit traces, use appropiate
     # white-/black-/ignore lists
     if cat $file_tracefile | grep -q "ffffffff8" ; then
@@ -323,8 +323,10 @@ if [[ -z "$path_undertaker" ]] ; then
     path_undertaker="undertaker"
 fi
 
+# change to linux directory
+cd "$dir_kernelsource"
 
-tmptracefile=$(mktemp)
+tmptracefile="$(mktemp)"
 if [[ "$translated_tracefile" = "true" ]] ; then
     cat "$file_tracefile" > "$tmptracefile"
 else
@@ -332,13 +334,13 @@ else
         path_vmlinux="$dir_kernelbinary/vmlinux"
     fi
     # check for vmlinux file in debug binary dir, if not given manually
-    if [[ ! -r "$path_vmlinux" && "$(find $dir_kernelbinary | grep vmlinux | wc -l)" -eq "0" ]] ; then
+    if [[ ! -r "$path_vmlinux" && "$(find "$dir_kernelbinary" | grep vmlinux | wc -l)" -eq "0" ]] ; then
         output $QUIET "Cannot find vmlinux, $dir_kernelbinary does not look like a compiled source tree!"
         exit 1
     fi
 
     # check length of tracefile
-    if [[ "$outputlevel" -gt "1" && "$(cat $file_tracefile | wc -l)" -lt "$const_minlines" ]] ; then
+    if [[ "$outputlevel" -gt "1" && "$(cat "$file_tracefile" | wc -l)" -lt "$const_minlines" ]] ; then
         echo "Very short trace - less than $const_minlines lines" >&2
     fi
 
@@ -356,7 +358,7 @@ else
     done
     shopt -s nullglob
     # Work through all modules and vmlinux,
-    for modname in $tmp_addrdir/* ; do
+    for modname in "$tmp_addrdir"/* ; do
         kofile="$(basename "$modname")"
         if [[ "$kofile" == "vmlinux" && -f "$path_vmlinux" ]] ; then
             modfile="$path_vmlinux"
@@ -365,10 +367,11 @@ else
         fi
         case "$(echo "$modfile" | wc -w)" in
             0) output $NORMAL "Couldn't find ${kofile} (ignoring)!" >&2 ;;
-            1) addr2line -e $modfile @$modname | grep -v ":[0\?]" | cut -d " " -f 1 >> $tmptracefile ;;
+            1) addr2line -e "$modfile" @$modname | grep -v ":[0\?]" | cut -d " " -f 1 >> "$tmptracefile" ;;
             *) output $NORMAL "Found multiple matches for ${kofile} (ignoring all):\n${modfile}\n"
         esac
     done
+    rm -r "$tmp_addrdir"
     if [[ "$(cat $tmptracefile | wc -l )" -eq "0" ]] ; then
         output $QUIET "Something went wrong while translating addresses - Aborting"
         exit 1
@@ -390,7 +393,7 @@ if [[ -z "$strip_path" ]] ; then
     output $VERBOSE "Found strippable common prefix: $prefix"
 else
     output $VERBOSE "Path to strip from debug information paths was set to: $strip_path"
-    prefix=$strip_path
+    prefix="$strip_path"
 fi
 
 # Remove the prefix, so we have relative addresses to kernel source directory
@@ -398,21 +401,38 @@ output $VERBOSE "Starting to format debug information to get relative paths..."
 for line in $(sort -u "$tmptracefile") ; do
     echo "${line/#$prefix/./}" >> "$tmp_addr2line"
 done
+rm "$tmptracefile"
 
 # remove ignored files
 if [[ -n "$file_ignorelist" ]] ; then
     output $VERBOSE "Removing ignored lines described in $file_ignorelist"
-    ignore=$(cat $file_ignorelist | paste -sd "|" | sed -e "s/ //g" )
+    ignore="$(cat "$file_ignorelist" | paste -sd "|" | sed -e "s/ //g" )"ss
     output $DEBUG "Content lines are: $ignore"
     require egrep
-    ignored=$(mktemp)
-    cat $tmp_addr2line | egrep -v "$ignore" > $ignored
-    cp $ignored $tmp_addr2line
+    tmp_ignored="$(mktemp)"
+    cat "$tmp_addr2line" | egrep -v "$ignore" > "$tmp_ignored"
+    cp "$tmp_ignored" "$tmp_addr2line"
+    rm "$tmp_ignored"
 fi
+
+# use only existing files without relative path
+output $VERBOSE "Checking referred source files"
+tmp_realpath="$(mktemp)"
+pwd="$(pwd)"
+for line in $(cat "$tmp_addr2line") ; do
+    if [[ -f "${line%:*}" ]] ; then
+        readlink -m "$line" | sed -e "s|$pwd|.|" >> "$tmp_realpath"
+    else
+        output $VERBOSE "Entry $line isn't connected to a real source file"
+    fi
+done
+cp "$tmp_realpath" "$tmp_addr2line"
+rm "$tmp_realpath"
 
 # output lines, if parameter was set
 if [[ "$onlylines" = "true" ]] ; then
     cat "$tmp_addr2line"
+    rm "$tmp_addr2line"
     exit 0
 fi
 
@@ -427,12 +447,12 @@ fi
 
 # build undertaker call, setting white-/blacklists and verbosity
 output $VERBOSE "Starting undertaker..."
-parameters="-j mergeblockconf -m $(readlink -f $file_model)"
+parameters="-j mergeblockconf -m $(readlink -f "$file_model")"
 if [[ -r "$file_whitelist" ]] ; then
-    parameters="$parameters -W $(readlink -f $file_whitelist)"
+    parameters="$parameters -W $(readlink -f "$file_whitelist")"
 fi
 if [[ -r "$file_blacklist" ]] ; then
-    parameters="$parameters -B $(readlink -f $file_blacklist)"
+    parameters="$parameters -B $(readlink -f "$file_blacklist")"
 fi
 if [[ "$outputlevel" -gt "$VERBOSE" ]] ; then
     parameters="$parameters -vvv"
@@ -441,7 +461,6 @@ fi
 # Process output of the undertaker tool
 require egrep
 tmp_undertakeroutput="$(mktemp)"
-cd "$dir_kernelsource"
 case "$outputlevel" in
     "$QUIET" ) egrep="E: " ;;
     "$NORMAL" ) egrep="E: " ;;
@@ -451,7 +470,7 @@ esac
 output $DEBUG "$path_undertaker $parameters $tmp_addr2line"
 
 set +e
-$path_undertaker $parameters "$tmp_addr2line" 2>&1 | tee "$tmp_undertakeroutput" | egrep -i "$egrep" >&2
+"$path_undertaker" $parameters "$tmp_addr2line" 2>&1 | tee "$tmp_undertakeroutput" | egrep -i "$egrep" >&2
 cat "$tmp_undertakeroutput" | grep '^CONFIG_'
 cat "$tmp_undertakeroutput" | grep "E: Wasn't able to generate a valid configuration" && exit 1
 
@@ -486,6 +505,7 @@ if [[ "$generate_configfile" = "true" ]] ; then
     else
         KCONFIG_ALLCONFIG="$tmp_baseconfig" ARCH=x86_64 make allnoconfig >$stream
     fi
+    rm "$tmp_baseconfig"
     # Output stats for final configuration
     if [[ -f "$dir_kernelsource/.config" ]] ; then
         if [[ "$outputlevel" -gt "$QUIET" ]] ; then
@@ -499,3 +519,4 @@ if [[ "$generate_configfile" = "true" ]] ; then
         output $QUITE "Error during generation of $dir_kernelsource/.config ..."
     fi
 fi
+rm "$tmp_undertakeroutput"
