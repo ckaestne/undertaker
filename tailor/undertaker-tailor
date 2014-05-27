@@ -248,10 +248,11 @@ fi
 
 # Abort on errors
 if [[ "$error" -gt "0" ]] ; then
-  echo "Aborted progress due $error errors"
-  exit 1
+    echo "Aborted progress due $error errors"
+    exit 1
 else
     tmp_addr2line="$(mktemp)"
+    trap "rm -f \"$tmp_addr2line\"" EXIT
 fi
 
 # autoconf
@@ -349,7 +350,7 @@ else
     output $VERBOSE "Starting translating addresses to files/lines..."
     tmp_addrdir="$(mktemp -d)"
     # Distinguish between LKMs and vmlinux code
-    cat $file_tracefile | while read line; do
+    cat "$file_tracefile" | while read line; do
         if [[ "$line" == *" "* ]] ; then
             echo "${line% *}" >> "${tmp_addrdir}/${line#* }.ko"
         else
@@ -406,7 +407,7 @@ rm "$tmptracefile"
 # remove ignored files
 if [[ -n "$file_ignorelist" ]] ; then
     output $VERBOSE "Removing ignored lines described in $file_ignorelist"
-    ignore="$(cat "$file_ignorelist" | paste -sd "|" | sed -e "s/ //g" )"ss
+    ignore="$(cat "$file_ignorelist" | paste -sd "|" | sed -e "s/ //g" )"
     output $DEBUG "Content lines are: $ignore"
     require egrep
     tmp_ignored="$(mktemp)"
@@ -432,7 +433,6 @@ rm "$tmp_realpath"
 # output lines, if parameter was set
 if [[ "$onlylines" = "true" ]] ; then
     cat "$tmp_addr2line"
-    rm "$tmp_addr2line"
     exit 0
 fi
 
@@ -461,6 +461,7 @@ fi
 # Process output of the undertaker tool
 require egrep
 tmp_undertakeroutput="$(mktemp)"
+trap "rm -f \"$tmp_undertakeroutput\" \"$tmp_addr2line\"" EXIT
 case "$outputlevel" in
     "$QUIET" ) egrep="E: " ;;
     "$NORMAL" ) egrep="E: " ;;
@@ -519,4 +520,3 @@ if [[ "$generate_configfile" = "true" ]] ; then
         output $QUITE "Error during generation of $dir_kernelsource/.config ..."
     fi
 fi
-rm "$tmp_undertakeroutput"
