@@ -115,6 +115,9 @@ class GccMessage(SparseMessage):
         # Remove [-W<flag>]$ messages
         expr = re.compile(r"\s*\[(-W[^[]+|enabled by default)\]$")
         messages = map(lambda x: re.sub(expr, "", x), messages)
+        # Remove '       ^'  messages
+        expr = re.compile(r"\s*\^")
+        messages = map(lambda x: re.sub(expr, "", x), messages)
         messages = SparseMessage.preprocess_messages(messages)
         messages = filter(lambda x: re.match(".*:[0-9]+: (fatal )?(warning|error):", x), messages)
         messages = map(lambda x: re.sub(r'(:\d+):\d+: ', r'\1: ', x), messages)
