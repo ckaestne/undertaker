@@ -470,6 +470,9 @@ def main():
             # For debugging -very_quiet should be removed but no usefull output in that case
             options['args']['spatch'] = "-very_quiet -no_show_diff -D report -ignore-unknown-options"
 
+        # always forbid gcc to wrap lines of its output
+        if (tool == 'gcc' and "-fmessage-length=0" not in options['args']['gcc']):
+            options['args']['gcc'] += " -fmessage-length=0"
 
     spatches, _ = execute("find %s -name '*.cocci'" % opts.testsdir)
     options['test'] = sorted(spatches)
