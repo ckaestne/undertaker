@@ -175,7 +175,7 @@ n	[A-Za-z0-9_]
 			append_string(yytext, 1);
 	}
 	\n	{
-		printf("%s:%d:warning: multi-line strings not supported\n", zconf_curname(), zconf_lineno());
+		fprintf(stderr,"%s:%d:warning: multi-line strings not supported\n", zconf_curname(), zconf_lineno());
 		current_file->lineno++;
 		BEGIN(INITIAL);
 		return T_EOL;
@@ -285,7 +285,7 @@ void zconf_initscan(const char *name)
 {
 	yyin = zconf_fopen(name);
 	if (!yyin) {
-		printf("can't find file %s\n", name);
+		fprintf(stderr, "can't find file %s\n", name);
 		exit(1);
 	}
 
@@ -306,9 +306,9 @@ void zconf_nextfile(const char *name)
 	current_buf->state = YY_CURRENT_BUFFER;
 	yyin = zconf_fopen(file->name);
 	if (!yyin) {
-		printf("%s:%d: can't open file \"%s\"\n",
-		    zconf_curname(), zconf_lineno(), file->name);
-		exit(1);
+		fprintf(stderr, "%s:%d: can't open file \"%s\"\n",
+			zconf_curname(), zconf_lineno(), file->name);
+		return;
 	}
 	yy_switch_to_buffer(yy_create_buffer(yyin, YY_BUF_SIZE));
 	buf->parent = current_buf;
@@ -316,19 +316,19 @@ void zconf_nextfile(const char *name)
 
 	for (iter = current_file->parent; iter; iter = iter->parent ) {
 		if (!strcmp(current_file->name,iter->name) ) {
-			printf("%s:%d: recursive inclusion detected. "
+			fprintf(stderr, "%s:%d: recursive inclusion detected. "
 			       "Inclusion path:\n  current file : '%s'\n",
 			       zconf_curname(), zconf_lineno(),
 			       zconf_curname());
 			iter = current_file->parent;
 			while (iter && \
 			       strcmp(iter->name,current_file->name)) {
-				printf("  included from: '%s:%d'\n",
+				fprintf(stderr, "  included from: '%s:%d'\n",
 				       iter->name, iter->lineno-1);
 				iter = iter->parent;
 			}
 			if (iter)
-				printf("  included from: '%s:%d'\n",
+				fprintf(stderr, "  included from: '%s:%d'\n",
 				       iter->name, iter->lineno+1);
 			exit(1);
 		}
