@@ -56,16 +56,18 @@ void my_expr_print(struct expr *e, void (*fn)(void *, struct symbol *, const cha
 		fn(data, e->left.sym, e->left.sym->name);
 		else
 		fn(data, NULL, "<choice>");
-		fn(data, NULL, "=");
+		fn(data, NULL, "='");
 		fn(data, e->right.sym, e->right.sym->name);
+		fn(data, NULL, "'");
 		break;
 	case E_UNEQUAL:
 		if (e->left.sym->name)
 		fn(data, e->left.sym, e->left.sym->name);
 		else
 		fn(data, NULL, "<choice>");
-		fn(data, NULL, "!=");
+		fn(data, NULL, "!='");
 		fn(data, e->right.sym, e->right.sym->name);
+		fn(data, NULL, "'");
 		break;
 	case E_OR:
 		expr_print(e->left.expr, fn, data, E_OR);
