@@ -28,6 +28,10 @@ static int choice_count = 0;
 
 extern char *choicestring;
 
+static int isConstant(struct symbol *s) {
+	return (s->flags & SYMBOL_CONST) || (!(s->type & S_TRISTATE) && !(s->type & S_BOOLEAN));
+}
+
 void my_expr_print(struct expr *e, void (*fn)(void *, struct symbol *, const char *), void *data, int prevtoken)
 {
 	static char buf[20];
@@ -43,10 +47,10 @@ void my_expr_print(struct expr *e, void (*fn)(void *, struct symbol *, const cha
 	switch (e->type) {
 	case E_SYMBOL:
 		if (e->left.sym->name){
-			if ((e->left.sym->flags & SYMBOL_CONST))
+			if (isConstant(e->left.sym))
 				fn(data, NULL, "'");
 			fn(data, e->left.sym, e->left.sym->name);
-			if ((e->left.sym->flags & SYMBOL_CONST))
+			if (isConstant(e->left.sym))
 				fn(data, NULL, "'");
 		}else
 			fn(data, NULL, choicestring);
@@ -57,34 +61,34 @@ void my_expr_print(struct expr *e, void (*fn)(void *, struct symbol *, const cha
 		break;
 	case E_EQUAL:
 		if (e->left.sym->name){
-			if ((e->left.sym->flags & SYMBOL_CONST))
+			if (isConstant(e->left.sym))
 				fn(data, NULL, "'");
 			fn(data, e->left.sym, e->left.sym->name);
-			if ((e->left.sym->flags & SYMBOL_CONST))
+			if (isConstant(e->left.sym))
 				fn(data, NULL, "'");
 		}else
 			fn(data, NULL, "<choice>");
 		fn(data, NULL, "=");
-		if ((e->right.sym->flags & SYMBOL_CONST))
+		if (isConstant(e->right.sym))
 			fn(data, NULL, "'");
 		fn(data, e->right.sym, e->right.sym->name);
-		if ((e->right.sym->flags & SYMBOL_CONST))
+		if (isConstant(e->right.sym))
 			fn(data, NULL, "'");
 		break;
 	case E_UNEQUAL:
 		if (e->left.sym->name){
-			if ((e->left.sym->flags & SYMBOL_CONST))
+			if (isConstant(e->left.sym))
 				fn(data, NULL, "'");
 			fn(data, e->left.sym, e->left.sym->name);
-			if ((e->left.sym->flags & SYMBOL_CONST))
+			if (isConstant(e->left.sym))
 				fn(data, NULL, "'");
 		}else
 			fn(data, NULL, "<choice>");
 		fn(data, NULL, "!=");
-		if ((e->right.sym->flags & SYMBOL_CONST))
+		if (isConstant(e->right.sym))
 			fn(data, NULL, "'");
 		fn(data, e->right.sym, e->right.sym->name);
-		if ((e->right.sym->flags & SYMBOL_CONST))
+		if (isConstant(e->right.sym))
 			fn(data, NULL, "'");
 		break;
 	case E_OR:
