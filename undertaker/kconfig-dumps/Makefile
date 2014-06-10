@@ -6,6 +6,8 @@ FM_FILES=$(subst $(FM_DIR)/,,$(wildcard $(FM_DIR)/*.fm))
 RSF_FILES=$(FM_FILES:.fm=.rsf)
 MODELS=$(patsubst %.rsf,models/%.model,$(RSF_FILES))
 CNF_MODELS=$(patsubst %.rsf,cnfmodels/%.cnf,$(RSF_FILES))
+PATH:=$(CURDIR)/..:$(CURDIR)/../../scripts/kconfig:$(CURDIR):../../python:$(PATH)
+export PATH
 
 all: models cnfmodels
 
