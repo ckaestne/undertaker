@@ -141,16 +141,25 @@ void my_print_symbol(FILE *out, struct menu *menu)
 {
 	struct symbol *sym = menu->sym;
 	struct property *prop;
-	static char buf[12];
+	static char buf[50];
 	tristate is_tristate = no;
 
 	if (sym_is_choice(sym)) {
+		char itemname[50];
 		fprintf(out, "#startchoice\n");
 		current_choice = menu;
 		choice_count++;
 
-		fprintf(out, "Choice\tCHOICE_%d", choice_count);
-		snprintf(buf, sizeof buf, "CHOICE_%d", choice_count);
+		//unnamed choices get a generic id
+                if (sym->name)
+                        snprintf(itemname, sizeof itemname, "%s", sym->name);
+                else {
+                        snprintf(itemname, sizeof itemname, "CHOICE_%d", choice_count);
+                }
+
+
+		fprintf(out, "Choice\t%s", itemname);
+		snprintf(buf, sizeof buf, itemname);
 
 		// optional, i.e. all items can be deselected
 		if (current_choice->sym->flags & SYMBOL_OPTIONAL)
