@@ -26,8 +26,7 @@
 #ifndef _PUMA_CONDITIONAL_BLOCK_H
 #define _PUMA_CONDITIONAL_BLOCK_H
 
-#include <boost/shared_ptr.hpp>
-
+#include <Puma/CTranslationUnit.h>
 #include <Puma/PreTree.h>
 #include <Puma/PreVisitor.h>
 #include <Puma/PreprocessorParser.h>
@@ -60,8 +59,6 @@ class PumaConditionalBlock : public ConditionalBlock {
     // subsequent calls. We therefore cache the first result.
     mutable char *_expressionStr_cache = nullptr;
 
-    boost::shared_ptr<Puma::CProject> _project;
-
 public:
     PumaConditionalBlock(CppFile *file, ConditionalBlock *parent, ConditionalBlock *prev,
             const Puma::PreTree *node, const unsigned long nodeNum,
@@ -71,7 +68,7 @@ public:
         lateConstructor();
     };
 
-    virtual ~PumaConditionalBlock() {}
+    virtual ~PumaConditionalBlock() { delete[] _expressionStr_cache; }
 
     //! location related accessors
     virtual const char *filename()   const { return cpp_file->getFilename().c_str(); };
@@ -105,8 +102,6 @@ public:
     virtual const std::string getName() const;
     PumaConditionalBlockBuilder & getBuilder() const { return _builder; }
 
-    static ConditionalBlock *parse(const char *filename, CppFile *cpp_file);
-
     friend class PumaConditionalBlockBuilder;
 };
 
@@ -117,11 +112,15 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     // (and similar) blocks, popped from when leaving them.
     std::stack<PumaConditionalBlock*> _condBlockStack;
     PumaConditionalBlock* _current = nullptr;
+    ConditionalBlock *_top = nullptr;
     CppFile *_file;
-    Puma::PreprocessorParser *_cpp = nullptr;
     std::ofstream null_stream;
     Puma::ErrorStream _err;
-    Puma::CProject *_project;
+    // order seems to be important here, do not exchange!
+    std::unique_ptr<Puma::CProject> _project;
+    std::unique_ptr<Puma::CTranslationUnit> _tu;
+    std::unique_ptr<Puma::PreprocessorParser> _cpp;
+
     Puma::Unit *_unit; // the unit we are working on
 
     static std::list<std::string> _includePaths;
@@ -129,15 +128,18 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     void visitDefineHelper(Puma::PreTreeComposite *node, bool define);
     Puma::Unit *resolve_includes(Puma::Unit *);
     void reset_MacroManager(Puma::Unit *unit);
+    ConditionalBlock *parse (const char *filename);
 
 public:
-    PumaConditionalBlockBuilder(CppFile *file) : _file(file),
+    PumaConditionalBlockBuilder(CppFile *file, const char* filename) : _file(file),
             null_stream("/dev/null"), _err(null_stream) {
-        _project = new Puma::CProject(_err, 0, NULL);
+        _top = parse(filename);
     }
-    ~PumaConditionalBlockBuilder() { delete _cpp; }
-    ConditionalBlock *parse (const char *filename);
-    Puma::PreprocessorParser *cpp_parser() { return _cpp; }
+
+    ~PumaConditionalBlockBuilder() { _cpp->freeSyntaxTree(); };
+    Puma::PreprocessorParser *cpp_parser() { return _cpp.get(); }
+
+    ConditionalBlock *topBlock() { return _top; }
 
     void visitPreProgram_Pre (Puma::PreProgram *);
     void visitPreProgram_Post (Puma::PreProgram *);

@@ -232,4 +232,7 @@ int main(int argc, char **argv) {
     }
     delete model;
     delete rsf;
+    free(model_file);
+    free(rsf_file);
+    free(cnf_file);
 }

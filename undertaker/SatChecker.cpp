@@ -555,13 +555,14 @@ BaseExpressionSatChecker::BaseExpressionSatChecker(const char *base_expression, 
         : SatChecker(base_expression, false, debug) {
     std::string base_expression_s(base_expression);
     _cnf = getCnfWithModelInit(base_expression_s, Picosat::SAT_MAX, &base_expression_s);
-    BoolExp *exp = BoolExp::parseString(base_expression_s);
-    if (!exp){
+    _exp = BoolExp::parseString(base_expression_s);
+    if (!_exp){
         throw SatCheckerError("SatChecker: Couldn't parse: " + base_expression_s);
     }
-    CNFBuilder builder(_cnf, exp, true, CNFBuilder::BOUND);
+    CNFBuilder builder(_cnf, _exp, true, CNFBuilder::BOUND);
 }
 
 BaseExpressionSatChecker::~BaseExpressionSatChecker() {
     delete _cnf;
+    delete _exp;
 }

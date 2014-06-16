@@ -30,6 +30,7 @@
 
 class ConditionalBlock;
 class CppDefine;
+class PumaConditionalBlockBuilder;
 
 
 typedef std::list<ConditionalBlock *> CondBlockList;
@@ -85,6 +86,7 @@ class CppFile : public CondBlockList {
     ConditionalBlock *top_block = nullptr;
     std::map<std::string, CppDefine *> define_map;
     const CppFile::ItemChecker checker;
+    std::unique_ptr<PumaConditionalBlockBuilder> _builder;
 
     void printCppFile();
 };

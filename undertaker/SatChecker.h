@@ -36,6 +36,7 @@
 #include "ConfigurationModel.h"
 #include "ConditionalBlock.h"
 #include "PicosatCNF.h"
+#include "bool.h"
 
 typedef std::set<std::string> MissingSet;
 
@@ -268,5 +269,7 @@ class BaseExpressionSatChecker : public SatChecker {
 
     protected:
         int base_clause;
+    private:
+        kconfig::BoolExp *_exp = nullptr;
 };
 #endif

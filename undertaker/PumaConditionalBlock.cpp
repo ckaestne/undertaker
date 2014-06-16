@@ -25,6 +25,7 @@
 #include "PumaConditionalBlock.h"
 #include "StringJoiner.h"
 #include "Logging.h"
+#include "cpp14.h"
 
 #include <Puma/CTranslationUnit.h>
 #include <Puma/CUnit.h>
@@ -37,6 +38,7 @@
 #include <Puma/PreprocessorParser.h>
 #include <Puma/PreFileIncluder.h>
 #include <Puma/PreSonIterator.h>
+#include <Puma/StrCol.h>
 
 #include <set>
 
@@ -196,12 +198,6 @@ const std::string PumaConditionalBlock::getName() const {
     }
 }
 
-ConditionalBlock *PumaConditionalBlock::parse(const char *filename,
-                                              CppFile *cpp_file) {
-    PumaConditionalBlockBuilder builder(cpp_file);
-    return builder.parse(filename);
-}
-
 using namespace Puma;
 
 // Build a string from a subtree of the preprocessor syntax tree.
@@ -254,19 +250,22 @@ const char * PumaConditionalBlock::ExpressionStr() const {
     if ((node = dynamic_cast<const PreIfDirective *>(_current_node))) {
         _expressionStr_cache = buildString(node->son(1));
     } else if ((node = dynamic_cast<const PreIfdefDirective *>(_current_node))) {
-        _expressionStr_cache = strdup(node->son(1)->startToken()->text());
+        _expressionStr_cache = Puma::StrCol::dup(node->son(1)->startToken()->text());
     } else if ((node = dynamic_cast<const PreIfndefDirective *>(_current_node))) {
-        _expressionStr_cache = strdup(node->son(1)->startToken()->text());
+        _expressionStr_cache = Puma::StrCol::dup(node->son(1)->startToken()->text());
     } else if ((node = dynamic_cast<const PreElifDirective *>(_current_node))) {
         _expressionStr_cache = buildString(node->son(1));
     } else if (isElseBlock()) {
-        _expressionStr_cache = (char *)"";
+        _expressionStr_cache = Puma::StrCol::dup((char *)"");
         return _expressionStr_cache;
     }
 
     if (_expressionStr_cache) {
         PreMacroExpander expander(_builder.cpp_parser());
+        char *tmp = _expressionStr_cache;
         _expressionStr_cache = expander.expandMacros(_expressionStr_cache);
+        // expandMacros allocates new memory, so we have to cleanup the old memory
+        delete [] tmp;
         return _expressionStr_cache;
     } else {
         return "??";
@@ -302,6 +301,7 @@ void PumaConditionalBlockBuilder::iterateNodes (PreTree *node) {
 }
 
 ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename) {
+    _project = make_unique<Puma::CProject>(_err, nullptr, nullptr);
     Puma::Unit *unit = _project->scanFile(filename);
     if (!unit) {
         logger << error << "Failed to parse: " << filename << std::endl;
@@ -310,14 +310,15 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename) {
 
     _unit = undertaker_normalizations(unit);
 
-    CTranslationUnit *tu = new CTranslationUnit (*_unit, *_project);
+    _tu = make_unique<CTranslationUnit>(*_unit, *_project);
 
     // prepare C preprocessor
     TokenStream stream;           // linearize tokens from several files
     stream.push (_unit);
     _project->unitManager ().init ();
 
-    _cpp = new PreprocessorParser(&_err, &_project->unitManager(), &tu->local_units(), std::cerr);
+    _cpp = make_unique<PreprocessorParser>(&_err, &_project->unitManager(),
+            &_tu->local_units(), std::cerr);
     _cpp->macroManager ()->init (unit->name ());
     _cpp->stream (&stream);
     _cpp->configure (_project->config ());
@@ -338,12 +339,6 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const char *filename) {
         return nullptr;
     }
     ptree->accept(*this);
-    /* Copy the Puma::CProject to the shared_ptr instances of all
-       blocks within the file */
-    boost::shared_ptr<Puma::CProject> sh_project(_project);
-    for (CppFile::iterator it = _file->begin(); it != _file->end(); ++it) {
-        ((PumaConditionalBlock *)(*it))->_project = sh_project ;
-    }
     return _current;
 }
 

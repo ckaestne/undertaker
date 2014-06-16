@@ -1150,5 +1150,6 @@ int main (int argc, char ** argv) {
                 process_file(workfiles[0].c_str());
         }
     }
+    free(worklist);
     return RETVALUE;
 }

@@ -22,17 +22,14 @@
 #include "StringJoiner.h"
 #include "ConditionalBlock.h"
 #include "ModelContainer.h"
-
-#include "PumaConditionalBlock.h"
-typedef PumaConditionalBlock ConditionalBlockImpl;
-typedef PumaConditionalBlockBuilder ConditionalBlockImplBuilder;
-#include <Puma/PreParser.h>
-
 #include "SatChecker.h"
 #include "BoolExpSymbolSet.h"
-
 #include "Logging.h"
+#include "PumaConditionalBlock.h"
+typedef PumaConditionalBlock ConditionalBlockImpl;
+#include "cpp14.h"
 
+#include <Puma/PreParser.h>
 #include <boost/regex.hpp>
 #include <set>
 
@@ -43,7 +40,8 @@ CppFile::CppFile(const char *f) : checker(this) {
         filename = f;
     else
         filename = f+2; // skip leading './'
-    top_block = ConditionalBlockImpl::parse(f, this);
+    _builder = make_unique<PumaConditionalBlockBuilder>(this, f);
+    top_block = _builder->topBlock();
 }
 
 CppFile::~CppFile() {
@@ -116,7 +114,7 @@ static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
         logger << error << "failed to access the super-class of Conditionalblock" << std::endl;
         exit(1);
     }
-    ConditionalBlockImplBuilder &builder = superblock->getBuilder();
+    PumaConditionalBlockBuilder &builder = superblock->getBuilder();
 
     Puma::Token *tok = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "#else");
     Puma::PreTreeToken *ptok = new Puma::PreTreeToken(tok);
@@ -165,7 +163,7 @@ void CppFile::printCppFile() {
 void ConditionalBlock::insertBlockIntoFile(ConditionalBlock *prevBlock, ConditionalBlock *nblock,
         bool insertAfter) {
     CppFile *file = this->getFile();
-    for (std::list<ConditionalBlock *>::iterator i = file->begin(); i != file->end(); ++i) {
+    for (auto i = file->begin(); i != file->end(); ++i) {
         if ((*i) == prevBlock) {
             if (insertAfter)
                 file->insert(++i, nblock);
@@ -177,9 +175,7 @@ void ConditionalBlock::insertBlockIntoFile(ConditionalBlock *prevBlock, Conditio
 }
 
 void ConditionalBlock::processForDecisionCoverage() {
-    for (std::list<ConditionalBlock *>::iterator i = this->begin(), prev = this->end();
-            i != this->end(); prev = i, ++i) {
-
+    for (auto i = this->begin(), prev = this->end(); i != this->end(); prev = i, ++i) {
         // insert else when:  1. we are in an if-block 2. the previous block was a if / elseif
         if (prev != this->end() && (*i)->isIfBlock() &&
                 ((*prev)->isIfBlock() || (*prev)->isElseIfBlock())) {
