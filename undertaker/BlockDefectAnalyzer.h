@@ -79,8 +79,6 @@ public:
      */
     virtual bool writeReportToFile(bool skip_no_kconfig) const = 0;
     virtual void reportMUS() const = 0;
-    virtual void markOk(const std::string &arch);
-    virtual std::list<std::string> getOKList() { return _OKList; }
     virtual DEFECTTYPE defectType() const { return _defectType; }
     virtual ~BlockDefectAnalyzer() {}
 
@@ -89,12 +87,11 @@ public:
 
 protected:
     BlockDefectAnalyzer(DEFECTTYPE defecttype)
-        : _defectType(defecttype), _isGlobal(false), _OKList() {}
+        : _defectType(defecttype), _isGlobal(false) {}
     DEFECTTYPE _defectType;
     bool _isGlobal;
     ConditionalBlock *_cb;
     std::string _suffix;
-    std::list<std::string> _OKList; //!< List of architectures on which this is proved to be OK
 };
 
 //! Checks a given block for "un-selectable block" defects.

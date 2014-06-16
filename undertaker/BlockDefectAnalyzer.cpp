@@ -32,10 +32,6 @@
 #include "boost/filesystem.hpp"
 
 
-void BlockDefectAnalyzer::markOk(const std::string &arch) {
-    _OKList.push_back(arch);
-}
-
 std::string BlockDefectAnalyzer::getBlockPrecondition(const ConfigurationModel *model) const {
     StringJoiner formula;
 
@@ -91,11 +87,9 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p
     const char *oldarch = defect->getArch();
     int original_classification = defect->defectType();
     for (ModelContainer::iterator i = f->begin(); i != f->end(); i++) {
-        const std::string &arch = (*i).first;
         const ConfigurationModel *model = (*i).second;
 
         if (!defect->isDefect(model)) {
-            defect->markOk(arch);
             if (original_classification == BlockDefectAnalyzer::Configuration)
                 defect->setArch(oldarch);
             return defect;
