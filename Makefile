@@ -114,6 +114,8 @@ install: all $(MANPAGES)
 	@install -v undertaker/rsf2cnf $(DESTDIR)$(BINDIR)
 	@install -v undertaker/satyr $(DESTDIR)$(BINDIR)
 
+	@install -v picosat/picomus $(DESTDIR)$(BINDIR)
+
 	@install -v ziz/zizler $(DESTDIR)$(BINDIR)
 
 	@install -v scripts/Makefile.list $(DESTDIR)$(LIBDIR)
