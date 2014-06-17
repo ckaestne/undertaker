@@ -64,11 +64,8 @@ bool SatChecker::check(const std::string &sat) {
     }
 }
 
-SatChecker::SatChecker(std::string sat, bool mus, int debug)
-        : debug_flags(debug), _do_mus_analysis(mus), _sat(std::move(sat)) {}
-
-static std::unique_ptr<PicosatCNF> getCnfWithModelInit(const std::string &formula,
-        Picosat::SATMode mode, std::string *result) {
+static std::unique_ptr<PicosatCNF>
+getCnfWithModelInit(const std::string &formula, Picosat::SATMode mode, std::string *result) {
     static const boost::regex modelvar_regexp("\\._\\.(.+)\\._\\.");
     boost::match_results<std::string::const_iterator> what;
     if (boost::regex_search(formula, what, modelvar_regexp)) {
@@ -77,14 +74,11 @@ static std::unique_ptr<PicosatCNF> getCnfWithModelInit(const std::string &formul
         CnfConfigurationModel *cm = dynamic_cast<CnfConfigurationModel *>(
             ModelContainer::getInstance().lookupModel(modelname));
         if (!cm) {
-            logger << error << "Could not add model \"" << modelname  <<"\" to cnf" << std::endl;
+            logger << error << "Could not add model \"" << modelname << "\" to cnf" << std::endl;
             return nullptr;
         }
-        const PicosatCNF *modelcnf = cm->getCNF();
-        std::unique_ptr<PicosatCNF> cnf{ new PicosatCNF(*modelcnf) };
-        cnf->setDefaultPhase(mode);
-        *result = boost::regex_replace(formula, modelvar_regexp , "1");
-        return cnf;
+        *result = boost::regex_replace(formula, modelvar_regexp, "1");
+        return make_unique<PicosatCNF>(*(cm->getCNF()), mode);  // call copy-delegate constructor
     } else {
         // RSF model
         *result = formula;
@@ -95,7 +89,6 @@ static std::unique_ptr<PicosatCNF> getCnfWithModelInit(const std::string &formul
 bool SatChecker::operator()(Picosat::SATMode mode) {
     std::string sat;
     _cnf = getCnfWithModelInit(_sat, mode, &sat);
-    _cnf->setMusAnalysis(_do_mus_analysis);
 
     CNFBuilder builder(_cnf.get(), sat, true, CNFBuilder::ConstantPolicy::FREE);
     int res = _cnf->checkSatisfiable();
@@ -117,7 +110,7 @@ std::string SatChecker::pprint() {
         (*this)();
         debug_flags = old_debug_flags;
     }
-    if(debug_parser.size() > 0)
+    if (debug_parser.size() > 0)
         return _sat + "\n\n" + debug_parser + "\n";
     else
         return _sat + "\n";
@@ -150,8 +143,7 @@ void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
     }
 }
 
-int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
-                                             const MissingSet &missingSet) {
+int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet &missingSet) {
     std::map<std::string, state> selection, other_variables;
 
     logger << debug << "---- Dumping new assignment map" << std::endl;
@@ -168,10 +160,9 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
         if (valid && boost::regex_match(name, what, module_regexp)) {
             const std::string &tmpName = what[1];
             std::string basename = "CONFIG_" + tmpName;
-            if (missingSet.find(basename) != missingSet.end() ||
-                missingSet.find(what[0])  != missingSet.end()) {
-                logger << debug << "Ignoring 'missing' module item "
-                       << what[0] << std::endl;
+            if (missingSet.find(basename) != missingSet.end()
+                || missingSet.find(what[0]) != missingSet.end()) {
+                logger << debug << "Ignoring 'missing' module item " << what[0] << std::endl;
                 other_variables[basename] = valid ? state::yes : state::no;
             } else {
                 selection[basename] = state::module;
@@ -189,8 +180,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
             logger << debug << "considering " << what[0] << std::endl;
 
             if (missingSet.find(what[0]) != missingSet.end()) {
-                logger << debug << "Ignoring 'missing' item "
-                       << what[0] << std::endl;
+                logger << debug << "Ignoring 'missing' item " << what[0] << std::endl;
                 other_variables[what[0]] = valid ? state::yes : state::no;
                 continue;
             }
@@ -202,8 +192,8 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
             }
 
             // skip item if it is neither a 'boolean' nor a tristate one
-            if (!boost::regex_match(name, module_regexp) && model &&
-                !model->isBoolean(item_name) && !model->isTristate(item_name)) {
+            if (!boost::regex_match(name, module_regexp) && model && !model->isBoolean(item_name)
+                && !model->isTristate(item_name)) {
                 logger << debug << "Ignoring 'non-boolean' item " << what[0] << std::endl;
 
                 other_variables[what[0]] = valid ? state::yes : state::no;
@@ -238,10 +228,8 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
         const std::string &item = entry.first;
         const state &stat = entry.second;
 
-        if (boost::starts_with(item, "CONFIG_CHOICE_") ||
-            boost::starts_with(item, "__FREE__") ||
-            item == "CONFIG_n" ||
-            item == "CONFIG_y")
+        if (boost::starts_with(item, "CONFIG_CHOICE_") || boost::starts_with(item, "__FREE__")
+            || item == "CONFIG_n" || item == "CONFIG_y")
             continue;
 
         if (selection.find(item) != selection.end())
@@ -267,7 +255,7 @@ int SatChecker::AssignmentMap::formatModel(std::ostream &out, const Configuratio
         const bool &valid = entry.second;
         if (model && !model->inConfigurationSpace(name))
             continue;
-        out << name << "=" << (valid ? 1 : 0) << std::endl;;
+        out << name << "=" << (valid ? 1 : 0) << std::endl;
         items++;
     }
     return items;
@@ -277,7 +265,7 @@ int SatChecker::AssignmentMap::formatAll(std::ostream &out) {
     for (const auto &entry : *this) {  // pair<string, bool>
         const std::string &name = entry.first;
         const bool &valid = entry.second;
-        out << name << "=" << (valid ? 1 : 0) << std::endl;;
+        out << name << "=" << (valid ? 1 : 0) << std::endl;
     }
     return size();
 }
@@ -322,7 +310,7 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
     Puma::TokenStream stream;
     sighandler_t oldaction;
 
-    PumaConditionalBlock *topBlock = (PumaConditionalBlock *) file.topBlock();
+    PumaConditionalBlock *topBlock = (PumaConditionalBlock *)file.topBlock();
     Puma::Unit *unit = topBlock->unit();
     if (!unit) {
         // in this case we have lost. this can happen e.g. on an empty
@@ -354,7 +342,9 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
 
             next = block->pumaEndToken();
             flag_map[next] = false;
-            do { next = unit->next(next); } while ( next && next->text()[0] != '\n');
+            do {
+                next = unit->next(next);
+            } while (next && next->text()[0] != '\n');
             if (next)
                 flag_map[next] = true;
         } else {
@@ -412,7 +402,7 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
 }
 
 int SatChecker::AssignmentMap::formatCombined(const CppFile &file, const ConfigurationModel *model,
-                                              const MissingSet& missingSet, unsigned number) {
+                                              const MissingSet &missingSet, unsigned number) {
     std::stringstream s;
     s << file.getFilename() << ".cppflags" << number;
 
@@ -444,10 +434,9 @@ int SatChecker::AssignmentMap::formatExec(const CppFile &file, const char *cmd) 
     return size();
 }
 
-void SatChecker::pprintAssignments(std::ostream& out,
+void SatChecker::pprintAssignments(std::ostream &out,
                                    const std::list<SatChecker::AssignmentMap> solutions,
-                                   const ConfigurationModel *model,
-                                   const MissingSet &missingSet) {
+                                   const ConfigurationModel *model, const MissingSet &missingSet) {
     out << "I: Found " << solutions.size() << " assignments" << std::endl;
     out << "I: Entries in missingSet: " << missingSet.size() << std::endl;
 
@@ -486,9 +475,9 @@ void SatChecker::pprintAssignments(std::ostream& out,
 
     out << "I: In all assignments the following symbols are equally set" << std::endl;
     for (const auto &entry : common_subset) {  // pair<string, bool>
-            const std::string &name = entry.first;
-            const bool &valid = entry.second;
-            out << name << "=" << (valid ? 1 : 0) << std::endl;
+        const std::string &name = entry.first;
+        const bool &valid = entry.second;
+        out << name << "=" << (valid ? 1 : 0) << std::endl;
     }
 
     out << "I: All differences in the assignments" << std::endl;
@@ -534,7 +523,7 @@ bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSym
 }
 
 BaseExpressionSatChecker::BaseExpressionSatChecker(std::string base_expression, int debug)
-        : SatChecker(base_expression, false, debug) {
+        : SatChecker(base_expression, debug) {
     _cnf = getCnfWithModelInit(base_expression, Picosat::SAT_MAX, &base_expression);
     CNFBuilder builder(_cnf.get(), base_expression, true, CNFBuilder::ConstantPolicy::BOUND);
 }

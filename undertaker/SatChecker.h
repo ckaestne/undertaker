@@ -45,7 +45,8 @@ class CppFile;
 
 class SatChecker {
 public:
-    SatChecker(const std::string sat, bool mus = false, int debug = 0);
+    SatChecker(std::string sat, int debug = 0) : debug_flags(debug), _sat(std::move(sat)) {}
+
     virtual ~SatChecker() {};
 
     /**
@@ -217,8 +218,6 @@ protected:
     int debug_parser_indent;
 
     Picosat::SATMode mode;
-    bool _do_mus_analysis;
-
     const std::string _sat;
 
     // Debugging stuff

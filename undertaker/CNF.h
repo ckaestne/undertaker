@@ -25,6 +25,7 @@
 #include "Kconfig.h"
 
 #include <map>
+#include <vector>
 #include <string>
 #include <deque>
 
@@ -33,8 +34,6 @@ namespace kconfig {
     class CNF {
     public:
         virtual ~CNF(){};
-        virtual void setMusAnalysis(bool mus_analysis)               = 0;
-        virtual std::string getMusDirName()                    const = 0;
         virtual void readFromFile(const std::string &filename)       = 0;
         virtual void readFromStream(std::istream &i)                 = 0;
         virtual void toFile(const std::string &filename)       const = 0;
@@ -58,6 +57,8 @@ namespace kconfig {
         virtual bool deref(const std::string &s)               const = 0;
         virtual bool deref(const char *c)                      const = 0;
         virtual int getVarCount(void)                          const = 0;
+        virtual int getClauseCount(void)                       const = 0;
+        virtual const std::vector<int> & getClauses(void)      const = 0;
         virtual int newVar(void)                                     = 0;
         virtual const std::string *getAssociatedSymbol(const std::string &var)      const = 0;
         virtual const std::map<std::string, int>& getSymbolMap()                    const = 0;

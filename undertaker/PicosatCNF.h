@@ -67,7 +67,6 @@ namespace kconfig {
         Picosat::SATMode defaultPhase;
         int varcount = 0;
         int clausecount = 0;
-        bool do_mus_analysis = false;;
         std::string musTmpDirName;
 
         void loadContext(void);
@@ -75,14 +74,9 @@ namespace kconfig {
 
     public:
         PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
+        PicosatCNF(const PicosatCNF &, Picosat::SATMode);
         virtual ~PicosatCNF();
         void setDefaultPhase(Picosat::SATMode phase);
-        virtual void setMusAnalysis(bool mus_analysis)                 final override {
-            this->do_mus_analysis = mus_analysis;
-        }
-        virtual std::string getMusDirName()                      const final override {
-            return musTmpDirName;
-        }
         virtual void readFromFile(const std::string &filename)         final override;
         virtual void readFromStream(std::istream &i)                   final override;
         virtual void toFile(const std::string &filename)         const final override;
@@ -112,12 +106,11 @@ namespace kconfig {
         virtual bool deref(const std::string &s)                 const final override;
         virtual bool deref(const char *s)                        const final override;
         virtual int getVarCount(void)                            const final override;
+        virtual int getClauseCount(void)                         const final override;
+        virtual const std::vector<int> & getClauses(void)        const final override;
         virtual int newVar(void)                                       final override;
         virtual const std::string *getAssociatedSymbol(const std::string &var) const final override;
-
-        virtual const std::map<std::string, int>& getSymbolMap() const final override {
-            return this->cnfvars;
-        }
+        virtual const std::map<std::string, int>& getSymbolMap() const final override;
         virtual const std::deque<std::string> *getMetaValue(const std::string &key)
                                                                  const final override;
         virtual void addMetaValue(const std::string &key, const std::string &value)

@@ -44,6 +44,12 @@ PicosatCNF::PicosatCNF(Picosat::SATMode defaultPhase) : defaultPhase (defaultPha
     resetContext();
 }
 
+// copy delegate constructor with initializing _picosat and setting default_phase
+PicosatCNF::PicosatCNF(const PicosatCNF &cnf, Picosat::SATMode defaultPhase) : PicosatCNF(cnf) {
+    this->defaultPhase = defaultPhase;
+    resetContext();
+}
+
 PicosatCNF::~PicosatCNF() {
     if (this == currentContext) {
         currentContext = nullptr;
@@ -63,30 +69,11 @@ void PicosatCNF::loadContext(void) {
     currentContext = this;
     Picosat::picosat_set_global_default_phase(defaultPhase);
 
+    // tell picosat how many different variables it will receive
+    Picosat::picosat_adjust(varcount);
+
     for (const int &clause : clauses)
         Picosat::picosat_add(clause);
-
-    if (do_mus_analysis) {
-        // create a unique temporary directory
-        std::string pref("/tmp/undertakermusXXXXXX");
-        char *t =  mkdtemp(&pref[0]);
-        if(!t) {
-            logger << error << "Couldn't create tmpdir" << std::endl;
-            exit(1);
-        }
-        musTmpDirName = t;
-        std::string tmpf = t;
-        tmpf += "/infile";
-
-        std::ofstream out(tmpf);
-        out << "p cnf " << varcount << " " << this->clausecount << std::endl;
-
-        for (int &clause : clauses) {
-            char sep = (clause == 0) ? '\n' : ' ';
-            out << clause << sep;
-        }
-        out.close();
-    }
 }
 
 void PicosatCNF::resetContext(void) {
@@ -344,9 +331,13 @@ const std::deque<std::string> *PicosatCNF::getMetaValue(const std::string &key) 
     return &((*i).second);
 }
 
-int PicosatCNF::getVarCount(void) const {
-    return varcount;
-}
+int PicosatCNF::getVarCount(void) const { return varcount; }
+
+int PicosatCNF::getClauseCount(void) const { return clausecount; }
+
+const std::vector<int> &PicosatCNF::getClauses(void) const { return clauses; }
+
+const std::map<std::string, int> &PicosatCNF::getSymbolMap() const { return this->cnfvars; }
 
 int PicosatCNF::newVar(void) {
     varcount++;

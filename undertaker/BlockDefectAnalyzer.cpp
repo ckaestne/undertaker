@@ -20,10 +20,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef DEBUG
-#define BOOST_FILESYSTEM_NO_DEPRECATED
-#endif
-
 #include "BlockDefectAnalyzer.h"
 #include "ConditionalBlock.h"
 #include "StringJoiner.h"
@@ -33,7 +29,7 @@
 #include "Logging.h"
 #include "Tools.h"
 
-#include <boost/filesystem.hpp>
+#include <pstreams/pstream.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -138,35 +134,35 @@ void DeadBlockDefect::reportMUS() const {
     // MUS only works on {code, kconfig} dead blocks
     if (_suffix != "dead" || _defectType == DEFECTTYPE::None)
         return;
-    SatChecker code_constraints(_musFormula, true);
+    // call Satchecker and get the CNF-Object
+    SatChecker code_constraints(_musFormula);
     code_constraints();
     kconfig::CNF *cnf = code_constraints.getCNF();
+    // call picosat in quiet mode with stdin as input and stdout as output
+    redi::pstream cmd_process("picomus - -");
+    // write to stdin of the process
+    cmd_process << "p cnf " << cnf->getVarCount() << " " << cnf->getClauseCount() << std::endl;
+    for (const int &clause : cnf->getClauses()) {
+        char sep = (clause == 0) ? '\n' : ' ';
+        cmd_process << clause << sep;
+    }
+    // send eof and tell cmd_process we will start reading from stdout of cmd
+    redi::peof(cmd_process);
+    cmd_process.out();
+    // read everything from cmd_process's stdout and close it
+    std::stringstream ss;
+    ss << cmd_process.rdbuf();
+    cmd_process.close();
+    //remove first line from ss (=UNSATISFIABLE)
+    std::string garbage;
+    std::getline(ss, garbage);
 
-    std::string inf(cnf->getMusDirName());
-    inf += "/infile";
-    std::string outf(cnf->getMusDirName());
-    outf += "/outfile";
-    // call "picomus infile outfile"
-    std::ostringstream cmd;
-    cmd << "picomus " << inf << " " << outf << " > /dev/null";
-    int ret = std::system(cmd.str().c_str());
-    if(ret != 5120) { // i have no idea why this is 5120 and not 20
-        logger << error << "PICOMUS ERROR " << ret << std::endl;
-        boost::filesystem::remove_all(cnf->getMusDirName());
-        exit(ret);
-    }
-    std::ifstream ifs(outf);
-    if(!ifs.good()) {
-        logger << error << "Couldn't open picomus output file " << outf << std::endl;
-        boost::filesystem::remove_all(cnf->getMusDirName());
-        exit(512);
-    }
     // create a string from DIMACs CNF Format (=picomus result) to a more readable CNF Format
     // Note: The formula might be incomplete, since a lot operators create new CNF-IDs without
     // having a destinct Symbolname, which are ignored in this output
     int vars, lines; std::string p, cnfstr;
-    ifs >> p; ifs >> cnfstr; ifs >> vars; ifs >> lines;
-    if(p.compare("p") != 0 || cnfstr.compare("cnf") != 0) {
+    ss >> p; ss >> cnfstr; ss >> vars; ss >> lines;
+    if(p != "p" || cnfstr != "cnf") {
         logger << error << "Mismatched output format, skipping MUS analysis." << std::endl;
         return;
     }
@@ -175,12 +171,12 @@ void DeadBlockDefect::reportMUS() const {
         bool valid = false;
         std::stringstream tmpstr;
         tmpstr << "(";
-        ifs >> tmp;
+        ss >> tmp;
         // process a line
         while(tmp != 0) {
             std::string sym = cnf->getSymbolName(abs(tmp));
-            if (sym.compare("") == 0) {
-                ifs >> tmp;
+            if (sym == "") {
+                ss >> tmp;
                 continue;
             }
             valid = true;
@@ -188,7 +184,7 @@ void DeadBlockDefect::reportMUS() const {
                 tmpstr << "!";
             tmpstr << sym;
             // get next int in the current line
-            ifs >> tmp;
+            ss >> tmp;
             if(tmp != 0)
                 tmpstr << " v ";
         }
@@ -204,31 +200,21 @@ void DeadBlockDefect::reportMUS() const {
             formula << " ^ ";
     }
     // create filename for mus-defect report and open the outputfilestream
-    std::string filename = getDefectReportFilename();
-    filename += ".mus";
+    std::string filename = this->getDefectReportFilename() + ".mus";
 
     std::ofstream ofs(filename);
     if (!ofs.good()) {
         logger << error << "Failed to open " << filename << " for writing." << std::endl;
         return;
     }
-    // some statistics about the picomus performance
-    std::ifstream pic_infile(inf);
-    if(!pic_infile.good()) {
-        logger << error << "Couldn't open picomus input file " << inf << std::endl;
-        boost::filesystem::remove_all(cnf->getMusDirName());
-        exit(512);
-    }
+    // prepend some statistics about the picomus performance
     logger << info << "creating " << filename << std::endl;
-    std::string l;
-    std::getline(pic_infile, l); // get first line of the picosat inputfile
-    ofs << "ATTENTION: This formula _might_ be incomplete or inconclusive!" << std::endl;
-    ofs << "Minimized Formula from:" << std::endl << l << std::endl << "to" << std::endl;
-    ofs << p << " " << cnfstr << " " << vars << " " << lines << std::endl;
+    ofs << "ATTENTION: This formula _might_ be incomplete or even inconclusive!" << std::endl;
+    ofs << "Minimized Formula from:" << std::endl;
+    ofs << "p cnf " << cnf->getVarCount() << " " << cnf->getClauseCount() << std::endl;
+    ofs << "to" << std::endl;
+    ofs << "p cnf " << vars               << " " << lines                 << std::endl;
     ofs << formula.str() << std::endl;
-
-    // remove tmp directory and the cnf object we kept
-    boost::filesystem::remove_all(cnf->getMusDirName());
 }
 
 bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
