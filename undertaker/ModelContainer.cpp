@@ -21,6 +21,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef DEBUG
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+#endif
 
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
@@ -48,7 +51,8 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
     if (! boost::filesystem::is_directory(model)) {
         /* A model file was specified, so load exactly this one */
         boost::match_results<const char*> what;
-        std::string model_name = std::string(boost::filesystem::basename(model));
+        boost::filesystem::path p(model);
+        std::string model_name = p.stem().string();
 
         ret = f->registerModelFile(model, model_name);
         if (ret) {

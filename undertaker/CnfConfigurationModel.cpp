@@ -18,6 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef DEBUG
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+#endif
+
 #include "ConditionalBlock.h"
 #include "CnfConfigurationModel.h"
 #include "KconfigWhitelist.h"
@@ -40,7 +44,7 @@
 CnfConfigurationModel::CnfConfigurationModel(const char *filename) {
     const StringList *configuration_space_regex = nullptr;
     boost::filesystem::path filepath(filename);
-    _name = boost::filesystem::basename(filepath);
+    _name = filepath.stem().string();
 
     _cnf = new kconfig::PicosatCNF();
     _cnf->readFromFile(filename);

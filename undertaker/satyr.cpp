@@ -17,6 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef DEBUG
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+#endif
+
 #include <boost/filesystem.hpp>
 
 #include "SymbolTranslator.h"

@@ -19,6 +19,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef DEBUG
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+#endif
+
 #include "ConditionalBlock.h"
 #include "RsfConfigurationModel.h"
 #include "KconfigWhitelist.h"
@@ -40,8 +44,8 @@
 RsfConfigurationModel::RsfConfigurationModel(const char *filename) {
     const StringList *configuration_space_regex;
     boost::filesystem::path filepath(filename);
+    _name = filepath.stem().string();
 
-    _name = boost::filesystem::basename(filepath);
     _model_stream = new std::ifstream(filename);
 
     if (strcmp(filename, "/dev/null") != 0 && _model_stream->good()) {
