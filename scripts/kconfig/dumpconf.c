@@ -28,6 +28,10 @@ static int choice_count = 0;
 
 extern char *choicestring;
 
+static int isConstant(struct symbol *s) {
+	return (s->flags & SYMBOL_CONST) || (!(s->type & S_TRISTATE) && !(s->type & S_BOOLEAN));
+}
+
 void my_expr_print(struct expr *e, void (*fn)(void *, struct symbol *, const char *), void *data, int prevtoken)
 {
 	static char buf[20];
@@ -42,46 +46,66 @@ void my_expr_print(struct expr *e, void (*fn)(void *, struct symbol *, const cha
 	fn(data, NULL, "(");
 	switch (e->type) {
 	case E_SYMBOL:
-		if (e->left.sym->name)
-		fn(data, e->left.sym, e->left.sym->name);
-		else
-		fn(data, NULL, choicestring);
+		if (e->left.sym->name){
+			if (isConstant(e->left.sym))
+				fn(data, NULL, "'");
+			fn(data, e->left.sym, e->left.sym->name);
+			if (isConstant(e->left.sym))
+				fn(data, NULL, "'");
+		}else
+			fn(data, NULL, choicestring);
 		break;
 	case E_NOT:
 		fn(data, NULL, "!");
-		expr_print(e->left.expr, fn, data, E_NOT);
+		my_expr_print(e->left.expr, fn, data, E_NOT);
 		break;
 	case E_EQUAL:
-		if (e->left.sym->name)
-		fn(data, e->left.sym, e->left.sym->name);
-		else
-		fn(data, NULL, "<choice>");
+		if (e->left.sym->name){
+			if (isConstant(e->left.sym))
+				fn(data, NULL, "'");
+			fn(data, e->left.sym, e->left.sym->name);
+			if (isConstant(e->left.sym))
+				fn(data, NULL, "'");
+		}else
+			fn(data, NULL, "<choice>");
 		fn(data, NULL, "=");
+		if (isConstant(e->right.sym))
+			fn(data, NULL, "'");
 		fn(data, e->right.sym, e->right.sym->name);
+		if (isConstant(e->right.sym))
+			fn(data, NULL, "'");
 		break;
 	case E_UNEQUAL:
-		if (e->left.sym->name)
-		fn(data, e->left.sym, e->left.sym->name);
-		else
-		fn(data, NULL, "<choice>");
+		if (e->left.sym->name){
+			if (isConstant(e->left.sym))
+				fn(data, NULL, "'");
+			fn(data, e->left.sym, e->left.sym->name);
+			if (isConstant(e->left.sym))
+				fn(data, NULL, "'");
+		}else
+			fn(data, NULL, "<choice>");
 		fn(data, NULL, "!=");
+		if (isConstant(e->right.sym))
+			fn(data, NULL, "'");
 		fn(data, e->right.sym, e->right.sym->name);
+		if (isConstant(e->right.sym))
+			fn(data, NULL, "'");
 		break;
 	case E_OR:
-		expr_print(e->left.expr, fn, data, E_OR);
+		my_expr_print(e->left.expr, fn, data, E_OR);
 		fn(data, NULL, " || ");
-		expr_print(e->right.expr, fn, data, E_OR);
+		my_expr_print(e->right.expr, fn, data, E_OR);
 		break;
 	case E_AND:
-		expr_print(e->left.expr, fn, data, E_AND);
+		my_expr_print(e->left.expr, fn, data, E_AND);
 		fn(data, NULL, " && ");
-		expr_print(e->right.expr, fn, data, E_AND);
+		my_expr_print(e->right.expr, fn, data, E_AND);
 		break;
 	case E_LIST:
 		fn(data, e->right.sym, e->right.sym->name);
 		if (e->left.expr) {
 		fn(data, NULL, " ^ ");
-		expr_print(e->left.expr, fn, data, E_LIST);
+		my_expr_print(e->left.expr, fn, data, E_LIST);
 		}
 		break;
 	case E_RANGE:
@@ -117,16 +141,25 @@ void my_print_symbol(FILE *out, struct menu *menu)
 {
 	struct symbol *sym = menu->sym;
 	struct property *prop;
-	static char buf[12];
+	static char buf[50];
 	tristate is_tristate = no;
 
 	if (sym_is_choice(sym)) {
+		char itemname[50];
 		fprintf(out, "#startchoice\n");
 		current_choice = menu;
 		choice_count++;
 
-		fprintf(out, "Choice\tCHOICE_%d", choice_count);
-		snprintf(buf, sizeof buf, "CHOICE_%d", choice_count);
+		//unnamed choices get a generic id
+                if (sym->name)
+                        snprintf(itemname, sizeof itemname, "%s", sym->name);
+                else {
+                        snprintf(itemname, sizeof itemname, "CHOICE_%d", choice_count);
+                }
+
+
+		fprintf(out, "Choice\t%s", itemname);
+		snprintf(buf, sizeof buf, itemname);
 
 		// optional, i.e. all items can be deselected
 		if (current_choice->sym->flags & SYMBOL_OPTIONAL)
@@ -170,7 +203,7 @@ void my_print_symbol(FILE *out, struct menu *menu)
 		}
 	}
 
-	if (menu->dep || is_tristate != no) {
+	//if (menu->dep || is_tristate != no) {
 		char itemname[50];
 		int has_prompts = 0;
 
@@ -186,16 +219,20 @@ void my_print_symbol(FILE *out, struct menu *menu)
 		    fprintf(out, "\"\n");
 		}
 
-		for_all_prompts(sym, prop)
+		for_all_prompts(sym, prop) {
 			has_prompts++;
+			fprintf(out, "Prompt\t%s\t\"",itemname);
+			my_expr_fprint(prop->visible.expr, out);
+			fprintf(out, "\"\n");
+		}
 
 		fprintf(out, "HasPrompts\t%s\t%d\n", itemname, has_prompts);
 
 		for_all_properties(sym, prop, P_DEFAULT) {
 			fprintf(out, "Default\t%s\t\"", itemname);
-			expr_fprint(prop->expr, out);
+			my_expr_fprint(prop->expr, out);
 			fprintf(out, "\"\t\"");
-			expr_fprint(prop->visible.expr, out);
+			my_expr_fprint(prop->visible.expr, out);
 			fprintf(out, "\"\n");
 		}
 		for_all_properties(sym, prop, P_SELECT) {
@@ -205,7 +242,7 @@ void my_print_symbol(FILE *out, struct menu *menu)
 			my_expr_fprint(prop->visible.expr, out);
 			fprintf(out, "\"\n");
 		}
-	}
+	//}
 
 	for (prop = sym->prop; prop; prop = prop->next) {
 		if (prop->menu != menu)
