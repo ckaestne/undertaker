@@ -17,6 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+#ifndef _CPP14_H_
+#define _CPP14_H_
+
 #include <memory>
 
 template<typename T, typename ...Args> std::unique_ptr<T>
@@ -33,3 +37,5 @@ template<class T>
 auto cend(const T& t)-> decltype( t.cend() ) {
     return t.cend();
 }
+
+#endif
