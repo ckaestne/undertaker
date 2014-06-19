@@ -137,25 +137,46 @@ void DeadBlockDefect::reportMUS() const {
         exit(512);
     }
     // create a string from DIMACs CNF Format (=picomus result) to a more readable CNF Format
-    // Note: The formula is nearly empty since a lot operators create new CNF-IDs without having a
-    // destinct Symbolname
-    std::ostringstream formula;
+    // Note: The formula might be incomplete, since a lot operators create new CNF-IDs without
+    // having a destinct Symbolname, which are ignored in this output
     int vars, lines; std::string p, cnfstr;
     ifs >> p; ifs >> cnfstr; ifs >> vars; ifs >> lines;
-
+    if(p.compare("p") != 0 || cnfstr.compare("cnf") != 0) {
+        logger << error << "Mismatched output format, skipping MUS analysis." << std::endl;
+        delete cnf;
+        return;
+    }
+    std::vector<std::string> vec;
     for (int i = 0, tmp; i < lines; i++) {
-        formula << "(";
+        bool valid = false;
+        std::stringstream tmpstr;
+        tmpstr << "(";
         ifs >> tmp;
+        // process a line
         while(tmp != 0) {
+            std::string sym = cnf->getSymbolName(abs(tmp));
+            if (sym.compare("") == 0) {
+                ifs >> tmp;
+                continue;
+            }
+            valid = true;
             if (tmp < 0)
-                formula << "!";
-            formula << cnf->getSymbolName(abs(tmp));
+                tmpstr << "!";
+            tmpstr << sym;
+            // get next int in the current line
             ifs >> tmp;
             if(tmp != 0)
-                formula << " v ";
+                tmpstr << " v ";
         }
-        formula << ")";
-        if(i < lines-1)
+        tmpstr << ")";
+        if (valid) // collect valid clauses
+            vec.emplace_back(tmpstr.str());
+    }
+    // build minimized CNF Formula
+    std::stringstream formula;
+    for (std::string &str : vec) {
+        formula << str;
+        if (str != vec.back())
             formula << " ^ ";
     }
     // create filename for mus-defect report and open the outputfilestream
@@ -177,6 +198,7 @@ void DeadBlockDefect::reportMUS() const {
     logger << info << "creating " << filename << std::endl;
     std::string l;
     std::getline(pic_infile, l); // get first line of the picosat inputfile
+    ofs << "ATTENTION: This formula _might_ be incomplete or inconclusive!" << std::endl;
     ofs << "Minimized Formula from:" << std::endl << l << std::endl << "to" << std::endl;
     ofs << p << " " << cnfstr << " " << vars << " " << lines << std::endl;
     ofs << formula.str() << std::endl;
