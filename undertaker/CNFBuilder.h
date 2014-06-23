@@ -36,9 +36,10 @@
 #include "BoolVisitor.h"
 #include "CNF.h"
 
-#include "KconfigWhitelist.h"
-
 #include <string>
+
+class KconfigWhitelist;
+
 
 namespace kconfig {
     class CNFBuilder : public BoolVisitor {
@@ -46,9 +47,9 @@ namespace kconfig {
         enum ConstantPolicy {BOUND = 0, FREE};
         CNF *cnf;
     private:
-        int boolvar;
-        KconfigWhitelist *wl;
+        int boolvar = 0;
         enum ConstantPolicy constPolicy;
+        KconfigWhitelist *wl = nullptr;
 
     public:
         CNFBuilder(CNF *cnf, BoolExp *exp = nullptr,

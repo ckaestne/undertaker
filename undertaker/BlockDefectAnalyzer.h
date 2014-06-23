@@ -24,9 +24,6 @@
 #ifndef blockdefect_h__
 #define blockdefect_h__
 
-#include "ConfigurationModel.h"
-#include "ConditionalBlock.h"
-
 /**
  * \brief Base Class of all Kind of Configuration Defects
  *
@@ -35,6 +32,13 @@
  * DEFECTTYPE. It provides facilities to test a given block number for a
  * defect and report its results.
  */
+
+#include <string>
+
+class ConditionalBlock;
+class ConfigurationModel;
+
+
 class BlockDefectAnalyzer {
 public:
     // FIXME change this to 'enum class DEFECTTYPE' when implementing c++11

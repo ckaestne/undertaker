@@ -18,6 +18,7 @@
 
 #include "KconfigAssumptionMap.h"
 #include "Logging.h"
+#include "CNF.h"
 
 #ifndef LKC_DIRECT_LINK
 #define LKC_DIRECT_LINK
@@ -28,11 +29,8 @@
 
 #include <boost/regex.hpp>
 
-#include <sstream>
-
 using namespace kconfig;
 
-KconfigAssumptionMap::KconfigAssumptionMap(CNF *model) : _model(model) {}
 
 KconfigAssumptionMap::size_type KconfigAssumptionMap::readAssumptionsFromFile(std::istream &i) {
     std::string line;
@@ -40,8 +38,7 @@ KconfigAssumptionMap::size_type KconfigAssumptionMap::readAssumptionsFromFile(st
     if (!this->_model){
         return 0;
     }
-    while (std::getline(i,line)) {
-        std::stringstream l(line);
+    while (std::getline(i, line)) {
         std::string sym;
         std::string val;
 

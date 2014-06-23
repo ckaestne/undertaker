@@ -23,21 +23,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#include <fstream>
-#include <iostream>
-#include <cstdlib>
-#include <sstream>
-#include <vector>
-#include <malloc.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <glob.h>
-
-#include <boost/regex.hpp>
-#include <boost/thread.hpp>
-
+#include "StringJoiner.h"
 #include "KconfigWhitelist.h"
 #include "ModelContainer.h"
 #include "RsfConfigurationModel.h"
@@ -46,9 +32,19 @@
 #include "BlockDefectAnalyzer.h"
 #include "SatChecker.h"
 #include "CoverageAnalyzer.h"
-#include <errno.h>
 #include "Logging.h"
 #include "../version.h"
+
+#include <errno.h>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <sys/wait.h>
+#include <glob.h>
+
+#include <boost/regex.hpp>
+#include <boost/thread.hpp>
+
 
 typedef void (* process_file_cb_t) (const char *filename);
 

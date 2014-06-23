@@ -22,13 +22,20 @@
 #ifndef _COVERAGEANALYZER_H_
 #define _COVERAGEANALYZER_H_
 
-#include "ConditionalBlock.h"
-#include "ConfigurationModel.h"
 #include "SatChecker.h"
+
+#include <list>
+#include <set>
+#include <string>
+
+class ConditionalBlock;
+class ConfigurationModel;
+
 
 class CoverageAnalyzer {
 public:
-    CoverageAnalyzer(const CppFile *);
+    /* c'tor */
+    CoverageAnalyzer(const CppFile *file) : file(file) {};
 
     virtual std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *) = 0;
 

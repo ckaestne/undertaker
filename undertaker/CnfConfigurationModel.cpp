@@ -22,23 +22,15 @@
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #endif
 
-#include "ConditionalBlock.h"
 #include "CnfConfigurationModel.h"
-#include "KconfigWhitelist.h"
+#include "ConditionalBlock.h"
 #include "StringJoiner.h"
-#include "RsfReader.h"
 #include "Logging.h"
+#include "PicosatCNF.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
-#include <algorithm>
-#include <cassert>
-#include <cstdlib>
-#include <sstream>
-#include <fstream>
-#include <list>
-#include <stack>
 
 
 CnfConfigurationModel::CnfConfigurationModel(const char *filename) {
@@ -87,6 +79,10 @@ const StringList *CnfConfigurationModel::getBlacklist() const {
     return _cnf->getMetaValue(magic);
 }
 
+const StringList *CnfConfigurationModel::getMetaValue(const std::string &key) const {
+    return _cnf->getMetaValue(key);
+}
+
 std::set<std::string> CnfConfigurationModel::findSetOfInterestingItems(
                                     const std::set<std::string> &initialItems) const {
     std::set<std::string> result;
@@ -112,8 +108,8 @@ int CnfConfigurationModel::doIntersect(const std::set<std::string> start_items,
 
     const std::string magic_on("ALWAYS_ON");
     const std::string magic_off("ALWAYS_OFF");
-    const StringList *always_on = this->getMetaValue(magic_on);
-    const StringList *always_off = this->getMetaValue(magic_off);
+    const StringList *always_on = _cnf->getMetaValue(magic_on);
+    const StringList *always_off = _cnf->getMetaValue(magic_off);
 
     for (const std::string &str : start_items) {
         if (containsSymbol(str)) {

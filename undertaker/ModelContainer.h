@@ -20,7 +20,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 // -*- mode: c++ -*-
 #ifndef modelcontainer_h__
 #define modelcontainer_h__
@@ -28,7 +27,8 @@
 #include <string>
 #include <map>
 
-#include "ConfigurationModel.h"
+class ConfigurationModel;
+
 
 /**
  * \brief Container that maps ConfigurationModel classes to its architectures

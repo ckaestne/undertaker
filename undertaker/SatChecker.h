@@ -26,29 +26,22 @@
 #ifndef sat_checker_h__
 #define sat_checker_h__
 
+#include "PicosatCNF.h"
+
 #include <stdexcept>
 #include <map>
-#include <sstream>
 #include <set>
 #include <list>
-#include <vector>
-
-#include "ConfigurationModel.h"
-#include "ConditionalBlock.h"
-#include "PicosatCNF.h"
-#include "bool.h"
 
 typedef std::set<std::string> MissingSet;
 
-namespace Picosat {
-    #include <ctype.h>
-    #include <assert.h>
+class ConfigurationModel;
+class CppFile;
 
-    /* Include the Limmat library header as C */
-    extern "C" {
-        #include "picosat.h"
-    }
-};
+namespace kconfig {
+    class BoolExp;
+}
+
 
 struct SatCheckerError : public std::runtime_error {
     SatCheckerError(const char *s) : runtime_error(s) {}
@@ -220,7 +213,7 @@ class SatChecker {
          * Prints the assignments in an human readable way on stdout
          */
         static void pprintAssignments(std::ostream& out,
-            const std::list< AssignmentMap > solution,
+            const std::list<AssignmentMap> solution,
             const ConfigurationModel *model,
             const MissingSet &missingSet);
 

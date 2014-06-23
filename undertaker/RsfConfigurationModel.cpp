@@ -23,9 +23,8 @@
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #endif
 
-#include "ConditionalBlock.h"
 #include "RsfConfigurationModel.h"
-#include "KconfigWhitelist.h"
+#include "ConditionalBlock.h"
 #include "StringJoiner.h"
 #include "RsfReader.h"
 #include "Logging.h"
@@ -33,13 +32,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
-#include <algorithm>
-#include <cassert>
-#include <cstdlib>
-#include <sstream>
 #include <fstream>
-#include <list>
 #include <stack>
+
 
 RsfConfigurationModel::RsfConfigurationModel(const char *filename) {
     const StringList *configuration_space_regex;

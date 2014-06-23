@@ -19,6 +19,7 @@
 
 #include "Logging.h"
 
+
 Logging logger; // Global log object
 
 Logging::Logging() {

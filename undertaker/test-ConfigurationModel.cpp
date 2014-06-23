@@ -18,6 +18,7 @@
  */
 
 #include "ModelContainer.h"
+#include "ConfigurationModel.h"
 #include "Logging.h"
 
 #include <check.h>

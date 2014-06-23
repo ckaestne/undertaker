@@ -24,9 +24,10 @@
 #include "BoolExpGC.h"
 #include "BoolExpSimplifier.h"
 #include "BoolExpStringBuilder.h"
+#include "BoolExpLexer.h"
 
-#include <sstream>
 #include <typeinfo> // for typeid()
+
 
 /* accept Methods for BoolExp and subclasses. Needed by BoolExpVisitor */
 void kconfig::BoolExp::accept(kconfig::BoolVisitor *visitor) {

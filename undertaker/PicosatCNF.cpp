@@ -20,24 +20,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <boost/regex.hpp>
-#include <boost/lexical_cast.hpp>
-
 #include "PicosatCNF.h"
 #include "IOException.h"
-#include "KconfigWhitelist.h"
 #include "Logging.h"
-#include "StringJoiner.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <iostream>
-#include <sstream>
+#include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp>
 #include <fstream>
-#include <algorithm>
-#include <fstream>
+
+namespace Picosat {
+// include picosat header as C
+    extern "C" {
+        #include "picosat.h"
+    }
+}
 
 using namespace kconfig;
+
 
 static bool picosatIsInitalized = false;
 static PicosatCNF *currentContext = nullptr;
@@ -174,14 +173,13 @@ void PicosatCNF::toStream(std::ostream &out) const {
     out << "c c var <variablename> <cnfvar>" << std::endl;
 
     for (auto &entry : meta_information) {  // pair<string, deque<string>>
-        StringJoiner sj;
+        std::stringstream sj;
 
-        sj.push_back("c meta_value");
-        sj.push_back(entry.first);
+        sj << "c meta_value " << entry.first;
         for (const std::string &str : entry.second)
-            sj.push_back(str);
+            sj << " " << str;
 
-        out << sj.join(" ") << std::endl;
+        out << sj.str() << std::endl;
     }
     for (auto &entry : this->symboltypes) {  // pair<string, kconfig_symbol_type>
         const std::string &sym = entry.first;

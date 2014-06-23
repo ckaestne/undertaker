@@ -26,8 +26,6 @@
 #include "bool.h"
 #include "BoolVisitor.h"
 
-#include <map>
-
 namespace kconfig {
     class BoolExpStringBuilder : public BoolVisitor {
     public:

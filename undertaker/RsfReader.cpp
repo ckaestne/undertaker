@@ -20,19 +20,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "RsfReader.h"
+//#include "Logging.h"
+
 #include <boost/regex.hpp>
 #include <sstream>
-#include <deque>
-#include <fstream>
 #include <iostream>
 
-#include "RsfReader.h"
-#include "Logging.h"
 
 RsfReader::RsfReader(std::istream &f, std::string metaflag) : metaflag(metaflag) {
     this->read_rsf(f);
 }
-
 
 void RsfReader::print_contents(std::ostream &out) {
     for (auto &entry : *this)  // pair<string, deque<string>>

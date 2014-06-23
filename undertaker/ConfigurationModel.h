@@ -25,18 +25,15 @@
 #ifndef configuration_model_h__
 #define configuration_model_h__
 
+#include "RsfReader.h" // for 'StringList'
+
 #include <string>
-#include <map>
-#include <deque>
 #include <set>
-#include <list>
 #include <boost/regex.hpp>
 
-#include "RsfReader.h" // for 'StringList'
 
 class ConfigurationModel {
 public:
-
     struct Checker {
         //! checks if the item is a candidate for addition in the 'missing' set
         virtual bool operator()(const std::string &item) const = 0;

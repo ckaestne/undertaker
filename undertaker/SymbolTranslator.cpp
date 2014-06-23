@@ -2,6 +2,7 @@
  *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,19 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Logging.h"
 #include "SymbolTranslator.h"
+#include "Logging.h"
 #include "SymbolTools.h"
-
-#include "PicosatCNF.h"
-#include "KconfigAssumptionMap.h"
 #include "ExpressionTranslator.h"
-
-#include <iostream>
-#include <stack>
-#include <iomanip>
-#include <string.h>
-#include <fstream>
 
 
 void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {

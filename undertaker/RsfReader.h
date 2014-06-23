@@ -30,8 +30,8 @@
 #include <string>
 #include <iostream>
 
-
 typedef std::deque<std::string> StringList;
+
 
 /**
  * \brief Reads RSF files

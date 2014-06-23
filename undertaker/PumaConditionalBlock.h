@@ -26,25 +26,27 @@
 #ifndef _PUMA_CONDITIONAL_BLOCK_H
 #define _PUMA_CONDITIONAL_BLOCK_H
 
+#include "ConditionalBlock.h"
+
+// unique_ptr needs a complete type
 #include <Puma/CTranslationUnit.h>
-#include <Puma/PreTree.h>
-#include <Puma/PreVisitor.h>
 #include <Puma/PreprocessorParser.h>
-#include <Puma/PreTreeNodes.h>
-#include <Puma/CCParser.h>
-#include <Puma/CParser.h>
 #include <Puma/CProject.h>
+// inheritance for PumaConditionalBlockBuilder
+#include <Puma/PreVisitor.h>
+// Visitor node types
+#include <Puma/PreTreeNodes.h>
 
 #include <stack>
 #include <list>
-#include <ostream>
-
-#include "StringJoiner.h"
-#include "ConfigurationModel.h"
-#include "ConditionalBlock.h"
+#include <fstream>
 
 // forward decl.
 class PumaConditionalBlockBuilder;
+namespace Puma {
+    class PreTree;
+}
+
 
 class PumaConditionalBlock : public ConditionalBlock {
     unsigned long _number;
@@ -110,7 +112,7 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     void iterateNodes (Puma::PreTree *);
     // Stack of open conditional blocks. Pushed to when entering #ifdef
     // (and similar) blocks, popped from when leaving them.
-    std::stack<PumaConditionalBlock*> _condBlockStack;
+    std::stack<PumaConditionalBlock *> _condBlockStack;
     PumaConditionalBlock* _current = nullptr;
     ConditionalBlock *_top = nullptr;
     CppFile *_file;

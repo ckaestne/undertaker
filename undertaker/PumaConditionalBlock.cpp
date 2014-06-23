@@ -23,7 +23,6 @@
 
 
 #include "PumaConditionalBlock.h"
-#include "StringJoiner.h"
 #include "Logging.h"
 #include "cpp14.h"
 
@@ -31,7 +30,6 @@
 #include <Puma/CUnit.h>
 #include <Puma/UnitManager.h>
 #include <Puma/ManipCommander.h>
-#include <Puma/PreParser.h>
 #include <Puma/Token.h>
 #include <Puma/TokenStream.h>
 #include <Puma/PreTreeNodes.h>
@@ -41,6 +39,7 @@
 #include <Puma/StrCol.h>
 
 #include <set>
+
 
 static inline Puma::Token *next_non_whitespace_token(Puma::Unit *unit, Puma::Token *s) {
     do {

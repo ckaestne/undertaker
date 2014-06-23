@@ -25,16 +25,14 @@
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #endif
 
-#include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
-#include <utility>
-#include <fstream>
-
 #include "ModelContainer.h"
 #include "RsfConfigurationModel.h"
 #include "CnfConfigurationModel.h"
-#include "KconfigWhitelist.h"
 #include "Logging.h"
+
+#include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
+
 
 static const boost::regex model_regex("^([-[:alnum:]]+)\\.(model|cnf)$");
 

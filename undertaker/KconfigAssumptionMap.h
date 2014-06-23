@@ -22,21 +22,22 @@
 
 #include <map>
 #include <string>
-#include <iostream>
+#include <istream>
 
-#include "CNF.h"
 
 namespace kconfig {
+    class CNF;
+
     /**
      * Read partial configuration fragments
      *
      * This represents a partial configuration (sometimes called a
      * configuration fragement).
      */
-    class KconfigAssumptionMap: public std::map<std::string, bool> {
+    class KconfigAssumptionMap : public std::map<std::string, bool> {
     public:
         //! loads the given models
-        KconfigAssumptionMap(CNF *model);
+        KconfigAssumptionMap(CNF *model) : _model(model) { };
 
         /**
          * \brief load a partial configuration

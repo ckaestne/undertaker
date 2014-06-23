@@ -5,6 +5,7 @@
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,16 +21,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <assert.h>
-#include <typeinfo>
-
-#include <string>
-
-#include <set>
-
 #include "SatChecker.h"
 
+#include <assert.h>
+#include <typeinfo>
+#include <string>
+#include <sstream>
+#include <set>
 #include <check.h>
+
 
 int cnf_test(std::string s, bool result, std::runtime_error *error = 0) {
     SatChecker checker(s);

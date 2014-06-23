@@ -21,33 +21,22 @@
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #endif
 
-#include <boost/filesystem.hpp>
-
 #include "SymbolTranslator.h"
 #include "KconfigSymbolSet.h"
-
-#include "bool.h"
 #include "PicosatCNF.h"
 #include "KconfigAssumptionMap.h"
 #include "Logging.h"
 #include "../version.h"
 
+#include <boost/filesystem.hpp>
 #include <locale.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <iostream>
 #include <vector>
 #include <fstream>
 #include <string>
-#include <libgen.h>
 
 using namespace kconfig;
+
 
 void usage(std::ostream &out) {
     out << "usage: satyr [-V] [-a <assumtion.config> | -c <out.cnf>] <model>" << std::endl;
@@ -146,7 +135,7 @@ int main(int argc, char **argv) {
     if (!srcarch) {
         srcarch = arch;
     }
-    fprintf(stderr, "using arch %s\n", arch);
+    std::cerr << "using arch " << arch << std::endl;
 
     setenv("ARCH", arch, 1);
     setenv("SRCARCH", srcarch, 0);

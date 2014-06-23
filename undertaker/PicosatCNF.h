@@ -24,23 +24,11 @@
 #ifndef KCONFIG_PICOSATCNF_H
 #define KCONFIG_PICOSATCNF_H
 
-#include <map>
-#include <vector>
-#include <string>
-#include <deque>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "CNF.h"
 
+#include <vector>
+
 namespace Picosat {
-    #include <ctype.h>
-    #include <assert.h>
-
-    extern "C" {
-        #include "picosat.h"
-    }
-
     // Modes taken from picosat.h
     enum SATMode {
         SAT_MIN     = 0,
@@ -49,6 +37,7 @@ namespace Picosat {
         SAT_RANDOM  = 3,
     };
 };
+
 
 namespace kconfig {
     class PicosatCNF: public CNF {

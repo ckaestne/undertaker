@@ -24,14 +24,12 @@
 #ifndef KCONFIG_BOOL_H
 #define KCONFIG_BOOL_H
 
-#include "BoolExpLexer.h"
+#include "SymbolTools.h"
 
 #include <string>
 #include <list>
 #include <ostream>
 #include <sstream>
-
-#include "SymbolTools.h"
 
 #define B_AND new kconfig::BoolExpAnd
 #define B_OR new kconfig::BoolExpOr

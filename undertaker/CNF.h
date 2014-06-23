@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
  * Copyright (C) 2013 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +22,12 @@
 #ifndef KCONFIG_CNF_H
 #define KCONFIG_CNF_H
 
+#include "Kconfig.h"
+
 #include <map>
 #include <string>
-#include <iostream>
 #include <deque>
 
-#include "Kconfig.h"
 
 namespace kconfig {
     class CNF {
@@ -44,13 +45,13 @@ namespace kconfig {
         virtual void setCNFVar(const std::string &var, int CNFVar) = 0;
         virtual std::string &getSymbolName(int CNFVar) = 0;
         virtual void pushVar(int v) = 0;
-        virtual void pushVar(std::string  &v, bool val) = 0;
+        virtual void pushVar(std::string &v, bool val) = 0;
         virtual void pushClause(void) = 0;
         virtual void pushClause(int *c) = 0;
-        virtual void pushAssumption(int v)= 0;
-        virtual void pushAssumption(const std::string &v, bool val)= 0;
-        virtual void pushAssumption(const char *v, bool val)= 0;
-        virtual bool checkSatisfiable(void)= 0;
+        virtual void pushAssumption(int v) = 0;
+        virtual void pushAssumption(const std::string &v, bool val) = 0;
+        virtual void pushAssumption(const char *v, bool val) = 0;
+        virtual bool checkSatisfiable(void) = 0;
         virtual bool deref(int s) = 0;
         virtual const int *failedAssumptions(void) const = 0;
         virtual void pushAssumptions(std::map<std::string, bool> &a) = 0;

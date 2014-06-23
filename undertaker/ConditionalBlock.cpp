@@ -19,19 +19,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "StringJoiner.h"
 #include "ConditionalBlock.h"
+#include "StringJoiner.h"
 #include "ModelContainer.h"
-#include "SatChecker.h"
 #include "BoolExpSymbolSet.h"
 #include "Logging.h"
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
 #include "cpp14.h"
 
-#include <Puma/PreParser.h>
 #include <boost/regex.hpp>
 #include <set>
+
 
 bool ConditionalBlock::useBlockWithFilename = false;
 

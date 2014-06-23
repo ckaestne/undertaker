@@ -24,17 +24,18 @@
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #endif
 
-#include <iostream>
-#include <fstream>
-#include <string>
-
-#include "StringJoiner.h"
 #include "BlockDefectAnalyzer.h"
+#include "ConditionalBlock.h"
+#include "StringJoiner.h"
 #include "SatChecker.h"
 #include "PicosatCNF.h"
 #include "ModelContainer.h"
 #include "Logging.h"
-#include "boost/filesystem.hpp"
+
+#include <boost/filesystem.hpp>
+#include <iostream>
+#include <fstream>
+#include <string>
 
 
 std::string BlockDefectAnalyzer::getBlockPrecondition(const ConfigurationModel *model) const {

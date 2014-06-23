@@ -22,15 +22,18 @@
 #ifndef cnf_configuration_model_h__
 #define cnf_configuration_model_h__
 
+#include "RsfReader.h" // for 'StringList'
+#include "ConfigurationModel.h"
+
 #include <string>
-#include <map>
-#include <deque>
 #include <set>
 #include <list>
 #include <boost/regex.hpp>
 
-#include "RsfReader.h"
-#include "PicosatCNF.h"
+namespace kconfig {
+    class PicosatCNF;
+}
+
 
 std::list<std::string> itemsOfString(const std::string &str);
 
@@ -102,9 +105,7 @@ public:
 
     bool containsSymbol(const std::string &symbol) const;
 
-    const StringList *getMetaValue(const std::string &key) const {
-        return _cnf->getMetaValue(key);
-    }
+    const StringList *getMetaValue(const std::string &key) const;
 
     const kconfig::PicosatCNF *getCNF(void) {
         return _cnf;

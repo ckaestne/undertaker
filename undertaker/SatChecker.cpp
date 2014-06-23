@@ -22,8 +22,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "SatChecker.h"
+#include "ModelContainer.h"
+#include "ConditionalBlock.h"
+#include "PumaConditionalBlock.h"
+#include "ConfigurationModel.h"
+#include "CnfConfigurationModel.h"
+#include "Logging.h"
+#include "CNFBuilder.h"
+#include "bool.h"
 
-#include <Puma/CParser.h>
 #include <Puma/TokenStream.h>
 #include <boost/regex.hpp>
 #include <boost/lexical_cast.hpp>
@@ -31,28 +39,14 @@
 #include <pstreams/pstream.h>
 
 #include <iostream>
-#include <string>
 #include <map>
 #include <vector>
 #include <sstream>
-#include "SatChecker.h"
-#include "KconfigWhitelist.h"
-
-#include "ModelContainer.h"
-#include "PumaConditionalBlock.h"
-#include "ConfigurationModel.h"
-#include "CnfConfigurationModel.h"
-#include "Logging.h"
-
-#include "CNFBuilder.h"
-#include "PicosatCNF.h"
-#include "CNF.h"
-#include "bool.h"
-#include "Kconfig.h"
 
 using kconfig::PicosatCNF;
 using kconfig::BoolExp;
 using kconfig::CNFBuilder;
+
 
 bool SatChecker::check(const std::string &sat) throw (SatCheckerError) {
     SatChecker c(sat.c_str());

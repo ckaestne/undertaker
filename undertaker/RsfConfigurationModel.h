@@ -20,19 +20,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 // -*- mode: c++ -*-
 #ifndef rsf_configuration_model_h__
 #define rsf_configuration_model_h__
 
+#include "ConfigurationModel.h"
+
 #include <string>
-#include <map>
-#include <deque>
 #include <set>
 #include <list>
 #include <boost/regex.hpp>
 
-#include "ConfigurationModel.h"
 
 std::list<std::string> itemsOfString(const std::string &str);
 

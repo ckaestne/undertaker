@@ -19,15 +19,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "ConditionalBlock.h"
 #include "CNFBuilder.h"
+#include "ConditionalBlock.h"
+#include "KconfigWhitelist.h"
 
 using namespace kconfig;
 
+
 CNFBuilder::CNFBuilder(CNF *cnf, BoolExp *exp, bool useKconfigWhitelist,
-        enum ConstantPolicy constPolicy) : cnf(cnf), boolvar(0),
-        wl(useKconfigWhitelist ? KconfigWhitelist::getIgnorelist() : 0), constPolicy(constPolicy) {
-    if(exp)
+        enum ConstantPolicy constPolicy) : cnf(cnf), constPolicy(constPolicy) {
+    if (useKconfigWhitelist)
+        wl = KconfigWhitelist::getIgnorelist();
+    if (exp)
         this->pushClause(exp);
 }
 

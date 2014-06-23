@@ -24,16 +24,18 @@
 #ifndef _CONDITIONALBLOCK_H_
 #define _CONDITIONALBLOCK_H_
 
-#include <boost/regex.hpp>
-#include "StringJoiner.h"
 #include "ConfigurationModel.h"
+#include "BlockDefectAnalyzer.h"
+
+#include <boost/regex.hpp>
 
 class ConditionalBlock;
 class CppDefine;
 class PumaConditionalBlockBuilder;
-
+class UniqueStringJoiner;
 
 typedef std::list<ConditionalBlock *> CondBlockList;
+
 
 class CppFile : public CondBlockList {
  public:
@@ -95,7 +97,7 @@ class CppFile : public CondBlockList {
 class ConditionalBlock : public CondBlockList {
  public:
     //! defect type used in block defect analysis
-    int defectType;
+    BlockDefectAnalyzer::DEFECTTYPE defectType;
     //! location related accessors
     virtual const char *filename()   const = 0;
     virtual unsigned int lineStart() const = 0;
@@ -174,7 +176,8 @@ protected:
     CppFile * cpp_file;
     const ConditionalBlock *_parent, *_prev;
     std::list<CppDefine *> _defines;
-    static bool useBlockWithFilename; //!< if set blocknames of getName() are extended with a normalized filename
+    //!< if set blocknames of getName() are extended with a normalized filename
+    static bool useBlockWithFilename;
 
 private:
     std::string _exp;

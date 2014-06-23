@@ -17,16 +17,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "PredatorVisitor.h"
+
 #include <Puma/CParser.h>
 #include <Puma/CProject.h>
 #include <Puma/CTranslationUnit.h>
 #include <Puma/PreTree.h>
 #include <Puma/ManipCommander.h>
-#include <Puma/PreParser.h>
-
-#include "PredatorVisitor.h"
 
 #include <boost/thread.hpp>
+
 
 Puma::CProject *project;
 Puma::ErrorStream err;

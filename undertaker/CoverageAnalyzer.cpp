@@ -19,12 +19,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "StringJoiner.h"
 #include "CoverageAnalyzer.h"
+#include "StringJoiner.h"
+#include "ConditionalBlock.h"
+#include "ConfigurationModel.h"
 #include "Logging.h"
 
-/* c'tor */
-CoverageAnalyzer::CoverageAnalyzer(const CppFile *file) : file(file) {};
 
 std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model,
                                                  std::set<ConditionalBlock *> *blocks) {

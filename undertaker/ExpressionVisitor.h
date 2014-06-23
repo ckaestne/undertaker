@@ -24,11 +24,12 @@
 #define LKC_DIRECT_LINK
 #endif
 
-#include "bool.h"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include "lkc.h"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+
 #include "InvalidNodeException.h"
 
-#include <string>
-#include <iostream>
 
 namespace kconfig {
     template <typename rt>

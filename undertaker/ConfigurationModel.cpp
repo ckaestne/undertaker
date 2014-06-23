@@ -22,6 +22,7 @@
 #include "ConfigurationModel.h"
 #include "StringJoiner.h"
 
+
 std::string ConfigurationModel::getMissingItemsConstraints(const std::set<std::string> &missing) {
     StringJoiner sj;
 

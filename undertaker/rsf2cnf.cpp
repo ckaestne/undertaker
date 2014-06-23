@@ -19,13 +19,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <algorithm>
-#include <cstdlib>
-#include <unistd.h>
-#include <fstream>
-#include <boost/regex.hpp>
-
 #include "PicosatCNF.h"
 #include "CNFBuilder.h"
 #include "IOException.h"
@@ -33,9 +26,12 @@
 #include "KconfigWhitelist.h"
 #include "Logging.h"
 #include "bool.h"
-#include "Kconfig.h"
+
+#include <fstream>
+#include <boost/regex.hpp>
 
 using namespace kconfig;
+
 
 static void usage(void){
     std::cerr << "rsf2cnf [-v] [-q] -m <model> [-W <file>] [-B <file>] [-r <rsf>] [-c <cnf>]" << std::endl;
