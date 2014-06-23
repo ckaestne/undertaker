@@ -35,25 +35,25 @@ namespace kconfig {
         KconfigSymbolSet(void) {}
 
     protected:
-        void visit_bool_symbol(struct symbol *sym) {
+        virtual void visit_bool_symbol(struct symbol *sym)     final override {
             this->insert(sym);
         }
-        void visit_tristate_symbol(struct symbol *sym) {
+        virtual void visit_tristate_symbol(struct symbol *sym) final override {
             this->insert(sym);
         }
-        void visit_int_symbol(struct symbol *sym) {
+        virtual void visit_int_symbol(struct symbol *sym)      final override {
             this->insert(sym);
         }
-        void visit_hex_symbol(struct symbol *sym) {
+        virtual void visit_hex_symbol(struct symbol *sym)      final override {
             this->insert(sym);
         }
-        void visit_string_symbol(struct symbol *sym) {
+        virtual void visit_string_symbol(struct symbol *sym)   final override {
             this->insert(sym);
         }
-        void visit_symbol(struct symbol *) {
+        virtual void visit_symbol(struct symbol *)             final override {
             //do nothing
         }
-        void visit_choice_symbol(struct symbol *sym) {
+        virtual void visit_choice_symbol(struct symbol *sym)   final override {
             this->insert(sym);
         }
     };

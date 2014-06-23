@@ -39,16 +39,17 @@ class ConfigurationModel;
  */
 class ModelContainer : public std::map<std::string, ConfigurationModel*> {
 public:
-    static ConfigurationModel *loadModels(std::string modeldir); ///< load models from the given directory
-    static ConfigurationModel *lookupModel(const char *arch);
-    static const char *lookupArch(const ConfigurationModel *model);
+    ///< load models from the given directory
+    static ConfigurationModel *loadModels(std::string modeldir);
+    static ConfigurationModel *lookupModel(const std::string &arch);
+    static const std::string lookupArch(const ConfigurationModel *model);
     static ModelContainer *getInstance();
 
     static ConfigurationModel *lookupMainModel();
     static void setMainModel(std::string);
 
     /// returns the main model as string or nullptr, if not set
-    static const char *getMainModel();
+    static const std::string &getMainModel();
 
     ~ModelContainer();
 

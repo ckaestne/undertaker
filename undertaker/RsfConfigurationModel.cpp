@@ -36,19 +36,19 @@
 #include <stack>
 
 
-RsfConfigurationModel::RsfConfigurationModel(const char *filename) {
+RsfConfigurationModel::RsfConfigurationModel(const std::string &filename) {
     const StringList *configuration_space_regex;
     boost::filesystem::path filepath(filename);
     _name = filepath.stem().string();
 
     _model_stream = new std::ifstream(filename);
 
-    if (strcmp(filename, "/dev/null") != 0 && _model_stream->good()) {
+    if (filename != "/dev/null" && _model_stream->good()) {
         bool have_rsf = false;
 
         if (filepath.extension() == ".model") {
             filepath.replace_extension(".rsf");
-            _rsf_stream = new std::ifstream(filepath.string().c_str());
+            _rsf_stream = new std::ifstream(filepath.string());
             have_rsf = true;
         } else {
             _rsf_stream = new std::ifstream("/dev/null");
@@ -175,13 +175,13 @@ int RsfConfigurationModel::doIntersect(const std::set<std::string> start_items,
                 sj.push_back("(" + str + " -> (" + *item + "))");
             }
             if (always_on) {
-                StringList::const_iterator cit = std::find(always_on->begin(), always_on->end(), str);
-                if (cit != always_on->end())
+                const auto &cit = std::find(always_on->begin(), always_on->end(), str);
+                if (cit != always_on->end()) // str is found
                     sj.push_back(str);
             }
             if (always_off) {
-                StringList::const_iterator cit = std::find(always_off->begin(), always_off->end(), str);
-                if (cit != always_off->end())
+                const auto &cit = std::find(always_off->begin(), always_off->end(), str);
+                if (cit != always_off->end()) // str is found
                     sj.push_back("!" + str);
             }
         } else {

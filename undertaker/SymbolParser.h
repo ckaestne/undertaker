@@ -23,11 +23,13 @@
 
 #include "SymbolTools.h"
 
+#include <string>
+
 
 namespace kconfig {
     class SymbolParser {
     public:
-        int parse(const char *path);
+        int parse(const std::string &path);
         void traverse(void);
 
     protected:

@@ -44,14 +44,15 @@ namespace kconfig {
     protected:
         CNFBuilder cnfbuilder;
 
-        virtual void visit_bool_symbol (struct symbol *sym);
-        virtual void visit_tristate_symbol (struct symbol *sym);
-        virtual void visit_int_symbol (struct symbol *sym);
-        virtual void visit_hex_symbol (struct symbol *sym);
-        virtual void visit_string_symbol (struct symbol *sym);
-        virtual void visit_symbol (struct symbol *sym);
-        virtual void visit_choice_symbol (struct symbol *sym);
-        virtual void addClause (BoolExp *clause);
+        virtual void visit_bool_symbol (struct symbol *sym)     final override;
+        virtual void visit_tristate_symbol (struct symbol *sym) final override;
+        virtual void visit_int_symbol (struct symbol *sym)      final override;
+        virtual void visit_hex_symbol (struct symbol *sym)      final override;
+        virtual void visit_string_symbol (struct symbol *sym)   final override;
+        virtual void visit_symbol (struct symbol *sym)          final override;
+        virtual void visit_choice_symbol (struct symbol *sym)   final override;
+
+        void addClause (BoolExp *clause);
 
     private:
         // statistic data

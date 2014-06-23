@@ -21,7 +21,7 @@
 
 #include "PicosatCNF.h"
 #include "CNFBuilder.h"
-#include "IOException.h"
+#include "exceptions/IOException.h"
 #include "RsfReader.h"
 #include "KconfigWhitelist.h"
 #include "Logging.h"
@@ -67,10 +67,10 @@ static void addTypeInfo(kconfig::CNF &cnf, ItemRsfReader *rsf){
     }
 }
 
-static void addClauses(kconfig::CNFBuilder &builder, RsfReader *model){
+static void addClauses(kconfig::CNFBuilder &builder, RsfReader &model){
     boost::regex isconfig = boost::regex("^(CONFIG|FILE)_[^ ]+$", boost::regex::perl);
     // add all CONFIG_* items
-    for (auto &entry : *model) {  // pair<string, StringList>
+    for (auto &entry : model) {  // pair<string, StringList>
         if(boost::regex_match(entry.first, isconfig)){
             std::string clause = entry.first;
             builder.addVar(clause);
@@ -96,26 +96,26 @@ static void addClauses(kconfig::CNFBuilder &builder, RsfReader *model){
     }
 }
 
-static void addAllwaysOnOff(kconfig::CNFBuilder &builder, RsfReader *model){
+static void addAllwaysOnOff(kconfig::CNFBuilder &builder, RsfReader &model){
     const std::string magic_on("ALWAYS_ON");
     const std::string magic_off("ALWAYS_OFF");
 
     for (std::string &str : *KconfigWhitelist::getWhitelist())
-        model->addMetaValue(magic_on, str);
+        model.addMetaValue(magic_on, str);
 
     for (std::string &str : *KconfigWhitelist::getBlacklist())
-        model->addMetaValue(magic_off, str);
+        model.addMetaValue(magic_off, str);
 
-    if (model->getMetaValue(magic_on)) {
-        for (const std::string &clause : *model->getMetaValue(magic_on)) {
+    if (model.getMetaValue(magic_on)) {
+        for (const std::string &clause : *model.getMetaValue(magic_on)) {
             BoolExp *exp = BoolExp::parseString(clause);
             builder.pushClause(exp);
             delete exp;
             builder.cnf->addMetaValue("ALWAYS_ON", clause);
         }
     }
-    if (model->getMetaValue(magic_off)) {
-        for (const std::string &str : *model->getMetaValue(magic_off)) {
+    if (model.getMetaValue(magic_off)) {
+        for (const std::string &str : *model.getMetaValue(magic_off)) {
             std::string clause = "! " + str;
             BoolExp *exp = BoolExp::parseString(clause);
             builder.pushClause(exp);
@@ -127,9 +127,9 @@ static void addAllwaysOnOff(kconfig::CNFBuilder &builder, RsfReader *model){
 
 int main(int argc, char **argv) {
     int opt;
-    char *model_file = nullptr;
-    char *rsf_file = nullptr;
-    char *cnf_file = nullptr;
+    std::string model_file;
+    std::string rsf_file;
+    std::string cnf_file;
 
     int loglevel = logger.getLogLevel();
 
@@ -138,13 +138,13 @@ int main(int argc, char **argv) {
             int n;
             KconfigWhitelist *wl;
         case 'm':
-            model_file = strdup(optarg);
+            model_file = optarg;
             break;
         case 'r':
-            rsf_file = strdup(optarg);
+            rsf_file = optarg;
             break;
         case 'c':
-            cnf_file = strdup(optarg);
+            cnf_file = optarg;
             break;
         case 'q':
             loglevel = loglevel + 10;
@@ -183,16 +183,16 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (!model_file)
+    if (model_file == "")
         usage();
 
     PicosatCNF cnf;
 
-    if (cnf_file)
+    if (cnf_file != "")
         cnf.readFromFile(cnf_file);
 
     kconfig::CNFBuilder builder(&cnf);
-    RsfReader *model = nullptr;
+
     ItemRsfReader *rsf = nullptr;
 
     std::fstream model_stream (model_file, std::fstream::in);
@@ -200,9 +200,9 @@ int main(int argc, char **argv) {
         logger << error << "could not open modelfile \"" << model_file << "\"" << std::endl;
         return 1;
     }
-    model = new RsfReader(model_stream, "UNDERTAKER_SET");
+    RsfReader model(model_stream, "UNDERTAKER_SET");
 
-    if (rsf_file) {
+    if (rsf_file != "") {
         std::fstream rsf_stream (rsf_file, std::fstream::in);
         if (!rsf_stream.good()) {
             logger << error << "could not open rsffile \"" << argv[2] << "\"" << std::endl;
@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
 
     std::string magic_inc("CONFIGURATION_SPACE_INCOMPLETE");
 
-    if (model->getMetaValue(magic_inc)) {
+    if (model.getMetaValue(magic_inc)) {
         cnf.addMetaValue("CONFIGURATION_SPACE_INCOMPLETE", "True");
     }
     try {
@@ -226,9 +226,5 @@ int main(int argc, char **argv) {
         logger << error << e.what() << std::endl;
         return 1;
     }
-    delete model;
     delete rsf;
-    free(model_file);
-    free(rsf_file);
-    free(cnf_file);
 }

@@ -22,11 +22,9 @@
 
 #include <stack>
 #include <string.h>
-#include <stdio.h>
-#include <iostream>
-#include <assert.h>
 
 using namespace kconfig;
+
 
 expr * kconfig::visibilityExpression(struct symbol *sym) {
     // symbol is visible (ie modifiable) if prompt1 or prompt2 or ... is visible.
@@ -53,7 +51,7 @@ expr * kconfig::visibilityExpression(struct symbol *sym) {
         expr_gstr_print(cur, &s);
         for_all_properties(sym, prop, P_SYMBOL) {
             expr_gstr_print(prop->visible.expr, &t);
-            if (!strcmp(s.s,t.s)) {
+            if (!strcmp(s.s, t.s)) {
                 expr_free(visible);
                 return expr_alloc_symbol(&symbol_yes);
             }
@@ -64,8 +62,7 @@ expr * kconfig::visibilityExpression(struct symbol *sym) {
     }
     if (sym && sym->name) {
         logger << debug
-               << sym->name << " " << visible<< " pc: " << promptc
-               << std::endl;
+               << sym->name << " " << visible<< " pc: " << promptc << std::endl;
     }
     return visible ? visible : expr_alloc_symbol(&symbol_no);
 }
@@ -163,18 +160,4 @@ void kconfig::nameSymbol(struct symbol *sym) {
     if (sym == modules_sym) {
         sym->name = strdup("___MODULES_MAGIC_INTERNAL_VAR___");
     }
-}
-
-const char *kconfig::symbolTypeString(enum symbol_type type) {
-    // Keep konsistent with enum kconfig_symbol_type in Kconfig.h!
-    const char *typenames[] = {
-        "unknown",
-        "bool",
-        "tristate",
-        "int",
-        "hex",
-        "string",
-        "other"
-    };
-    return (type < 7) ? typenames[type] : "unknown";
 }

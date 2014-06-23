@@ -23,8 +23,13 @@
 #include "StringJoiner.h"
 #include "ConditionalBlock.h"
 #include "ConfigurationModel.h"
+#include "exceptions/CNFBuilderError.h"
 #include "Logging.h"
 
+
+/************************************************************************/
+/* CoverageAnalyzer                                                     */
+/************************************************************************/
 
 std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model,
                                                  std::set<ConditionalBlock *> *blocks) {
@@ -49,9 +54,9 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
 
     StringJoiner formula;
     std::string code_formula;
-    if (!blocks)
+    if (!blocks) {
         code_formula = file->topBlock()->getCodeConstraints();
-    else {
+    } else {
         UniqueStringJoiner expression;
         for (auto &block : *blocks) {    // ConditionalBlock *
             block->getCodeConstraints(&expression);
@@ -67,8 +72,7 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
         model->doIntersect(code_formula, file->getChecker(),
                            missingSet, kconfig_formula);
         formula.push_back(kconfig_formula);
-        /* only add missing items if we can assume the model is
-           complete */
+        /* only add missing items if we can assume the model is complete */
         if (model && model->isComplete()) {
             for (const std::string &str : missingSet)
                 formula.push_back("!" + str);
@@ -90,6 +94,10 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
     return formula.join(" && ");
 }
 
+/************************************************************************/
+/* SimpleCoverageAnalyzer                                               */
+/************************************************************************/
+
 std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(ConfigurationModel *model) {
     std::set<std::string> blocks_set;
     std::list<SatChecker::AssignmentMap> ret;
@@ -98,7 +106,7 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
     const std::string base_formula = baseFileExpression(model);
 
     try {
-        BaseExpressionSatChecker sc(base_formula.c_str());
+        BaseExpressionSatChecker sc(base_formula);
 
         for (auto &block : *file) {      // ConditionalBlock *
             SatChecker::AssignmentMap current_solution;
@@ -108,9 +116,7 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
                 bool new_solution = false;
 
                 // unsolvable, i.e. we have found some defect!
-                std::set<std::string> dummy;
-                dummy.insert(block->getName());
-                if (!sc(dummy))
+                if (!sc( { block->getName() } ))
                     continue;
 
                 static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
@@ -145,13 +151,19 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
                 }
             }
         }
-    } catch (SatCheckerError &e) {
-        logger << error << "Couldn't process " << file->getFilename() << ": "
-               << e.what() << std::endl;
+    } catch (CNFBuilderError &e) {
+        logger << error << "Couldn't process " << file->getFilename()
+            << ": " << e.what() << std::endl;
+    } catch (std::bad_alloc &e) {
+        logger << error << "Couldn't process " << file->getFilename()
+            << ": Out of Memory." << std::endl;
     }
-
     return ret;
 }
+
+/************************************************************************/
+/* MinimizeCoverageAnalyzer                                             */
+/************************************************************************/
 
 std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(ConfigurationModel *model) {
     std::set<std::string> blocks_set;
@@ -166,7 +178,7 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
         // in the simple algorithm. For the all blocks not enabled
         // there we do the minimizer algorithm
         const std::string base_formula = baseFileExpression(model);
-        BaseExpressionSatChecker sc(base_formula.c_str());
+        BaseExpressionSatChecker sc(base_formula);
 
         if(sc(configuration)) { // Configuration is an empty list here
             for (auto &assignment : sc.getAssignment()) {  // pair<string, bool>
@@ -238,12 +250,12 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
             configuration.clear();
             assert(configuration.size() == 0);
         }
-    } catch (SatCheckerError &e) {
-        logger << error << "Couldn't process " << file->getFilename() << ": "
-               << e.what() << std::endl;
-    } catch (std::bad_alloc &e) {
-        logger << error << "Couldn't process " << file->getFilename() << ": "
-               << e.what() << std::endl;
+    } catch (CNFBuilderError &e) {
+        logger << error << "Couldn't process " << file->getFilename()
+            << ": " << e.what() << std::endl;
+    } catch (std::bad_alloc &) {
+        logger << error << "Couldn't process " << file->getFilename()
+            << ": Out of Memory." << std::endl;
     }
     return ret;
 }

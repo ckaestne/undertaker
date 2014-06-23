@@ -32,6 +32,10 @@ class ConditionalBlock;
 class ConfigurationModel;
 
 
+/************************************************************************/
+/* CoverageAnalyzer                                                     */
+/************************************************************************/
+
 class CoverageAnalyzer {
 public:
     /* c'tor */
@@ -49,16 +53,24 @@ protected:
     MissingSet missingSet; // set of strings
 };
 
+/************************************************************************/
+/* SimpleCoverageAnalyzer                                               */
+/************************************************************************/
+
 class SimpleCoverageAnalyzer : public CoverageAnalyzer {
 public:
     SimpleCoverageAnalyzer(CppFile *f) : CoverageAnalyzer(f) {};
-    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *);
+    virtual std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *) final override;
 };
+
+/************************************************************************/
+/* MinimizeCoverageAnalyzer                                             */
+/************************************************************************/
 
 class MinimizeCoverageAnalyzer : public CoverageAnalyzer {
 public:
     MinimizeCoverageAnalyzer(CppFile *f) : CoverageAnalyzer(f) {};
-    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *);
+    virtual std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *) final override;
 };
 
 #endif /* _COVERAGEANALYZER_H_ */

@@ -21,7 +21,7 @@
  */
 
 #include "PicosatCNF.h"
-#include "IOException.h"
+#include "exceptions/IOException.h"
 #include "Logging.h"
 
 #include <fstream>
@@ -78,7 +78,7 @@ void PicosatCNF::loadContext(void) {
         std::string tmpf = t;
         tmpf += "/infile";
 
-        std::ofstream out(tmpf.c_str());
+        std::ofstream out(tmpf);
         out << "p cnf " << varcount << " " << this->clausecount << std::endl;
 
         for (int &clause : clauses) {
@@ -98,7 +98,7 @@ void PicosatCNF::resetContext(void) {
     currentContext = nullptr;
 }
 
-void PicosatCNF::readFromFile(const char *filename) {
+void PicosatCNF::readFromFile(const std::string &filename) {
     std::ifstream i(filename);
     if (!i.good()) {
         throw IOException("Could not open CNF-File");
@@ -155,7 +155,7 @@ void PicosatCNF::readFromStream(std::istream &i) {
     }
 }
 
-void PicosatCNF::toFile(const char *filename) const {
+void PicosatCNF::toFile(const std::string &filename) const {
     std::ofstream out(filename);
     if (!out.good()) {
         logger << error << "Couldn't write to " << filename << std::endl;
@@ -188,12 +188,12 @@ void PicosatCNF::toStream(std::ostream &out) const {
     for (auto &entry : this->symboltypes) {  // pair<string, kconfig_symbol_type>
         const std::string &sym = entry.first;
         int type = entry.second;
-        out << "c sym " << sym.c_str() << " " << type << std::endl;
+        out << "c sym " << sym << " " << type << std::endl;
     }
     for (auto &entry : this->cnfvars) {  // pair<string, int>
         const std::string &sym = entry.first;
         int var = entry.second;
-        out << "c var " << sym.c_str() << " " << var << std::endl;
+        out << "c var " << sym << " " << var << std::endl;
     }
     out << "p cnf " << varcount << " " << this->clausecount << std::endl;
 
@@ -203,8 +203,8 @@ void PicosatCNF::toStream(std::ostream &out) const {
     }
 }
 
-kconfig_symbol_type PicosatCNF::getSymbolType(const std::string &name) {
-    std::map<std::string, kconfig_symbol_type>::const_iterator it = this->symboltypes.find(name);
+kconfig_symbol_type PicosatCNF::getSymbolType(const std::string &name) const {
+    const auto &it = this->symboltypes.find(name); // pair<string, kconfig_symbol_type>
     return (it == this->symboltypes.end()) ? K_S_UNKNOWN : it->second;
 }
 
@@ -219,8 +219,8 @@ void PicosatCNF::setSymbolType(const std::string &sym, kconfig_symbol_type type)
     this->symboltypes[sym] = type;
 }
 
-int PicosatCNF::getCNFVar(const std::string &var) {
-    std::map<std::string, int>::const_iterator it = this->cnfvars.find(var);
+int PicosatCNF::getCNFVar(const std::string &var) const {
+    const auto &it = this->cnfvars.find(var); // pair<string, int>
     return (it == this->cnfvars.end()) ? 0 : it->second;
 }
 
@@ -307,23 +307,22 @@ void PicosatCNF::pushAssumptions(std::map<std::string, bool> &a) {
     }
 }
 
-bool PicosatCNF::deref(int s) {
+bool PicosatCNF::deref(int s) const {
     return Picosat::picosat_deref(s) == 1;
 }
 
-bool PicosatCNF::deref(const std::string &s) {
+bool PicosatCNF::deref(const std::string &s) const {
     int cnfvar = this->getCNFVar(s);
     return this->deref(cnfvar);
 }
 
-bool PicosatCNF::deref(const char *c) {
-    std::string s(c);
-    int cnfvar = this->getCNFVar(s);
+bool PicosatCNF::deref(const char *c) const {
+    int cnfvar = this->getCNFVar(c);
     return this->deref(cnfvar);
 }
 
 const std::string *PicosatCNF::getAssociatedSymbol(const std::string &var) const {
-    std::map<std::string, std::string>::const_iterator it = this->associatedSymbols.find(var);
+    const auto &it = this->associatedSymbols.find(var); // pair<string, string>
     return (it == this->associatedSymbols.end()) ? nullptr : &(it->second);
 }
 
@@ -332,30 +331,20 @@ const int *PicosatCNF::failedAssumptions(void) const {
 }
 
 void PicosatCNF::addMetaValue(const std::string &key, const std::string &value) {
-    std::map<std::string, std::deque<std::string> >::const_iterator i = this->meta_information.find(key);
-    std::deque<std::string> values;
-    std::deque<std::string>::const_iterator j;
-
-    if (i != meta_information.end()) {
-        values = (*i).second;
-        meta_information.erase(key);
-    }
-    j = std::find(values.begin(), values.end(), value);
-
-    if (j == values.end()) {
+    std::deque<std::string> &values = meta_information[key];
+    if (std::find(values.begin(), values.end(), value) == values.end())
+        // value wasn't found within values, add it
         values.push_back(value);
-    }
-    meta_information.emplace(key, values);
 }
 
 const std::deque<std::string> *PicosatCNF::getMetaValue(const std::string &key) const {
-    std::map<std::string, std::deque<std::string>>::const_iterator i = meta_information.find(key);
-    if (i == meta_information.end()) // not found
+    const auto &i = meta_information.find(key); // pair<string, deque<string>>
+    if (i == meta_information.end()) // key not found
         return nullptr;
     return &((*i).second);
 }
 
-int PicosatCNF::getVarCount(void) {
+int PicosatCNF::getVarCount(void) const {
     return varcount;
 }
 

@@ -35,7 +35,6 @@
  *  concatenating strings with a separator.
  *
  * The behaviour is similar to the python list().join(",") construct.
- * 
  */
 struct StringJoiner : public std::deque<std::string> {
     /**
@@ -44,19 +43,16 @@ struct StringJoiner : public std::deque<std::string> {
      * Join all the collected strings to one string. The separator is
      * inserted between each element.
      */
-    std::string join(const char *j) {
-        std::stringstream ss;
+    std::string join(const std::string &j) {
         if (size() == 0)
             return "";
 
+        std::stringstream ss;
         ss << front();
 
-        std::deque<std::string>::const_iterator i = begin() + 1;
+        for (auto it = begin() + 1, e = end(); it != e; ++it)
+            ss << j << *it;
 
-        while (i != end()) {
-            ss << j << *i;
-            i++;
-        }
         return ss.str();
     }
 
@@ -86,7 +82,7 @@ struct StringJoiner : public std::deque<std::string> {
 };
 
 struct UniqueStringJoiner : public StringJoiner {
-    UniqueStringJoiner() : StringJoiner(), uniqueFlag(true) {};
+    UniqueStringJoiner() = default;
 
     bool count (const value_type &x) {
         return _unique_set.count(x);
@@ -116,8 +112,8 @@ struct UniqueStringJoiner : public StringJoiner {
     }
 
  private:
-    bool uniqueFlag;
-    std::set<std::string> _unique_set;;
+    bool uniqueFlag = true;
+    std::set<std::string> _unique_set;
 };
 
 #endif

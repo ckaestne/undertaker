@@ -28,10 +28,10 @@
 namespace undertaker {
 
     //! returns all (configuration) items of the given string
-    std::set<std::string> itemsOfString(const std::string &str);
+    std::set<std::string> itemsOfString(const std::string &);
 
     //!< replaces invalid characters with '_'
-    std::string normalize_filename(const char *);
+    std::string normalize_filename(std:: string);
 
 }
 

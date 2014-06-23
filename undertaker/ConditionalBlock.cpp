@@ -32,34 +32,9 @@ typedef PumaConditionalBlock ConditionalBlockImpl;
 #include <set>
 
 
-bool ConditionalBlock::useBlockWithFilename = false;
-
-CppFile::CppFile(const char *f) : checker(this) {
-    if (strncmp("./", f, 2))
-        filename = f;
-    else
-        filename = f+2; // skip leading './'
-    _builder = make_unique<PumaConditionalBlockBuilder>(this, f);
-    top_block = _builder->topBlock();
-}
-
-CppFile::~CppFile() {
-    /* Delete the toplevel block */
-    delete topBlock();
-
-    // We are a list of ConditionalBlocks
-    for (auto &condBlock : *this)  // ConditionalBlock *
-        delete condBlock;
-
-    // Remove also all defines
-    for (auto &entry : *getDefines())  // pair<string, CppDefine *>
-        delete entry.second;
-}
-
-bool CppFile::ItemChecker::operator()(const std::string &item) const {
-    std::map<std::string, CppDefine*> *defines =  file->getDefines();
-    return defines->find(item.substr(0, item.find('.'))) == defines->end();
-}
+/************************************************************************/
+/* static functions                                                     */
+/************************************************************************/
 
 static int lineFromPosition(std::string line) {
     // INPUT: foo:121:2
@@ -74,28 +49,6 @@ static int lineFromPosition(std::string line) {
     int i;
     ss >> i;
     return i;
-}
-
-
-ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
-    int line = lineFromPosition(position);
-    ConditionalBlock *block = nullptr;
-    int block_length = -1;
-
-    // Iterate over all block
-    for (auto &block_it : *this) {  // ConditionalBlock *
-        int begin = block_it->lineStart();
-        int last  = block_it->lineEnd();
-
-        if (last < begin) continue;
-        /* Found a short block, using this one */
-        if ((((last - begin) < block_length) || block_length == -1)
-                && begin < line && line < last) {
-            block = block_it;
-            block_length = last - begin;
-        }
-    }
-    return block;
 }
 
 static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
@@ -120,6 +73,58 @@ static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
             prev, node, (*nodeNum)++, builder);
     newBlock->setDummyBlock();
     return newBlock;
+}
+
+/************************************************************************/
+/* CppFile                                                              */
+/************************************************************************/
+
+CppFile::CppFile(const std::string &f) : checker(this) {
+    if (f[0] != '.' && f[1] != '/')
+        filename = f;
+    else
+        filename = f.substr(2); // skip leading "./"
+    _builder = make_unique<PumaConditionalBlockBuilder>(this, f);
+    top_block = _builder->topBlock();
+}
+
+CppFile::~CppFile() {
+    /* Delete the toplevel block */
+    delete topBlock();
+
+    // We are a list of ConditionalBlocks
+    for (auto &condBlock : *this)  // ConditionalBlock *
+        delete condBlock;
+
+    // Remove also all defines
+    for (auto &entry : *getDefines())  // pair<string, CppDefine *>
+        delete entry.second;
+}
+
+bool CppFile::ItemChecker::operator()(const std::string &item) const {
+    std::map<std::string, CppDefine*> *defines =  file->getDefines();
+    return defines->find(item.substr(0, item.find('.'))) == defines->end();
+}
+
+ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
+    int line = lineFromPosition(position);
+    ConditionalBlock *block = nullptr;
+    int block_length = -1;
+
+    // Iterate over all block
+    for (auto &block_it : *this) {  // ConditionalBlock *
+        int begin = block_it->lineStart();
+        int last  = block_it->lineEnd();
+
+        if (last < begin) continue;
+        /* Found a short block, using this one */
+        if ((((last - begin) < block_length) || block_length == -1)
+                && begin < line && line < last) {
+            block = block_it;
+            block_length = last - begin;
+        }
+    }
+    return block;
 }
 
 void CppFile::decisionCoverage() {
@@ -150,6 +155,12 @@ void CppFile::printCppFile() {
     }
     logger << debug << "------ END FILE ------" << std::endl;
 }
+
+/************************************************************************/
+/* ConditionalBlock                                                     */
+/************************************************************************/
+
+bool ConditionalBlock::useBlockWithFilename = false;
 
 void ConditionalBlock::insertBlockIntoFile(ConditionalBlock *prevBlock, ConditionalBlock *nblock,
         bool insertAfter) {
@@ -345,6 +356,10 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
     return join ? and_clause->join("\n&& ") : "";
 }
 
+/************************************************************************/
+/* CppDefine                                                            */
+/************************************************************************/
+
 CppDefine::CppDefine(ConditionalBlock *defined_in, bool define, const std::string &id)
         : actual_symbol(id), defined_symbol(id) {
     newDefine(defined_in, define);
@@ -381,7 +396,7 @@ void CppDefine::newDefine(ConditionalBlock *parent, bool define) {
 }
 
 void CppDefine::replaceDefinedSymbol(std::string &exp) {
-    if (!strstr(exp.c_str(), defined_symbol.c_str()))
+    if (exp.find(defined_symbol) == exp.npos)  // exp doesn't contain defined_symbol
         return;
 
     boost::match_results<std::string::iterator> what;
@@ -392,7 +407,7 @@ void CppDefine::replaceDefinedSymbol(std::string &exp) {
 }
 
 bool CppDefine::containsDefinedSymbol(const std::string &exp) {
-    if (!strstr(exp.c_str(), defined_symbol.c_str()))
+    if (exp.find(defined_symbol) == exp.npos)  // exp doesn't contain defined_symbol
         return false;
     return boost::regex_search(exp, replaceRegex);
 }

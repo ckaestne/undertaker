@@ -19,15 +19,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef KCONFIG_H
-#define KCONFIG_H
 
-/**
- * \brief Kconfig symbols types to be kept in sync with symbol_type
- * in expr.h from scripts/kconfig/
- */
-// FIXME why isn't this enum in 'namespace kconfig'?
-enum kconfig_symbol_type {
-    K_S_UNKNOWN, K_S_BOOLEAN, K_S_TRISTATE, K_S_INT, K_S_HEX, K_S_STRING, K_S_OTHER
-};
+#ifndef KCONFIG_UNSUPPORTED_FEATURE_EXCEPTION_H
+#define KCONFIG_UNSUPPORTED_FEATURE_EXCEPTION_H
+
+#include <stdexcept>
+
+namespace kconfig {
+    struct UnsupportedFeatureException : public std::logic_error {
+        UnsupportedFeatureException(std::string s) : logic_error(s) {}
+    };
+}
 #endif

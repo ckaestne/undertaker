@@ -17,8 +17,7 @@
  */
 
 #include "ExpressionTranslator.h"
-#include "UnsupportedFeatureException.h"
-#include "InvalidNodeException.h"
+#include "exceptions/UnsupportedFeatureException.h"
 #include "bool.h"
 
 using namespace kconfig;
@@ -26,23 +25,17 @@ using namespace kconfig;
 
 TristateRepr ExpressionTranslator::visit_symbol(struct symbol *sym) {
     if (sym == &symbol_no) {
-        struct TristateRepr res = { B_CONST(false), B_CONST(false), false, S_TRISTATE };
-        return res;
+        return { B_CONST(false), B_CONST(false), false, S_TRISTATE };
     } else if (sym == &symbol_yes) {
-        struct TristateRepr res = { B_CONST(true), B_CONST(false), false, S_TRISTATE };
-        return res;
+        return { B_CONST(true), B_CONST(false), false, S_TRISTATE };
     } else if (sym == &symbol_mod) {
-        struct TristateRepr res = { B_CONST(false), B_CONST(true), false, S_TRISTATE };
-        return res;
+        return { B_CONST(false), B_CONST(true), false, S_TRISTATE };
     } else if (sym->type == S_STRING || sym->type == S_HEX || sym->type == S_INT) {
-        struct TristateRepr res = { B_CONST(false), B_CONST(false), true, sym->type };
-        return res;
+        return { B_CONST(false), B_CONST(false), true, sym->type };
     } else if (sym == modules_sym) {
-        struct TristateRepr res = { B_VAR(sym, rel_yes), B_CONST(false), true, S_BOOLEAN };
-        return res;
+        return { B_VAR(sym, rel_yes), B_CONST(false), true, S_BOOLEAN };
     } else if (this->symbolSet && this->symbolSet->find(sym) ==  this->symbolSet->end()) {
-        struct TristateRepr res = { B_CONST(false), B_CONST(false), false, S_BOOLEAN };
-        return res;
+        return { B_CONST(false), B_CONST(false), false, S_BOOLEAN };
     } else {
         struct TristateRepr res;
         res.yes = B_VAR(sym, rel_yes);
@@ -139,14 +132,12 @@ TristateRepr ExpressionTranslator::visit_list(struct expr *e) {
     return res;
 }
 
-TristateRepr ExpressionTranslator::visit_range(struct expr *) {
-    struct TristateRepr res = { nullptr, nullptr, true, S_OTHER };
-    throw new UnsupportedFeatureException("cannot handle ranges yet");
-    return res;
+TristateRepr ExpressionTranslator::visit_range(struct expr *, TristateRepr, TristateRepr) {
+    throw UnsupportedFeatureException("cannot handle ranges yet");
+    return { nullptr, nullptr, true, S_OTHER };
 }
 
 TristateRepr ExpressionTranslator::visit_others(struct expr *)  {
-    struct TristateRepr res = { nullptr, nullptr, true, S_OTHER };
-    throw new InvalidNodeException("kconfig expression with unknown type");
-    return res;
+    throw InvalidNodeException("kconfig expression with unknown type");
+    return { nullptr, nullptr, true, S_OTHER };
 }

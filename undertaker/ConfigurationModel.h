@@ -75,13 +75,10 @@ public:
                     std::set<std::string> &missing,
                     std::string &intersected) const = 0;
 
-    virtual std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &working) const = 0;
-    static std::string getMissingItemsConstraints(const std::set<std::string> &missing);
-
-    std::string getName() const { return _name; }
+    virtual std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &) const = 0;
 
     //! returns the version identifier for the current model
-    virtual const char *getModelVersionIdentifier() const = 0;
+    virtual const std::string getModelVersionIdentifier() const = 0;
 
     //! checks if a given item should be in the model space
     virtual bool inConfigurationSpace(const std::string &symbol) const = 0;
@@ -107,6 +104,8 @@ public:
 
     virtual const StringList *getMetaValue(const std::string &key) const = 0;
 
+    static std::string getMissingItemsConstraints(const std::set<std::string> &missing);
+    std::string getName() const { return _name; }
 
 protected:
     std::string _name;

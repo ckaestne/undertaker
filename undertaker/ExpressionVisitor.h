@@ -20,15 +20,8 @@
 #ifndef KCONFIG_EXPRESSIONVISITOR_H
 #define KCONFIG_EXPRESSIONVISITOR_H
 
-#ifndef LKC_DIRECT_LINK
-#define LKC_DIRECT_LINK
-#endif
-
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "lkc.h"
-#pragma GCC diagnostic warning "-Wunused-parameter"
-
-#include "InvalidNodeException.h"
+#include "expr.h"
+#include "exceptions/InvalidNodeException.h"
 
 
 namespace kconfig {
@@ -63,7 +56,7 @@ rt ExpressionVisitor<rt>::process(struct expr *e)  {
 
     switch (e->type) {
     case E_NONE:
-        throw new InvalidNodeException("kconfig expression with unknown type");
+        throw InvalidNodeException("kconfig expression with unknown type");
         break;
     case E_OR:
         left = process(e->left.expr);

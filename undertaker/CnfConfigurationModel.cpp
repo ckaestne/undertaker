@@ -33,7 +33,7 @@
 #include <boost/regex.hpp>
 
 
-CnfConfigurationModel::CnfConfigurationModel(const char *filename) {
+CnfConfigurationModel::CnfConfigurationModel(const std::string &filename) {
     const StringList *configuration_space_regex = nullptr;
     boost::filesystem::path filepath(filename);
     _name = filepath.stem().string();
@@ -84,9 +84,8 @@ const StringList *CnfConfigurationModel::getMetaValue(const std::string &key) co
 }
 
 std::set<std::string> CnfConfigurationModel::findSetOfInterestingItems(
-                                    const std::set<std::string> &initialItems) const {
-    std::set<std::string> result;
-    return result;
+                                    const std::set<std::string> &) const {
+    return {};
 }
 
 int CnfConfigurationModel::doIntersect(const std::string exp,
@@ -115,15 +114,13 @@ int CnfConfigurationModel::doIntersect(const std::set<std::string> start_items,
         if (containsSymbol(str)) {
             valid_items++;
             if (always_on) {
-                StringList::const_iterator cit = std::find(always_on->begin(),
-                        always_on->end(), str);
-                if (cit != always_on->end())
+                const auto &cit = std::find(always_on->begin(), always_on->end(), str);
+                if (cit != always_on->end()) // str is found
                     sj.push_back(str);
             }
             if (always_off) {
-                StringList::const_iterator cit = std::find(always_off->begin(),
-                        always_off->end(), str);
-                if (cit != always_off->end())
+                const auto &cit = std::find(always_off->begin(), always_off->end(), str);
+                if (cit != always_off->end()) // str is found
                     sj.push_back("!" + str);
             }
         } else {

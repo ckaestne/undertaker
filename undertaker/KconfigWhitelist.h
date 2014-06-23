@@ -41,8 +41,8 @@ struct KconfigWhitelist : public std::list<std::string> {
     static KconfigWhitelist *getIgnorelist(); //!< ignorelist
     static KconfigWhitelist *getWhitelist(); //!< whitelist
     static KconfigWhitelist *getBlacklist(); //!< blacklist
-    bool isWhitelisted(const std::string &s) const { return isWhitelisted(s.c_str()); }
-    bool isWhitelisted(const char*) const; //!< checks if the given item is in the whitelist
+    //!< checks if the given item is in the whitelist
+    bool isWhitelisted(const std::string &s) const;
     void addToWhitelist(const std::string); //!< adds an item to the whitelist
     /**
      * \brief load Kconfig Items from a textfile into the whitelist

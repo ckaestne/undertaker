@@ -54,7 +54,7 @@ int process_assumptions(CNF *cnf, std::vector<boost::filesystem::path> assumptio
         logger << info << "processing assumption " << assumption << std::endl;
 
         if (boost::filesystem::exists(assumption)) {
-            std::ifstream in(assumption.string().c_str());
+            std::ifstream in(assumption.string());
             KconfigAssumptionMap a(cnf);
             a.readAssumptionsFromFile(in);
             logger << info
@@ -62,7 +62,7 @@ int process_assumptions(CNF *cnf, std::vector<boost::filesystem::path> assumptio
             cnf->pushAssumptions(a);
         }
         bool sat = cnf->checkSatisfiable();
-        const char* result = sat ? "satisfiable" : "not satisfiable";
+        const std::string result = sat ? "satisfiable" : "not satisfiable";
         if (!sat) {
             const int *failed = cnf->failedAssumptions();
             for (int i=0; failed != 0 && failed[i] != 0; i++) {
@@ -145,14 +145,14 @@ int main(int argc, char **argv) {
 
     if (filepath.extension() == ".cnf") {
         logger << info << "Loading CNF model " << filepath << std::endl;
-        cnf->readFromFile(filepath.string().c_str());
+        cnf->readFromFile(filepath.string());
     } else {
         logger << info << "Parsing Kconfig file " << filepath << std::endl;
         SymbolTranslator *translator = new SymbolTranslator(cnf);
         KconfigSymbolSet *symbolSet = new KconfigSymbolSet();
 
         logger << debug << "parsing" << std::endl;
-        translator->parse(filepath.string().c_str());
+        translator->parse(filepath.string());
         translator->symbolSet = symbolSet;
         logger << debug << "traversing symbolset" << std::endl;
         symbolSet->traverse();
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
         logger << info << "features in model: " << symbolSet->size() << std::endl;
     }
     if (saveTranslatedModel) {
-        cnf->toFile(saveFile.string().c_str());
+        cnf->toFile(saveFile.string());
         logger << info << cnf->getVarCount() << " variables written to "
                << saveFile << std::endl;
     }

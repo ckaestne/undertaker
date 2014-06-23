@@ -37,13 +37,13 @@ namespace kconfig {
 
 class CnfConfigurationModel: public ConfigurationModel {
 public:
-    CnfConfigurationModel(const char *filename);
+    CnfConfigurationModel(const std::string &filename);
 
     //! destructor
-    ~CnfConfigurationModel();
+    virtual ~CnfConfigurationModel();
 
     //! add feature to whitelist ('ALWAYS_ON')
-    void addFeatureToWhitelist(const std::string feature);
+    virtual void addFeatureToWhitelist(const std::string feature)        final override;
 
     //! gets the current feature whitelist ('ALWAYS_ON')
     /*!
@@ -51,7 +51,7 @@ public:
      *
      * The referenced object must not be freed, the model class manages it.
      */
-    const StringList *getWhitelist() const;
+    virtual const StringList *getWhitelist()                       const final override;
 
     //! add feature to blacklist ('ALWAYS_OFF')
     /*!
@@ -59,55 +59,55 @@ public:
      * referenced by getWhitelist(). Be sure to call getWhitelist()
      * again after using this method.
      */
-    void addFeatureToBlacklist(const std::string feature);
+    virtual void addFeatureToBlacklist(const std::string feature)        final override;
 
     //! gets the current feature blacklist ('ALWAYS_OFF')
-    const StringList *getBlacklist() const;
+    virtual const StringList *getBlacklist()                       const final override;
 
 
-    int doIntersect(const std::string exp,
+    virtual int doIntersect(const std::string exp,
                     const ConfigurationModel::Checker *c,
                     std::set<std::string> &missing,
-                    std::string &intersected) const;
+                    std::string &intersected)                      const final override;
 
-    int doIntersect(const std::set<std::string> exp,
+    virtual int doIntersect(const std::set<std::string> exp,
                     const ConfigurationModel::Checker *c,
                     std::set<std::string> &missing,
-                    std::string &intersected) const;
+                    std::string &intersected)                      const final override;
 
-    std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &working) const;
-    std::string getName() const { return _name; }
+    virtual std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &)
+                                                                   const final override;
 
     //! checks if a given item should be in the model space
-    bool inConfigurationSpace(const std::string &symbol) const;
+    virtual bool inConfigurationSpace(const std::string &symbol)   const final override;
 
     //! checks if we can assume that the configuration space is complete
-    bool isComplete() const;
+    virtual bool isComplete()                                      const final override;
 
     //@{
     //! checks the type of a given symbol.
     //! @return false if not found
-    bool isBoolean(const std::string&) const;
-    bool isTristate(const std::string&) const;
+    virtual bool isBoolean(const std::string&)                     const final override;
+    virtual bool isTristate(const std::string&)                    const final override;
     //@}
 
     //! returns the version identifier for the current model
-    const char *getModelVersionIdentifier() const { return "cnf"; }
+    virtual const std::string getModelVersionIdentifier()          const final override {
+        return "cnf";
+    }
 
     //! returns the type of the given symbol
     /*!
      * Normalizes the given item so that passing with and without
      * CONFIG_ prefix works.
      */
-    std::string getType(const std::string &feature_name) const;
+    virtual std::string getType(const std::string &feature_name)   const final override;
 
-    bool containsSymbol(const std::string &symbol) const;
+    virtual bool containsSymbol(const std::string &symbol)         const final override;
 
-    const StringList *getMetaValue(const std::string &key) const;
+    virtual const StringList *getMetaValue(const std::string &key) const final override;
 
-    const kconfig::PicosatCNF *getCNF(void) {
-        return _cnf;
-    }
+    const kconfig::PicosatCNF *getCNF(void) { return _cnf; }
 
 private:
     std::string _name;

@@ -48,7 +48,6 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
     }
     if (! boost::filesystem::is_directory(model)) {
         /* A model file was specified, so load exactly this one */
-        boost::match_results<const char*> what;
         boost::filesystem::path p(model);
         std::string model_name = p.stem().string();
 
@@ -57,8 +56,7 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
             logger << info << "loaded " << ret->getModelVersionIdentifier()
                    << " model for " << model_name << std::endl;
         } else {
-            logger << error << "failed to load model from " << model
-                   << std::endl;
+            logger << error << "failed to load model from " << model << std::endl;
         }
         return ret;
     }
@@ -75,14 +73,13 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
     filenames.sort();
 
     for (std::string &filename : filenames) {
-        boost::match_results<const char*> what;
-
-        if (boost::regex_search(filename.c_str(), what, model_regex)) {
+        boost::smatch what;
+        if (boost::regex_search(filename, what, model_regex)) {
             std::string found_arch = what[1];
-            ModelContainer::iterator a = f->find(found_arch);
 
-            if (a == f->end()) { // not found
-                ConfigurationModel *mod = f->registerModelFile(model + "/" + filename.c_str(), found_arch);
+            // if there is no model for 'found_arch' in f, load it
+            if (f->find(found_arch) == f->end()) {
+                ConfigurationModel *mod = f->registerModelFile(model + "/" + filename, found_arch);
                 /* overwrite the return value */
                 if (mod) ret = mod;
                 found_models++;
@@ -103,27 +100,26 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
 
 // parameter filename will look like: 'models/x86.model', string like 'x86'
 ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std::string arch) {
-    ConfigurationModel *db;
+    ConfigurationModel *db = lookupModel(arch);
     /* Was already loaded */
-    if ((db = lookupModel(arch.c_str()))) {
-        logger << info << "A model for " << arch << " was already loaded" << std::endl;
+    if (db != nullptr) {
+        logger << info << "A model for " << arch << " was already loaded." << std::endl;
         return db;
     }
     boost::filesystem::path filepath(filename);
     if (filepath.extension() == ".cnf") {
-        db = new CnfConfigurationModel(filename.c_str());
+        db = new CnfConfigurationModel(filename);
     } else {
-        db = new RsfConfigurationModel(filename.c_str());
+        db = new RsfConfigurationModel(filename);
     }
     if (!db) {
-        logger << error << "Failed to load model from " << filename
-               << std::endl;
+        logger << error << "Failed to load model from " << filename << std::endl;
     }
     this->emplace(arch, db);
     return db;
 };
 
-ConfigurationModel *ModelContainer::lookupModel(const char *arch)  {
+ConfigurationModel *ModelContainer::lookupModel(const std::string &arch)  {
     ModelContainer *f = getInstance();
     // first step: look if we have it in our models list;
     ModelContainer::iterator a = f->find(arch);
@@ -136,23 +132,23 @@ ConfigurationModel *ModelContainer::lookupModel(const char *arch)  {
     }
 }
 
-const char *ModelContainer::lookupArch(const ConfigurationModel *model) {
+const std::string ModelContainer::lookupArch(const ConfigurationModel *model) {
     for (auto &entry : *getInstance())  // pair<string, ConfigurationModel *>
         if (entry.second == model)
-            return entry.first.c_str();
+            return entry.first;
 
-    return nullptr;
+    return {};
 }
 
 ConfigurationModel *ModelContainer::lookupMainModel() {
     ModelContainer *f = getInstance();
-    return ModelContainer::lookupModel(f->main_model.c_str());
+    return ModelContainer::lookupModel(f->main_model);
 }
 
 void ModelContainer::setMainModel(std::string main_model) {
     ModelContainer *f = getInstance();
 
-    if (!ModelContainer::lookupModel(main_model.c_str())) {
+    if (!ModelContainer::lookupModel(main_model)) {
         logger << error << "Could not specify main model "
                << main_model << ", because no such model is loaded" << std::endl;
         return;
@@ -161,9 +157,8 @@ void ModelContainer::setMainModel(std::string main_model) {
     f->main_model = main_model;
 }
 
-const char *ModelContainer::getMainModel() {
-    ModelContainer *f = getInstance();
-    return f->main_model.c_str();
+const std::string &ModelContainer::getMainModel() {
+    return getInstance()->main_model;
 }
 
 

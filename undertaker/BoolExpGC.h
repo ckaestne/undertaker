@@ -36,16 +36,16 @@ namespace kconfig {
         }
 
     protected:
-        virtual void visit(BoolExp *) {}
-        virtual void visit(BoolExpAnd *) {}
-        virtual void visit(BoolExpOr *) {}
-        virtual void visit(BoolExpNot *) {}
-        virtual void visit(BoolExpConst *) {}
-        virtual void visit(BoolExpVar *) {}
-        virtual void visit(BoolExpImpl *) {}
-        virtual void visit(BoolExpEq *) {}
-        virtual void visit(BoolExpCall *) {}
-        virtual void visit(BoolExpAny *) {}
+        virtual void visit(BoolExp *)      final override {}
+        virtual void visit(BoolExpAnd *)   final override {}
+        virtual void visit(BoolExpOr *)    final override {}
+        virtual void visit(BoolExpNot *)   final override {}
+        virtual void visit(BoolExpConst *) final override {}
+        virtual void visit(BoolExpVar *)   final override {}
+        virtual void visit(BoolExpImpl *)  final override {}
+        virtual void visit(BoolExpEq *)    final override {}
+        virtual void visit(BoolExpCall *)  final override {}
+        virtual void visit(BoolExpAny *)   final override {}
     };
 };
 

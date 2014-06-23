@@ -35,6 +35,7 @@
 #include "Logging.h"
 #include "Tools.h"
 #include "../version.h"
+#include "exceptions/CNFBuilderError.h"
 
 #include <errno.h>
 #include <fstream>
@@ -47,30 +48,23 @@
 #include <boost/thread.hpp>
 
 
-typedef void (* process_file_cb_t) (const char *filename);
+using process_file_cb_t = void (*)(const std::string &filename);
 
-enum WorkMode {
-    MODE_DEAD,      // Detect dead and undead files
-    MODE_COVERAGE,  // Calculate the coverage
-    MODE_CPPPC,     // CPP Preconditions for whole file
-    MODE_BLOCKPC,   // Block precondition
-};
-
-enum CoverageOutputMode {
-    COVERAGE_MODE_KCONFIG,      // kconfig specific mode
-    COVERAGE_MODE_STDOUT,       // prints out on stdout generated configurations
-    COVERAGE_MODE_MODEL,        // prints all configuration space itms, no blocks
-    COVERAGE_MODE_CPP,          // prints all cpp items as cpp cmd-line arguments
-    COVERAGE_MODE_EXEC,         // pipe file for every configuration to cmd
-    COVERAGE_MODE_ALL,          // prints all items and blocks
-    COVERAGE_MODE_COMBINED,     // create files for configuration, kconfig and modified source file
-    COVERAGE_MODE_COMMENTED,    // creates file contining modified source
+enum class CoverageOutput {
+    KCONFIG,      // kconfig specific mode
+    STDOUT,       // prints out on stdout generated configurations
+    MODEL,        // prints all configuration space itms, no blocks
+    CPP,          // prints all cpp items as cpp cmd-line arguments
+    EXEC,         // pipe file for every configuration to cmd
+    ALL,          // prints all items and blocks
+    COMBINED,     // create files for configuration, kconfig and modified source file
+    COMMENTED,    // creates file contining modified source
 } coverageOutputMode;
 
-enum CoverageOperationMode {
-    COVERAGE_OP_SIMPLE,             // simple, fast
-    COVERAGE_OP_MINIMIZE,           // hopefully minimal configuration set
-} coverageOperationMode = COVERAGE_OP_SIMPLE;
+enum class CoverageMode {
+    SIMPLE,             // simple, fast
+    MINIMIZE,           // hopefully minimal configuration set
+} coverageMode;
 
 static const char *coverage_exec_cmd = "cat";
 static int RETVALUE = EXIT_SUCCESS;
@@ -146,21 +140,20 @@ int rm_pattern(const char *pattern) {
 
 bool process_blockconf_helper(StringJoiner &sj,
                               std::map<std::string,bool> &filesolvable,
-                              const char *locationname) {
+                              const std::string &locationname) {
     // used by process_blockconf and process_mergedblockconf
     ConfigurationModel *main_model = ModelContainer::lookupMainModel();
 
-    std::string location = std::string(locationname);
     boost::regex regex("(.*):[0-9]+");
     boost::smatch results;
-    if (!boost::regex_match(location, results, regex)) {
+    if (!boost::regex_match(locationname, results, regex)) {
         logger << error << "invalid format for block precondition" << std::endl;
         return false;
     }
 
     std::string file = results[1];
 
-    CppFile cpp(file.c_str());
+    CppFile cpp(file);
     if (!cpp.good()) {
         logger << error << "failed to open file: `" << file << "'" << std::endl;
         return false;
@@ -169,7 +162,7 @@ bool process_blockconf_helper(StringJoiner &sj,
     int offset = strncmp("./", file.c_str(), 2) ? 0 : 2;
     std::stringstream fileCondition;
     fileCondition << "FILE_";
-    fileCondition << undertaker::normalize_filename(file.substr(offset).c_str());
+    fileCondition << undertaker::normalize_filename(file.substr(offset));
     std::string fileVar(fileCondition.str());
 
     // if file precondition has already been tested...
@@ -195,8 +188,7 @@ bool process_blockconf_helper(StringJoiner &sj,
             if (!fileChecker()) {
                 filesolvable[fileVar] = false;
                 logger << warn << "File condition for location " << locationname
-                    << " conflicting with black-/whitelist - not added"
-                    << std::endl;
+                    << " conflicting with black-/whitelist - not added" << std::endl;
                 return false;
             } else {
                 filesolvable[fileVar] = true;
@@ -213,8 +205,7 @@ bool process_blockconf_helper(StringJoiner &sj,
     }
 
     // Get the precondition for current block
-    DeadBlockDefect dead(block);
-    std::string precondition = dead.getBlockPrecondition(main_model);
+    std::string precondition = BlockDefectAnalyzer::getBlockPrecondition(block, main_model);
 
     logger << info << "Processing block " << block->getName() << std::endl;
 
@@ -235,10 +226,9 @@ bool process_blockconf_helper(StringJoiner &sj,
     return true;
 }
 
-void process_mergeblockconf(const char *filepath) {
+void process_mergeblockconf(const std::string &filename) {
     /* Read files from worklist */
-    std::ifstream workfile(filepath);
-    std::string line;
+    std::ifstream workfile(filename);
     if (!workfile.good()) {
         usage(std::cout, "worklist was not found");
         exit(EXIT_FAILURE);
@@ -247,10 +237,11 @@ void process_mergeblockconf(const char *filepath) {
     /* set extended Blockname */
     ConditionalBlock::setBlocknameWithFilename(true);
 
+    std::string line;
     StringJoiner sj;
-    std::map<std::string,bool> filesolvable;
+    std::map<std::string, bool> filesolvable; // TODO why do we need this?
     while(std::getline(workfile, line))
-        process_blockconf_helper(sj, filesolvable, line.c_str());
+        process_blockconf_helper(sj, filesolvable, line);
 
     for (std::string &str : *KconfigWhitelist::getWhitelist())
         sj.push_back(str);
@@ -259,38 +250,35 @@ void process_mergeblockconf(const char *filepath) {
         sj.push_back("!" + str);
 
     SatChecker sc(sj.join("\n&&\n"));
-    MissingSet missingSet;
 
     // We want minimal configs, so we try to get many 'n's from the sat checker
     if (sc(Picosat::SAT_MIN)) {
         logger << info << "Solution found, result:" << std::endl;
         SatChecker::AssignmentMap current_solution = sc.getAssignment();
         stringstream configstream;
-        current_solution.formatKconfig(configstream, missingSet);
+        current_solution.formatKconfig(configstream, {});
         std::cout << configstream.str();
     } else {
         logger << error << "Wasn't able to generate a valid configuration" << std::endl;
     }
 }
 
-void process_blockconf(const char *locationname) {
+void process_blockconf(const std::string &locationname) {
     StringJoiner sj;
-    std::map<std::string,bool> filesolvable;
-
+    std::map<std::string, bool> filesolvable; // TODO why do we need this?
     process_blockconf_helper(sj, filesolvable, locationname);
 
     SatChecker sc(sj.join("\n&&\n"));
 
-    MissingSet missingSet;
     if (sc(Picosat::SAT_MIN)) {
         SatChecker::AssignmentMap current_solution = sc.getAssignment();
         stringstream configstream;
-        current_solution.formatKconfig(configstream, missingSet);
+        current_solution.formatKconfig(configstream, {});
         std::cout << configstream.str();
     }
 }
 
-void process_file_coverage_helper(const char *filename) {
+void process_file_coverage_helper(const std::string &filename) {
     CppFile file(filename);
 
     if (!file.good()) {
@@ -312,11 +300,11 @@ void process_file_coverage_helper(const char *filename) {
     SimpleCoverageAnalyzer simple_analyzer(&file);
     MinimizeCoverageAnalyzer minimize_analyzer(&file);
     CoverageAnalyzer *analyzer = nullptr;
-    if (coverageOperationMode == COVERAGE_OP_MINIMIZE) {
+    if (coverageMode == CoverageMode::MINIMIZE) {
         logger << debug << "Calculating configurations using the 'greedy"
                << (decision_coverage ? " and decision coverage'" : "'") << " approach" << std::endl;
         analyzer = &minimize_analyzer;
-    } else if (coverageOperationMode == COVERAGE_OP_SIMPLE) {
+    } else if (coverageMode == CoverageMode::SIMPLE) {
         logger << debug << "Calculating configurations using the 'simple"
                << (decision_coverage ? " and decision coverage'" : "'") << " approach" << std::endl;
         analyzer = &simple_analyzer;
@@ -326,7 +314,7 @@ void process_file_coverage_helper(const char *filename) {
     std::list<SatChecker::AssignmentMap> solutions = analyzer->blockCoverage(main_model);
     MissingSet missingSet = analyzer->getMissingSet();
 
-    if (coverageOutputMode == COVERAGE_MODE_STDOUT) {
+    if (coverageOutputMode == CoverageOutput::STDOUT) {
         SatChecker::pprintAssignments(std::cout, solutions, main_model, missingSet);
         file.pop_front();
         return;
@@ -360,43 +348,42 @@ void process_file_coverage_helper(const char *filename) {
 
         solution.setEnabledBlocks(block_bitvector);
 
-        if (coverageOutputMode == COVERAGE_MODE_KCONFIG
-            || coverageOutputMode == COVERAGE_MODE_MODEL
-            || coverageOutputMode == COVERAGE_MODE_ALL) {
-            outf.open(outfstream.str().c_str(), std::ios_base::trunc);
+        if (coverageOutputMode == CoverageOutput::KCONFIG
+            || coverageOutputMode == CoverageOutput::MODEL
+            || coverageOutputMode == CoverageOutput::ALL) {
+            outf.open(outfstream.str(), std::ios_base::trunc);
             if (!outf.good()) {
-                logger << error <<" failed to write config in "
-                       << outfstream.str().c_str()
-                       << std::endl;
+                logger << error << " failed to write config in "
+                       << outfstream.str() << std::endl;
                 outf.close();
                 current++; continue;
             }
         }
 
         switch (coverageOutputMode) {
-        case COVERAGE_MODE_KCONFIG:
+        case CoverageOutput::KCONFIG:
             solution.formatKconfig(outf, missingSet);
             break;
-        case COVERAGE_MODE_MODEL:
+        case CoverageOutput::MODEL:
             if (!main_model) {
                 logger << error << "no model loaded but, model output mode specified" << std::endl;
                 exit(1);
             }
             solution.formatModel(outf, main_model);
             break;
-        case COVERAGE_MODE_ALL:
+        case CoverageOutput::ALL:
             solution.formatAll(outf);
             break;
-        case COVERAGE_MODE_CPP:
+        case CoverageOutput::CPP:
             solution.formatCPP(std::cout, main_model);
             break;
-        case COVERAGE_MODE_EXEC:
+        case CoverageOutput::EXEC:
             solution.formatExec(file, coverage_exec_cmd);
             break;
-        case COVERAGE_MODE_COMBINED:
+        case CoverageOutput::COMBINED:
             solution.formatCombined(file, main_model, missingSet, current);
             break;
-        case COVERAGE_MODE_COMMENTED:
+        case CoverageOutput::COMMENTED:
             // TODO creates preprocessed source in *.config$n
             solution.formatCommented(outf, file);
             break;
@@ -425,15 +412,14 @@ void process_file_coverage_helper(const char *filename) {
     file.pop_front();
 }
 
-void process_file_coverage (const char *filename) {
+void process_file_coverage (const std::string &filename) {
     boost::thread t(process_file_coverage_helper, filename);
 
     if (!t.timed_join(boost::posix_time::seconds(120)))
-        logger << error << "timeout passed while processing " << filename
-               << std::endl;
+        logger << error << "timeout passed while processing " << filename << std::endl;
 }
 
-void process_file_cpppc(const char *filename) {
+void process_file_cpppc(const std::string &filename) {
     CppFile file(filename);
 
     if (!file.good()) {
@@ -464,7 +450,7 @@ void process_file_cpppc(const char *filename) {
     }
 }
 
-void process_file_cppsym_helper(const char *filename) {
+void process_file_cppsym_helper(const std::string &filename) {
     // vector of length 2, first: #references, second: #rewrites
     typedef std::vector<size_t> ItemStats;
     // key: name of the item.
@@ -514,16 +500,10 @@ void process_file_cppsym_helper(const char *filename) {
         boost::match_results<std::string::const_iterator> what;
         const std::string &item_name = item.first;
         const ItemStats &stats = item.second;
-        std::ostringstream references;
-        std::ostringstream rewrites;
 
         sj.push_back(item_name);
-
-        references << stats[0];
-        sj.push_back(references.str());
-
-        rewrites << stats[1];
-        sj.push_back(rewrites.str());
+        sj.push_back(std::to_string(stats[0]));  // # references
+        sj.push_back(std::to_string(stats[1]));  // # rewrites
 
         if (main_model) {
             if (main_model->containsSymbol(item_name)) {
@@ -544,15 +524,14 @@ void process_file_cppsym_helper(const char *filename) {
     }
 }
 
-void process_file_cppsym(const char *filename) {
+void process_file_cppsym(const std::string &filename) {
     boost::thread t(process_file_cppsym_helper, filename);
 
     if (!t.timed_join(boost::posix_time::seconds(30)))
-        logger << error << "timeout passed while processing " << filename
-               << std::endl;
+        logger << error << "timeout passed while processing " << filename << std::endl;
 }
 
-void process_file_blockrange(const char *filename) {
+void process_file_blockrange(const std::string &filename) {
     CppFile cpp(filename);
 
     if (!cpp.good()) {
@@ -569,20 +548,19 @@ void process_file_blockrange(const char *filename) {
     }
 }
 
-void process_file_blockpc(const char *filename) {
-    std::string fname = std::string(filename);
+void process_file_blockpc(const std::string &filename) {
     std::string file, position;
-    size_t colon_pos = fname.find_first_of(':');
+    size_t colon_pos = filename.find_first_of(':');
 
-    if (colon_pos == fname.npos) {
+    if (colon_pos == filename.npos) {
         logger << error << "invalid format for block precondition" << std::endl;
         return;
     }
 
-    file = fname.substr(0, colon_pos);
-    position = fname.substr(colon_pos + 1);
+    file = filename.substr(0, colon_pos);
+    position = filename.substr(colon_pos + 1);
 
-    CppFile cpp(file.c_str());
+    CppFile cpp(file);
     if (!cpp.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
@@ -599,14 +577,16 @@ void process_file_blockpc(const char *filename) {
     const BlockDefectAnalyzer *defect = nullptr;
     try {
         defect = BlockDefectAnalyzer::analyzeBlock(block, main_model);
-    } catch (SatCheckerError &e) {
-        logger << error << "Couldn't process " << filename << ":" << block->getName() << ": "
-               << e.what() << std::endl;
+    } catch (CNFBuilderError &e) {
+        logger << error << "Couldn't process " << filename << ":" << block->getName()
+               << ": " << e.what() << std::endl;
+    } catch (std::bad_alloc &) {
+        logger << error << "Couldn't process " << filename << ":" << block->getName()
+               << ": Out of Memory." << std::endl;
     }
 
-    // /* Get the Precondition */
-    DeadBlockDefect dead(block);
-    std::string precondition = dead.getBlockPrecondition(main_model);
+    /* Get the Precondition */
+    std::string precondition = BlockDefectAnalyzer::getBlockPrecondition(block, main_model);
 
     std::string defect_string = "no";
     if (defect) {
@@ -620,7 +600,7 @@ void process_file_blockpc(const char *filename) {
     std::cout << precondition << std::endl;
 }
 
-void process_file_dead_helper(const char *filename) {
+void process_file_dead_helper(const std::string &filename) {
     CppFile file(filename);
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
@@ -644,9 +624,12 @@ void process_file_dead_helper(const char *filename) {
             }
             delete defect;
         }
-    } catch (SatCheckerError &e) {
-        logger << error << "Couldn't process " << filename << ":B00: "
-               << e.what() << std::endl;
+    } catch (CNFBuilderError &e) {
+        logger << error << "Couldn't process " << filename << ":B00:" << e.what()
+               << std::endl;
+    } catch (std::bad_alloc &) {
+        logger << error << "Couldn't process " << filename << ":B00: Out of Memory."
+               << std::endl;
     }
 
     /* Iterate over all Blocks */
@@ -660,41 +643,39 @@ void process_file_dead_helper(const char *filename) {
                 }
                 delete defect;
             }
-        } catch (SatCheckerError &e) {
-            logger << error << "Couldn't process " << filename << ":" << block->getName() << ": "
-                   << e.what() << std::endl;
+        } catch (CNFBuilderError &e) {
+            logger << error << "Couldn't process " << filename << ":" << block->getName()
+                << ": " << e.what() << std::endl;
+        } catch (std::bad_alloc &) {
+            logger << error << "Couldn't process " << filename << ":" << block->getName()
+                << ": Out of Memory." << std::endl;
         }
     }
 }
 
-void process_file_dead(const char *filename) {
+void process_file_dead(const std::string &filename) {
     boost::thread t(process_file_dead_helper, filename);
     static unsigned int timeout = 120; // default timeout in seconds
 
     ConfigurationModel *main_model = ModelContainer::lookupMainModel();
-    if (main_model && !strcmp("cnf", main_model->getModelVersionIdentifier())) {
+    if (main_model && "cnf" == main_model->getModelVersionIdentifier()) {
         logger << debug << "Increasing timeout for dead analysis to 3600 seconds" << std::endl;
         timeout = 3600;
     }
 
     if (!t.timed_join(boost::posix_time::seconds(timeout)))
-        logger << error << "timeout passed while processing " << filename
-               << std::endl;
+        logger << error << "timeout passed while processing " << filename << std::endl;
 }
 
-void process_file_interesting(const char *filename) {
+void process_file_interesting(const std::string &filename) {
     RsfConfigurationModel *main_model = dynamic_cast<RsfConfigurationModel *> (ModelContainer::lookupMainModel());
 
     if (!main_model) {
         logger << error << "for finding interessting items a (rsf based) model must be loaded" << std::endl;
         return;
     }
-
-    std::set<std::string> initialItems;
-    initialItems.insert(filename);
-
     /* Find all items that are related to the given item */
-    std::set<std::string> interesting = main_model->findSetOfInterestingItems(initialItems);
+    std::set<std::string> interesting = main_model->findSetOfInterestingItems( { filename } );
 
     /* remove the given item again */
     interesting.erase(filename);
@@ -712,12 +693,12 @@ void process_file_interesting(const char *filename) {
     std::cout << std::endl;
 }
 
-void process_file_checkexpr(const char *expression) {
+void process_file_checkexpr(const std::string &expression) {
     ConfigurationModel *main_model = ModelContainer::lookupMainModel();
     logger << debug << "Checking expr " << expression << std::endl;
 
     if (!main_model) {
-        logger << error << "for finding interessting items a model must be loaded" << std::endl;
+        logger << error << "for finding interesting items a model must be loaded" << std::endl;
         return;
     }
     StringJoiner sj;
@@ -726,7 +707,7 @@ void process_file_checkexpr(const char *expression) {
 
     sj.push_back(expression);
 
-    main_model->doIntersect("(" + std::string(expression) + ")",
+    main_model->doIntersect("(" + expression + ")",
                        nullptr, // No ConfigurationModel::Checker
                        missing, intersected);
 
@@ -746,7 +727,7 @@ void process_file_checkexpr(const char *expression) {
     }
 }
 
-void process_file_symbolpc(const char *filename) {
+void process_file_symbolpc(const std::string &filename) {
     ConfigurationModel *main_model = ModelContainer::lookupMainModel();
     if (!main_model) {
         logger << error << "for symbolpc models must be loaded" << std::endl;
@@ -757,7 +738,7 @@ void process_file_symbolpc(const char *filename) {
 
     /* Find all items that are related to the given item */
     std::string result;
-    int valid_items = main_model->doIntersect(std::string(filename), nullptr, missingItems, result);
+    int valid_items = main_model->doIntersect(filename, nullptr, missingItems, result);
     std::cout << result << std::endl;
 
     if (missingItems.size() > 0) {
@@ -769,31 +750,31 @@ void process_file_symbolpc(const char *filename) {
     std::cout << std::endl;;
 }
 
-process_file_cb_t parse_job_argument(const char *arg) {
-    if (strcmp(arg, "dead") == 0) {
+process_file_cb_t parse_job_argument(const std::string arg) {
+    if (arg == "dead") {
         return process_file_dead;
-    } else if (strcmp(arg, "coverage") == 0) {
+    } else if (arg == "coverage") {
         return process_file_coverage;
-    } else if (strcmp(arg, "cpppc") == 0) {
+    } else if (arg == "cpppc") {
         return process_file_cpppc;
-    } else if (strcmp(arg, "cpppc_decision") == 0) {
+    } else if (arg == "cpppc_decision") {
         decision_coverage = true;
         return process_file_cpppc;
-    } else if (strcmp(arg, "cppsym") == 0) {
+    } else if (arg == "cppsym") {
         return process_file_cppsym;
-    } else if (strcmp(arg, "blockpc") == 0) {
+    } else if (arg == "blockpc") {
         return process_file_blockpc;
-    }  else if (strcmp(arg, "blockrange") == 0) {
+    }  else if (arg == "blockrange") {
         return process_file_blockrange;
-    } else if (strcmp(arg, "interesting") == 0) {
+    } else if (arg == "interesting") {
         return process_file_interesting;
-    } else if (strcmp(arg, "checkexpr") == 0) {
+    } else if (arg == "checkexpr") {
         return process_file_checkexpr;
-    } else if (strcmp(arg, "symbolpc") == 0) {
+    } else if (arg == "symbolpc") {
         return process_file_symbolpc;
-    } else if (strcmp(arg, "blockconf") == 0) {
+    } else if (arg == "blockconf") {
         return process_blockconf;
-    } else if (strcmp(arg, "mergeblockconf") == 0) {
+    } else if (arg == "mergeblockconf") {
         return process_mergeblockconf;
     }
     return nullptr;
@@ -856,9 +837,10 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
 
 int main (int argc, char ** argv) {
     int opt;
-    char *worklist = nullptr;
+    std::string worklist;
     long threads = 1;
     std::list<std::string> models_from_parameters;
+    /* Default main model will be x86 or the first one in model container if x86 is not loaded */
     std::string main_model = "default";
     /* Default is dead/undead analysis */
     std::string process_mode = "dead";
@@ -875,7 +857,8 @@ int main (int argc, char ** argv) {
        -- job            -j: do a specific job
        load all model files in directory)
     */
-    coverageOutputMode = COVERAGE_MODE_KCONFIG;
+    coverageOutputMode = CoverageOutput::KCONFIG;
+    coverageMode = CoverageMode::SIMPLE;
 
     while ((opt = getopt(argc, argv, "ucb:M:m:t:i:B:W:sj:O:C:I:Vhvq")) != -1) {
         switch (opt) {
@@ -912,7 +895,7 @@ int main (int argc, char ** argv) {
             }
             break;
         case 'b':
-            worklist = strdup(optarg);
+            worklist = optarg;
             break;
         case 'u':
             if (std::system("which picomus > /dev/null") == 0)
@@ -925,21 +908,21 @@ int main (int argc, char ** argv) {
             break;
         case 'O':
             if (0 == strcmp(optarg, "kconfig"))
-                coverageOutputMode = COVERAGE_MODE_KCONFIG;
+                coverageOutputMode = CoverageOutput::KCONFIG;
             else if (0 == strcmp(optarg, "stdout"))
-                coverageOutputMode = COVERAGE_MODE_STDOUT;
+                coverageOutputMode = CoverageOutput::STDOUT;
             else if (0 == strcmp(optarg, "model"))
-                coverageOutputMode = COVERAGE_MODE_MODEL;
+                coverageOutputMode = CoverageOutput::MODEL;
             else if (0 == strcmp(optarg, "cpp"))
-                coverageOutputMode = COVERAGE_MODE_CPP;
+                coverageOutputMode = CoverageOutput::CPP;
             else if (0 == strcmp(optarg, "all"))
-                coverageOutputMode = COVERAGE_MODE_ALL;
+                coverageOutputMode = CoverageOutput::ALL;
             else if (0 == strcmp(optarg, "commented"))
-                coverageOutputMode = COVERAGE_MODE_COMMENTED;
+                coverageOutputMode = CoverageOutput::COMMENTED;
             else if (0 == strcmp(optarg, "combined"))
-                coverageOutputMode = COVERAGE_MODE_COMBINED;
+                coverageOutputMode = CoverageOutput::COMBINED;
             else if (0 == strncmp(optarg, "exec", 4)) {
-                coverageOutputMode = COVERAGE_MODE_EXEC;
+                coverageOutputMode = CoverageOutput::EXEC;
                 if (optarg[4] == ':')
                     coverage_exec_cmd = &optarg[5];
             }
@@ -949,15 +932,15 @@ int main (int argc, char ** argv) {
             break;
         case 'C':
             if (0 == strcmp(optarg, "simple")) {
-                coverageOperationMode = COVERAGE_OP_SIMPLE;
+                coverageMode = CoverageMode::SIMPLE;
             } else if (0 == strcmp(optarg, "min")) {
-                coverageOperationMode = COVERAGE_OP_MINIMIZE;
+                coverageMode = CoverageMode::MINIMIZE;
             } else if (0 == strcmp(optarg, "simple_decision")) {
                 decision_coverage = true;
-                coverageOperationMode = COVERAGE_OP_SIMPLE;
+                coverageMode = CoverageMode::SIMPLE;
             } else if (0 == strcmp(optarg, "min_decision")) {
                 decision_coverage = true;
-                coverageOperationMode = COVERAGE_OP_MINIMIZE;
+                coverageMode = CoverageMode::MINIMIZE;
             } else {
                 logger << warn << "mode " << optarg << " is unknown, using 'simple' instead"
                        << std::endl;
@@ -977,16 +960,16 @@ int main (int argc, char ** argv) {
             break;
         case 'M':
             /* Specify a new main arch */
-            main_model = std::string(optarg);
+            main_model = optarg;
             break;
         case 'm':
-            models_from_parameters.push_back(std::string(optarg));
+            models_from_parameters.emplace_back(optarg);
             break;
         case 'j':
             /* assign a new function pointer according to the jobs
                which should be done */
             process_file = parse_job_argument(optarg);
-            process_mode = std::string(optarg);
+            process_mode = optarg;
             if (!process_file) {
                 usage(std::cerr, "Invalid job specified");
                 return EXIT_FAILURE;
@@ -1023,7 +1006,7 @@ int main (int argc, char ** argv) {
 
     logger << debug << "undertaker " << version << std::endl;
 
-    if (!worklist && optind >= argc) {
+    if (worklist == "" && optind >= argc) {
         usage(std::cout, "please specify a file to scan or a worklist");
         return EXIT_FAILURE;
     }
@@ -1053,7 +1036,7 @@ int main (int argc, char ** argv) {
     }
 
     std::vector<std::string> workfiles;
-    if (!worklist) {
+    if (worklist == "") {
         /* Use files from command line */
         do {
             workfiles.push_back(argv[optind++]);
@@ -1115,17 +1098,17 @@ int main (int argc, char ** argv) {
                     new_mode = line.substr(2, space - 2);
                     line = line.substr(space + 1);
                 }
-                if (new_mode.compare("load") == 0) {
+                if (new_mode == "load") {
                     model_container->loadModels(line);
                     continue;
-                } else if (new_mode.compare("main-model") == 0) {
+                } else if (new_mode == "main-model") {
                     ConfigurationModel *db = model_container->loadModels(line);
                     if (db) {
                         model_container->setMainModel(db->getName());
                     }
                     continue;
                 } else { /* Change working mode */
-                    process_file_cb_t new_function = parse_job_argument(new_mode.c_str());
+                    process_file_cb_t new_function = parse_job_argument(new_mode);
                     if (!new_function) {
                         logger << error << "Invalid new working mode: " << new_mode << std::endl;
                         continue;
@@ -1136,30 +1119,28 @@ int main (int argc, char ** argv) {
                 }
             }
             if (line.size() > 0)
-                process_file(line.c_str());
+                process_file(line);
         }
     } else {
         if (workfiles.size() > 1) {
-            for (unsigned int i = 0; i < workfiles.size(); i++) {
+            for (const std::string &file : workfiles) {
                 pid_t pid = fork();
                 if (pid == 0) { /* child */
                     /* calling the function pointer */
-                    process_file(workfiles[i].c_str());
+                    process_file(file);
                     return RETVALUE;
                 } else if (pid < 0) {
                     logger << error << "forking failed. Exiting." << std::endl;
                     return EXIT_FAILURE;
                 } else { /* Father process */
-                    wait_for_forked_child(pid, threads, workfiles[i].c_str());
+                    wait_for_forked_child(pid, threads, file.c_str());
                 }
             }
             /* Wait until fork count reaches zero */
             wait_for_forked_child(0, 0, nullptr, threads > 1);
-        } else {
-            if (workfiles.size() > 0)
-                process_file(workfiles[0].c_str());
+        } else if (workfiles.size() == 1) {
+            process_file(workfiles[0]);
         }
     }
-    free(worklist);
     return RETVALUE;
 }

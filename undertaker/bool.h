@@ -42,10 +42,6 @@
 namespace kconfig {
     class BoolVisitor;
 
-    enum BoolType {
-        NONE, CONST, VAR, NOT, AND, OR
-    };
-
     enum TristateRelation {
         rel_yes, rel_mod, rel_pres, rel_helper, rel_meta
     };
@@ -53,6 +49,10 @@ namespace kconfig {
     const std::string TristateRelationNames[] = {
         "", "_MODULE", "_PRESENT", "", "_META"
     };
+
+/************************************************************************/
+/* BoolExp                                                              */
+/************************************************************************/
 
     class BoolExp {
     protected:
@@ -65,17 +65,21 @@ namespace kconfig {
 
         BoolExp() = default;
         virtual ~BoolExp();
-        virtual std::string str(void);
+        std::string str(void);
+        const std::string &getName(void) const { return this->name; }
         //! Apply obvious simplifications (if possible)
-        virtual BoolExp *simplify();
+        BoolExp *simplify();
+
         virtual int getEvaluationPriority(void) const { return -1; }
         virtual bool equals(const BoolExp *other) const;
         virtual void accept(BoolVisitor *visitor);
-        virtual std::string getName(void) const { return this->name; }
+
         static BoolExp *parseString(std::string);
     };
 
-// ================================================================
+/************************************************************************/
+/* BoolExpAnd                                                           */
+/************************************************************************/
 
     class BoolExpAnd : public BoolExp {
     public:
@@ -84,11 +88,13 @@ namespace kconfig {
             left = el;
         }
 
-        void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const { return 50; }
+        virtual void accept(BoolVisitor *visitor);
+        virtual int getEvaluationPriority(void) const { return 50; }
     };
 
-// ================================================================
+/************************************************************************/
+/* BoolExpOr                                                            */
+/************************************************************************/
 
     class BoolExpOr : public BoolExp {
     public:
@@ -97,11 +103,13 @@ namespace kconfig {
             left = el;
         }
 
-        void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const { return 30; }
+        virtual void accept(BoolVisitor *visitor);
+        virtual int getEvaluationPriority(void) const { return 30; }
     };
 
-// ================================================================
+/************************************************************************/
+/* BoolExpAny                                                           */
+/************************************************************************/
 
     class BoolExpAny : public BoolExp {
     public:
@@ -111,12 +119,14 @@ namespace kconfig {
             this->name = name;
         }
 
-        int getEvaluationPriority(void) const { return 60; }
-        void accept(BoolVisitor *visitor);
-        bool equals(const BoolExp *other) const;
+        virtual void accept(BoolVisitor *visitor);
+        virtual int getEvaluationPriority(void) const { return 60; }
+        virtual bool equals(const BoolExp *other) const;
     };
 
-// ================================================================
+/************************************************************************/
+/* BoolExpImpl                                                          */
+/************************************************************************/
 
     class BoolExpImpl : public BoolExp {
     public:
@@ -125,11 +135,13 @@ namespace kconfig {
             left = el;
         }
 
-        void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const { return 20; }
+        virtual void accept(BoolVisitor *visitor);
+        virtual int getEvaluationPriority(void) const { return 20; }
     };
 
-// ================================================================
+/************************************************************************/
+/* BoolExpEq                                                            */
+/************************************************************************/
 
     class BoolExpEq : public BoolExp {
     public:
@@ -138,11 +150,13 @@ namespace kconfig {
             left = el;
         }
 
-        void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const { return 10; }
+        virtual void accept(BoolVisitor *visitor);
+        virtual int getEvaluationPriority(void) const { return 10; }
     };
 
-// ================================================================
+/************************************************************************/
+/* BoolExpCall                                                          */
+/************************************************************************/
 
     class BoolExpCall : public BoolExp {
     public:
@@ -152,12 +166,14 @@ namespace kconfig {
             this->param = param;
         }
 
-        void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const { return 90; }
-        bool equals(const BoolExp *other) const;
+        virtual void accept(BoolVisitor *visitor);
+        virtual int getEvaluationPriority(void) const { return 90; }
+        virtual bool equals(const BoolExp *other) const;
     };
 
-// ================================================================
+/************************************************************************/
+/* BoolExpNot                                                           */
+/************************************************************************/
 
     class BoolExpNot : public BoolExp {
     public:
@@ -165,11 +181,13 @@ namespace kconfig {
             right = e;
         }
 
-        void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const { return 70; }
+        virtual void accept(BoolVisitor *visitor);
+        virtual int getEvaluationPriority(void) const { return 70; }
     };
 
-// ================================================================
+/************************************************************************/
+/* BoolExpConst                                                         */
+/************************************************************************/
 
     class BoolExpConst : public BoolExp {
     private:
@@ -179,13 +197,16 @@ namespace kconfig {
     public:
         bool value;
 
+        virtual void accept(BoolVisitor *visitor);
+        virtual int getEvaluationPriority(void) const { return 90; }
+        virtual bool equals(const BoolExp *other) const;
+
         static BoolExpConst *getInstance(bool val);
-        void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const { return 90; }
-        bool equals(const BoolExp *other) const;
     };
 
-// ================================================================
+/************************************************************************/
+/* BoolExpVar                                                           */
+/************************************************************************/
 
     class BoolExpVar : public BoolExp {
     public:
@@ -194,11 +215,8 @@ namespace kconfig {
 
         BoolExpVar(std::string name, bool addPrefix=true) {
             this->rel = rel_helper;
-            this->name = addPrefix ? "CONFIG_" + name: name;
+            this->name = addPrefix ? "CONFIG_" + name : name;
         }
-
-        void accept(BoolVisitor *visitor);
-        int getEvaluationPriority(void) const { return 90; }
 
         BoolExpVar(struct symbol *sym, TristateRelation rel) {
             nameSymbol(sym);
@@ -208,18 +226,14 @@ namespace kconfig {
             this->name = "CONFIG_" + name + TristateRelationNames[rel];
         }
 
-        static BoolExp *getFreeVar(void) {
-            static int freecount;
-            std::stringstream name;
-            name << "__FREEVAR__" << freecount;
-            freecount++;
-            return new BoolExpVar(name.str());
-        }
-
-        bool equals(const BoolExp *other) const;
+        virtual void accept(BoolVisitor *visitor);
+        virtual int getEvaluationPriority(void) const { return 90; }
+        virtual bool equals(const BoolExp *other) const;
     };
 
-// ================================================================
+/************************************************************************/
+/* Operators                                                            */
+/************************************************************************/
 
     std::ostream& operator<< (std::ostream &s, BoolExp &exp);
 

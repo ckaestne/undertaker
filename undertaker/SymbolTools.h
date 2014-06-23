@@ -41,6 +41,5 @@ namespace kconfig {
 
     void nameSymbol(struct symbol *sym);
     struct symbol *getModulesSym(void);
-    const char *symbolTypeString(enum symbol_type type);
 }
 #endif

@@ -29,21 +29,21 @@
 namespace kconfig {
     class BoolExpSimplifier : public BoolVisitor {
     public:
-        BoolExp *getResult(void) const{
+        BoolExp *getResult(void) const {
             return static_cast<BoolExp *>(this->result);
         }
 
     protected:
-        virtual void visit(BoolExp *e);
-        virtual void visit(BoolExpAnd *e);
-        virtual void visit(BoolExpOr *e);
-        virtual void visit(BoolExpNot *e);
-        virtual void visit(BoolExpConst *e);
-        virtual void visit(BoolExpVar *e);
-        virtual void visit(BoolExpImpl *e);
-        virtual void visit(BoolExpEq *e);
-        virtual void visit(BoolExpCall *e);
-        virtual void visit(BoolExpAny *e);
+        virtual void visit(BoolExp *e)      final override;
+        virtual void visit(BoolExpAnd *e)   final override;
+        virtual void visit(BoolExpOr *e)    final override;
+        virtual void visit(BoolExpNot *e)   final override;
+        virtual void visit(BoolExpConst *e) final override;
+        virtual void visit(BoolExpVar *e)   final override;
+        virtual void visit(BoolExpImpl *e)  final override;
+        virtual void visit(BoolExpEq *e)    final override;
+        virtual void visit(BoolExpCall *e)  final override;
+        virtual void visit(BoolExpAny *e)   final override;
     };
 };
 

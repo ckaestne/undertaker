@@ -27,15 +27,15 @@
 #include <fstream>
 #include <boost/regex.hpp>
 
-bool KconfigWhitelist::isWhitelisted(const char *item) const {
+bool KconfigWhitelist::isWhitelisted(const std::string &item) const {
     for (const std::string &str : *this)
-        if(str.compare(item) == 0)
+        if(str == item)
             return true;
     return false;
 }
 
 void KconfigWhitelist::addToWhitelist(const std::string item) {
-    if(!isWhitelisted(item.c_str()))
+    if(!isWhitelisted(item))
         push_back(item);
 }
 
@@ -74,13 +74,12 @@ int KconfigWhitelist::loadWhitelist(const char *file) {
     int n = 0;
 
     while (std::getline(whitelist, line)) {
-        boost::match_results<const char*> what;
-
-        if (boost::regex_search(line.c_str(), what, r))
+        boost::smatch what;
+        if (boost::regex_search(line, what, r))
             continue;
 
         n++;
-        this->addToWhitelist(line.c_str());
+        this->addToWhitelist(line);
     }
     return n;
 }

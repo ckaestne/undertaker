@@ -111,7 +111,7 @@ const std::string *RsfReader::getValue(const std::string &key) const {
     static std::string null_string("");
     const_iterator i = find(key);
 
-    if (i == end())
+    if (i == end())  // key not found
         return nullptr;
     if (i->second.size() == 0)
         return &null_string;
@@ -120,26 +120,20 @@ const std::string *RsfReader::getValue(const std::string &key) const {
 }
 
 const StringList *RsfReader::getMetaValue(const std::string &key) const {
-    static std::string null_string("");
-
-    std::map<std::string, StringList>::const_iterator i = meta_information.find(key);
-    if (i == meta_information.end())
+    const auto &it = meta_information.find(key); // pair<string, StringList>
+    if (it == meta_information.end())  // key not found
         return nullptr;
-    return &((*i).second);
+    return &((*it).second);
 }
 
 void RsfReader::addMetaValue(const std::string &key, const std::string &value) {
-    StringList values;
-    std::map<std::string, StringList>::const_iterator i = meta_information.find(key);
-    if (i != meta_information.end()) {
-        values = (*i).second;
-        meta_information.erase(key);
-    }
-    values.push_back(value);
-    meta_information.emplace(key, values);
+    StringList &values = meta_information[key];
+    if (std::find(values.begin(), values.end(), value) == values.end())
+        // value wasn't found within values, add it
+        values.push_back(value);
 }
 
-ItemRsfReader::ItemRsfReader(std::istream &f) : RsfReader() {
+ItemRsfReader::ItemRsfReader(std::istream &f) {
     read_rsf(f);
 }
 

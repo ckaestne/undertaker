@@ -41,8 +41,7 @@ namespace kconfig {
 
     public:
         bool isVisited(BoolExp *node) const {
-            std::map<BoolExp *, void *>::const_iterator it = visited.find(node);
-            return it != visited.end();
+            return visited.find(node) != visited.end();
         }
 
     protected:

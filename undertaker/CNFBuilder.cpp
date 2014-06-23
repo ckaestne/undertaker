@@ -22,16 +22,23 @@
 #include "CNFBuilder.h"
 #include "Tools.h"
 #include "KconfigWhitelist.h"
+#include "exceptions/CNFBuilderError.h"
 
 using namespace kconfig;
 
 
-CNFBuilder::CNFBuilder(CNF *cnf, BoolExp *exp, bool useKconfigWhitelist,
-        enum ConstantPolicy constPolicy) : cnf(cnf), constPolicy(constPolicy) {
+CNFBuilder::CNFBuilder(CNF *cnf, std::string sat, bool useKconfigWhitelist,
+        ConstantPolicy constPolicy) : cnf(cnf), constPolicy(constPolicy) {
     if (useKconfigWhitelist)
         wl = KconfigWhitelist::getIgnorelist();
-    if (exp)
+    if (sat != "") {
+        BoolExp *exp = BoolExp::parseString(sat);
+        if (!exp) {
+           throw CNFBuilderError("CNFBuilder: Couldn't parse: " + sat);
+        }
         this->pushClause(exp);
+        delete exp;
+    }
 }
 
 void CNFBuilder::pushClause(BoolExp *e) {
@@ -59,7 +66,7 @@ void CNFBuilder::pushClause(BoolExp *e) {
 }
 
 int CNFBuilder::addVar(std::string symname) {
-    symname = undertaker::normalize_filename(symname.c_str());
+    symname = undertaker::normalize_filename(symname);
     int cv = cnf->getCNFVar(symname);
 
     if (cv == 0) {
@@ -211,7 +218,7 @@ void CNFBuilder::visit(BoolExpConst *e) {
     if (e->CNFVar)
         return;
 
-    if (constPolicy == CNFBuilder::FREE){
+    if (constPolicy == ConstantPolicy::FREE){
         //handle consts as free var
         e->CNFVar = this->cnf->newVar();
         return;
@@ -229,7 +236,7 @@ void CNFBuilder::visit(BoolExpVar *e) {
     if (e->CNFVar) {
         return;
     }
-    if (this->wl && wl->isWhitelisted(symname.c_str())) {
+    if (this->wl && wl->isWhitelisted(symname)) {
         // use free variables for symbols in wl
         e->CNFVar = this->cnf->newVar();
     } else {

@@ -39,19 +39,22 @@ class ConditionalBlock;
 class ConfigurationModel;
 
 
+/************************************************************************/
+/* BlockDefectAnalyzer                                                  */
+/************************************************************************/
+
 class BlockDefectAnalyzer {
 public:
-    // FIXME change this to 'enum class DEFECTTYPE' when implementing c++11
-    enum DEFECTTYPE { None, Implementation, Configuration, Referential, NoKconfig };
+    enum class DEFECTTYPE { None, Implementation, Configuration, Referential, NoKconfig };
+
+    //!< human readable identifier for the defect type
+    const std::string defectTypeToString() const;
 
     virtual bool isDefect(const ConfigurationModel *model) = 0; //!< checks for a defect
-    virtual bool isGlobal() const = 0; //!< checks if the defect applies to all models
-    virtual bool isNoKconfigDefect(const ConfigurationModel *model) = 0;
-    virtual bool needsCrosscheck() const = 0; //!< defect will be present on every model
-    virtual void defectIsGlobal();  //!< mark defect als valid on all models
-    const std::string defectTypeToString() const; //!< human readable identifier for the defect type
-    const std::string getSuffix() const { return std::string(_suffix); }
-    std::string getBlockPrecondition(const ConfigurationModel *model) const;
+    virtual const std::string getSuffix() const = 0;
+    virtual DEFECTTYPE defectType() const       = 0;
+    virtual bool isGlobal() const               = 0; //!< return if the defect applies to all models
+    virtual void markAsGlobal()                 = 0; //!< mark defect als valid on all models
 
     /**
      * \brief Write out a report to a file.
@@ -84,47 +87,64 @@ public:
      */
     virtual bool writeReportToFile(bool skip_no_kconfig) const = 0;
     virtual void reportMUS() const = 0;
-    virtual DEFECTTYPE defectType() const { return _defectType; }
+
     virtual ~BlockDefectAnalyzer() {}
 
     static const BlockDefectAnalyzer * analyzeBlock(ConditionalBlock *,
                                                     ConfigurationModel *);
+    static std::string getBlockPrecondition(ConditionalBlock *, const ConfigurationModel *);
 
 protected:
     BlockDefectAnalyzer() = default;
-    DEFECTTYPE _defectType = None;
-    bool _isGlobal = false;
-    ConditionalBlock *_cb;
-    std::string _suffix;
+    DEFECTTYPE _defectType = DEFECTTYPE::None;
 };
+
+
+/************************************************************************/
+/* DeadBlockDefect                                                      */
+/************************************************************************/
 
 //! Checks a given block for "un-selectable block" defects.
 class DeadBlockDefect : public BlockDefectAnalyzer {
 public:
     //! c'tor for Dead Block Defect Analysis
     DeadBlockDefect(ConditionalBlock *);
-    virtual bool isDefect(const ConfigurationModel *model); //!< checks for a defect
-    virtual bool isGlobal() const; //!< checks if the defect applies to all models
-    virtual bool isNoKconfigDefect(const ConfigurationModel *model);
-    virtual bool needsCrosscheck() const; //!< defect will be present on every model
-    virtual bool writeReportToFile(bool skip_no_kconfig) const;
-    virtual void reportMUS() const;
-    virtual const char *getArch() { return _arch; }
-    virtual void setArch(const char *arch) { _arch = arch; }
+    virtual bool isDefect(const ConfigurationModel *model) override; //!< checks for a defect
+    virtual bool writeReportToFile(bool skip_no_kconfig) const final override;
+    virtual void reportMUS()                             const final override;
 
+    virtual const std::string getSuffix()  const final override { return _suffix; }
+    virtual DEFECTTYPE defectType()        const final override { return _defectType; }
+    //!< return if the defect applies to all models
+    virtual bool isGlobal()                const final override { return _isGlobal; }
+    //!< mark defect als valid on all models
+    virtual void markAsGlobal()                  final override { _isGlobal = true; }
+
+    void setArch(std::string arch) { _arch = arch; }
+    const std::string &getArch() const { return _arch; }
+    bool isNoKconfigDefect(const ConfigurationModel *model);
+    bool needsCrosscheck() const; //!< defect will be present on every model
 protected:
     std::string getDefectReportFilename() const;
+
+    bool _isGlobal = false;
     bool _needsCrosscheck = false;
-    const char *_arch = nullptr;
+    std::string _suffix;
+    std::string _arch;
     std::string _formula;
     std::string _musFormula;
+    ConditionalBlock *_cb;
 };
+
+/************************************************************************/
+/* UndeadBlockDefect                                                    */
+/************************************************************************/
 
 //! Checks a given block for "un-deselectable block" defects.
 class UndeadBlockDefect : public DeadBlockDefect {
 public:
     UndeadBlockDefect(ConditionalBlock *);
-    virtual bool isDefect(const ConfigurationModel *model);
+    virtual bool isDefect(const ConfigurationModel *model) final override;
 };
 
 #endif

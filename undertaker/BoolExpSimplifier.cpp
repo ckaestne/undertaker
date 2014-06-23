@@ -31,15 +31,12 @@ void kconfig::BoolExpSimplifier::visit(BoolExpNot *) {
     BoolExpConst *constant = dynamic_cast<BoolExpConst*>(node);
     if (constant) {
         bool v = !constant->value;
-
-        BoolExp *ret = B_CONST(v);
-        this->result = ret;
+        this->result = B_CONST(v);
         return;
     }
     BoolExpNot *notExpr = dynamic_cast<BoolExpNot*>(node);
     if (notExpr) {
-        BoolExp *x = notExpr->right;
-        this->result = x;
+        this->result = notExpr->right;
         return;
     }
     this->result = new BoolExpNot(node);

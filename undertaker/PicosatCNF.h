@@ -41,7 +41,7 @@ namespace Picosat {
 
 namespace kconfig {
     class PicosatCNF: public CNF {
-    protected:
+    private:
         //! this map contains the the type of each Kconfig symbol
         std::map<std::string, kconfig_symbol_type> symboltypes;
 
@@ -77,43 +77,51 @@ namespace kconfig {
         PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
         virtual ~PicosatCNF();
         void setDefaultPhase(Picosat::SATMode phase);
-        virtual void setMusAnalysis(bool mus_analysis) { this->do_mus_analysis = mus_analysis; }
-        virtual std::string getMusDirName() { return musTmpDirName; }
-        virtual void readFromFile(const char *filename);
-        virtual void readFromStream(std::istream &i);
-        virtual void toFile(const char *filename) const;
-        virtual void toStream(std::ostream &out) const;
-        virtual kconfig_symbol_type getSymbolType(const std::string &name);
-        virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type);
-        virtual int getCNFVar(const std::string &var);
-        virtual void setCNFVar(const std::string &var, int CNFVar);
-        virtual std::string &getSymbolName(int CNFVar);
-        virtual void pushVar(int v);
-        virtual void pushVar(std::string  &v, bool val);
-        virtual void pushClause(void);
-        virtual void pushClause(int *c);
-        virtual void pushAssumption(int v);
-        virtual void pushAssumption(const std::string &v,bool val);
-        virtual void pushAssumption(const char *v,bool val);
-        virtual void pushAssumptions(std::map<std::string, bool> &a);
-        virtual bool checkSatisfiable(void);
-        virtual bool deref(int s);
-        virtual bool deref(const std::string &s);
-        virtual bool deref(const char *s);
-        virtual int getVarCount(void);
-        virtual int newVar(void);
-        virtual const std::string *getAssociatedSymbol(const std::string &var) const;
+        virtual void setMusAnalysis(bool mus_analysis)                 final override {
+            this->do_mus_analysis = mus_analysis;
+        }
+        virtual std::string getMusDirName()                      const final override {
+            return musTmpDirName;
+        }
+        virtual void readFromFile(const std::string &filename)         final override;
+        virtual void readFromStream(std::istream &i)                   final override;
+        virtual void toFile(const std::string &filename)         const final override;
+        virtual void toStream(std::ostream &out)                 const final override;
+        virtual kconfig_symbol_type getSymbolType(const std::string &name)     const final override;
+        virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type) final override;
+        virtual int getCNFVar(const std::string &var)            const final override;
+        virtual void setCNFVar(const std::string &var, int CNFVar)     final override;
+        virtual std::string &getSymbolName(int CNFVar)                 final override;
+        virtual void pushVar(int v)                                    final override;
+        virtual void pushVar(std::string  &v, bool val)                final override;
+        virtual void pushClause(void)                                  final override;
+        virtual void pushClause(int *c)                                final override;
+        virtual void pushAssumption(int v)                             final override;
+        virtual void pushAssumption(const std::string &v,bool val)     final override;
+        virtual void pushAssumption(const char *v,bool val)            final override;
+        virtual void pushAssumptions(std::map<std::string, bool> &a)   final override;
+        virtual bool checkSatisfiable(void)                            final override;
         /** returns cnf-id of assumtions, that cause unresolvable conflicts.
             If checkSatisfiable returns false, this returns an array of assumptions
             that derived unsatisfiability (= failed assumptions).
             It does not contain all unsatisfiable assumptions.
             @returns array if of failed cnf-ids
         **/
-        const int *failedAssumptions(void) const;
+        virtual const int *failedAssumptions(void)               const final override;
+        virtual bool deref(int s)                                const final override;
+        virtual bool deref(const std::string &s)                 const final override;
+        virtual bool deref(const char *s)                        const final override;
+        virtual int getVarCount(void)                            const final override;
+        virtual int newVar(void)                                       final override;
+        virtual const std::string *getAssociatedSymbol(const std::string &var) const final override;
 
-        virtual const std::map<std::string, int>& getSymbolMap() { return this->cnfvars; }
-        const std::deque<std::string> *getMetaValue(const std::string &key) const;
-        void addMetaValue(const std::string &key, const std::string &value);
+        virtual const std::map<std::string, int>& getSymbolMap() const final override {
+            return this->cnfvars;
+        }
+        virtual const std::deque<std::string> *getMetaValue(const std::string &key)
+                                                                 const final override;
+        virtual void addMetaValue(const std::string &key, const std::string &value)
+                                                                       final override;
     };
 }
 #endif

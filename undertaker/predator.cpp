@@ -87,9 +87,10 @@ void normalize_file(const char *f) {
 int main(int argc, char **argv) {
     const char *filename = argv[argc-1];
 
-    project = new Puma::CProject(err, argc, argv);
     if (argc <2)
         usage("Need at least two arguments");
+
+    project = new Puma::CProject(err, argc, argv);
 
     boost::thread t(normalize_file, filename);
 

@@ -19,13 +19,7 @@
 #include "KconfigAssumptionMap.h"
 #include "Logging.h"
 #include "CNF.h"
-
-#ifndef LKC_DIRECT_LINK
-#define LKC_DIRECT_LINK
-#endif
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "lkc.h"
-#pragma GCC diagnostic warning "-Wunused-parameter"
+#include "Kconfig.h"
 
 #include <boost/regex.hpp>
 
@@ -47,7 +41,7 @@ KconfigAssumptionMap::size_type KconfigAssumptionMap::readAssumptionsFromFile(st
         }
         static const boost::regex notSet_regexp("^#\\s?(CONFIG_.*) is not set$");
         static const boost::regex line_regexp("^(CONFIG_[_a-zA-Z0-9]+)=(.*)$");
-        boost::match_results<std::string::const_iterator> what;
+        boost::smatch what;
 
         if (boost::regex_match(line, what, notSet_regexp)) {
             sym=what[1];
@@ -62,18 +56,18 @@ KconfigAssumptionMap::size_type KconfigAssumptionMap::readAssumptionsFromFile(st
         }
         // strip of the leading 'CONFIG_'
         std::string symR = sym.substr(7, sym.length()-7);
-        enum symbol_type type = (enum symbol_type) this->_model->getSymbolType(symR);
+        kconfig_symbol_type type = this->_model->getSymbolType(symR);
         std::string symM = sym + "_MODULE";
 
         switch(type) {
-        case S_BOOLEAN:
+        case K_S_BOOLEAN:
             if (val == "y") {
                 (*this)[sym] = true;
             } else {
                 (*this)[sym] = false;
             }
             break;
-        case S_TRISTATE:
+        case K_S_TRISTATE:
             if (val == "y") {
                 (*this)[sym] = true;
             } else if (val == "m") {
@@ -83,9 +77,9 @@ KconfigAssumptionMap::size_type KconfigAssumptionMap::readAssumptionsFromFile(st
                 (*this)[symM] = false;
             }
             break;
-        case S_INT:
-        case S_HEX:
-        case S_STRING:
+        case K_S_INT:
+        case K_S_HEX:
+        case K_S_STRING:
             static bool warned = false;
             //TODO!!!
             if (!warned) {
@@ -94,8 +88,8 @@ KconfigAssumptionMap::size_type KconfigAssumptionMap::readAssumptionsFromFile(st
                 warned = true;
             }
             break;
-        case S_OTHER:
-        case S_UNKNOWN:
+        case K_S_OTHER:
+        case K_S_UNKNOWN:
             break;
         default:
             //do nothing

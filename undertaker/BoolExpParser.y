@@ -25,7 +25,7 @@
 #include <list>
 
 #include "bool.h"
-#include "BoolExpParserException.h"
+#include "exceptions/BoolExpParserException.h"
 
 %}
 

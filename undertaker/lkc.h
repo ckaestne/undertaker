@@ -1,1 +1,0 @@
-../scripts/kconfig/lkc.h

@@ -50,7 +50,7 @@ namespace kconfig {
 
         virtual ~BoolExpLexer();
 
-        virtual BoolExpParser::token_type lex(
+        BoolExpParser::token_type lex(
                 BoolExpParser::semantic_type* yylval,
                 BoolExpParser::location_type* yylloc);
 

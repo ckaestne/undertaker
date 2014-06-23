@@ -48,6 +48,10 @@ namespace Puma {
 }
 
 
+/************************************************************************/
+/* PumaConditionalBlock                                                 */
+/************************************************************************/
+
 class PumaConditionalBlock : public ConditionalBlock {
     unsigned long _number;
     Puma::Token *_start = nullptr, *_end = nullptr;
@@ -73,43 +77,51 @@ public:
     virtual ~PumaConditionalBlock() { delete[] _expressionStr_cache; }
 
     //! location related accessors
-    virtual const char *filename()   const { return cpp_file->getFilename().c_str(); };
-    virtual unsigned int lineStart() const {
+    virtual const std::string &filename() const final override {
+        return cpp_file->getFilename();
+    };
+    virtual unsigned int lineStart()     const final override {
         return getParent() ? _start->location().line() : 0;
     };
-    virtual unsigned int colStart()  const {
+    virtual unsigned int colStart()      const final override {
         return getParent() ? _start->location().column() : 0;
     };
-    virtual unsigned int lineEnd()   const {
+    virtual unsigned int lineEnd()       const final override {
         return getParent() ? _end  ->location().line() : 0;
     };
-    virtual unsigned int colEnd()    const {
+    virtual unsigned int colEnd()        const final override {
         return getParent() ? _end  ->location().column() : 0;
     };
     /// @}
 
     Puma::Token *pumaStartToken() const { return _start; };
     Puma::Token *pumaEndToken() const { return _end; };
-    Puma::Unit  *unit() const { return _current_node->startToken() ?
-            _current_node->startToken()->unit() : 0; }
+    Puma::Unit  *unit() const {
+        return _current_node->startToken() ? _current_node->startToken()->unit() : 0;
+    }
 
     //! \return original untouched expression
-    virtual const char * ExpressionStr() const;
-    virtual bool isIfBlock() const { return _isIfBlock; }
-    virtual bool isIfndefine() const;
-    virtual bool isElseIfBlock() const;
-    virtual bool isElseBlock() const;
-    virtual bool isDummyBlock() const { return _isDummyBlock; }
-    virtual void setDummyBlock() { _isDummyBlock = true; }
-    virtual const std::string getName() const;
+    virtual const char * ExpressionStr() const final override;
+    virtual bool isIfBlock()             const final override { return _isIfBlock; }
+    virtual bool isIfndefine()           const final override;
+    virtual bool isElseIfBlock()         const final override;
+    virtual bool isElseBlock()           const final override;
+    virtual bool isDummyBlock()          const final override { return _isDummyBlock; }
+    virtual void setDummyBlock()               final override { _isDummyBlock = true; }
+    virtual const std::string getName()  const final override;
     PumaConditionalBlockBuilder & getBuilder() const { return _builder; }
 
     friend class PumaConditionalBlockBuilder;
 };
 
+
+/************************************************************************/
+/* PumaConditionalBlockBuilder                                          */
+/************************************************************************/
+
 class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     unsigned long _nodeNum;
-    void iterateNodes (Puma::PreTree *);
+    virtual void iterateNodes (Puma::PreTree *) final override;
     // Stack of open conditional blocks. Pushed to when entering #ifdef
     // (and similar) blocks, popped from when leaving them.
     std::stack<PumaConditionalBlock *> _condBlockStack;
@@ -128,12 +140,12 @@ class PumaConditionalBlockBuilder : public Puma::PreVisitor {
     static std::list<std::string> _includePaths;
 
     void visitDefineHelper(Puma::PreTreeComposite *node, bool define);
-    Puma::Unit *resolve_includes(Puma::Unit *);
+    void resolve_includes(Puma::Unit *);
     void reset_MacroManager(Puma::Unit *unit);
-    ConditionalBlock *parse (const char *filename);
+    ConditionalBlock *parse(const std::string &filename);
 
 public:
-    PumaConditionalBlockBuilder(CppFile *file, const char* filename) : _file(file),
+    PumaConditionalBlockBuilder(CppFile *file, const std::string &filename) : _file(file),
             null_stream("/dev/null"), _err(null_stream) {
         _top = parse(filename);
     }
@@ -143,17 +155,19 @@ public:
 
     ConditionalBlock *topBlock() { return _top; }
 
-    void visitPreProgram_Pre (Puma::PreProgram *);
-    void visitPreProgram_Post (Puma::PreProgram *);
-    void visitPreIfDirective_Pre (Puma::PreIfDirective *);
-    void visitPreIfdefDirective_Pre (Puma::PreIfdefDirective *);
-    void visitPreIfndefDirective_Pre (Puma::PreIfndefDirective *);
-    void visitPreElifDirective_Pre (Puma::PreElifDirective *);
-    void visitPreElseDirective_Pre (Puma::PreElseDirective *);
-    void visitPreEndifDirective_Pre (Puma::PreEndifDirective *);
-    void visitPreDefineConstantDirective_Pre (Puma::PreDefineConstantDirective *);
-    void visitPreDefineFunctionDirective_Pre (Puma::PreDefineFunctionDirective *);
-    void visitPreUndefDirective_Pre (Puma::PreUndefDirective *);
+    virtual void visitPreProgram_Pre (Puma::PreProgram *)                 final override;
+    virtual void visitPreProgram_Post (Puma::PreProgram *)                final override;
+    virtual void visitPreIfDirective_Pre (Puma::PreIfDirective *)         final override;
+    virtual void visitPreIfdefDirective_Pre (Puma::PreIfdefDirective *)   final override;
+    virtual void visitPreIfndefDirective_Pre (Puma::PreIfndefDirective *) final override;
+    virtual void visitPreElifDirective_Pre (Puma::PreElifDirective *)     final override;
+    virtual void visitPreElseDirective_Pre (Puma::PreElseDirective *)     final override;
+    virtual void visitPreEndifDirective_Pre (Puma::PreEndifDirective *)   final override;
+    virtual void visitPreDefineConstantDirective_Pre (Puma::PreDefineConstantDirective *)
+                                                                          final override;
+    virtual void visitPreDefineFunctionDirective_Pre (Puma::PreDefineFunctionDirective *)
+                                                                          final override;
+    virtual void visitPreUndefDirective_Pre (Puma::PreUndefDirective *)   final override;
 
     unsigned long * getNodeNum() { return &_nodeNum; }
     static void addIncludePath(const char *);

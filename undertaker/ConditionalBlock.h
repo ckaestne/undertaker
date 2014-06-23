@@ -37,10 +37,14 @@ class UniqueStringJoiner;
 typedef std::list<ConditionalBlock *> CondBlockList;
 
 
+/************************************************************************/
+/* CppFile                                                              */
+/************************************************************************/
+
 class CppFile : public CondBlockList {
  public:
     //! \param filename file with cpp expressions to parse
-    CppFile(const char *filename);
+    CppFile(const std::string &filename);
     ~CppFile();
 
     //! Check if the file was correctly parsed
@@ -48,8 +52,7 @@ class CppFile : public CondBlockList {
 
     /**
      * The top block of an parsed file is an artificial block, which
-     * doesn't represent an concrete block, but the
-     * whole file.
+     * doesn't represent an concrete block, but the whole file.
      * \return top block
     */
     ConditionalBlock *topBlock() const { return top_block; };
@@ -61,7 +64,7 @@ class CppFile : public CondBlockList {
     DefineMap * getDefines() { return &define_map; };
 
     //! \return filename given in the constructor
-    std::string getFilename() const { return filename; };
+    const std::string &getFilename() const { return filename; };
 
     /**
      * \param postition format: "filename:line:pos"
@@ -93,28 +96,31 @@ class CppFile : public CondBlockList {
     void printCppFile();
 };
 
+/************************************************************************/
+/* ConditionalBlock                                                     */
+/************************************************************************/
 
 class ConditionalBlock : public CondBlockList {
  public:
     //! defect type used in block defect analysis
     BlockDefectAnalyzer::DEFECTTYPE defectType;
     //! location related accessors
-    virtual const char *filename()   const = 0;
-    virtual unsigned int lineStart() const = 0;
-    virtual unsigned int colStart()  const = 0;
-    virtual unsigned int lineEnd()   const = 0;
-    virtual unsigned int colEnd()    const = 0;
+    virtual const std::string &filename()  const = 0;
+    virtual unsigned int lineStart()       const = 0;
+    virtual unsigned int colStart()        const = 0;
+    virtual unsigned int lineEnd()         const = 0;
+    virtual unsigned int colEnd()          const = 0;
     /// @}
 
     //! \return original untouched expression
     virtual const char * ExpressionStr() const = 0;
-    virtual bool isIfBlock() const             = 0; //!< is if or ifdef block
-    virtual bool isIfndefine() const           = 0; //!< is ifndef
-    virtual bool isElseIfBlock() const         = 0; //!< is elif
-    virtual bool isElseBlock() const           = 0; //!< is else
-    virtual bool isDummyBlock() const          = 0; //!< is Dummy-Block
+    virtual bool isIfBlock()             const = 0; //!< is if or ifdef block
+    virtual bool isIfndefine()           const = 0; //!< is ifndef
+    virtual bool isElseIfBlock()         const = 0; //!< is elif
+    virtual bool isElseBlock()           const = 0; //!< is else
+    virtual bool isDummyBlock()          const = 0; //!< is Dummy-Block
     virtual void setDummyBlock()               = 0; //!< set Block to dummy state
-    virtual const std::string getName() const  = 0; //!< unique identifier for block
+    virtual const std::string getName()  const = 0; //!< unique identifier for block
 
     /**
      * This function doesn't affect the logic of the CPPPC algorithm, but changes
@@ -183,6 +189,10 @@ private:
     void insertBlockIntoFile(ConditionalBlock *prevBlock, ConditionalBlock *nblock,
             bool insertAfter = false);
 };
+
+/************************************************************************/
+/* CppDefine                                                            */
+/************************************************************************/
 
 class CppDefine {
 public:
