@@ -858,7 +858,7 @@ int main (int argc, char ** argv) {
     char *worklist = nullptr;
     long threads = 1;
     std::list<std::string> models_from_parameters;
-    std::string main_model = "x86";
+    std::string main_model = "default";
     /* Default is dead/undead analysis */
     std::string process_mode = "dead";
     process_file_cb_t process_file = process_file_dead;
@@ -1076,7 +1076,20 @@ int main (int argc, char ** argv) {
         /* If there is only one model file loaded use this */
         model_container->setMainModel(model_container->begin()->first);
     } else if (model_container->size() > 1) {
-        model_container->setMainModel(main_model);
+        /* the main model is default */
+        if (main_model == "default") {
+            // if 'x86' is not present, load the first one in model_container
+            if (nullptr == model_container->lookupModel("x86")) {
+                const std::string &first = model_container->begin()->first;
+                logger << error << "Default Main-Model 'x86' not found. Using '"
+                       << first << "' instead." << std::endl;
+                model_container->setMainModel(first);
+            } else {
+                model_container->setMainModel("x86");
+            }
+        } else {
+            model_container->setMainModel(main_model);
+        }
     }
 
     /* Read from stdin after loading all models and whitelist */
