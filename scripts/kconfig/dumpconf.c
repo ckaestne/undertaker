@@ -242,6 +242,13 @@ void my_print_symbol(FILE *out, struct menu *menu)
 			my_expr_fprint(prop->visible.expr, out);
 			fprintf(out, "\"\n");
 		}
+		for_all_properties(sym, prop, P_RANGE) {
+			fprintf(out, "Range\t%s\t\"", itemname);
+			my_expr_fprint(prop->expr, out);
+			fprintf(out, "\"\t\"");
+			my_expr_fprint(prop->visible.expr, out);
+			fprintf(out, "\"\n");
+		}
 	//}
 
 	for (prop = sym->prop; prop; prop = prop->next) {
