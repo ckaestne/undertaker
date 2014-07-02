@@ -6,19 +6,16 @@ CXXFLAGS = $(CFLAGS)
 LDFLAGS =
 LDLIBS = -lboost_regex -lboost_wave -lboost_system $(LDCOV)
 
-ZIZOBJ = Ziz.o
 HEADERS = $(wildcard *.h)
 
 all: zizler
 
 Zizler.o: Zizler.cpp $(HEADERS)
 
-zizler: Zizler.o libziz.a
+zizler: Zizler.o Ziz.o
 	$(LDXX) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
-$(ZIZOBJ): $(HEADERS)
-libziz.a: $(ZIZOBJ) $(HEADERS)
-	ar r $@ $(ZIZOBJ)
+Ziz.o: $(HEADERS)
 
 clean: clean-check
 	rm -rf *.o *.a zizler

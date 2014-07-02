@@ -4,36 +4,41 @@ SUFFIXES += .d
 #We don't need to clean up when we're making these targets
 NODEPS:=clean clean-check
 
-# DEBUG = -g3 -DDEBUG
-# to compile with debug, compile like this:
-# make DEBUG="-g3 -DDEBUG"
-CFLAGS = -Wall -Wextra -O2 $(DEBUG)
+CFLAGS = -Wall -Wextra -O2
 CPPFLAGS = -I $(CURDIR)/../scripts/kconfig -I $(CURDIR)/../picosat
 CXXFLAGS = $(CFLAGS) -std=gnu++11
 
+# use g++ for linking, will automaticly use "-lstdc++ -lm" libraries
+CC = g++
+
 LDFLAGS =
-# LDCOV = -coverage
 BOOST_LIBS = -lboost_system -lboost_regex -lboost_filesystem -lboost_thread
-LDLIBS = libparser.a -lstdc++ $(BOOST_LIBS) ../picosat/libpicosat.a -lPuma -lpthread -lm -lrt $(LDCOV)
+LDLIBS = $(BOOST_LIBS) -lPuma
 
-PARSEROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
-		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
-		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o \
-		ConfigurationModel.o \
-		Logging.o Tools.o \
-		BoolExpGC.o \
+# LDCOV = -coverage
+ifdef LDCOV
+	LDLIBS += $(LDCOV)
+endif
+
+# DEBUG = -g3 -DDEBUG
+# to compile with debug, compile like this:
+# make DEBUG="-g3 -DDEBUG"
+ifdef DEBUG
+	CFLAGS += $(DEBUG)
+endif
+
+PARSEROBJ = KconfigWhitelist.o Logging.o Tools.o \
 		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o BoolExpSimplifier.o \
-		PicosatCNF.o CnfConfigurationModel.o \
-		bool.o CNFBuilder.o PicosatCNF.o CnfConfigurationModel.o
+		BoolExpGC.o bool.o CNFBuilder.o PicosatCNF.o \
+		ConditionalBlock.o PumaConditionalBlock.o RsfReader.o ModelContainer.o \
+		ConfigurationModel.o RsfConfigurationModel.o CnfConfigurationModel.o \
+		BlockDefectAnalyzer.o CoverageAnalyzer.o SatChecker.o
 
-SATYROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
-		ModelContainer.o BlockDefectAnalyzer.o\
-		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o \
-		Logging.o ConfigurationModel.o BoolExpGC.o \
-		bool.o CNFBuilder.o PicosatCNF.o CnfConfigurationModel.o\
-		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o BoolExpSimplifier.o\
-		ExpressionTranslator.o SymbolTranslator.o SymbolTools.o SymbolParser.o\
-		KconfigAssumptionMap.o Tools.o
+SATYROBJ = KconfigWhitelist.o Logging.o Tools.o \
+		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o BoolExpSimplifier.o \
+		BoolExpGC.o bool.o CNFBuilder.o PicosatCNF.o \
+		ExpressionTranslator.o SymbolTranslator.o SymbolTools.o SymbolParser.o \
+		KconfigAssumptionMap.o
 
 PROGS = undertaker predator rsf2cnf satyr
 TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel \
@@ -44,10 +49,9 @@ DEPFILES:=$(patsubst %.o,%.d,$(PARSEROBJ) $(SATYROBJ)) undertaker.d satyr.d
 all: $(PROGS) $(TESTPROGS)
 
 undertaker: libparser.a ../picosat/libpicosat.a
-rsf2cnf: libparser.a
-KconfigIntersect: libparser.a
-predator: libparser.a predator.o PredatorVisitor.o
-satyr: libsatyr.a zconf.tab.o ../picosat/libpicosat.a libparser.a
+rsf2cnf: libparser.a ../picosat/libpicosat.a
+predator: predator.o PredatorVisitor.o
+satyr: libsatyr.a zconf.tab.o ../picosat/libpicosat.a
 
 ../picosat/libpicosat.a:
 	$(MAKE) -C .. picosat/libpicosat.a
@@ -103,8 +107,8 @@ clean: clean-check
 	rm -rf coverage-wl.cnf
 	rm -rf $(PROGS) $(TESTPROGS)
 
-test-%: test-%.cpp libparser.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -g -O0 -o $@ $< libparser.a -lcheck $(LDFLAGS) $(LDLIBS)
+test-%: test-%.cpp libparser.a ../picosat/libpicosat.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -g -O0 -o $@ $^ -lcheck -lrt -lpthread $(LDFLAGS) $(LDLIBS)
 
 
 run-libcheck: $(TESTPROGS)
