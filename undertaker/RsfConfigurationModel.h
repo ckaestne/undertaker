@@ -32,8 +32,6 @@
 #include <boost/regex.hpp>
 
 
-std::list<std::string> itemsOfString(const std::string &str);
-
 class RsfConfigurationModel: public ConfigurationModel {
 public:
 

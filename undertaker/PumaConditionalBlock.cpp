@@ -25,6 +25,7 @@
 #include "PumaConditionalBlock.h"
 #include "Logging.h"
 #include "cpp14.h"
+#include "Tools.h"
 
 #include <Puma/CTranslationUnit.h>
 #include <Puma/CUnit.h>
@@ -192,7 +193,7 @@ const std::string PumaConditionalBlock::getName() const {
     else {
         ss << "B" <<  _number;
         if (useBlockWithFilename)
-            ss << "_" << this->normalize_filename(this->filename());
+            ss << "_" << undertaker::normalize_filename(this->filename());
         return ss.str();
     }
 }

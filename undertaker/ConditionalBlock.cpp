@@ -22,8 +22,8 @@
 #include "ConditionalBlock.h"
 #include "StringJoiner.h"
 #include "ModelContainer.h"
-#include "BoolExpSymbolSet.h"
 #include "Logging.h"
+#include "Tools.h"
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
 #include "cpp14.h"
@@ -74,14 +74,6 @@ static int lineFromPosition(std::string line) {
     int i;
     ss >> i;
     return i;
-}
-
-
-std::set<std::string> ConditionalBlock::itemsOfString(const std::string &str) {
-    kconfig::BoolExp *e = kconfig::BoolExp::parseString(str);
-    kconfig::BoolExpSymbolSet symset(e);
-    delete e;
-    return symset.getSymbolSet();
 }
 
 
@@ -269,16 +261,6 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
     return join ? and_clause->join(" && ") : "";
 }
 
-std::string ConditionalBlock::normalize_filename(const char * name) {
-    std::string normalized(name);
-
-    for (char &c : normalized)
-        if (c == '/' || c == '-' || c == '+' || c == ':')
-            c = '_';
-
-    return normalized;
-}
-
 std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                                                  std::set<ConditionalBlock *> *visited) {
     UniqueStringJoiner sj; // on our stack
@@ -286,7 +268,7 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
     bool join = false;
 
     fi << "FILE_";
-    fi << normalize_filename(this->filename());
+    fi << undertaker::normalize_filename(this->filename());
 
     if (!and_clause) {
         if (cached_code_expression)

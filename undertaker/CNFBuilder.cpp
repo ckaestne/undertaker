@@ -20,7 +20,7 @@
  */
 
 #include "CNFBuilder.h"
-#include "ConditionalBlock.h"
+#include "Tools.h"
 #include "KconfigWhitelist.h"
 
 using namespace kconfig;
@@ -59,7 +59,7 @@ void CNFBuilder::pushClause(BoolExp *e) {
 }
 
 int CNFBuilder::addVar(std::string symname) {
-    symname = ConditionalBlock::normalize_filename(symname.c_str());
+    symname = undertaker::normalize_filename(symname.c_str());
     int cv = cnf->getCNFVar(symname);
 
     if (cv == 0) {

@@ -124,17 +124,14 @@ class ConditionalBlock : public CondBlockList {
      * This allows to combine formulas for blocks from different files.
      * \param verbose_blocks if set, normalized filenames are appended to the block name
      */
-    static void setBlocknameWithFilename(bool verbose_blocks){ useBlockWithFilename = verbose_blocks; }
-    //!< replaces invalid characters with '_'
-    static std::string normalize_filename(const char *);
+    static void setBlocknameWithFilename(bool verbose_blocks) {
+        useBlockWithFilename = verbose_blocks;
+    }
 
     /* None virtual functions follow */
 
     ConditionalBlock(CppFile *file, ConditionalBlock *parent, ConditionalBlock *prev)
         : cpp_file(file), _parent(parent), _prev(prev) {};
-
-    //! returns all (configuration) items of the given string
-    static std::set<std::string> itemsOfString(const std::string &str);
 
     //! Has to be called after constructing a ConditionalBlock
     void lateConstructor();

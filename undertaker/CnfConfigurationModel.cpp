@@ -23,7 +23,7 @@
 #endif
 
 #include "CnfConfigurationModel.h"
-#include "ConditionalBlock.h"
+#include "Tools.h"
 #include "StringJoiner.h"
 #include "Logging.h"
 #include "PicosatCNF.h"
@@ -93,7 +93,7 @@ int CnfConfigurationModel::doIntersect(const std::string exp,
                                     const ConfigurationModel::Checker *c,
                                     std::set<std::string> &missing,
                                     std::string &intersected) const {
-    const std::set<std::string> start_items = ConditionalBlock::itemsOfString(exp);
+    const std::set<std::string> start_items = undertaker::itemsOfString(exp);
     return doIntersect(start_items, c, missing, intersected);
 }
 

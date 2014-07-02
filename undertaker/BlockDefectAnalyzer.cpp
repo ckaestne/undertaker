@@ -31,6 +31,7 @@
 #include "PicosatCNF.h"
 #include "ModelContainer.h"
 #include "Logging.h"
+#include "Tools.h"
 
 #include <boost/filesystem.hpp>
 #include <iostream>
@@ -302,7 +303,7 @@ bool DeadBlockDefect::isNoKconfigDefect(const ConfigurationModel *model) {
             // Otherwise, take the expression.
             expr = _cb->ifdefExpression();
         }
-        for (const std::string &str : ConditionalBlock::itemsOfString(expr))
+        for (const std::string &str : undertaker::itemsOfString(expr))
             if (model->inConfigurationSpace(str))
                 return false;
     }

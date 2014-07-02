@@ -20,7 +20,7 @@ PARSEROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
 		ModelContainer.o SatChecker.o BlockDefectAnalyzer.o\
 		ConditionalBlock.o CoverageAnalyzer.o PumaConditionalBlock.o \
 		ConfigurationModel.o \
-		Logging.o \
+		Logging.o Tools.o \
 		BoolExpGC.o \
 		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o BoolExpSimplifier.o \
 		PicosatCNF.o CnfConfigurationModel.o \
@@ -33,7 +33,7 @@ SATYROBJ = RsfReader.o KconfigWhitelist.o RsfConfigurationModel.o\
 		bool.o CNFBuilder.o PicosatCNF.o CnfConfigurationModel.o\
 		BoolExpLexer.o BoolExpParser.o BoolExpSymbolSet.o BoolExpSimplifier.o\
 		ExpressionTranslator.o SymbolTranslator.o SymbolTools.o SymbolParser.o\
-		KconfigAssumptionMap.o
+		KconfigAssumptionMap.o Tools.o
 
 PROGS = undertaker predator rsf2cnf satyr
 TESTPROGS = test-SatChecker test-ConditionalBlock test-ConfigurationModel \

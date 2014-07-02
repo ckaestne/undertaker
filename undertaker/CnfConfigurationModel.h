@@ -35,8 +35,6 @@ namespace kconfig {
 }
 
 
-std::list<std::string> itemsOfString(const std::string &str);
-
 class CnfConfigurationModel: public ConfigurationModel {
 public:
     CnfConfigurationModel(const char *filename);

@@ -24,7 +24,7 @@
 #endif
 
 #include "RsfConfigurationModel.h"
-#include "ConditionalBlock.h"
+#include "Tools.h"
 #include "StringJoiner.h"
 #include "RsfReader.h"
 #include "Logging.h"
@@ -119,7 +119,7 @@ std::set<std::string> RsfConfigurationModel::findSetOfInterestingItems(const std
         const std::string *item = _model->getValue(workingStack.top());
         workingStack.pop();
         if (item != nullptr && item->compare("") != 0) {
-            for (const std::string &str : ConditionalBlock::itemsOfString(*item)) {
+            for (const std::string &str : undertaker::itemsOfString(*item)) {
                 /* Item already seen? continue */
                 if (result.count(str) == 0) {
                     workingStack.push(str);
@@ -135,7 +135,7 @@ int RsfConfigurationModel::doIntersect(const std::string exp,
                                     const ConfigurationModel::Checker *c,
                                     std::set<std::string> &missing,
                                     std::string &intersected) const {
-    const std::set<std::string> start_items = ConditionalBlock::itemsOfString(exp);
+    const std::set<std::string> start_items = undertaker::itemsOfString(exp);
     return doIntersect(start_items, c, missing, intersected);
 }
 

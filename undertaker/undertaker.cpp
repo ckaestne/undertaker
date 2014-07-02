@@ -33,6 +33,7 @@
 #include "SatChecker.h"
 #include "CoverageAnalyzer.h"
 #include "Logging.h"
+#include "Tools.h"
 #include "../version.h"
 
 #include <errno.h>
@@ -168,7 +169,7 @@ bool process_blockconf_helper(StringJoiner &sj,
     int offset = strncmp("./", file.c_str(), 2) ? 0 : 2;
     std::stringstream fileCondition;
     fileCondition << "FILE_";
-    fileCondition << ConditionalBlock::normalize_filename(file.substr(offset).c_str());
+    fileCondition << undertaker::normalize_filename(file.substr(offset).c_str());
     std::string fileVar(fileCondition.str());
 
     // if file precondition has already been tested...
@@ -484,7 +485,7 @@ void process_file_cppsym_helper(const char *filename) {
     static const boost::regex valid_item("^([A-Za-z_][0-9A-Za-z_]*?)(\\.*)(_MODULE)?$");
     for (auto &block : file) {  // ConditionalBlock *
         std::string expr = block->ifdefExpression();
-        for (const std::string &item : ConditionalBlock::itemsOfString(expr)) {
+        for (const std::string &item : undertaker::itemsOfString(expr)) {
             boost::match_results<std::string::const_iterator> what;
 
             if (boost::regex_match(item, what, valid_item)) {
