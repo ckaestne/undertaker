@@ -45,7 +45,7 @@ def parse_model(path):
 
 
 class RsfModel(dict):
-    def __init__(self, path, rsf = None):
+    def __init__(self, path, rsf=None):
         dict.__init__(self)
         self.path = path
         self.always_on_items = set()
@@ -62,32 +62,31 @@ class RsfModel(dict):
                 with open(rsf) as f:
                     self.rsf = RsfReader(f)
             except IOError:
-                logging.warning ("no rsf file for model %s was found", path)
+                logging.warning("no rsf file for model %s was found", path)
 
     def parse(self, fd):
         for line in fd.readlines():
             line = line.strip()
             if line.startswith("UNDERTAKER_SET ALWAYS_ON"):
                 line = line.split(" ")[2:]
-                always_on_items = [ l.strip(" \t\"") for l in line]
+                always_on_items = [l.strip(" \t\"") for l in line]
                 for item in always_on_items:
                     self[item] = None
                     self.always_on_items.add(item)
-                continue
-            if line.startswith("UNDERTAKER_SET ALWAYS_OFF"):
+            elif line.startswith("UNDERTAKER_SET ALWAYS_OFF"):
                 line = line.split(" ")[2:]
-                always_off_items = [ l.strip(" \t\"") for l in line]
+                always_off_items = [l.strip(" \t\"") for l in line]
                 for item in always_off_items:
                     self[item] = None
                     self.always_off_items.add(item)
-                continue
             elif line.startswith("I:") or line.startswith("UNDERTAKER_SET"):
-                continue
-            line = line.split(" ", 1)
-            if len(line) == 1:
-                self[line[0]] = None
-            elif len(line) == 2:
-                self[line[0]] = line[1].strip(" \"\t\n")
+                pass
+            else:
+                line = line.split(" ", 1)
+                if len(line) == 1:
+                    self[line[0]] = None
+                elif len(line) == 2:
+                    self[line[0]] = line[1].strip(" \"\t\n")
 
 
     def mentioned_items(self, key):
@@ -175,6 +174,12 @@ class RsfModel(dict):
                     stack.append(new_symbols)
         return list(visited)
 
+    def is_defined(self, feature):
+        """
+        Return true if feature is defined in the model.
+        """
+        return feature in self.keys()
+
 
 class CnfModel(dict):
     def __init__(self, path):
@@ -190,7 +195,7 @@ class CnfModel(dict):
     def parse(self, fd):
         for line in fd.readlines():
 
-            sym_regexp  = re.compile(r"^c sym (.+) (\d)$")
+            sym_regexp = re.compile(r"^c sym (.+) (\d)$")
             meta_regexp = re.compile(r"^c meta_value ([^\s]+)\s+(.+)$")
 
             m = sym_regexp.match(line)
