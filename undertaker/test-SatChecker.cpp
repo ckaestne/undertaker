@@ -31,12 +31,11 @@
 #include <check.h>
 
 
-int cnf_test(std::string s, bool result, std::runtime_error *error = 0) {
+int cnf_test(std::string s, bool result, std::runtime_error *error = nullptr) {
     SatChecker checker(s);
 
-    if (error == 0)  {
-        fail_unless(checker() == result,
-                    "%s should evaluate to %d",
+    if (error == nullptr)  {
+        fail_unless(checker() == result, "%s should evaluate to %d",
                     s.c_str(), (int) result);
         return checker.countClauses();
     } else {

@@ -97,7 +97,7 @@ public:
     Puma::Token *pumaStartToken() const { return _start; };
     Puma::Token *pumaEndToken() const { return _end; };
     Puma::Unit  *unit() const {
-        return _current_node->startToken() ? _current_node->startToken()->unit() : 0;
+        return _current_node->startToken() ? _current_node->startToken()->unit() : nullptr;
     }
 
     //! \return original untouched expression

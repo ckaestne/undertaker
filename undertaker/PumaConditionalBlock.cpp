@@ -75,9 +75,9 @@ static char* buildString (const PreTree* node) {
     ptr = result = new char[str.size() + 5];
 
     // Copy the buffer into the return buffer but skip newlines.
-    for (unsigned int i = 0; i < str.size(); i++)
-        if (str[i] != '\n')
-            *ptr++ = str[i];
+    for (char & elem : str)
+        if (elem != '\n')
+            *ptr++ = elem;
 
     // Finish return buffer.
     *ptr = '\0';
@@ -330,7 +330,7 @@ void PumaConditionalBlockBuilder::visitDefineHelper(PreTreeComposite *node, bool
     PumaConditionalBlock &block = *_condBlockStack.top();
 
     CppFile::DefineMap &map = *_file->getDefines();
-    CppFile::DefineMap::iterator i = map.find(definedFlag);
+    auto i = map.find(definedFlag);
 
     if (i == map.end())
         // First define for this item
@@ -361,7 +361,7 @@ void PumaConditionalBlockBuilder::visitPreDefineFunctionDirective_Pre (Puma::Pre
         if (node->sons() == 6) { // With parameter list
             char *expansion = buildString(node->son(5));
 
-            Puma::PreMacro * macro = new PreMacro(node->son(1)->startToken()->dtext(),
+            auto macro = new PreMacro(node->son(1)->startToken()->dtext(),
                                                   node->son(3), expansion);
             delete[] expansion;
             cpp_parser()->macroManager ()->addMacro (macro);
@@ -369,8 +369,8 @@ void PumaConditionalBlockBuilder::visitPreDefineFunctionDirective_Pre (Puma::Pre
         } else if (node->sons() == 5) { // Without parameter list
             char *expansion = buildString(node->son(4));
 
-            Puma::PreMacro * macro = new PreMacro(node->son(1)->startToken()->dtext(),
-                                                  (PreTree *) 0, expansion);
+            auto macro = new PreMacro(node->son(1)->startToken()->dtext(),
+                                                  (PreTree *) nullptr, expansion);
             delete[] expansion;
             cpp_parser()->macroManager ()->addMacro (macro);
         }
@@ -453,7 +453,7 @@ void normalize_define_null(Puma::Unit *unit) {
             Puma::Token *what = unit->next(unit->next(ident));
 
             if (ident->type() == Puma::TOK_ID && !strcmp(what->text(), "0")) {
-                Puma::CUnit *undef = new Puma::CUnit(err);
+                auto undef = new Puma::CUnit(err);
                 mc.addBuffer(undef);
                 // always set filename for Puma::CUnits
                 undef->name(s->location().filename().name());
@@ -483,7 +483,7 @@ void normalize_defined_makros(Puma::Unit *unit) {
             // ("line continuations" aren't newlines in token representation)
             for (s = unit->next(unit->next(s)); s != lineEnd; s = unit->next(s)) {
                 if (is_relevant_makro(s)) {
-                    Puma::CUnit *enabled = new Puma::CUnit(err);
+                    auto enabled = new Puma::CUnit(err);
                     mc.addBuffer(enabled);
                     // set filename, Puma drops the condition if tokens are anonymous in conditions
                     enabled->name(s->location().filename().name());

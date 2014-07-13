@@ -60,16 +60,16 @@ static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
     }
     PumaConditionalBlockBuilder &builder = superblock->getBuilder();
 
-    Puma::Token *tok = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "#else");
-    Puma::PreTreeToken *ptok = new Puma::PreTreeToken(tok);
+    auto tok = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "#else");
+    auto ptok = new Puma::PreTreeToken(tok);
 
-    Puma::Token *tok2 = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "");
-    Puma::PreTreeToken *ptok2 = new Puma::PreTreeToken(tok2);
+    auto tok2 = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "");
+    auto ptok2 = new Puma::PreTreeToken(tok2);
 
-    Puma::PreElseDirective *node = new Puma::PreElseDirective(ptok, ptok2);
+    auto node = new Puma::PreElseDirective(ptok, ptok2);
     unsigned long *nodeNum = builder.getNodeNum();
 
-    ConditionalBlockImpl *newBlock = new ConditionalBlockImpl(i->getFile(), parent,
+    auto newBlock = new ConditionalBlockImpl(i->getFile(), parent,
             prev, node, (*nodeNum)++, builder);
     newBlock->setDummyBlock();
     return newBlock;
@@ -400,9 +400,7 @@ void CppDefine::replaceDefinedSymbol(std::string &exp) {
         return;
 
     boost::match_results<std::string::iterator> what;
-    boost::match_flag_type flags = boost::match_default;
-
-    while (boost::regex_search(exp.begin(), exp.end(), what, replaceRegex, flags))
+    while (boost::regex_search(exp.begin(), exp.end(), what, replaceRegex))
         exp.replace(what[2].first, what[2].second, actual_symbol);
 }
 
@@ -435,7 +433,7 @@ std::string CppDefine::getConstraints(UniqueStringJoiner *and_clause,
 
     for (auto &block : defined_in) {  // ConditionalBlock *
         // Not yet visited and not the toplevel block
-        if (visited->count(block) == 0 && block->getParent() != 0) {
+        if (visited->count(block) == 0 && block->getParent() != nullptr) {
             block->getCodeConstraints(and_clause, visited);
         }
     }

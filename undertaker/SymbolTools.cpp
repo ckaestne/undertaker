@@ -153,7 +153,7 @@ void kconfig::nameSymbol(struct symbol *sym) {
         return;
     }
     if (sym_is_choice(sym)) {
-        char *n = new char[19];
+        auto n = new char[19];
         snprintf(n, 19, "CHOICE_%d", choiceCount++);
         sym->name = n;
     }

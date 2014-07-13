@@ -29,14 +29,14 @@
 using namespace kconfig;
 
 START_TEST(buildCNFVarUsedMultipleTimes) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "x && !x");
 
     fail_if(cnf->checkSatisfiable());
 } END_TEST;
 
 START_TEST(buildCNFOr) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "x || y");
 
     cnf->pushAssumption("x",true);
@@ -57,7 +57,7 @@ START_TEST(buildCNFOr) {
 } END_TEST;
 
 START_TEST(buildCNFAnd) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "x && y");
 
     cnf->pushAssumption("x",true);
@@ -78,7 +78,7 @@ START_TEST(buildCNFAnd) {
 } END_TEST;
 
 START_TEST(buildCNFImplies) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "x -> y");
 
     cnf->pushAssumption("x",true);
@@ -99,7 +99,7 @@ START_TEST(buildCNFImplies) {
 } END_TEST;
 
 START_TEST(buildCNFEqual) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "x <-> y");
 
     cnf->pushAssumption("x",true);
@@ -120,7 +120,7 @@ START_TEST(buildCNFEqual) {
 } END_TEST;
 
 START_TEST(buildCNFNot) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "x <-> !y");
 
     cnf->pushAssumption("x",true);
@@ -141,7 +141,7 @@ START_TEST(buildCNFNot) {
 } END_TEST;
 
 START_TEST(buildCNFMultiNot0) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "!!!x");
 
     cnf->pushAssumption("x",true);
@@ -152,7 +152,7 @@ START_TEST(buildCNFMultiNot0) {
 } END_TEST;
 
 START_TEST(buildCNFMultiNot1) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "x <-> !!!y");
 
     cnf->pushAssumption("x",true);
@@ -173,7 +173,7 @@ START_TEST(buildCNFMultiNot1) {
 } END_TEST;
 
 START_TEST(buildCNFConst) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "(x || 0) && (y && 1)");
 
     cnf->pushAssumption("x",true);
@@ -194,7 +194,7 @@ START_TEST(buildCNFConst) {
 } END_TEST;
 
 START_TEST(buildCNFComplex0) {
-    PicosatCNF *cnf = new PicosatCNF();
+    auto cnf = new PicosatCNF();
     CNFBuilder builder(cnf, "a -> (b || !c && d)");
 
     /*

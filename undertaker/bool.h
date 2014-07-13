@@ -88,8 +88,8 @@ namespace kconfig {
             left = el;
         }
 
-        virtual void accept(BoolVisitor *visitor);
-        virtual int getEvaluationPriority(void) const { return 50; }
+        virtual void accept(BoolVisitor *visitor) final override;
+        virtual int getEvaluationPriority(void) const final override { return 50; }
     };
 
 /************************************************************************/
@@ -103,8 +103,8 @@ namespace kconfig {
             left = el;
         }
 
-        virtual void accept(BoolVisitor *visitor);
-        virtual int getEvaluationPriority(void) const { return 30; }
+        virtual void accept(BoolVisitor *visitor) final override;
+        virtual int getEvaluationPriority(void) const final override { return 30; }
     };
 
 /************************************************************************/
@@ -119,9 +119,9 @@ namespace kconfig {
             this->name = name;
         }
 
-        virtual void accept(BoolVisitor *visitor);
-        virtual int getEvaluationPriority(void) const { return 60; }
-        virtual bool equals(const BoolExp *other) const;
+        virtual void accept(BoolVisitor *visitor) final override;
+        virtual int getEvaluationPriority(void) const final override { return 60; }
+        virtual bool equals(const BoolExp *other) const final override;
     };
 
 /************************************************************************/
@@ -135,8 +135,8 @@ namespace kconfig {
             left = el;
         }
 
-        virtual void accept(BoolVisitor *visitor);
-        virtual int getEvaluationPriority(void) const { return 20; }
+        virtual void accept(BoolVisitor *visitor) final override;
+        virtual int getEvaluationPriority(void) const final override { return 20; }
     };
 
 /************************************************************************/
@@ -150,8 +150,8 @@ namespace kconfig {
             left = el;
         }
 
-        virtual void accept(BoolVisitor *visitor);
-        virtual int getEvaluationPriority(void) const { return 10; }
+        virtual void accept(BoolVisitor *visitor) final override;
+        virtual int getEvaluationPriority(void) const final override { return 10; }
     };
 
 /************************************************************************/
@@ -166,9 +166,9 @@ namespace kconfig {
             this->param = param;
         }
 
-        virtual void accept(BoolVisitor *visitor);
-        virtual int getEvaluationPriority(void) const { return 90; }
-        virtual bool equals(const BoolExp *other) const;
+        virtual void accept(BoolVisitor *visitor) final override;
+        virtual int getEvaluationPriority(void) const final override { return 90; }
+        virtual bool equals(const BoolExp *other) const final override;
     };
 
 /************************************************************************/
@@ -181,8 +181,8 @@ namespace kconfig {
             right = e;
         }
 
-        virtual void accept(BoolVisitor *visitor);
-        virtual int getEvaluationPriority(void) const { return 70; }
+        virtual void accept(BoolVisitor *visitor) final override;
+        virtual int getEvaluationPriority(void) const final override { return 70; }
     };
 
 /************************************************************************/
@@ -197,9 +197,9 @@ namespace kconfig {
     public:
         bool value;
 
-        virtual void accept(BoolVisitor *visitor);
-        virtual int getEvaluationPriority(void) const { return 90; }
-        virtual bool equals(const BoolExp *other) const;
+        virtual void accept(BoolVisitor *visitor) final override;
+        virtual int getEvaluationPriority(void) const final override { return 90; }
+        virtual bool equals(const BoolExp *other) const final override;
 
         static BoolExpConst *getInstance(bool val);
     };
@@ -226,9 +226,9 @@ namespace kconfig {
             this->name = "CONFIG_" + name + TristateRelationNames[rel];
         }
 
-        virtual void accept(BoolVisitor *visitor);
-        virtual int getEvaluationPriority(void) const { return 90; }
-        virtual bool equals(const BoolExp *other) const;
+        virtual void accept(BoolVisitor *visitor) final override;
+        virtual int getEvaluationPriority(void) const final override { return 90; }
+        virtual bool equals(const BoolExp *other) const final override;
     };
 
 /************************************************************************/

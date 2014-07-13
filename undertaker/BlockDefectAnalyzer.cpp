@@ -67,7 +67,7 @@ std::string BlockDefectAnalyzer::getBlockPrecondition(ConditionalBlock *cb,
 
 const BlockDefectAnalyzer *
 BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p_model) {
-    DeadBlockDefect *defect = new DeadBlockDefect(block);
+    auto defect = new DeadBlockDefect(block);
 
     // If this is neither an Implementation, Configuration nor Referential *dead*,
     // then destroy the analysis and retry with an Undead Analysis

@@ -93,7 +93,7 @@ public:
             */
         bool operator==(const AssignmentMap &other) const {
             for (const auto &entry : *this) {  // pair<string, bool>
-                const_iterator ot = other.find(entry.first);
+                auto ot = other.find(entry.first);
                 if (ot == other.end() || (*ot).second != entry.second)
                     return false;
             }

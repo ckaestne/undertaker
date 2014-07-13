@@ -64,8 +64,8 @@ bool SatChecker::check(const std::string &sat) {
     }
 }
 
-SatChecker::SatChecker(const std::string sat, bool mus, int debug)
-    : debug_flags(debug), _do_mus_analysis(mus), _sat(sat) { }
+SatChecker::SatChecker(std::string sat, bool mus, int debug)
+        : debug_flags(debug), _do_mus_analysis(mus), _sat(std::move(sat)) {}
 
 static std::unique_ptr<PicosatCNF> getCnfWithModelInit(const std::string &formula,
         Picosat::SATMode mode, std::string *result) {
@@ -339,7 +339,7 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
     flag_map[topBlock->pumaEndToken()] = false;
 
     // iterate over all ConditionalBlocks but skip first block (B00)
-    for (CppFile::const_iterator it = ++(file.begin()); it != file.end(); ++it) {
+    for (auto it = ++(file.begin()); it != file.end(); ++it) {
         PumaConditionalBlock *block = (PumaConditionalBlock *)(*it);
         if (block->isDummyBlock()) {
             continue;

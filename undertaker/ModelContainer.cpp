@@ -122,7 +122,7 @@ ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std:
 ConfigurationModel *ModelContainer::lookupModel(const std::string &arch)  {
     ModelContainer *f = getInstance();
     // first step: look if we have it in our models list;
-    ModelContainer::iterator a = f->find(arch);
+    auto a = f->find(arch);
     if (a != f->end()) {
         // we've found it in our map, so return it
         return a->second;

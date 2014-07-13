@@ -100,10 +100,10 @@ static void addAllwaysOnOff(kconfig::CNFBuilder &builder, RsfReader &model){
     const std::string magic_on("ALWAYS_ON");
     const std::string magic_off("ALWAYS_OFF");
 
-    for (std::string &str : *KconfigWhitelist::getWhitelist())
+    for (const std::string &str : *KconfigWhitelist::getWhitelist())
         model.addMetaValue(magic_on, str);
 
-    for (std::string &str : *KconfigWhitelist::getBlacklist())
+    for (const std::string &str : *KconfigWhitelist::getBlacklist())
         model.addMetaValue(magic_off, str);
 
     if (model.getMetaValue(magic_on)) {

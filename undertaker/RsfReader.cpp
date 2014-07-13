@@ -21,14 +21,13 @@
  */
 
 #include "RsfReader.h"
-//#include "Logging.h"
 
-#include <boost/regex.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <sstream>
 #include <iostream>
 
 
-RsfReader::RsfReader(std::istream &f, std::string metaflag) : metaflag(metaflag) {
+RsfReader::RsfReader(std::istream &f, std::string metaflag) : metaflag(std::move(metaflag)) {
     this->read_rsf(f);
 }
 
@@ -43,10 +42,10 @@ StringList RsfReader::parse(const std::string& line) {
     std::stringstream ss(line);
 
     while(ss >> item){
-        if (item[0]=='"') {
-            if (item[item.length() - 1]=='"') {
+        if (item[0] == '"') {
+            if (item[item.length() - 1] == '"') {
                 // special case: single word was needlessly quoted
-                result.push_back(item.substr(1, item.length()-2));
+                result.push_back(item.substr(1, item.length() - 2));
             } else {
                 // use the free-standing std::getline to read a "line"
                 // into another string
@@ -80,26 +79,17 @@ size_t RsfReader::read_rsf(std::istream &rsf_file) {
         // if so, put it there
         // UNDERTAKER_SET ALWAYS_ON fooooo
         // self.meta_information("ALWAYS_ON") == ["foooo"]
-        if (metaflag.size() > 0 && key.compare(metaflag) == 0) {
+        if (metaflag.size() > 0 && key == metaflag) {
             if (columns.size() == 0)
                 continue;
             std::string key = columns.front();
             columns.pop_front();
             meta_information.emplace(key, columns);
         } else {
-            static const boost::regex file_identifier("^FILE_.*$");
-
-            if (boost::regex_match(key, file_identifier)) {
-//                logger << debug << "found a file presence condition for " << key << std::endl;
-//                bool dirty=false;
-                for (size_t pos = 0; pos < key.length(); pos++) {
-                    if (key.at(pos) == '/' || key.at(pos) == '-') {
-                        key[pos] = '_';
-//                        dirty = true;
-                    }
-                }
-//                if (dirty)
-//                    logger << debug << "Normalized item: " << key << std::endl;
+            if (boost::starts_with(key, "FILE_")) {
+                for (char &elem : key)
+                    if (elem == '/' || elem == '-')
+                        elem = '_';
             }
             this->emplace(key, columns);
         }
@@ -109,7 +99,7 @@ size_t RsfReader::read_rsf(std::istream &rsf_file) {
 
 const std::string *RsfReader::getValue(const std::string &key) const {
     static std::string null_string("");
-    const_iterator i = find(key);
+    auto i = find(key);
 
     if (i == end())  // key not found
         return nullptr;
@@ -151,7 +141,7 @@ size_t ItemRsfReader::read_rsf(std::istream &rsf_file) {
         columns.pop_front();
 
         // Skip lines that do not start with 'Item'
-        if (0 != key.compare("Item"))
+        if (key != "Item")
             continue;
 
         key = columns.front(); columns.pop_front();

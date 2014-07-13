@@ -100,7 +100,7 @@ namespace kconfig {
         void makestr(const std::string &op, BoolExp *e) {
             std::string *l = static_cast<std::string *>(left);
             std::string *r = static_cast<std::string *>(right);
-            std::string *s = new std::string();
+            auto s = new std::string();
             if (l) {
                 *s += lbrace(e, e->left) + *l + rbrace(e, e->left);
             }

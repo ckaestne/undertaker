@@ -65,7 +65,7 @@ int process_assumptions(CNF *cnf, std::vector<boost::filesystem::path> assumptio
         const std::string result = sat ? "satisfiable" : "not satisfiable";
         if (!sat) {
             const int *failed = cnf->failedAssumptions();
-            for (int i=0; failed != 0 && failed[i] != 0; i++) {
+            for (int i=0; failed != nullptr && failed[i] != 0; i++) {
                 std::string vn = cnf->getSymbolName(abs(failed[i]));
                 logger << debug << "failed Assumption: " << failed[i] << " " << vn <<std::endl;
             }
@@ -148,8 +148,8 @@ int main(int argc, char **argv) {
         cnf->readFromFile(filepath.string());
     } else {
         logger << info << "Parsing Kconfig file " << filepath << std::endl;
-        SymbolTranslator *translator = new SymbolTranslator(cnf);
-        KconfigSymbolSet *symbolSet = new KconfigSymbolSet();
+        auto translator = new SymbolTranslator(cnf);
+        auto symbolSet = new KconfigSymbolSet();
 
         logger << debug << "parsing" << std::endl;
         translator->parse(filepath.string());

@@ -2,7 +2,7 @@ CXX=g++
 LDXX=g++
 DEBUG = -g3
 CFLAGS = -Wall -Wextra -O2 $(DEBUG)
-CXXFLAGS = $(CFLAGS)
+CXXFLAGS = $(CFLAGS) -std=gnu++11
 LDFLAGS =
 LDLIBS = -lboost_regex -lboost_wave -lboost_system $(LDCOV)
 

@@ -25,18 +25,16 @@
 #include "ModelContainer.h"
 
 #include <fstream>
-#include <boost/regex.hpp>
+#include <memory>
+#include <algorithm>
 
 bool KconfigWhitelist::isWhitelisted(const std::string &item) const {
-    for (const std::string &str : *this)
-        if(str == item)
-            return true;
-    return false;
+    return std::find(begin(), end(), item) != end();
 }
 
-void KconfigWhitelist::addToWhitelist(const std::string item) {
-    if(!isWhitelisted(item))
-        push_back(item);
+void KconfigWhitelist::addToWhitelist(std::string item) {
+    if (!isWhitelisted(item))
+        emplace_back(item);
 }
 
 KconfigWhitelist *KconfigWhitelist::getIgnorelist() {
@@ -54,6 +52,7 @@ KconfigWhitelist *KconfigWhitelist::getWhitelist() {
     }
     return instance.get();
 }
+
 KconfigWhitelist *KconfigWhitelist::getBlacklist() {
     static std::unique_ptr<KconfigWhitelist> instance;
     if (!instance) {
@@ -69,17 +68,13 @@ int KconfigWhitelist::loadWhitelist(const char *file) {
         return -1;
 
     std::string line;
-    const boost::regex r("^#.*", boost::regex::perl);
-
-    int n = 0;
+    int n = size();
 
     while (std::getline(whitelist, line)) {
-        boost::smatch what;
-        if (boost::regex_search(line, what, r))
+        if (line[0] == '#')
             continue;
 
-        n++;
         this->addToWhitelist(line);
     }
-    return n;
+    return size() - n;
 }

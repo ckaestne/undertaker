@@ -243,10 +243,10 @@ void process_mergeblockconf(const std::string &filename) {
     while (std::getline(workfile, line))
         process_blockconf_helper(sj, filesolvable, line);
 
-    for (std::string &str : *KconfigWhitelist::getWhitelist())
+    for (const std::string &str : *KconfigWhitelist::getWhitelist())
         sj.push_back(str);
 
-    for (std::string &str : *KconfigWhitelist::getBlacklist())
+    for (const std::string &str : *KconfigWhitelist::getBlacklist())
         sj.push_back("!" + str);
 
     SatChecker sc(sj.join("\n&&\n"));
@@ -472,12 +472,12 @@ void process_file_cppsym_helper(const std::string &filename) {
     for (auto &block : file) {  // ConditionalBlock *
         std::string expr = block->ifdefExpression();
         for (const std::string &item : undertaker::itemsOfString(expr)) {
-            boost::match_results<std::string::const_iterator> what;
+            boost::smatch what;
 
             if (boost::regex_match(item, what, valid_item)) {
                 size_t rewrites = what[2].length();
                 const std::string item_name = what[1];
-                FoundItems::iterator it = found_items.find(item_name);
+                auto it = found_items.find(item_name);
 
                 if (it == found_items.end()) {  // not found in found_items
                     ItemStats stats(2);
@@ -834,7 +834,7 @@ int main(int argc, char **argv) {
     int opt;
     std::string worklist;
     long threads = 1;
-    std::list<std::string> models_from_parameters;
+    std::vector<std::string> models_from_parameters;
     /* Default main model will be x86 or the first one in model container if x86 is not loaded */
     std::string main_model = "default";
     /* Default is dead/undead analysis */
@@ -1024,10 +1024,10 @@ int main(int argc, char **argv) {
     /* Add white- and blacklisted features to all models */
     for (auto &entry : *model_container) {  // pair<string, ConfigurationModel *>
         ConfigurationModel *model = entry.second;
-        for (std::string &str : *bl)
+        for (const std::string &str : *bl)
             model->addFeatureToBlacklist(str);
 
-        for (std::string &str : *wl)
+        for (const std::string &str : *wl)
             model->addFeatureToWhitelist(str);
     }
 

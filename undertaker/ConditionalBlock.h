@@ -32,7 +32,7 @@
 class ConditionalBlock;
 class CppDefine;
 class PumaConditionalBlockBuilder;
-class UniqueStringJoiner;
+struct UniqueStringJoiner;
 
 typedef std::list<ConditionalBlock *> CondBlockList;
 
@@ -79,7 +79,7 @@ class CppFile : public CondBlockList {
     class ItemChecker : public ConfigurationModel::Checker {
     public:
         ItemChecker(CppFile *cf) : file(cf) {}
-        bool operator()(const std::string &item) const;
+        virtual bool operator()(const std::string &item) const final override;
     private:
         CppFile * file;
     };
@@ -157,12 +157,12 @@ class ConditionalBlock : public CondBlockList {
     //! \return rewritten (define) macro expression
     std::string ifdefExpression() const { return _exp; };
 
-    std::string getCodeConstraints(UniqueStringJoiner *and_clause = 0,
-                                  std::set<ConditionalBlock *> *visited = 0);
+    std::string getCodeConstraints(UniqueStringJoiner *and_clause = nullptr,
+                                  std::set<ConditionalBlock *> *visited = nullptr);
 
     void addDefine(CppDefine* define) { _defines.push_back(define); }
 
-    std::string getConstraintsHelper(UniqueStringJoiner *and_clause = 0);
+    std::string getConstraintsHelper(UniqueStringJoiner *and_clause = nullptr);
     const std::list<CppDefine *> &getDefines() const { return _defines; };
 
     //! the following functions have to be public because decisionCoverage() is
@@ -201,8 +201,8 @@ public:
 
     void replaceDefinedSymbol(std::string &exp);
 
-    std::string getConstraints(UniqueStringJoiner *and_clause = 0,
-                                  std::set<ConditionalBlock *> *visited = 0);
+    std::string getConstraints(UniqueStringJoiner *and_clause = nullptr,
+                                  std::set<ConditionalBlock *> *visited = nullptr);
 
     void getConstraintsHelper(UniqueStringJoiner *and_clause) const;
 

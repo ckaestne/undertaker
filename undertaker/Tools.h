@@ -31,7 +31,7 @@ namespace undertaker {
     std::set<std::string> itemsOfString(const std::string &);
 
     //!< replaces invalid characters with '_'
-    std::string normalize_filename(std:: string);
+    std::string normalize_filename(std::string);
 
 }
 
