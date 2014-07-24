@@ -62,17 +62,17 @@ std::string BlockDefectAnalyzer::getBlockPrecondition(ConditionalBlock *cb,
 }
 
 const BlockDefectAnalyzer *
-BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p_model) {
+BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *main_model) {
     auto defect = new DeadBlockDefect(block);
 
     // If this is neither an Implementation, Configuration nor Referential *dead*,
     // then destroy the analysis and retry with an Undead Analysis
-    if(!defect->isDefect(p_model)) {
+    if(!defect->isDefect(main_model, true)) {
         delete defect;
         defect = new UndeadBlockDefect(block);
 
         // No defect found, block seems OK
-        if(!defect->isDefect(p_model)) {
+        if(!defect->isDefect(main_model, true)) {
             delete defect;
             return nullptr;
         }
@@ -80,21 +80,30 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p
     assert(defect->defectType() != DEFECTTYPE::None);
 
     // Check NoKconfig defect after (un)dead analysis
-    if (defect->isNoKconfigDefect(p_model))
+    if (defect->isNoKconfigDefect(main_model))
         defect->_defectType = DEFECTTYPE::NoKconfig;
 
     // Save defectType in block
     block->defectType = defect->defectType();
 
+    // defects in arch specific files do not require a crosscheck and are global defects, since
+    // they are not compileable for other architectures
+    if (block->getFile()->getSpecificArch() != "") {
+        defect->markAsGlobal();
+        return defect;
+    }
+
     // Implementation (i.e., Code) or NoKconfig defects do not require a crosscheck
-    if (!p_model || !defect->needsCrosscheck()
-                 || defect->defectType() == DEFECTTYPE::NoKconfig)
+    if (!main_model || !defect->needsCrosscheck())
         return defect;
 
     const std::string &oldarch = defect->getArch();
     DEFECTTYPE original_classification = defect->defectType();
     for (const auto &entry : ModelContainer::getInstance()) { // pair<string, ConfigurationModel *>
         const ConfigurationModel *model = entry.second;
+        // don't check the main model twice
+        if (model == main_model)
+            continue;
 
         if (!defect->isDefect(model)) {
             if (original_classification == DEFECTTYPE::Configuration)
@@ -217,7 +226,7 @@ void DeadBlockDefect::reportMUS() const {
     ofs << formula.str() << std::endl;
 }
 
-bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
+bool DeadBlockDefect::isDefect(const ConfigurationModel *model, bool is_main_model) {
     StringJoiner formula;
 
     if (_arch == "")
@@ -239,7 +248,8 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
     if (model) {
         std::set<std::string> missingSet;
         std::string kconfig_formula = _cb->getCodeConstraints();
-        model->doIntersect(code_formula,  _cb->getFile()->getChecker(), missingSet, kconfig_formula);
+        model->doIntersect(code_formula, _cb->getFile()->getChecker(), missingSet,
+                           kconfig_formula);
         formula.push_back(kconfig_formula);
         std::string formula_str = formula.join("\n&&\n");
         SatChecker kconfig_constraints(formula_str);
@@ -252,7 +262,8 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
                 _arch = ModelContainer::lookupArch(model);
             }
             _formula = formula_str;
-            if (model == ModelContainer::lookupMainModel())
+            // save formula for mus analysis when we are analysing the main_model
+            if (is_main_model)
                 _musFormula = formula_str;
             _defectType = DEFECTTYPE::Configuration;
             return true;
@@ -269,7 +280,8 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model) {
                 if (_defectType != DEFECTTYPE::Configuration) {
                     _defectType = DEFECTTYPE::Referential;
                 }
-                if (model == ModelContainer::lookupMainModel())
+                // save formula for mus analysis when we are analysing the main_model
+                if (is_main_model)
                     _musFormula = formula_str;
                 _formula = formula_str;
                 return true;
@@ -283,6 +295,7 @@ bool DeadBlockDefect::needsCrosscheck() const {
     switch(_defectType) {
     case DEFECTTYPE::None:
     case DEFECTTYPE::Implementation:
+    case DEFECTTYPE::NoKconfig:
         return false;
     default:
         // skip crosschecking if we already know that it is global
@@ -362,7 +375,7 @@ UndeadBlockDefect::UndeadBlockDefect(ConditionalBlock * cb) : DeadBlockDefect(cb
     this->_suffix = "undead";
 }
 
-bool UndeadBlockDefect::isDefect(const ConfigurationModel *model) {
+bool UndeadBlockDefect::isDefect(const ConfigurationModel *model, bool) {
     StringJoiner formula;
     const ConditionalBlock *parent = _cb->getParent();
 

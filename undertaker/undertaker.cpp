@@ -141,7 +141,6 @@ int rm_pattern(const char *pattern) {
 bool process_blockconf_helper(StringJoiner &sj, std::map<std::string, bool> &filesolvable,
                               const std::string &locationname) {
     // used by process_blockconf and process_mergedblockconf
-    ConfigurationModel *main_model = ModelContainer::lookupMainModel();
 
     boost::regex regex("(.*):[0-9]+");
     boost::smatch results;
@@ -157,6 +156,12 @@ bool process_blockconf_helper(StringJoiner &sj, std::map<std::string, bool> &fil
         logger << error << "failed to open file: `" << file << "'" << std::endl;
         return false;
     }
+    // if the current file is arch specific, use only the matching model for analyses
+    ConfigurationModel *main_model;
+    if (cpp.getSpecificArch() != "")
+        main_model = ModelContainer::lookupModel(cpp.getSpecificArch());
+    else
+        main_model = ModelContainer::lookupMainModel();
 
     int offset = strncmp("./", file.c_str(), 2) ? 0 : 2;
     std::stringstream fileCondition;
@@ -287,10 +292,6 @@ void process_file_coverage_helper(const std::string &filename) {
     } else if (decision_coverage) {
         file.decisionCoverage();
     }
-    ConfigurationModel *main_model = ModelContainer::getInstance().lookupMainModel();
-    if (!main_model)
-        logger << debug << "Running without a model!" << std::endl;
-
     // HACK: make B00 a 'regular' block
     file.push_front(file.topBlock());
 
@@ -307,8 +308,18 @@ void process_file_coverage_helper(const std::string &filename) {
                << (decision_coverage ? " and decision coverage'" : "'") << " approach"
                << std::endl;
         analyzer = &simple_analyzer;
-    } else
+    } else {
         assert(false);
+    }
+    // if the current file is arch specific, use only the matching model for analyses
+    ConfigurationModel *main_model;
+    if (file.getSpecificArch() != "")
+        main_model = ModelContainer::lookupModel(file.getSpecificArch());
+    else
+        main_model = ModelContainer::lookupMainModel();
+
+    if (!main_model)
+        logger << debug << "Running without a model!" << std::endl;
 
     std::list<SatChecker::AssignmentMap> solutions = analyzer->blockCoverage(main_model);
     MissingSet missingSet = analyzer->getMissingSet();
@@ -429,12 +440,17 @@ void process_file_cpppc(const std::string &filename) {
     logger << info << "CPP Precondition for " << filename << std::endl;
     try {
         StringJoiner sj;
-        ModelContainer &model_container = ModelContainer::getInstance();
         std::string code_formula = file.topBlock()->getCodeConstraints();
 
         sj.push_back(code_formula);
-        if (model_container.size() > 0) {
-            ConfigurationModel *main_model = model_container.lookupMainModel();
+        if (ModelContainer::getInstance().size() > 0) {
+            // if the current file is arch specific, use only the matching model for analyses
+            ConfigurationModel *main_model;
+            if (file.getSpecificArch() != "")
+                main_model = ModelContainer::lookupModel(file.getSpecificArch());
+            else
+                main_model = ModelContainer::lookupMainModel();
+
             std::set<std::string> missingSet;
 
             main_model->doIntersect(code_formula, nullptr, missingSet, code_formula);
@@ -459,9 +475,14 @@ void process_file_cppsym_helper(const std::string &filename) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
     }
-    ConfigurationModel *main_model = ModelContainer::getInstance().lookupMainModel();
-    FoundItems found_items;
+    // if the current file is arch specific, use only the matching model for analyses
+    ConfigurationModel *main_model;
+    if (file.getSpecificArch() != "")
+        main_model = ModelContainer::lookupModel(file.getSpecificArch());
+    else
+        main_model = ModelContainer::lookupMainModel();
 
+    FoundItems found_items;
     static const boost::regex valid_item("^([A-Za-z_][0-9A-Za-z_]*?)(\\.*)(_MODULE)?$");
     for (const auto &block : file) {  // ConditionalBlock *
         std::string expr = block->ifdefExpression();
@@ -566,8 +587,13 @@ void process_file_blockpc(const std::string &filename) {
         logger << info << "No block at " << filename << " was found." << std::endl;
         return;
     }
+    // if the current file is arch specific, use only the matching model for analyses
+    ConfigurationModel *main_model;
+    if (cpp.getSpecificArch() != "")
+        main_model = ModelContainer::lookupModel(cpp.getSpecificArch());
+    else
+        main_model = ModelContainer::lookupMainModel();
 
-    ConfigurationModel *main_model = ModelContainer::lookupMainModel();
     const BlockDefectAnalyzer *defect = nullptr;
     try {
         defect = BlockDefectAnalyzer::analyzeBlock(block, main_model);
@@ -600,17 +626,21 @@ void process_file_dead_helper(const std::string &filename) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
     }
-
     // delete potential leftovers from previous run
     std::string pattern(filename);
     pattern.append("*.*dead");
     rm_pattern(pattern.c_str());
 
-    ConfigurationModel *mainModel = ModelContainer::lookupMainModel();
+    // if the current file is arch specific, use only the matching model for analyses
+    ConfigurationModel *main_model;
+    if (file.getSpecificArch() != "")
+        main_model = ModelContainer::lookupModel(file.getSpecificArch());
+    else
+        main_model = ModelContainer::lookupMainModel();
 
     /* process File (B00 Block) */
     try {
-        const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(file.topBlock(), mainModel);
+        const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(file.topBlock(), main_model);
         if (defect) {
             defect->writeReportToFile(skip_non_configuration_based_defects);
             if (do_mus_analysis)
@@ -626,12 +656,11 @@ void process_file_dead_helper(const std::string &filename) {
     /* Iterate over all Blocks */
     for (const auto &block : file) {  // ConditionalBlock *
         try {
-            const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(block, mainModel);
+            const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(block, main_model);
             if (defect) {
                 defect->writeReportToFile(skip_non_configuration_based_defects);
-                if (do_mus_analysis) {
+                if (do_mus_analysis)
                     defect->reportMUS();
-                }
                 delete defect;
             }
         } catch (CNFBuilderError &e) {
@@ -658,7 +687,7 @@ void process_file_dead(const std::string &filename) {
         logger << error << "timeout passed while processing " << filename << std::endl;
 }
 
-void process_file_interesting(const std::string &filename) {
+void process_file_interesting(const std::string &check_item) {
     RsfConfigurationModel *main_model
         = dynamic_cast<RsfConfigurationModel *>(ModelContainer::lookupMainModel());
 
@@ -668,11 +697,11 @@ void process_file_interesting(const std::string &filename) {
         return;
     }
     /* Find all items that are related to the given item */
-    std::set<std::string> interesting = main_model->findSetOfInterestingItems({filename});
+    std::set<std::string> interesting = main_model->findSetOfInterestingItems({check_item});
 
     /* remove the given item again */
-    interesting.erase(filename);
-    std::cout << filename;
+    interesting.erase(check_item);
+    std::cout << check_item;
 
     for (const std::string &str : interesting) {
         if (main_model->find(str) != main_model->end()) {
@@ -720,18 +749,18 @@ void process_file_checkexpr(const std::string &expression) {
     }
 }
 
-void process_file_symbolpc(const std::string &filename) {
+void process_file_symbolpc(const std::string &symbol) {
     ConfigurationModel *main_model = ModelContainer::lookupMainModel();
     if (!main_model) {
         logger << error << "for symbolpc models must be loaded" << std::endl;
         return;
     }
     std::set<std::string> missingItems;
-    logger << info << "Symbol Precondition for `" << filename << "'" << std::endl;
+    logger << info << "Symbol Precondition for `" << symbol << "'" << std::endl;
 
     /* Find all items that are related to the given item */
     std::string result;
-    int valid_items = main_model->doIntersect(filename, nullptr, missingItems, result);
+    int valid_items = main_model->doIntersect(symbol, nullptr, missingItems, result);
     std::cout << result << std::endl;
 
     if (missingItems.size() > 0) {

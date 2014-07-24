@@ -50,7 +50,7 @@ public:
     //!< human readable identifier for the defect type
     const std::string defectTypeToString() const;
 
-    virtual bool isDefect(const ConfigurationModel *model) = 0; //!< checks for a defect
+    virtual bool isDefect(const ConfigurationModel *, bool) = 0;  //!< checks for a defect
     virtual const std::string getSuffix() const = 0;
     virtual DEFECTTYPE defectType() const       = 0;
     virtual bool isGlobal() const               = 0; //!< return if the defect applies to all models
@@ -109,7 +109,7 @@ class DeadBlockDefect : public BlockDefectAnalyzer {
 public:
     //! c'tor for Dead Block Defect Analysis
     DeadBlockDefect(ConditionalBlock *);
-    virtual bool isDefect(const ConfigurationModel *model) override; //!< checks for a defect
+    virtual bool isDefect(const ConfigurationModel *, bool = false) override;
     virtual bool writeReportToFile(bool skip_no_kconfig) const final override;
     virtual void reportMUS()                             const final override;
 
@@ -144,7 +144,7 @@ protected:
 class UndeadBlockDefect : public DeadBlockDefect {
 public:
     UndeadBlockDefect(ConditionalBlock *);
-    virtual bool isDefect(const ConfigurationModel *model) final override;
+    virtual bool isDefect(const ConfigurationModel *, bool = false) final override;
 };
 
 #endif

@@ -75,6 +75,9 @@ class CppFile : public CondBlockList {
     //! start modification of ConditionalBlocks for decision coverage analysis
     void decisionCoverage();
 
+    //! get specific_arch string
+    const std::string &getSpecificArch() const { return specific_arch; }
+
     //! Functor that checks if a given symbol was touched by an define
     class ItemChecker : public ConfigurationModel::Checker {
     public:
@@ -88,12 +91,15 @@ class CppFile : public CondBlockList {
 
  private:
     std::string filename;
+    std::string specific_arch;
     ConditionalBlock *top_block = nullptr;
     std::map<std::string, CppDefine *> define_map;
     const CppFile::ItemChecker checker;
     std::unique_ptr<PumaConditionalBlockBuilder> _builder;
 
     void printCppFile();
+
+    static const boost::regex filename_regex;
 };
 
 /************************************************************************/
@@ -101,7 +107,7 @@ class CppFile : public CondBlockList {
 /************************************************************************/
 
 class ConditionalBlock : public CondBlockList {
- public:
+public:
     //! defect type used in block defect analysis
     BlockDefectAnalyzer::DEFECTTYPE defectType;
     //! location related accessors

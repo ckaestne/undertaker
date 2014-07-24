@@ -84,6 +84,9 @@ static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
 /* CppFile                                                              */
 /************************************************************************/
 
+// initialize static filename_regex at startup
+const boost::regex CppFile::filename_regex(R"(^.*/arch/([A-Za-z0-9]+)/.*$)");
+
 CppFile::CppFile(const std::string &f) : checker(this) {
     if (!boost::filesystem::exists(f))
         return;
@@ -93,6 +96,14 @@ CppFile::CppFile(const std::string &f) : checker(this) {
         filename = f.substr(2); // skip leading "./"
     _builder = make_unique<PumaConditionalBlockBuilder>(this, f);
     top_block = _builder->topBlock();
+
+    boost::filesystem::path filepath(filename);
+    // check if the 'absolute path' to the given file matches the regex
+    boost::smatch what;
+    if (boost::regex_match(absolute(filepath).string(), what, filename_regex))
+        // check if a matching model has been loaded for the found arch in filename
+        if (nullptr != ModelContainer::lookupModel(what[1]))
+            specific_arch = what[1];
 }
 
 CppFile::~CppFile() {

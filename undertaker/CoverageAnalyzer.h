@@ -38,16 +38,17 @@ class ConfigurationModel;
 
 class CoverageAnalyzer {
 public:
-    /* c'tor */
-    CoverageAnalyzer(const CppFile *file) : file(file) {};
-
     virtual std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *) = 0;
 
     // NB: missingSet is filled during blockCoverage run
     MissingSet getMissingSet() const { return missingSet; }
 
 protected:
+    /* c'tor */
+    CoverageAnalyzer(const CppFile *file) : file(file) {};
+
     std::string baseFileExpression(const ConfigurationModel *model);
+
     const CppFile * file;
     MissingSet missingSet; // set of strings
 };
