@@ -86,9 +86,7 @@ def do_inference(args, arch, subarch):
 def find_variables_in_directories(arch, args):
     modelfile = get_model_for_arch(arch)
     if not modelfile:
-        logging.error("%s not found, please generate models using undertaker-kconfigdump",
-                      modelfile)
-        sys.exit(1)
+        sys.exit("%s not found, generate models using undertaker-kconfigdump" % modelfile)
     logging.info("loading model %s", modelfile)
     if len(args) is 0:
         args.append(".")
@@ -184,14 +182,12 @@ def main():
             pass
 
     if not arch:
-        logging.error("No supported software project found")
-        sys.exit(1)
+        sys.exit("No supported software project found")
     if opts.inference:
         try:
             do_inference(args, arch=arch, subarch=subarch)
         except RuntimeError as e:
-            logging.error("Calculating inferences failed: %s", e)
-            sys.exit(1)
+            sys.exit("Calculating inferences failed: %s" % e)
         sys.exit(0)
     if opts.do_opt:
         variables = determine_buildsystem_variables(arch)
@@ -205,8 +201,7 @@ def main():
         sys.exit(0)
     if opts.partialconfig:
         if not os.path.exists(opts.partialconfig):
-            logging.error("Partial config %s does not exist", opts.partialconfig)
-            sys.exit(1)
+            sys.exit("Partial config %s does not exist" % opts.partialconfig)
 
         options = {
             'arch' : arch,
@@ -236,8 +231,7 @@ def main():
             for f in sorted(files):
                 print f
         except TreeNotConfigured:
-            logging.error("Your Linux tree is not configured, please configure it first")
-            sys.exit(1)
+            sys.exit("Your Linux tree is not configured, please configure it first")
         sys.exit(0)
     elif opts.compiled:
         try:
@@ -245,13 +239,11 @@ def main():
                 status = file_in_current_configuration(filename, arch, subarch)
                 print filename, status
         except TreeNotConfigured:
-            logging.error("Your Linux tree is not configured, please configure it first")
-            sys.exit(1)
+            sys.exit("Your Linux tree is not configured, please configure it first")
         sys.exit(0)
     elif not opts.partialconfig:
-        print "No option given"
         parser.print_help()
-        sys.exit(1)
+        sys.exit("No option given")
 
 if __name__ == "__main__":
     main()
