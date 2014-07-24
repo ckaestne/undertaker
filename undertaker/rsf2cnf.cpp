@@ -100,10 +100,10 @@ static void addAllwaysOnOff(kconfig::CNFBuilder &builder, RsfReader &model){
     const std::string magic_on("ALWAYS_ON");
     const std::string magic_off("ALWAYS_OFF");
 
-    for (const std::string &str : *KconfigWhitelist::getWhitelist())
+    for (const std::string &str : KconfigWhitelist::getWhitelist())
         model.addMetaValue(magic_on, str);
 
-    for (const std::string &str : *KconfigWhitelist::getBlacklist())
+    for (const std::string &str : KconfigWhitelist::getBlacklist())
         model.addMetaValue(magic_off, str);
 
     if (model.getMetaValue(magic_on)) {
@@ -136,7 +136,6 @@ int main(int argc, char **argv) {
     while ((opt = getopt(argc, argv, "m:r:c:W:B:vh")) != -1) {
         switch (opt) {
             int n;
-            KconfigWhitelist *wl;
         case 'm':
             model_file = optarg;
             break;
@@ -157,8 +156,7 @@ int main(int argc, char **argv) {
             logger.setLogLevel(loglevel);
             break;
         case 'W':
-            wl = KconfigWhitelist::getWhitelist();
-            n = wl->loadWhitelist(optarg);
+            n = KconfigWhitelist::getWhitelist().loadWhitelist(optarg);
             if (n >= 0) {
                 logger << info << "loaded " << n << " items to whitelist" << std::endl;
             } else {
@@ -167,8 +165,7 @@ int main(int argc, char **argv) {
             }
             break;
         case 'B':
-            wl = KconfigWhitelist::getBlacklist();
-            n = wl->loadWhitelist(optarg);
+            n = KconfigWhitelist::getBlacklist().loadWhitelist(optarg);
             if (n >= 0) {
                 logger << info << "loaded " << n << " items to blacklist" << std::endl;
             } else {

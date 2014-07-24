@@ -37,7 +37,7 @@
 static const boost::regex model_regex("^([-[:alnum:]]+)\\.(model|cnf)$");
 
 ConfigurationModel* ModelContainer::loadModels(std::string model) {
-    ModelContainer *f = getInstance();
+    ModelContainer &f = getInstance();
     int found_models = 0;
     std::list<std::string> filenames;
     ConfigurationModel *ret = nullptr;
@@ -51,7 +51,7 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
         boost::filesystem::path p(model);
         std::string model_name = p.stem().string();
 
-        ret = f->registerModelFile(model, model_name);
+        ret = f.registerModelFile(model, model_name);
         if (ret) {
             logger << info << "loaded " << ret->getModelVersionIdentifier()
                    << " model for " << model_name << std::endl;
@@ -78,8 +78,8 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
             std::string found_arch = what[1];
 
             // if there is no model for 'found_arch' in f, load it
-            if (f->find(found_arch) == f->end()) {
-                ConfigurationModel *mod = f->registerModelFile(model + "/" + filename, found_arch);
+            if (f.find(found_arch) == f.end()) {
+                ConfigurationModel *mod = f.registerModelFile(model + "/" + filename, found_arch);
                 /* overwrite the return value */
                 if (mod) ret = mod;
                 found_models++;
@@ -112,18 +112,15 @@ ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std:
     } else {
         db = new RsfConfigurationModel(filename);
     }
-    if (!db) {
-        logger << error << "Failed to load model from " << filename << std::endl;
-    }
     this->emplace(arch, db);
     return db;
 };
 
 ConfigurationModel *ModelContainer::lookupModel(const std::string &arch)  {
-    ModelContainer *f = getInstance();
+    ModelContainer &f = getInstance();
     // first step: look if we have it in our models list;
-    auto a = f->find(arch);
-    if (a != f->end()) {
+    auto a = f.find(arch);
+    if (a != f.end()) {
         // we've found it in our map, so return it
         return a->second;
     } else {
@@ -133,7 +130,7 @@ ConfigurationModel *ModelContainer::lookupModel(const std::string &arch)  {
 }
 
 const std::string ModelContainer::lookupArch(const ConfigurationModel *model) {
-    for (const auto &entry : *getInstance())  // pair<string, ConfigurationModel *>
+    for (const auto &entry : getInstance())  // pair<string, ConfigurationModel *>
         if (entry.second == model)
             return entry.first;
 
@@ -141,12 +138,12 @@ const std::string ModelContainer::lookupArch(const ConfigurationModel *model) {
 }
 
 ConfigurationModel *ModelContainer::lookupMainModel() {
-    ModelContainer *f = getInstance();
-    return ModelContainer::lookupModel(f->main_model);
+    ModelContainer &f = getInstance();
+    return ModelContainer::lookupModel(f.main_model);
 }
 
 void ModelContainer::setMainModel(std::string main_model) {
-    ModelContainer *f = getInstance();
+    ModelContainer &f = getInstance();
 
     if (!ModelContainer::lookupModel(main_model)) {
         logger << error << "Could not specify main model "
@@ -154,20 +151,17 @@ void ModelContainer::setMainModel(std::string main_model) {
         return;
     }
     logger << info << "Using " << main_model << " as primary model" << std::endl;
-    f->main_model = main_model;
+    f.main_model = main_model;
 }
 
 const std::string &ModelContainer::getMainModel() {
-    return getInstance()->main_model;
+    return getInstance().main_model;
 }
 
 
-ModelContainer *ModelContainer::getInstance() {
-    static std::unique_ptr<ModelContainer> instance;
-    if (!instance) {
-        instance = std::unique_ptr<ModelContainer>(new ModelContainer());
-    }
-    return instance.get();
+ModelContainer &ModelContainer::getInstance() {
+    static ModelContainer instance;
+    return instance;
 }
 
 ModelContainer::~ModelContainer() {

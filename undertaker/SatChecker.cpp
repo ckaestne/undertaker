@@ -75,7 +75,7 @@ static std::unique_ptr<PicosatCNF> getCnfWithModelInit(const std::string &formul
         // CNF model
         std::string modelname = what[1];
         CnfConfigurationModel *cm = dynamic_cast<CnfConfigurationModel *>(
-            ModelContainer::getInstance()->lookupModel(modelname));
+            ModelContainer::getInstance().lookupModel(modelname));
         if (!cm) {
             logger << error << "Could not add model \"" << modelname  <<"\" to cnf" << std::endl;
             return nullptr;

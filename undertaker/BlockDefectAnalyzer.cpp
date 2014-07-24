@@ -97,8 +97,7 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *p
 
     const std::string &oldarch = defect->getArch();
     DEFECTTYPE original_classification = defect->defectType();
-    // pair<string, ConfigurationModel *>
-    for (const auto &entry : *ModelContainer::getInstance()) {
+    for (const auto &entry : ModelContainer::getInstance()) { // pair<string, ConfigurationModel *>
         const ConfigurationModel *model = entry.second;
 
         if (!defect->isDefect(model)) {

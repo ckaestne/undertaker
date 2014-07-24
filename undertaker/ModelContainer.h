@@ -43,7 +43,7 @@ public:
     static ConfigurationModel *loadModels(std::string modeldir);
     static ConfigurationModel *lookupModel(const std::string &arch);
     static const std::string lookupArch(const ConfigurationModel *model);
-    static ModelContainer *getInstance();
+    static ModelContainer &getInstance();
 
     static ConfigurationModel *lookupMainModel();
     static void setMainModel(std::string);
@@ -51,10 +51,10 @@ public:
     /// returns the main model as string or nullptr, if not set
     static const std::string &getMainModel();
 
+private:
+    ModelContainer() = default;
     ~ModelContainer();
 
-private:
-    ModelContainer() {}
     std::string main_model;
     ConfigurationModel *registerModelFile(std::string filename, std::string arch);
 };

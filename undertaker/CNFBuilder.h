@@ -29,8 +29,6 @@
 
 #include <string>
 
-class KconfigWhitelist;
-
 
 namespace kconfig {
     class CNFBuilder : public BoolVisitor {
@@ -40,7 +38,7 @@ namespace kconfig {
     private:
         int boolvar = 0;
         ConstantPolicy constPolicy;
-        KconfigWhitelist *wl = nullptr;
+        bool useKconfigWhitelist = false;
 
     public:
         CNFBuilder(CNF *cnf, std::string sat = "", bool useKconfigWhitelist=false,

@@ -336,8 +336,7 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
             }
         }
 
-        ModelContainer *mc = ModelContainer::getInstance();
-        if (mc && mc->size() > 0) {
+        if (ModelContainer::getInstance().size() > 0) {
             StringJoiner file_joiner;
 
             file_joiner.push_back("(");

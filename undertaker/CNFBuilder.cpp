@@ -28,13 +28,12 @@ using namespace kconfig;
 
 
 CNFBuilder::CNFBuilder(CNF *cnf, std::string sat, bool useKconfigWhitelist,
-        ConstantPolicy constPolicy) : cnf(cnf), constPolicy(constPolicy) {
-    if (useKconfigWhitelist)
-        wl = KconfigWhitelist::getIgnorelist();
+                       ConstantPolicy constPolicy)
+        : cnf(cnf), constPolicy(constPolicy), useKconfigWhitelist(useKconfigWhitelist) {
     if (sat != "") {
         BoolExp *exp = BoolExp::parseString(sat);
         if (!exp) {
-           throw CNFBuilderError("CNFBuilder: Couldn't parse: " + sat);
+            throw CNFBuilderError("CNFBuilder: Couldn't parse: " + sat);
         }
         this->pushClause(exp);
         delete exp;
@@ -233,13 +232,12 @@ void CNFBuilder::visit(BoolExpConst *e) {
 
 void CNFBuilder::visit(BoolExpVar *e) {
     std::string symname = e->str();
-    if (e->CNFVar) {
+    if (e->CNFVar)
         return;
-    }
-    if (this->wl && wl->isWhitelisted(symname)) {
+
+    if (useKconfigWhitelist && KconfigWhitelist::getIgnorelist().isWhitelisted(symname))
         // use free variables for symbols in wl
         e->CNFVar = this->cnf->newVar();
-    } else {
+    else
         e->CNFVar = this->addVar(symname);
-    }
 }

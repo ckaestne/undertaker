@@ -243,10 +243,10 @@ void process_mergeblockconf(const std::string &filename) {
     while (std::getline(workfile, line))
         process_blockconf_helper(sj, filesolvable, line);
 
-    for (const std::string &str : *KconfigWhitelist::getWhitelist())
+    for (const std::string &str : KconfigWhitelist::getWhitelist())
         sj.push_back(str);
 
-    for (const std::string &str : *KconfigWhitelist::getBlacklist())
+    for (const std::string &str : KconfigWhitelist::getBlacklist())
         sj.push_back("!" + str);
 
     SatChecker sc(sj.join("\n&&\n"));
@@ -287,10 +287,7 @@ void process_file_coverage_helper(const std::string &filename) {
     } else if (decision_coverage) {
         file.decisionCoverage();
     }
-
-    ModelContainer *model_container = ModelContainer::getInstance();
-    ConfigurationModel *main_model = model_container->lookupMainModel();
-
+    ConfigurationModel *main_model = ModelContainer::getInstance().lookupMainModel();
     if (!main_model)
         logger << debug << "Running without a model!" << std::endl;
 
@@ -432,12 +429,12 @@ void process_file_cpppc(const std::string &filename) {
     logger << info << "CPP Precondition for " << filename << std::endl;
     try {
         StringJoiner sj;
-        ModelContainer *model_container = ModelContainer::getInstance();
+        ModelContainer &model_container = ModelContainer::getInstance();
         std::string code_formula = file.topBlock()->getCodeConstraints();
 
         sj.push_back(code_formula);
-        if (model_container && model_container->size() > 0) {
-            ConfigurationModel *main_model = model_container->lookupMainModel();
+        if (model_container.size() > 0) {
+            ConfigurationModel *main_model = model_container.lookupMainModel();
             std::set<std::string> missingSet;
 
             main_model->doIntersect(code_formula, nullptr, missingSet, code_formula);
@@ -462,10 +459,7 @@ void process_file_cppsym_helper(const std::string &filename) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
         return;
     }
-
-    ModelContainer *model_container = ModelContainer::getInstance();
-    ConfigurationModel *main_model = model_container->lookupMainModel();
-
+    ConfigurationModel *main_model = ModelContainer::getInstance().lookupMainModel();
     FoundItems found_items;
 
     static const boost::regex valid_item("^([A-Za-z_][0-9A-Za-z_]*?)(\\.*)(_MODULE)?$");
@@ -858,10 +852,8 @@ int main(int argc, char **argv) {
     while ((opt = getopt(argc, argv, "ucb:M:m:t:i:B:W:sj:O:C:I:Vhvq")) != -1) {
         switch (opt) {
             int n;
-            KconfigWhitelist *wl;
         case 'i':
-            wl = KconfigWhitelist::getIgnorelist();
-            n = wl->loadWhitelist(optarg);
+            n = KconfigWhitelist::getIgnorelist().loadWhitelist(optarg);
             if (n >= 0) {
                 logger << info << "loaded " << n << " items to ignorelist" << std::endl;
             } else {
@@ -870,8 +862,7 @@ int main(int argc, char **argv) {
             }
             break;
         case 'W':
-            wl = KconfigWhitelist::getWhitelist();
-            n = wl->loadWhitelist(optarg);
+            n = KconfigWhitelist::getWhitelist().loadWhitelist(optarg);
             if (n >= 0) {
                 logger << info << "loaded " << n << " items to whitelist" << std::endl;
             } else {
@@ -880,8 +871,7 @@ int main(int argc, char **argv) {
             }
             break;
         case 'B':
-            wl = KconfigWhitelist::getBlacklist();
-            n = wl->loadWhitelist(optarg);
+            n = KconfigWhitelist::getBlacklist().loadWhitelist(optarg);
             if (n >= 0) {
                 logger << info << "loaded " << n << " items to blacklist" << std::endl;
             } else {
@@ -1007,27 +997,27 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    ModelContainer *model_container = ModelContainer::getInstance();
-    KconfigWhitelist *bl = KconfigWhitelist::getBlacklist();
-    KconfigWhitelist *wl = KconfigWhitelist::getWhitelist();
+    ModelContainer &model_container = ModelContainer::getInstance();
+    KconfigWhitelist &bl = KconfigWhitelist::getBlacklist();
+    KconfigWhitelist &wl = KconfigWhitelist::getWhitelist();
 
-    if (0 == models_from_parameters.size() && (!bl->empty() || !wl->empty())) {
+    if (0 == models_from_parameters.size() && (!bl.empty() || !wl.empty())) {
         usage(std::cout, "please specify a model to use white- or blacklists");
         return EXIT_FAILURE;
     }
 
     /* Load all specified models */
     for (const std::string &str : models_from_parameters) {
-        if (!model_container->loadModels(str))
+        if (!model_container.loadModels(str))
             logger << error << "Failed to load model " << str << std::endl;
     }
     /* Add white- and blacklisted features to all models */
-    for (const auto &entry : *model_container) {  // pair<string, ConfigurationModel *>
+    for (const auto &entry : model_container) {  // pair<string, ConfigurationModel *>
         ConfigurationModel *model = entry.second;
-        for (const std::string &str : *bl)
+        for (const std::string &str : bl)
             model->addFeatureToBlacklist(str);
 
-        for (const std::string &str : *wl)
+        for (const std::string &str : wl)
             model->addFeatureToWhitelist(str);
     }
 
@@ -1051,23 +1041,23 @@ int main(int argc, char **argv) {
     }
 
     /* Specify main model, if models where loaded */
-    if (model_container->size() == 1) {
+    if (model_container.size() == 1) {
         /* If there is only one model file loaded use this */
-        model_container->setMainModel(model_container->begin()->first);
-    } else if (model_container->size() > 1) {
+        model_container.setMainModel(model_container.begin()->first);
+    } else if (model_container.size() > 1) {
         /* the main model is default */
         if (main_model == "default") {
             // if 'x86' is not present, load the first one in model_container
-            if (nullptr == model_container->lookupModel("x86")) {
-                const std::string &first = model_container->begin()->first;
+            if (nullptr == model_container.lookupModel("x86")) {
+                const std::string &first = model_container.begin()->first;
                 logger << error << "Default Main-Model 'x86' not found. Using '" << first
                        << "' instead." << std::endl;
-                model_container->setMainModel(first);
+                model_container.setMainModel(first);
             } else {
-                model_container->setMainModel("x86");
+                model_container.setMainModel("x86");
             }
         } else {
-            model_container->setMainModel(main_model);
+            model_container.setMainModel(main_model);
         }
     }
 
@@ -1095,12 +1085,12 @@ int main(int argc, char **argv) {
                     line = line.substr(space + 1);
                 }
                 if (new_mode == "load") {
-                    model_container->loadModels(line);
+                    model_container.loadModels(line);
                     continue;
                 } else if (new_mode == "main-model") {
-                    ConfigurationModel *db = model_container->loadModels(line);
+                    ConfigurationModel *db = model_container.loadModels(line);
                     if (db) {
-                        model_container->setMainModel(db->getName());
+                        model_container.setMainModel(db->getName());
                     }
                     continue;
                 } else { /* Change working mode */

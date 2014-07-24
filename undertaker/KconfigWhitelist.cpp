@@ -22,43 +22,27 @@
 
 
 #include "KconfigWhitelist.h"
-#include "ModelContainer.h"
 
 #include <fstream>
-#include <memory>
 #include <algorithm>
 
 bool KconfigWhitelist::isWhitelisted(const std::string &item) const {
     return std::find(begin(), end(), item) != end();
 }
 
-void KconfigWhitelist::addToWhitelist(std::string item) {
-    if (!isWhitelisted(item))
-        emplace_back(item);
+KconfigWhitelist &KconfigWhitelist::getIgnorelist() {
+    static KconfigWhitelist instance;
+    return instance;
 }
 
-KconfigWhitelist *KconfigWhitelist::getIgnorelist() {
-    static std::unique_ptr<KconfigWhitelist> instance;
-    if (!instance) {
-        instance = std::unique_ptr<KconfigWhitelist>(new KconfigWhitelist());
-    }
-    return instance.get();
+KconfigWhitelist &KconfigWhitelist::getWhitelist() {
+    static KconfigWhitelist instance;
+    return instance;
 }
 
-KconfigWhitelist *KconfigWhitelist::getWhitelist() {
-    static std::unique_ptr<KconfigWhitelist> instance;
-    if (!instance) {
-        instance = std::unique_ptr<KconfigWhitelist>(new KconfigWhitelist());
-    }
-    return instance.get();
-}
-
-KconfigWhitelist *KconfigWhitelist::getBlacklist() {
-    static std::unique_ptr<KconfigWhitelist> instance;
-    if (!instance) {
-        instance = std::unique_ptr<KconfigWhitelist>(new KconfigWhitelist());
-    }
-    return instance.get();
+KconfigWhitelist &KconfigWhitelist::getBlacklist() {
+    static KconfigWhitelist instance;
+    return instance;
 }
 
 int KconfigWhitelist::loadWhitelist(const char *file) {
@@ -74,7 +58,8 @@ int KconfigWhitelist::loadWhitelist(const char *file) {
         if (line[0] == '#')
             continue;
 
-        this->addToWhitelist(line);
+        if (!isWhitelisted(line))
+            emplace_back(line);
     }
     return size() - n;
 }

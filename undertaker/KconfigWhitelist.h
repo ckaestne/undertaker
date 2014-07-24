@@ -39,11 +39,10 @@
  */
 class KconfigWhitelist : public std::vector<std::string> {
     KconfigWhitelist() = default;      //!< private c'tor
-    void addToWhitelist(std::string);  //!< adds an item to the whitelist
 public:
-    static KconfigWhitelist *getIgnorelist();  //!< ignorelist
-    static KconfigWhitelist *getWhitelist();   //!< whitelist
-    static KconfigWhitelist *getBlacklist();   //!< blacklist
+    static KconfigWhitelist &getIgnorelist();  //!< ignorelist
+    static KconfigWhitelist &getWhitelist();   //!< whitelist
+    static KconfigWhitelist &getBlacklist();   //!< blacklist
     //!< checks if the given item is in the whitelist
     bool isWhitelisted(const std::string &s) const;
     /**
