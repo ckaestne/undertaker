@@ -76,7 +76,7 @@ namespace kconfig {
         virtual void visit(BoolExpCall *e)  final override {
             bool first = true;
             std::string paramstring("");
-            for (auto &ptr : *e->param) {  // BoolExp *
+            for (const auto &ptr : *e->param) {  // BoolExp *
                 paramstring += first ? "" : ", ";
                 paramstring += ptr->str();
                 first = false;

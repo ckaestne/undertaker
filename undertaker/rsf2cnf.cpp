@@ -47,9 +47,9 @@ static void usage(void){
 
 static void addTypeInfo(kconfig::CNF &cnf, ItemRsfReader *rsf){
     // add all CONFIG_* items
-    for (auto &entry : *rsf) {  // pair<string, StringList>
-        std::string symbolname = entry.first;
-        std::string nameOfType = entry.second[0];
+    for (const auto &entry : *rsf) {  // pair<string, StringList>
+        const std::string symbolname = entry.first;
+        const std::string nameOfType = entry.second[0];
 
         if (nameOfType == "boolean") {
             cnf.setSymbolType(symbolname, K_S_BOOLEAN);
@@ -70,7 +70,7 @@ static void addTypeInfo(kconfig::CNF &cnf, ItemRsfReader *rsf){
 static void addClauses(kconfig::CNFBuilder &builder, RsfReader &model){
     boost::regex isconfig = boost::regex("^(CONFIG|FILE)_[^ ]+$", boost::regex::perl);
     // add all CONFIG_* items
-    for (auto &entry : model) {  // pair<string, StringList>
+    for (const auto &entry : model) {  // pair<string, StringList>
         if(boost::regex_match(entry.first, isconfig)){
             std::string clause = entry.first;
             builder.addVar(clause);

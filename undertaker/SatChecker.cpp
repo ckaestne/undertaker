@@ -102,7 +102,7 @@ bool SatChecker::operator()(Picosat::SATMode mode) {
     if (res) {
         /* Let's get the assigment out of picosat, because we have to
             reset the sat solver afterwards */
-        for (auto &entry : _cnf->getSymbolMap()) {  // pair<string, int>
+        for (const auto &entry : _cnf->getSymbolMap()) {  // pair<string, int>
             bool selected = this->_cnf->deref(entry.second);
             assignmentTable.emplace(entry.first, selected);
         }
@@ -129,10 +129,10 @@ std::string SatChecker::pprint() {
 
 void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
     static const boost::regex block_regexp("^B(\\d+)$", boost::regex::perl);
-    for (auto &entry : *this) {  // pair<string, bool>
+    for (const auto &entry : *this) {  // pair<string, bool>
         const std::string &name = entry.first;
         const bool &valid = entry.second;
-        boost::match_results<std::string::const_iterator> what;
+        boost::smatch what;
 
         if (!valid || !boost::regex_match(name, what, block_regexp))
             continue;
@@ -156,7 +156,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
 
     logger << debug << "---- Dumping new assignment map" << std::endl;
 
-    for (auto &entry : *this) {  // pair<string, bool>
+    for (const auto &entry : *this) {  // pair<string, bool>
         static const boost::regex item_regexp("^CONFIG_(.*[^.])$", boost::regex::perl);
         static const boost::regex module_regexp("^CONFIG_(.*)_MODULE$", boost::regex::perl);
         static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
@@ -166,8 +166,8 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
         boost::match_results<std::string::const_iterator> what;
 
         if (valid && boost::regex_match(name, what, module_regexp)) {
-            const std::string &name = what[1];
-            std::string basename = "CONFIG_" + name;
+            const std::string &tmpName = what[1];
+            std::string basename = "CONFIG_" + tmpName;
             if (missingSet.find(basename) != missingSet.end() ||
                 missingSet.find(what[0])  != missingSet.end()) {
                 logger << debug << "Ignoring 'missing' module item "
@@ -218,7 +218,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
         }
     }
 
-    for (auto &entry : selection) {  // pair<string, state>
+    for (const auto &entry : selection) {  // pair<string, state>
         const std::string &item = entry.first;
         const state &stat = entry.second;
 
@@ -234,7 +234,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
         out << std::endl;
     }
 
-    for (auto &entry : other_variables) {  // pair<string, state>
+    for (const auto &entry : other_variables) {  // pair<string, state>
         const std::string &item = entry.first;
         const state &stat = entry.second;
 
@@ -262,7 +262,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
 int SatChecker::AssignmentMap::formatModel(std::ostream &out, const ConfigurationModel *model) {
     int items = 0;
 
-    for (auto &entry : *this) {  // pair<string, bool>
+    for (const auto &entry : *this) {  // pair<string, bool>
         const std::string &name = entry.first;
         const bool &valid = entry.second;
         if (model && !model->inConfigurationSpace(name))
@@ -274,7 +274,7 @@ int SatChecker::AssignmentMap::formatModel(std::ostream &out, const Configuratio
 }
 
 int SatChecker::AssignmentMap::formatAll(std::ostream &out) {
-    for (auto &entry : *this) {  // pair<string, bool>
+    for (const auto &entry : *this) {  // pair<string, bool>
         const std::string &name = entry.first;
         const bool &valid = entry.second;
         out << name << "=" << (valid ? 1 : 0) << std::endl;;
@@ -286,7 +286,7 @@ int SatChecker::AssignmentMap::formatCPP(std::ostream &out, const ConfigurationM
     static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
     static const boost::regex valid_regexp("^[_a-zA-Z].*$", boost::regex::perl);
 
-    for (auto &entry : *this) {  // pair<string, bool>
+    for (const auto &entry : *this) {  // pair<string, bool>
         const std::string &name = entry.first;
         // ignoring block variables
         if (boost::regex_match(name, block_regexp))
@@ -453,8 +453,8 @@ void SatChecker::pprintAssignments(std::ostream& out,
 
     std::map<std::string, bool> common_subset;
 
-    for (auto &conf : solutions) {  // AssignmentMap
-        for (auto &entry : conf) {  // pair<string, bool>
+    for (const auto &conf : solutions) {  // AssignmentMap
+        for (const auto &entry : conf) {  // pair<string, bool>
             const std::string &name = entry.first;
             const bool &valid = entry.second;
 
@@ -476,7 +476,7 @@ void SatChecker::pprintAssignments(std::ostream& out,
     }
 
     // Remove all items from common subset, that are not in all assignments
-    for (auto &entry : common_subset) {  // pair<string, bool>
+    for (const auto &entry : common_subset) {  // pair<string, bool>
         const std::string &name = entry.first;
         for (auto &conf : solutions) {  // AssignmentMap
             if (conf.find(name) == conf.end())
@@ -485,7 +485,7 @@ void SatChecker::pprintAssignments(std::ostream& out,
     }
 
     out << "I: In all assignments the following symbols are equally set" << std::endl;
-    for (auto &entry : common_subset) {  // pair<string, bool>
+    for (const auto &entry : common_subset) {  // pair<string, bool>
             const std::string &name = entry.first;
             const bool &valid = entry.second;
             out << name << "=" << (valid ? 1 : 0) << std::endl;
@@ -493,9 +493,9 @@ void SatChecker::pprintAssignments(std::ostream& out,
 
     out << "I: All differences in the assignments" << std::endl;
     int i = 0;
-    for (auto &conf : solutions) {  // AssignmentMap
+    for (const auto &conf : solutions) {  // AssignmentMap
         out << "I: Config " << i++ << std::endl;
-        for (auto &entry : conf) {  // pair<string, bool>
+        for (const auto &entry : conf) {  // pair<string, bool>
             const std::string &name = entry.first;
             const bool &valid = entry.second;
 
@@ -525,7 +525,7 @@ bool BaseExpressionSatChecker::operator()(const std::set<std::string> &assumeSym
         /* Let's get the assigment out of picosat, because we have to
             reset the sat solver afterwards */
         assignmentTable.clear();
-        for (auto &entry : _cnf->getSymbolMap()) {  // pair<string, int>
+        for (const auto &entry : _cnf->getSymbolMap()) {  // pair<string, int>
             bool selected = this->_cnf->deref(entry.second);
             assignmentTable.emplace(entry.first, selected);
         }

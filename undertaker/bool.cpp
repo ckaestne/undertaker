@@ -217,7 +217,7 @@ void kconfig::BoolExpVar::accept(kconfig::BoolVisitor *visitor) {
 }
 
 void kconfig::BoolExpCall::accept(kconfig::BoolVisitor *visitor) {
-    for (auto &bool_exp : *this->param)  // BoolExp *
+    for (const auto &bool_exp : *this->param)  // BoolExp *
         bool_exp->accept(visitor);
     visitor->visit(this);
 }
@@ -241,11 +241,11 @@ bool kconfig::BoolExpCall::equals(const BoolExp *other) const {
                           || this->param->size() != otherc->param->size()) {
         return false;
     }
-    auto itt = param->begin();          // BoolExp *
     auto ito  = otherc->param->begin(); // BoolExp *
-    for ( ; itt !=param->end(); itt++, ito++) {
-        if (! (*itt)->equals(*ito))
+    for (const auto &entry : *param) {  // BoolExp *
+        if (!entry->equals(*ito))
             return false;
+        ++ito;
     }
     return true;
 }

@@ -32,7 +32,7 @@ RsfReader::RsfReader(std::istream &f, std::string metaflag) : metaflag(std::move
 }
 
 void RsfReader::print_contents(std::ostream &out) {
-    for (auto &entry : *this)  // pair<string, deque<string>>
+    for (const auto &entry : *this)  // pair<string, deque<string>>
         out << entry.first << " : " << entry.second.front() << std::endl;
 }
 

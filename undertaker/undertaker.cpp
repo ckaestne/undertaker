@@ -469,7 +469,7 @@ void process_file_cppsym_helper(const std::string &filename) {
     FoundItems found_items;
 
     static const boost::regex valid_item("^([A-Za-z_][0-9A-Za-z_]*?)(\\.*)(_MODULE)?$");
-    for (auto &block : file) {  // ConditionalBlock *
+    for (const auto &block : file) {  // ConditionalBlock *
         std::string expr = block->ifdefExpression();
         for (const std::string &item : undertaker::itemsOfString(expr)) {
             boost::smatch what;
@@ -494,7 +494,7 @@ void process_file_cppsym_helper(const std::string &filename) {
         }
     }
 
-    for (auto &item : found_items) {  // pair<string, ItemStats>
+    for (const auto &item : found_items) {  // pair<string, ItemStats>
         StringJoiner sj;
         static const boost::regex kconfig_regexp("^CONFIG_.+");
         boost::match_results<std::string::const_iterator> what;
@@ -542,7 +542,7 @@ void process_file_blockrange(const std::string &filename) {
     std::cout << filename << ":" << cpp.topBlock()->getName() << ":";
     std::cout << cpp.topBlock()->lineStart() << ":" << cpp.topBlock()->lineEnd() << std::endl;
     /* Iterate over all Blocks */
-    for (auto &block : cpp) {  // ConditionalBlock *
+    for (const auto &block : cpp) {  // ConditionalBlock *
         std::cout << filename << ":" << block->getName() << ":";
         std::cout << block->lineStart() << ":" << block->lineEnd() << std::endl;
     }
@@ -630,7 +630,7 @@ void process_file_dead_helper(const std::string &filename) {
     }
 
     /* Iterate over all Blocks */
-    for (auto &block : file) {  // ConditionalBlock *
+    for (const auto &block : file) {  // ConditionalBlock *
         try {
             const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(block, mainModel);
             if (defect) {
@@ -825,7 +825,7 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
         logger << info << "Sucessful processed:  " << process_stats.ok << std::endl;
         logger << info << "Failed with exitcode: " << process_stats.failed << std::endl;
         logger << info << "Failed with signal:   " << process_stats.signaled << std::endl;
-        for (auto &it : arguments)  // pair<pid_t, const char *>
+        for (const auto &it : arguments)  // pair<pid_t, const char *>
             logger << info << "Failed file: " << it.second << std::endl;
     }
 }
@@ -1017,12 +1017,12 @@ int main(int argc, char **argv) {
     }
 
     /* Load all specified models */
-    for (std::string &str : models_from_parameters) {
+    for (const std::string &str : models_from_parameters) {
         if (!model_container->loadModels(str))
             logger << error << "Failed to load model " << str << std::endl;
     }
     /* Add white- and blacklisted features to all models */
-    for (auto &entry : *model_container) {  // pair<string, ConfigurationModel *>
+    for (const auto &entry : *model_container) {  // pair<string, ConfigurationModel *>
         ConfigurationModel *model = entry.second;
         for (const std::string &str : *bl)
             model->addFeatureToBlacklist(str);

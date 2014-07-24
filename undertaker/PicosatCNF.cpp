@@ -63,7 +63,7 @@ void PicosatCNF::loadContext(void) {
     currentContext = this;
     Picosat::picosat_set_global_default_phase(defaultPhase);
 
-    for (int &clause : clauses)
+    for (const int &clause : clauses)
         Picosat::picosat_add(clause);
 
     if (do_mus_analysis) {
@@ -176,7 +176,7 @@ void PicosatCNF::toStream(std::ostream &out) const {
     out << "c variable names:" << std::endl;
     out << "c c var <variablename> <cnfvar>" << std::endl;
 
-    for (auto &entry : meta_information) {  // pair<string, deque<string>>
+    for (const auto &entry : meta_information) {  // pair<string, deque<string>>
         std::stringstream sj;
 
         sj << "c meta_value " << entry.first;
@@ -185,12 +185,12 @@ void PicosatCNF::toStream(std::ostream &out) const {
 
         out << sj.str() << std::endl;
     }
-    for (auto &entry : this->symboltypes) {  // pair<string, kconfig_symbol_type>
+    for (const auto &entry : this->symboltypes) {  // pair<string, kconfig_symbol_type>
         const std::string &sym = entry.first;
         int type = entry.second;
         out << "c sym " << sym << " " << type << std::endl;
     }
-    for (auto &entry : this->cnfvars) {  // pair<string, int>
+    for (const auto &entry : this->cnfvars) {  // pair<string, int>
         const std::string &sym = entry.first;
         int var = entry.second;
         out << "c var " << sym << " " << var << std::endl;
@@ -292,7 +292,7 @@ bool PicosatCNF::checkSatisfiable(void) {
     if (this != currentContext){
         this->loadContext();
     }
-    for (int &assumption : assumptions)
+    for (const int &assumption : assumptions)
         Picosat::picosat_assume(assumption);
 
     assumptions.clear();
@@ -300,7 +300,7 @@ bool PicosatCNF::checkSatisfiable(void) {
 }
 
 void PicosatCNF::pushAssumptions(std::map<std::string, bool> &a) {
-    for (auto &entry : a) {  // pair<string, bool>
+    for (const auto &entry : a) {  // pair<string, bool>
         std::string symbol = entry.first;
         bool value = entry.second;
         this->pushAssumption(symbol, value);

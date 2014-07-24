@@ -72,7 +72,7 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
     }
     filenames.sort();
 
-    for (std::string &filename : filenames) {
+    for (const std::string &filename : filenames) {
         boost::smatch what;
         if (boost::regex_search(filename, what, model_regex)) {
             std::string found_arch = what[1];
@@ -133,7 +133,7 @@ ConfigurationModel *ModelContainer::lookupModel(const std::string &arch)  {
 }
 
 const std::string ModelContainer::lookupArch(const ConfigurationModel *model) {
-    for (auto &entry : *getInstance())  // pair<string, ConfigurationModel *>
+    for (const auto &entry : *getInstance())  // pair<string, ConfigurationModel *>
         if (entry.second == model)
             return entry.first;
 

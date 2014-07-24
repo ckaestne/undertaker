@@ -48,9 +48,9 @@ void usage(std::ostream &out) {
     exit(EXIT_FAILURE);
 }
 
-int process_assumptions(CNF *cnf, std::vector<boost::filesystem::path> assumptions) {
+int process_assumptions(CNF *cnf, const std::vector<boost::filesystem::path> assumptions) {
     int errors = 0;
-    for (auto &assumption : assumptions) {  // boost::filesystem::path
+    for (const auto &assumption : assumptions) {  // boost::filesystem::path
         logger << info << "processing assumption " << assumption << std::endl;
 
         if (boost::filesystem::exists(assumption)) {
@@ -77,8 +77,8 @@ int process_assumptions(CNF *cnf, std::vector<boost::filesystem::path> assumptio
 }
 
 int main(int argc, char **argv) {
-    static bool saveTranslatedModel = false;
-    static std::vector<boost::filesystem::path> assumptions;
+    bool saveTranslatedModel = false;
+    std::vector<boost::filesystem::path> assumptions;
     boost::filesystem::path saveFile;
     int exitstatus = 0;
     int opt;

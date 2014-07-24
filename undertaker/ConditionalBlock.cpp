@@ -142,7 +142,7 @@ void CppFile::decisionCoverage() {
 
 void CppFile::printCppFile() {
     logger << debug << "------ FILE ------" << std::endl;
-    for (auto &block : *this) {  // ConditionalBlock *
+    for (const auto &block : *this) {  // ConditionalBlock *
         if (block->ifdefExpression() == "") {
             if (block->getName().compare("B00"))
                 logger << debug << "ELSE " << block->isElseBlock() << " "
@@ -206,7 +206,7 @@ void ConditionalBlock::processForDecisionCoverage() {
 }
 
 void ConditionalBlock::printConditionalBlocks(int indent) {
-    for (auto &block : *this) {  // ConditionalBlock *
+    for (const auto &block : *this) {  // ConditionalBlock *
         if (block->ifdefExpression() == "") {
             logger << debug << std::string(indent, ' ') << "ELSE " << block->isElseBlock()
                    << " " << block->getName() << " " << block << " prev: "

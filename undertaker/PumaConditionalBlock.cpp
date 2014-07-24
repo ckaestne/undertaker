@@ -608,7 +608,7 @@ void PumaConditionalBlockBuilder::resolve_includes(Puma::Unit *unit) {
     std::string include;
     std::set<Puma::Unit *> already_seen;
 
-    for (std::string &str : _includePaths)
+    for (const std::string &str : _includePaths)
         includer.addIncludePath(str.c_str());
 
     for (s = unit->first(); s != unit->last() && s; s = unit->next(s)) {

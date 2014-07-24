@@ -58,7 +58,7 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
         code_formula = file->topBlock()->getCodeConstraints();
     } else {
         UniqueStringJoiner expression;
-        for (auto &block : *blocks) {    // ConditionalBlock *
+        for (const auto &block : *blocks) {    // ConditionalBlock *
             block->getCodeConstraints(&expression);
             expression.push_back(block->getName());
         }
@@ -108,7 +108,7 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
     try {
         BaseExpressionSatChecker sc(base_formula);
 
-        for (auto &block : *file) {      // ConditionalBlock *
+        for (const auto &block : *file) {      // ConditionalBlock *
             SatChecker::AssignmentMap current_solution;
 
             if (blocks_set.find(block->getName()) == blocks_set.end()) {
@@ -120,7 +120,7 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
                     continue;
 
                 static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
-                for (auto &assignment : sc.getAssignment()) { // pair<string, bool>
+                for (const auto &assignment : sc.getAssignment()) { // pair<string, bool>
                     const std::string &name = assignment.first;
                     const bool enabled = assignment.second;
 
@@ -181,10 +181,10 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
         BaseExpressionSatChecker sc(base_formula);
 
         if(sc(configuration)) { // Configuration is an empty list here
-            for (auto &assignment : sc.getAssignment()) {  // pair<string, bool>
+            static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+            for (const auto &assignment : sc.getAssignment()) {  // pair<string, bool>
                 if (assignment.second == false) continue; // Not enabled
                 const std::string &block_name = assignment.first;
-                static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
                 if (boost::regex_match(block_name, block_regexp)) {
                     configuration.insert(block_name);
                     blocks_set.insert(block_name);
@@ -195,7 +195,7 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
 
         // For the first round, configuration size will be non-zero at this point
         while (blocks_set.size() < file->size()) {
-            for(auto &block : *file) {  // ConditionalBlock *
+            for(const auto &block : *file) {  // ConditionalBlock *
                 std::string block_name = block->getName();
 
                 // Was already enabled in an other configuration
