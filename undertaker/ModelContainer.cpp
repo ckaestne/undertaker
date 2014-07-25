@@ -165,6 +165,7 @@ ModelContainer &ModelContainer::getInstance() {
 }
 
 ModelContainer::~ModelContainer() {
-    for (auto &entry : *this)  // pair<string, ConfigurationModel *>
-        delete entry.second;
+// XXX uncomment the following, when fork has been replaced with threads
+//    for (auto &entry : *this)  // pair<string, ConfigurationModel *>
+//        delete entry.second;
 }
