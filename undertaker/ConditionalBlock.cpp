@@ -19,6 +19,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef DEBUG
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+#endif
+
 #include "ConditionalBlock.h"
 #include "StringJoiner.h"
 #include "ModelContainer.h"
@@ -29,6 +33,7 @@ typedef PumaConditionalBlock ConditionalBlockImpl;
 #include "cpp14.h"
 
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 #include <set>
 
 
@@ -80,6 +85,8 @@ static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
 /************************************************************************/
 
 CppFile::CppFile(const std::string &f) : checker(this) {
+    if (!boost::filesystem::exists(f))
+        return;
     if (f[0] != '.' && f[1] != '/')
         filename = f;
     else
