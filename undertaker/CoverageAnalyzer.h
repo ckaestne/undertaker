@@ -47,8 +47,7 @@ public:
     MissingSet getMissingSet() const { return missingSet; }
 
 protected:
-    std::string baseFileExpression(const ConfigurationModel *model,
-                                   std::set<ConditionalBlock *> *blocks = nullptr);
+    std::string baseFileExpression(const ConfigurationModel *model);
     const CppFile * file;
     MissingSet missingSet; // set of strings
 };

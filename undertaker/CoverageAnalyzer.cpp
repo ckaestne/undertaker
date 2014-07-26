@@ -31,66 +31,39 @@
 /* CoverageAnalyzer                                                     */
 /************************************************************************/
 
-std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model,
-                                                 std::set<ConditionalBlock *> *blocks) {
-    const StringList *always_on = nullptr;
-    const StringList *always_off = nullptr;
-
-    if (model) {
-        const std::string magic1("ALWAYS_ON");
-        const std::string magic2("ALWAYS_OFF");
-        always_on = model->getMetaValue(magic1);
-        if (always_on && !blocks) {
-            logger << info << always_on->size()
-                   << " Items have been forcefully set" << std::endl;
-        }
-
-        always_off = model->getMetaValue(magic2);
-        if (always_off && !blocks) {
-            logger << info << always_off->size()
-                   << " Items have been forcefully unset" << std::endl;
-        }
-    }
-
+std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model) {
     StringJoiner formula;
-    std::string code_formula;
-    if (!blocks) {
-        code_formula = file->topBlock()->getCodeConstraints();
-    } else {
-        UniqueStringJoiner expression;
-        for (const auto &block : *blocks) {    // ConditionalBlock *
-            block->getCodeConstraints(&expression);
-            expression.push_back(block->getName());
-        }
-        code_formula = expression.join(" && ");
-    }
-
+    std::string code_formula = file->topBlock()->getCodeConstraints();
     formula.push_back(code_formula);
 
     if (model) {
         std::string kconfig_formula;
-        model->doIntersect(code_formula, file->getChecker(),
-                           missingSet, kconfig_formula);
+        model->doIntersect(code_formula, file->getChecker(), missingSet, kconfig_formula);
         formula.push_back(kconfig_formula);
-        /* only add missing items if we can assume the model is complete */
-        if (model && model->isComplete()) {
+        // only add missing items if we can assume the model is complete
+        if (model->isComplete()) {
             for (const std::string &str : missingSet)
                 formula.push_back("!" + str);
         }
+        // add ALWAYS_ON items to the formula
+        const std::string magic1("ALWAYS_ON");
+        const StringList *always_on = model->getMetaValue(magic1);
+        if (always_on) {
+            logger << info << always_on->size() << " Items have been forcefully set" << std::endl;
+            for (const std::string &str : *always_on)
+                formula.push_back(str);
+        }
+        // add ALWAYS_OFF items to the formula
+        const std::string magic2("ALWAYS_OFF");
+        const StringList *always_off = model->getMetaValue(magic2);
+        if (always_off) {
+            logger << info << always_off->size() << " Items have been forcefully unset"
+                   << std::endl;
+            for (const std::string &str : *always_off)
+                formula.push_back("!" + str);
+        }
     }
-
-    if (always_on) {
-        for (const std::string &str : *always_on)
-            formula.push_back(str);
-    }
-    if (always_off) {
-        for (const std::string &str : *always_off)
-            formula.push_back("!" + str);
-    }
-
-
     logger << debug << "baseFileExpression: " << formula.join("\n&& ") << std::endl;
-
     return formula.join(" && ");
 }
 
