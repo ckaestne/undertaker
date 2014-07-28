@@ -37,21 +37,20 @@ int cnf_test(std::string s, bool result, std::runtime_error *error = nullptr) {
     if (error == nullptr)  {
         fail_unless(checker() == result, "%s should evaluate to %d",
                     s.c_str(), (int) result);
-        return checker.countClauses();
+        return 0;
     } else {
         try {
-            fail_unless(checker() == result,
-                        "%s should evaluate to %d",
+            fail_unless(checker() == result, "%s should evaluate to %d",
                         s.c_str(), (int) result);
-            return checker.countClauses();
+            return 0;
         } catch (std::runtime_error &e) {
             fail_unless(typeid(*error) == typeid(e),
                         "%s didn't throw the right exception should be %s, but is %s.",
                         typeid(*error).name(), typeid(e).name());
-            return checker.countClauses();
+            return 0;
         }
     }
-    return checker.countClauses();
+    return 0;
 }
 
 START_TEST(format_config_items_simple) {

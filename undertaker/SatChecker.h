@@ -208,8 +208,6 @@ public:
         const ConfigurationModel *model,
         const MissingSet &missingSet);
 
-    int countClauses() { return _clauses; };
-
 protected:
     std::unique_ptr<kconfig::CNF> _cnf;
     std::map<std::string, int> symbolTable;
@@ -222,7 +220,6 @@ protected:
     bool _do_mus_analysis;
 
     const std::string _sat;
-    int _clauses = 0;
 
     // Debugging stuff
     void _debug_parser(std::string d = "", bool newblock = true) {
