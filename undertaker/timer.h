@@ -34,6 +34,14 @@
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(                           \
                      std::chrono::high_resolution_clock::now() - var).count() << std::endl;
 
+#define STOP_TIMER_MUS(var)                                                                       \
+    std::cout << std::chrono::duration_cast<std::chrono::microseconds>(                           \
+                     std::chrono::high_resolution_clock::now() - var).count() << std::endl;
+
+#define STOP_TIMER_NS(var)                                                                        \
+    std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(                            \
+                     std::chrono::high_resolution_clock::now() - var).count() << std::endl;
+
 #define P_STOP_TIMER(var, name)                                                                   \
     std::cout << "RUNTIME of " << name << ": "                                                    \
               << std::chrono::duration_cast<std::chrono::milliseconds>(                           \
