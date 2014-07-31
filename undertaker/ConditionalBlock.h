@@ -109,7 +109,7 @@ class CppFile : public CondBlockList {
 class ConditionalBlock : public CondBlockList {
 public:
     //! defect type used in block defect analysis
-    BlockDefectAnalyzer::DEFECTTYPE defectType;
+    BlockDefect::DEFECTTYPE defectType;
     //! location related accessors
     virtual const std::string &filename()  const = 0;
     virtual unsigned int lineStart()       const = 0;

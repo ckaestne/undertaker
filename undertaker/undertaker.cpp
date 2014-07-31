@@ -35,7 +35,6 @@
 #include "Logging.h"
 #include "Tools.h"
 #include "../version.h"
-#include "exceptions/CNFBuilderError.h"
 
 #include <errno.h>
 #include <fstream>
@@ -594,30 +593,16 @@ void process_file_blockpc(const std::string &filename) {
     else
         main_model = ModelContainer::lookupMainModel();
 
-    const BlockDefectAnalyzer *defect = nullptr;
-    try {
-        defect = BlockDefectAnalyzer::analyzeBlock(block, main_model);
-    } catch (CNFBuilderError &e) {
-        logger << error << "Couldn't process " << filename << ":" << block->getName() << ": "
-               << e.what() << std::endl;
-    } catch (std::bad_alloc &) {
-        logger << error << "Couldn't process " << filename << ":" << block->getName()
-               << ": Out of Memory." << std::endl;
-    }
-
-    /* Get the Precondition */
-    std::string precondition = BlockDefectAnalyzer::getBlockPrecondition(block, main_model);
-
+    const BlockDefect *defect = BlockDefectAnalyzer::analyzeBlock(block, main_model);
     std::string defect_string = "no";
     if (defect) {
         defect_string = defect->getSuffix() + "/" + defect->defectTypeToString();
     }
+    logger << info << "Block " << block->getName() << " | Defect: " << defect_string
+           << " | Global: " << (defect != nullptr ? defect->isGlobal() : 0) << std::endl;
 
-    logger << info << "Block " << block->getName()
-           << " | Defect: " << defect_string
-           << " | Global: " << (defect != nullptr ? defect->isGlobal() : 0)<< std::endl;
-
-    std::cout << precondition << std::endl;
+    /* Get and print the Precondition */
+    std::cout << BlockDefectAnalyzer::getBlockPrecondition(block, main_model) << std::endl;
 }
 
 void process_file_dead_helper(const std::string &filename) {
@@ -638,39 +623,21 @@ void process_file_dead_helper(const std::string &filename) {
     else
         main_model = ModelContainer::lookupMainModel();
 
-    /* process File (B00 Block) */
-    try {
-        const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(file.topBlock(), main_model);
+    static auto processBlock = [](ConditionalBlock *block, ConfigurationModel *main_model) {
+        const BlockDefect *defect = BlockDefectAnalyzer::analyzeBlock(block, main_model);
         if (defect) {
             defect->writeReportToFile(skip_non_configuration_based_defects);
             if (do_mus_analysis)
                 defect->reportMUS();
             delete defect;
         }
-    } catch (CNFBuilderError &e) {
-        logger << error << "Couldn't process " << filename << ":B00:" << e.what() << std::endl;
-    } catch (std::bad_alloc &) {
-        logger << error << "Couldn't process " << filename << ":B00: Out of Memory." << std::endl;
-    }
+    };
 
+    /* process File (B00 Block) */
+    processBlock(file.topBlock(), main_model);
     /* Iterate over all Blocks */
-    for (const auto &block : file) {  // ConditionalBlock *
-        try {
-            const BlockDefectAnalyzer *defect = BlockDefectAnalyzer::analyzeBlock(block, main_model);
-            if (defect) {
-                defect->writeReportToFile(skip_non_configuration_based_defects);
-                if (do_mus_analysis)
-                    defect->reportMUS();
-                delete defect;
-            }
-        } catch (CNFBuilderError &e) {
-            logger << error << "Couldn't process " << filename << ":" << block->getName() << ": "
-                   << e.what() << std::endl;
-        } catch (std::bad_alloc &) {
-            logger << error << "Couldn't process " << filename << ":" << block->getName()
-                   << ": Out of Memory." << std::endl;
-        }
-    }
+    for (const auto &block : file)  // ConditionalBlock *
+        processBlock(block, main_model);
 }
 
 void process_file_dead(const std::string &filename) {

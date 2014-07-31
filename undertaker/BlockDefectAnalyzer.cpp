@@ -28,6 +28,7 @@
 #include "ModelContainer.h"
 #include "Logging.h"
 #include "Tools.h"
+#include "exceptions/CNFBuilderError.h"
 
 #include <pstreams/pstream.h>
 #include <iostream>
@@ -40,11 +41,11 @@
 /************************************************************************/
 
 std::string BlockDefectAnalyzer::getBlockPrecondition(ConditionalBlock *cb,
-        const ConfigurationModel *model) {
+                                                      const ConfigurationModel *model) {
     StringJoiner formula;
 
     /* Adding block and code constraints extraced from code sat stream */
-    const std::string code_formula  = cb->getCodeConstraints();
+    const std::string code_formula = cb->getCodeConstraints();
     formula.push_back(cb->getName());
     formula.push_back(code_formula);
 
@@ -57,31 +58,30 @@ std::string BlockDefectAnalyzer::getBlockPrecondition(ConditionalBlock *cb,
         if (model->isComplete())
             formula.push_back(ConfigurationModel::getMissingItemsConstraints(missingSet));
     }
-
     return formula.join("\n&& ");
 }
 
-const BlockDefectAnalyzer *
-BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *main_model) {
-    auto defect = new DeadBlockDefect(block);
+static const BlockDefect *analyzeBlock_helper(ConditionalBlock *block,
+                                              ConfigurationModel *main_model) {
+    BlockDefect *defect = new DeadBlockDefect(block);
 
     // If this is neither an Implementation, Configuration nor Referential *dead*,
     // then destroy the analysis and retry with an Undead Analysis
-    if(!defect->isDefect(main_model, true)) {
+    if (!defect->isDefect(main_model, true)) {
         delete defect;
         defect = new UndeadBlockDefect(block);
 
         // No defect found, block seems OK
-        if(!defect->isDefect(main_model, true)) {
+        if (!defect->isDefect(main_model, true)) {
             delete defect;
             return nullptr;
         }
     }
-    assert(defect->defectType() != DEFECTTYPE::None);
+    assert(defect->defectType() != BlockDefect::DEFECTTYPE::None);
 
     // Check NoKconfig defect after (un)dead analysis
     if (defect->isNoKconfigDefect(main_model))
-        defect->_defectType = DEFECTTYPE::NoKconfig;
+        defect->setDefectType(BlockDefect::DEFECTTYPE::NoKconfig);
 
     // Save defectType in block
     block->defectType = defect->defectType();
@@ -98,7 +98,7 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *m
         return defect;
 
     const std::string &oldarch = defect->getArch();
-    DEFECTTYPE original_classification = defect->defectType();
+    BlockDefect::DEFECTTYPE original_classification = defect->defectType();
     for (const auto &entry : ModelContainer::getInstance()) { // pair<string, ConfigurationModel *>
         const ConfigurationModel *model = entry.second;
         // don't check the main model twice
@@ -106,7 +106,7 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *m
             continue;
 
         if (!defect->isDefect(model)) {
-            if (original_classification == DEFECTTYPE::Configuration)
+            if (original_classification == BlockDefect::DEFECTTYPE::Configuration)
                 defect->setArch(oldarch);
             return defect;
         }
@@ -115,15 +115,34 @@ BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block, ConfigurationModel *m
     return defect;
 }
 
-const std::string BlockDefectAnalyzer::defectTypeToString() const {
-    switch(_defectType) {
-    case DEFECTTYPE::None: return "";  // Nothing to write
+const BlockDefect *BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block,
+                                                     ConfigurationModel *main_model) {
+    try {
+        return analyzeBlock_helper(block, main_model);
+    } catch (CNFBuilderError &e) {
+        logger << error << "Couldn't process " << block->getFile()->getFilename() << ":"
+               << block->getName() << ": " << e.what() << std::endl;
+    } catch (std::bad_alloc &) {
+        logger << error << "Couldn't process " << block->getFile()->getFilename() << ":"
+               << block->getName() << ": Out of Memory." << std::endl;
+    }
+    return nullptr;
+}
+
+/************************************************************************/
+/* BlockDefect                                                          */
+/************************************************************************/
+
+const std::string BlockDefect::defectTypeToString() const {
+    switch (_defectType) {
+    case DEFECTTYPE::None:
+        return "";  // Nothing to write
     case DEFECTTYPE::Implementation:
         return "code";
     case DEFECTTYPE::Configuration:
         return "kconfig";
     case DEFECTTYPE::Referential:
-        return  "missing";
+        return "missing";
     case DEFECTTYPE::NoKconfig:
         return "no_kconfig";
     default:
@@ -132,16 +151,94 @@ const std::string BlockDefectAnalyzer::defectTypeToString() const {
     return "";
 }
 
+bool BlockDefect::needsCrosscheck() const {
+    switch (_defectType) {
+    case DEFECTTYPE::None:
+    case DEFECTTYPE::Implementation:
+    case DEFECTTYPE::NoKconfig:
+        return false;
+    default:
+        // skip crosschecking if we already know that it is global
+        return !_isGlobal;
+    }
+}
+
+std::string BlockDefect::getDefectReportFilename() const {
+    StringJoiner fname_joiner;
+    fname_joiner.push_back(_cb->getFile()->getFilename());
+    fname_joiner.push_back(_cb->getName());
+    fname_joiner.push_back(defectTypeToString());
+
+    if (_isGlobal || _defectType == DEFECTTYPE::NoKconfig)
+        fname_joiner.push_back("globally");
+    else
+        fname_joiner.push_back(_arch);
+
+    fname_joiner.push_back(_suffix);
+    return fname_joiner.join(".");
+}
+
+bool BlockDefect::isNoKconfigDefect(const ConfigurationModel *model) const {
+    if (!model)
+        return true;
+
+    std::string expr;
+    if (_cb->isElseBlock()) {
+        // Check prior blocks
+        const ConditionalBlock *prev = _cb->getPrev();
+        while (prev) {
+            if (prev->defectType != DEFECTTYPE::NoKconfig)
+                return false;
+            prev = prev->getPrev();
+        }
+    } else if (_cb == _cb->getFile()->topBlock()) {
+        // If current block is the file, take the entire formula.
+        expr = _formula;
+    } else {
+        // Otherwise, take the expression.
+        expr = _cb->ifdefExpression();
+    }
+    for (const std::string &str : undertaker::itemsOfString(expr))
+        if (model->inConfigurationSpace(str))
+            return false;
+
+    return true;
+}
+
+bool BlockDefect::writeReportToFile(bool skip_no_kconfig) const {
+    if ((skip_no_kconfig && _defectType == DEFECTTYPE::NoKconfig)
+        || _defectType == DEFECTTYPE::None)
+        return false;
+    const std::string filename = getDefectReportFilename();
+
+    std::ofstream out(filename);
+
+    if (!out.good()) {
+        logger << error << "failed to open " << filename << " for writing " << std::endl;
+        return false;
+    } else {
+        logger << info << "creating " << filename << std::endl;
+        out << "#" << _cb->getName() << ":"
+            << _cb->filename() << ":" << _cb->lineStart() << ":" << _cb->colStart() << ":"
+            << _cb->filename() << ":" << _cb->lineEnd() << ":" << _cb->colEnd() << ":"
+            << std::endl;
+        out << SatChecker::pprinter(_formula);
+        out.close();
+    }
+    return true;
+}
 
 /************************************************************************/
 /* DeadBlockDefect                                                      */
 /************************************************************************/
 
-DeadBlockDefect::DeadBlockDefect(ConditionalBlock *cb) : _suffix("dead"), _cb(cb) { }
+DeadBlockDefect::DeadBlockDefect(ConditionalBlock *cb) : BlockDefect(cb) {
+    this->_suffix = "dead";
+}
 
 void DeadBlockDefect::reportMUS() const {
     // MUS only works on {code, kconfig} dead blocks
-    if (_suffix != "dead" || _defectType == DEFECTTYPE::None)
+    if (_defectType == DEFECTTYPE::None)
         return;
     // call Satchecker and get the CNF-Object
     SatChecker code_constraints(_musFormula);
@@ -162,7 +259,7 @@ void DeadBlockDefect::reportMUS() const {
     std::stringstream ss;
     ss << cmd_process.rdbuf();
     cmd_process.close();
-    //remove first line from ss (=UNSATISFIABLE)
+    // remove first line from ss (=UNSATISFIABLE)
     std::string garbage;
     std::getline(ss, garbage);
 
@@ -171,7 +268,7 @@ void DeadBlockDefect::reportMUS() const {
     // having a destinct Symbolname, which are ignored in this output
     int vars, lines; std::string p, cnfstr;
     ss >> p; ss >> cnfstr; ss >> vars; ss >> lines;
-    if(p != "p" || cnfstr != "cnf") {
+    if (p != "p" || cnfstr != "cnf") {
         logger << error << "Mismatched output format, skipping MUS analysis." << std::endl;
         return;
     }
@@ -182,7 +279,7 @@ void DeadBlockDefect::reportMUS() const {
         tmpstr << "(";
         ss >> tmp;
         // process a line
-        while(tmp != 0) {
+        while (tmp != 0) {
             std::string sym = cnf->getSymbolName(abs(tmp));
             if (sym == "") {
                 ss >> tmp;
@@ -194,11 +291,11 @@ void DeadBlockDefect::reportMUS() const {
             tmpstr << sym;
             // get next int in the current line
             ss >> tmp;
-            if(tmp != 0)
+            if (tmp != 0)
                 tmpstr << " v ";
         }
         tmpstr << ")";
-        if (valid) // collect valid clauses
+        if (valid)  // collect valid clauses
             vec.emplace_back(tmpstr.str());
     }
     // build minimized CNF Formula
@@ -268,9 +365,9 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model, bool is_main_mod
             _defectType = DEFECTTYPE::Configuration;
             return true;
         } else {
-            // An incomplete model (not all symbols mentioned) can't
-            // generate referential errors
-            if (!model->isComplete()) return false;
+            // An incomplete model (not all symbols mentioned) can't generate referential errors
+            if (!model->isComplete())
+                return false;
 
             formula.push_back(ConfigurationModel::getMissingItemsConstraints(missingSet));
             std::string formula_str = formula.join("\n&&\n");
@@ -291,87 +388,11 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model, bool is_main_mod
     return false;
 }
 
-bool DeadBlockDefect::needsCrosscheck() const {
-    switch(_defectType) {
-    case DEFECTTYPE::None:
-    case DEFECTTYPE::Implementation:
-    case DEFECTTYPE::NoKconfig:
-        return false;
-    default:
-        // skip crosschecking if we already know that it is global
-        return !_isGlobal;
-    }
-}
-
-bool DeadBlockDefect::isNoKconfigDefect(const ConfigurationModel *model) {
-    if (model) {
-        std::string expr;
-        if (_cb->isElseBlock()) {
-            // Check prior blocks
-            ConditionalBlock *prev = (ConditionalBlock *) _cb->getPrev();
-            while (prev) {
-                if (prev->defectType != DEFECTTYPE::NoKconfig)
-                    return false;
-                prev = (ConditionalBlock *) prev->getPrev();
-            }
-        } else if (_cb == _cb->getFile()->topBlock()) {
-            // If current block is the file, take the entire formula.
-            expr = _formula;
-        } else {
-            // Otherwise, take the expression.
-            expr = _cb->ifdefExpression();
-        }
-        for (const std::string &str : undertaker::itemsOfString(expr))
-            if (model->inConfigurationSpace(str))
-                return false;
-    }
-    return true;
-}
-
-std::string DeadBlockDefect::getDefectReportFilename() const {
-    StringJoiner fname_joiner;
-    fname_joiner.push_back(_cb->getFile()->getFilename());
-    fname_joiner.push_back(_cb->getName());
-    fname_joiner.push_back(defectTypeToString());
-
-    if (_isGlobal || _defectType == DEFECTTYPE::NoKconfig)
-        fname_joiner.push_back("globally");
-    else
-        fname_joiner.push_back(_arch);
-
-    fname_joiner.push_back(_suffix);
-    return fname_joiner.join(".");
-}
-
-bool DeadBlockDefect::writeReportToFile(bool skip_no_kconfig) const {
-    if ((skip_no_kconfig && _defectType == DEFECTTYPE::NoKconfig)
-            || _defectType == DEFECTTYPE::None)
-        return false;
-    const std::string filename = getDefectReportFilename();
-
-    std::ofstream out(filename);
-
-    if (!out.good()) {
-        logger << error << "failed to open " << filename << " for writing " << std::endl;
-        return false;
-    } else {
-        logger << info << "creating " << filename << std::endl;
-        out << "#" << _cb->getName() << ":"
-            << _cb->filename() << ":" << _cb->lineStart() << ":" << _cb->colStart() << ":"
-            << _cb->filename() << ":" << _cb->lineEnd() << ":" << _cb->colEnd() << ":"
-            << std::endl;
-        out << SatChecker::pprinter(_formula);
-        out.close();
-    }
-    return true;
-}
-
-
 /************************************************************************/
 /* UndeadBlockDefect                                                    */
 /************************************************************************/
 
-UndeadBlockDefect::UndeadBlockDefect(ConditionalBlock * cb) : DeadBlockDefect(cb) {
+UndeadBlockDefect::UndeadBlockDefect(ConditionalBlock *cb) : BlockDefect(cb) {
     this->_suffix = "undead";
 }
 
@@ -402,7 +423,8 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model, bool) {
     if (model) {
         std::set<std::string> missingSet;
         std::string kconfig_formula = _cb->getCodeConstraints();
-        model->doIntersect(code_formula,  _cb->getFile()->getChecker(), missingSet, kconfig_formula);
+        model->doIntersect(code_formula, _cb->getFile()->getChecker(), missingSet,
+                           kconfig_formula);
         formula.push_back(kconfig_formula);
         std::string formula_str = formula.join("\n&&\n");
         SatChecker kconfig_constraints(formula_str);
@@ -418,7 +440,8 @@ bool UndeadBlockDefect::isDefect(const ConfigurationModel *model, bool) {
         } else {
             // An incomplete model (not all symbols mentioned) can't
             // generate referential errors
-            if (!model->isComplete()) return false;
+            if (!model->isComplete())
+                return false;
 
             formula.push_back(ConfigurationModel::getMissingItemsConstraints(missingSet));
             std::string formula_str = formula.join("\n&&\n");
