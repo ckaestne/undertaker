@@ -54,8 +54,8 @@ RsfConfigurationModel::RsfConfigurationModel(const std::string &filename) {
             _rsf_stream = new std::ifstream("/dev/null");
         }
         if (!have_rsf || !_rsf_stream->good()) {
-            logger << warn << "could not open file for reading: "      << filename << std::endl;
-            logger << warn << "checking the type of symbols will fail" << std::endl;
+            Logging::warn("could not open file for reading: ", filename);
+            Logging::warn("checking the type of symbols will fail");
         }
     } else {
         delete _model_stream;
@@ -68,8 +68,8 @@ RsfConfigurationModel::RsfConfigurationModel(const std::string &filename) {
     configuration_space_regex = _model->getMetaValue("CONFIGURATION_SPACE_REGEX");
 
     if (configuration_space_regex != nullptr && configuration_space_regex->size() > 0) {
-        logger << info << "Set configuration space regex to '"
-               << configuration_space_regex->front() << "'" << std::endl;
+        Logging::info("Set configuration space regex to '", configuration_space_regex->front(),
+                      "'");
         _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
     } else {
         _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);
@@ -168,7 +168,7 @@ int RsfConfigurationModel::doIntersect(const std::set<std::string> start_items,
     for (const std::string &str : interesting) {
         const std::string *item = _model->getValue(str);
 
-        // logger << debug << "interesting item: " << str << std::endl;
+//        Logging::debug("interesting item: ", str);
         if (item != nullptr) {
             valid_items++;
             if (item->compare("") != 0) {
@@ -199,11 +199,8 @@ int RsfConfigurationModel::doIntersect(const std::set<std::string> start_items,
         }
     }
     intersected = sj.join("\n&& ");
-
-    logger << debug << "Out of " << start_items.size() << " items "
-           << missing.size() << " have been put in the MissingSet"
-           << std::endl;
-
+    Logging::debug("Out of ", start_items.size(), " items ", missing.size(),
+                   " have been put in the MissingSet");
     return valid_items;
 }
 

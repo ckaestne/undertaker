@@ -45,8 +45,7 @@ static ConfigurationModel *loadModelFile(const std::string &filename, const std:
 
 ConfigurationModel* ModelContainer::loadModels(std::string model) {
     if (!boost::filesystem::exists(model)) {
-        logger << error << "model '" << model << "' doesn't exist (neither directory nor file)"
-               << std::endl;
+        Logging::error("model '", model, "' doesn't exist (neither directory nor file)");
         return nullptr;
     }
     ModelContainer &f = getInstance();
@@ -59,8 +58,7 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
 
         if (f.find(found_arch) == f.end()) {
             ret = loadModelFile(model, p.extension().string());
-            logger << info << "loaded " << ret->getModelVersionIdentifier() << " model for "
-                   << found_arch << std::endl;
+            Logging::info("loaded ", ret->getModelVersionIdentifier(), " model for ", found_arch);
             f.emplace(found_arch, ret);
         }
         return ret;
@@ -85,16 +83,15 @@ ConfigurationModel* ModelContainer::loadModels(std::string model) {
         if (f.find(fut.first) == f.end()) {
             found_models++;
             ret = mod;
-            logger << info << "loaded " << mod->getModelVersionIdentifier() << " model for "
-                   << fut.first << std::endl;
+            Logging::info("loaded ", mod->getModelVersionIdentifier(), " model for ", fut.first);
             f.emplace(fut.first, mod);
         }
     }
     if (found_models > 0) {
-        logger << info << "found " << found_models << " models" << std::endl;
+        Logging::info("found ", found_models, " models");
         return ret;
     } else {
-        logger << error << "could not find any models" << std::endl;
+        Logging::error("could not find any models");
         return nullptr;
     }
 }
@@ -126,11 +123,11 @@ ConfigurationModel *ModelContainer::lookupMainModel() {
 
 void ModelContainer::setMainModel(std::string main_model) {
     if (!ModelContainer::lookupModel(main_model)) {
-        logger << error << "Could not specify main model " << main_model
-               << ", because no such model is loaded" << std::endl;
+        Logging::error("Could not specify main model ", main_model,
+                       ", because no such model is loaded");
         return;
     }
-    logger << info << "Using " << main_model << " as primary model" << std::endl;
+    Logging::info("Using ", main_model, " as primary model");
     getInstance().main_model = main_model;
 }
 

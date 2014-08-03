@@ -51,7 +51,7 @@ KconfigAssumptionMap::size_type KconfigAssumptionMap::readAssumptionsFromFile(st
             val=what[2];
         } else {
             if (line[0] != '#') // if we are no comment
-                logger << error << "failed to parse line " << line << std::endl;
+                Logging::error("failed to parse line ", line);
             continue;
         }
         // strip of the leading 'CONFIG_'
@@ -83,8 +83,7 @@ KconfigAssumptionMap::size_type KconfigAssumptionMap::readAssumptionsFromFile(st
             static bool warned = false;
             //TODO!!!
             if (!warned) {
-                logger << warn << "S_INT, S_HEX and S_STRING cases not implemented yet"
-                       << std::endl;
+                Logging::warn("S_INT, S_HEX and S_STRING cases not implemented yet");
                 warned = true;
             }
             break;

@@ -1,7 +1,7 @@
 /*
- *   undertaker - analyze preprocessor blocks in code
+ *   undertaker-logger - a thread-safe logging class
  *
- * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,61 +19,4 @@
 
 #include "Logging.h"
 
-
-Logging logger; // Global log object
-
-Logging::Logging() {
-    init();
-}
-
-void Logging::log(int level, std::string input) {
-    if (level >= loglevel) {
-        if (level < LOG_WARNING)
-            (*out) << logPrefix(level) << ": " << input << std::endl;
-        else
-            (*err) << logPrefix(level) << ": " << input << std::endl;
-    }
-}
-
-void Logging::debug(std::string input) { log(LOG_DEBUG,   input); };
-void Logging::info(std::string input)  { log(LOG_INFO,    input); };
-void Logging::warn(std::string input)  { log(LOG_WARNING, input); };
-void Logging::error(std::string input) { log(LOG_ERROR,   input); };
-
-void Logging::init(std::ostream &out_stream, std::ostream &error_stream,
-                   Logging::LogLevel loglevel,
-                   Logging::LogLevel default_loglevel) {
-    this->out = &out_stream;
-    this->err = &error_stream;
-    setLogLevel(loglevel);
-    setDefaultLogLevel(default_loglevel);
-}
-
-std::string Logging::logPrefix(int level) {
-    if (level <= LOG_DEBUG) return "D";
-    if (level <= LOG_INFO) return "I";
-    if (level <= LOG_WARNING) return "W";
-    return "E";
-}
-
-Logging & Logging::operator<< (std::ostream& (*f)(std::ostream &)) {
-    std::stringstream s;
-    s << f;
-    if (s.str() == "\n") {
-        log(actual_level, buffer.str());
-        buffer.str("");
-        actual_level = default_level;
-    } else {
-        buffer << f;
-    }
-    return *this;
-}
-
-Logging & Logging::operator<< (Logging& (*f)(Logging &)) {
-    return (f(*this));
-}
-
-Logging& debug(Logging &l) { l.setActualLogLevel(Logging::LOG_DEBUG); return l; };
-Logging& info(Logging &l)  { l.setActualLogLevel(Logging::LOG_INFO);  return l; };
-Logging& warn(Logging &l)  { l.setActualLogLevel(Logging::LOG_WARNING);  return l; };
-Logging& error(Logging &l) { l.setActualLogLevel(Logging::LOG_ERROR);  return l; };
+Logging::Logger Logging::logger; // Global log object

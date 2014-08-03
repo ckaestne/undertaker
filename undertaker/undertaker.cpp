@@ -142,7 +142,7 @@ bool process_blockconf_helper(StringJoiner &sj, std::map<std::string, bool> &fil
     boost::regex regex("(.*):[0-9]+");
     boost::smatch results;
     if (!boost::regex_match(locationname, results, regex)) {
-        logger << error << "invalid format for block precondition" << std::endl;
+        Logging::error("invalid format for block precondition");
         return false;
     }
 
@@ -150,7 +150,7 @@ bool process_blockconf_helper(StringJoiner &sj, std::map<std::string, bool> &fil
 
     CppFile cpp(file);
     if (!cpp.good()) {
-        logger << error << "failed to open file: `" << file << "'" << std::endl;
+        Logging::error("failed to open file: `", file, "'");
         return false;
     }
     // if the current file is arch specific, use only the matching model for analyses
@@ -166,8 +166,7 @@ bool process_blockconf_helper(StringJoiner &sj, std::map<std::string, bool> &fil
     if (filesolvable.find(fileVar) != filesolvable.end()) {
         // and conflicts with user defined lists, don't add it to formula
         if (!filesolvable[fileVar]) {
-            logger << warn << "File " << file << " not included - "
-                   << "conflict with white-/blacklist" << std::endl;
+            Logging::warn("File ", file, " not included - conflict with white-/blacklist");
             return false;
         }
     } else {
@@ -187,8 +186,8 @@ bool process_blockconf_helper(StringJoiner &sj, std::map<std::string, bool> &fil
             SatChecker fileChecker(fileCondition);
             if (!fileChecker()) {
                 filesolvable[fileVar] = false;
-                logger << warn << "File condition for location " << locationname
-                       << " conflicting with black-/whitelist - not added" << std::endl;
+                Logging::warn("File condition for location ", locationname,
+                              " conflicting with black-/whitelist - not added");
                 return false;
             } else {
                 filesolvable[fileVar] = true;
@@ -200,27 +199,27 @@ bool process_blockconf_helper(StringJoiner &sj, std::map<std::string, bool> &fil
 
     ConditionalBlock *block = cpp.getBlockAtPosition(locationname);
     if (block == nullptr) {
-        logger << info << "No block found at " << locationname << std::endl;
+        Logging::info("No block found at ", locationname);
         return false;
     }
 
     // Get the precondition for current block
     std::string precondition = BlockDefectAnalyzer::getBlockPrecondition(block, main_model);
 
-    logger << info << "Processing block " << block->getName() << std::endl;
+    Logging::info("Processing block ", block->getName());
 
     // check for satisfiability of block precondition before joining it
     try {
         SatChecker constraintChecker(precondition);
         if (!constraintChecker()) {
-            logger << warn << "Code constraints for " << block->getName()
-                   << " not satisfiable - override by black-/whitelist" << std::endl;
+            Logging::warn("Code constraints for ", block->getName(),
+                          " not satisfiable - override by black-/whitelist");
             return false;
         } else {
             sj.push_back(precondition);
         }
     } catch (std::runtime_error &e) {
-        logger << error << "failed: " << e.what() << std::endl;
+        Logging::error("failed: ", e.what());
         return false;
     }
     return true;
@@ -252,10 +251,10 @@ void process_mergeblockconf(const std::string &filename) {
     SatChecker sc(sj.join("\n&&\n"));
     // We want minimal configs, so we try to get many 'n's from the sat checker
     if (sc(Picosat::SAT_MIN)) {
-        logger << info << "Solution found, result:" << std::endl;
+        Logging::info("Solution found, result:");
         sc.getAssignment().formatKconfig(std::cout, {});
     } else {
-        logger << error << "Wasn't able to generate a valid configuration" << std::endl;
+        Logging::error("Wasn't able to generate a valid configuration");
     }
 }
 
@@ -275,7 +274,7 @@ void process_file_coverage_helper(const std::string &filename) {
     CppFile file(filename);
 
     if (!file.good()) {
-        logger << error << "failed to open file: `" << filename << "'" << std::endl;
+        Logging::error("failed to open file: `", filename, "'");
         std::exit(EXIT_FAILURE);
     } else if (decision_coverage) {
         file.decisionCoverage();
@@ -287,14 +286,12 @@ void process_file_coverage_helper(const std::string &filename) {
     MinimizeCoverageAnalyzer minimize_analyzer(&file);
     CoverageAnalyzer *analyzer = nullptr;
     if (coverageMode == CoverageMode::MINIMIZE) {
-        logger << debug << "Calculating configurations using the 'greedy"
-               << (decision_coverage ? " and decision coverage'" : "'") << " approach"
-               << std::endl;
+        Logging::debug("Calculating configurations using the 'greedy",
+                       (decision_coverage ? " and decision coverage'" : "'"), " approach");
         analyzer = &minimize_analyzer;
     } else if (coverageMode == CoverageMode::SIMPLE) {
-        logger << debug << "Calculating configurations using the 'simple"
-               << (decision_coverage ? " and decision coverage'" : "'") << " approach"
-               << std::endl;
+        Logging::debug("Calculating configurations using the 'simple",
+                       (decision_coverage ? " and decision coverage'" : "'"), " approach");
         analyzer = &simple_analyzer;
     } else {
         assert(false);
@@ -307,7 +304,7 @@ void process_file_coverage_helper(const std::string &filename) {
         main_model = ModelContainer::lookupMainModel();
 
     if (!main_model)
-        logger << debug << "Running without a model!" << std::endl;
+        Logging::debug("Running without a model!");
 
     std::list<SatChecker::AssignmentMap> solutions = analyzer->blockCoverage(main_model);
     MissingSet missingSet = analyzer->getMissingSet();
@@ -331,7 +328,7 @@ void process_file_coverage_helper(const std::string &filename) {
     pattern.append(".config*");
     cruft += rm_pattern(pattern.c_str());
 
-    logger << info << "Removed " << cruft << " leftovers for " << filename << std::endl;
+    Logging::info("Removed ", cruft, " leftovers for ", filename);
 
     int config_count = 1;
     std::vector<bool> block_bitvector(file.size(), false);
@@ -350,7 +347,7 @@ void process_file_coverage_helper(const std::string &filename) {
             || coverageOutputMode == CoverageOutput::ALL) {
             outf.open(outfstream.str(), std::ios_base::trunc);
             if (!outf.good()) {
-                logger << error << " failed to write config in " << outfstream.str() << std::endl;
+                Logging::error(" failed to write config in ", outfstream.str());
                 outf.close();
                 current++;
                 continue;
@@ -363,7 +360,7 @@ void process_file_coverage_helper(const std::string &filename) {
             break;
         case CoverageOutput::MODEL:
             if (!main_model) {
-                logger << error << "no model loaded but, model output mode specified" << std::endl;
+                Logging::error("no model loaded but, model output mode specified");
                 std::exit(EXIT_FAILURE);
             }
             solution.formatModel(outf, main_model);
@@ -399,10 +396,8 @@ void process_file_coverage_helper(const std::string &filename) {
 
     float ratio = 100.0 * enabled_blocks / file.size();
 
-    logger << info << filename << ", "
-           << "Found Solutions: " << solutions.size() << ", "  // #found solutions
-           << "Coverage: " << enabled_blocks << "/" << file.size() << " blocks enabled "
-           << "(" << ratio << "%)" << std::endl;
+    Logging::info(filename, ", ", "Found Solutions: ", solutions.size(), ", ", "Coverage: ",
+                  enabled_blocks, "/", file.size(), " blocks enabled ", "(", ratio, "%)");
 
     // undo hack to avoid de-allocation failures
     file.pop_front();
@@ -412,7 +407,7 @@ void process_file_coverage(const std::string &filename) {
     boost::thread t(process_file_coverage_helper, filename);
 
     if (!t.timed_join(boost::posix_time::seconds(120))) {
-        logger << error << "timeout passed while processing " << filename << std::endl;
+        Logging::error("timeout passed while processing ", filename);
         std::exit(EXIT_FAILURE);
     }
 }
@@ -421,13 +416,13 @@ void process_file_cpppc(const std::string &filename) {
     CppFile file(filename);
 
     if (!file.good()) {
-        logger << error << "failed to open file: `" << filename << "'" << std::endl;
+        Logging::error("failed to open file: `", filename, "'");
         std::exit(EXIT_FAILURE);
     } else if (decision_coverage) {
         file.decisionCoverage();
     }
 
-    logger << info << "CPP Precondition for " << filename << std::endl;
+    Logging::info("CPP Precondition for ", filename);
     try {
         StringJoiner sj;
         std::string code_formula = file.topBlock()->getCodeConstraints();
@@ -448,7 +443,7 @@ void process_file_cpppc(const std::string &filename) {
         }
         std::cout << sj.join("\n&& ") << std::endl;
     } catch (std::runtime_error &e) {
-        logger << error << "failed: " << e.what() << std::endl;
+        Logging::error("failed: ", e.what());
         return;
     }
 }
@@ -461,7 +456,7 @@ void process_file_cppsym_helper(const std::string &filename) {
 
     CppFile file(filename);
     if (!file.good()) {
-        logger << error << "failed to open file: `" << filename << "'" << std::endl;
+        Logging::error("failed to open file: `", filename, "'");
         std::exit(EXIT_FAILURE);
     }
     // if the current file is arch specific, use only the matching model for analyses
@@ -493,7 +488,7 @@ void process_file_cppsym_helper(const std::string &filename) {
                     stats[1] = std::max(stats[1], rewrites);
                 }
             } else {
-                logger << info << "Ignoring non-symbol: " << item << std::endl;
+                Logging::info("Ignoring non-symbol: ", item);
             }
         }
     }
@@ -532,7 +527,7 @@ void process_file_cppsym(const std::string &filename) {
     boost::thread t(process_file_cppsym_helper, filename);
 
     if (!t.timed_join(boost::posix_time::seconds(30))) {
-        logger << error << "timeout passed while processing " << filename << std::endl;
+        Logging::error("timeout passed while processing ", filename);
         std::exit(EXIT_FAILURE);
     }
 }
@@ -541,7 +536,7 @@ void process_file_blockrange(const std::string &filename) {
     CppFile cpp(filename);
 
     if (!cpp.good()) {
-        logger << error << "failed to open file: `" << filename << "'" << std::endl;
+        Logging::error("failed to open file: `", filename, "'");
         std::exit(EXIT_FAILURE);
     }
 
@@ -559,7 +554,7 @@ void process_file_blockpc(const std::string &filename) {
     size_t colon_pos = filename.find_first_of(':');
 
     if (colon_pos == filename.npos) {
-        logger << error << "invalid format for block precondition" << std::endl;
+        Logging::error("invalid format for block precondition");
         std::exit(EXIT_FAILURE);
     }
 
@@ -568,14 +563,14 @@ void process_file_blockpc(const std::string &filename) {
 
     CppFile cpp(file);
     if (!cpp.good()) {
-        logger << error << "failed to open file: `" << filename << "'" << std::endl;
+        Logging::error("failed to open file: `", filename, "'");
         std::exit(EXIT_FAILURE);
     }
 
     ConditionalBlock *block = cpp.getBlockAtPosition(filename);
 
     if (block == nullptr) {
-        logger << info << "No block at " << filename << " was found." << std::endl;
+        Logging::info("No block at ", filename, " was found.");
         std::exit(EXIT_FAILURE);
     }
     // if the current file is arch specific, use only the matching model for analyses
@@ -590,8 +585,8 @@ void process_file_blockpc(const std::string &filename) {
     if (defect) {
         defect_string = defect->getSuffix() + "/" + defect->defectTypeToString();
     }
-    logger << info << "Block " << block->getName() << " | Defect: " << defect_string
-           << " | Global: " << (defect != nullptr ? defect->isGlobal() : 0) << std::endl;
+    Logging::info("Block ", block->getName(), " | Defect: ", defect_string, " | Global: ",
+                  (defect != nullptr ? defect->isGlobal() : 0));
 
     /* Get and print the Precondition */
     std::cout << BlockDefectAnalyzer::getBlockPrecondition(block, main_model) << std::endl;
@@ -600,7 +595,7 @@ void process_file_blockpc(const std::string &filename) {
 void process_file_dead_helper(const std::string &filename) {
     CppFile file(filename);
     if (!file.good()) {
-        logger << error << "failed to open file: `" << filename << "'" << std::endl;
+        Logging::error("failed to open file: `", filename, "'");
         std::exit(EXIT_FAILURE);
     }
     // delete potential leftovers from previous run
@@ -638,12 +633,12 @@ void process_file_dead(const std::string &filename) {
 
     ConfigurationModel *main_model = ModelContainer::lookupMainModel();
     if (main_model && "cnf" == main_model->getModelVersionIdentifier()) {
-        logger << debug << "Increasing timeout for dead analysis to 3600 seconds" << std::endl;
+        Logging::debug("Increasing timeout for dead analysis to 3600 seconds");
         timeout = 3600;
     }
 
     if (!t.timed_join(boost::posix_time::seconds(timeout))) {
-        logger << error << "timeout passed while processing " << filename << std::endl;
+        Logging::error("timeout passed while processing ", filename);
         std::exit(EXIT_FAILURE);
     }
 }
@@ -653,8 +648,7 @@ void process_file_interesting(const std::string &check_item) {
         = dynamic_cast<RsfConfigurationModel *>(ModelContainer::lookupMainModel());
 
     if (!main_model) {
-        logger << error << "for finding interessting items a (rsf based) model must be loaded"
-               << std::endl;
+        Logging::error("for finding interessting items a (rsf based) model must be loaded");
         std::exit(EXIT_FAILURE);
     }
     /* Find all items that are related to the given item */
@@ -678,10 +672,10 @@ void process_file_interesting(const std::string &check_item) {
 
 void process_file_checkexpr(const std::string &expression) {
     ConfigurationModel *main_model = ModelContainer::lookupMainModel();
-    logger << debug << "Checking expr " << expression << std::endl;
+    Logging::debug("Checking expr ", expression);
 
     if (!main_model) {
-        logger << error << "for finding interesting items a model must be loaded" << std::endl;
+        Logging::error("for finding interesting items a model must be loaded");
         std::exit(EXIT_FAILURE);
     }
     StringJoiner sj;
@@ -698,13 +692,13 @@ void process_file_checkexpr(const std::string &expression) {
     sj.push_back(ConfigurationModel::getMissingItemsConstraints(missing));
 
     std::string formula = sj.join("\n&&\n");
-    logger << debug << "formula: " << formula << std::endl;
+    Logging::debug("formula: ", formula);
 
     SatChecker sc(formula);
     if (sc()) {
         sc.getAssignment().formatKconfig(std::cout, missing);
     } else {
-        logger << info << "Expression is NOT satisfiable" << std::endl;
+        Logging::info("Expression is NOT satisfiable");
         std::exit(EXIT_FAILURE);
     }
 }
@@ -712,11 +706,11 @@ void process_file_checkexpr(const std::string &expression) {
 void process_file_symbolpc(const std::string &symbol) {
     ConfigurationModel *main_model = ModelContainer::lookupMainModel();
     if (!main_model) {
-        logger << error << "for symbolpc models must be loaded" << std::endl;
+        Logging::error("for symbolpc models must be loaded");
         std::exit(EXIT_FAILURE);
     }
     std::set<std::string> missingItems;
-    logger << info << "Symbol Precondition for `" << symbol << "'" << std::endl;
+    Logging::info("Symbol Precondition for `", symbol, "'");
 
     /* Find all items that are related to the given item */
     std::string result;
@@ -787,13 +781,13 @@ int wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument =
                 arguments.erase(pid);
             } else {
                 process_stats.failed++;
-                logger << error << "Process (pid: " << pid << ", args: " << arguments[pid]
-                       << ") failed with exitcode " << WEXITSTATUS(state) << std::endl;
+                Logging::error("Process (pid: ", pid, ", args: ", arguments[pid],
+                               ") failed with exitcode ", WEXITSTATUS(state));
             }
         } else if (WIFSIGNALED(state)) {
             process_stats.signaled++;
-            logger << error << "Process (pid: " << pid << ", args: " << arguments[pid]
-                   << ") failed with signal " << WTERMSIG(state) << std::endl;
+            Logging::error("Process (pid: ", pid, ", args: ", arguments[pid],
+                           ") failed with signal ", WTERMSIG(state));
         } else {
             continue;
         }
@@ -801,11 +795,11 @@ int wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument =
     }
     if (print_stats) {
         /* Shutdown phase */
-        logger << info << "Sucessful processed:  " << process_stats.ok << std::endl;
-        logger << info << "Failed with exitcode: " << process_stats.failed << std::endl;
-        logger << info << "Failed with signal:   " << process_stats.signaled << std::endl;
+        Logging::info("Sucessful processed:  ", process_stats.ok);
+        Logging::info("Failed with exitcode: ", process_stats.failed);
+        Logging::info("Failed with signal:   ", process_stats.signaled);
         for (const auto &it : arguments)  // pair<pid_t, const char *>
-            logger << info << "Failed file: " << it.second << std::endl;
+            Logging::info("Failed file: ", it.second);
     }
     if (process_stats.failed > 0)
         return EXIT_FAILURE;
@@ -824,7 +818,7 @@ int main(int argc, char **argv) {
     std::string process_mode = "dead";
     process_file_cb_t process_file = process_file_dead;
 
-    int loglevel = logger.getLogLevel();
+    int loglevel = Logging::getLogLevel();
 
     /* Command line structure:
        - Model Options:
@@ -844,27 +838,27 @@ int main(int argc, char **argv) {
         case 'i':
             n = KconfigWhitelist::getIgnorelist().loadWhitelist(optarg);
             if (n >= 0) {
-                logger << info << "loaded " << n << " items to ignorelist" << std::endl;
+                Logging::info("loaded ", n, " items to ignorelist");
             } else {
-                logger << error << "couldn't load ignorelist" << std::endl;
+                Logging::error("couldn't load ignorelist");
                 return EXIT_FAILURE;
             }
             break;
         case 'W':
             n = KconfigWhitelist::getWhitelist().loadWhitelist(optarg);
             if (n >= 0) {
-                logger << info << "loaded " << n << " items to whitelist" << std::endl;
+                Logging::info("loaded ", n, " items to whitelist");
             } else {
-                logger << error << "couldn't load whitelist" << std::endl;
+                Logging::error("couldn't load whitelist");
                 return EXIT_FAILURE;
             }
             break;
         case 'B':
             n = KconfigWhitelist::getBlacklist().loadWhitelist(optarg);
             if (n >= 0) {
-                logger << info << "loaded " << n << " items to blacklist" << std::endl;
+                Logging::info("loaded ", n, " items to blacklist");
             } else {
-                logger << error << "couldn't load blacklist" << std::endl;
+                Logging::error("couldn't load blacklist");
                 return EXIT_FAILURE;
             }
             break;
@@ -875,8 +869,8 @@ int main(int argc, char **argv) {
             if (std::system("which picomus > /dev/null") == 0)
                 do_mus_analysis = true;
             else
-                logger << error << "Cannot do MUS-Analysis: picomus not in PATH. Continuing "
-                                   "without MUS-Analysis." << std::endl;
+                Logging::error("Cannot do MUS-Analysis: picomus not in PATH. Continuing without "
+                               "MUS-Analysis.");
             break;
         case 'c':
             process_file = process_file_coverage;
@@ -901,8 +895,7 @@ int main(int argc, char **argv) {
                 if (optarg[4] == ':')
                     coverage_exec_cmd = &optarg[5];
             } else {
-                logger << warn << "mode " << optarg << " is unknown, using 'kconfig' instead"
-                       << std::endl;
+                Logging::warn("mode ", optarg, " is unknown, using 'kconfig' instead");
             }
             break;
         case 'C':
@@ -917,14 +910,13 @@ int main(int argc, char **argv) {
                 decision_coverage = true;
                 coverageMode = CoverageMode::MINIMIZE;
             } else {
-                logger << warn << "mode " << optarg << " is unknown, using 'simple' instead"
-                       << std::endl;
+                Logging::warn("mode ", optarg, " is unknown, using 'simple' instead");
             }
             break;
         case 't':
             threads = std::stoi(optarg);
             if (threads < 1) {
-                logger << warn << "Invalid numbers of threads, using 1 instead." << std::endl;
+                Logging::warn("Invalid numbers of threads, using 1 instead.");
                 threads = 1;
             }
             break;
@@ -959,20 +951,19 @@ int main(int argc, char **argv) {
             return EXIT_SUCCESS;
         case 'q':
             loglevel = loglevel + 10;
-            logger.setLogLevel(loglevel);
+            Logging::setLogLevel(loglevel);
             break;
         case 'v':
             loglevel = loglevel - 10;
             if (loglevel < 0)
                 loglevel = Logging::LOG_EVERYTHING;
-            logger.setLogLevel(loglevel);
+            Logging::setLogLevel(loglevel);
             break;
         default:
             break;
         }
     }
-
-    logger << debug << "undertaker " << version << std::endl;
+    Logging::debug("undertaker ", version);
 
     if (worklist == "" && optind >= argc) {
         usage(std::cout, "please specify a file to scan or a worklist");
@@ -991,7 +982,7 @@ int main(int argc, char **argv) {
     /* Load all specified models */
     for (const std::string &str : models_from_parameters) {
         if (!model_container.loadModels(str))
-            logger << error << "Failed to load model " << str << std::endl;
+            Logging::error("Failed to load model ", str);
     }
     /* Add white- and blacklisted features to all models */
     for (const auto &entry : model_container) {  // pair<string, ConfigurationModel *>
@@ -1032,8 +1023,7 @@ int main(int argc, char **argv) {
             // if 'x86' is not present, load the first one in model_container
             if (nullptr == model_container.lookupModel("x86")) {
                 const std::string &first = model_container.begin()->first;
-                logger << error << "Default Main-Model 'x86' not found. Using '" << first
-                       << "' instead." << std::endl;
+                Logging::error("Default Main-Model 'x86' not found. Using '", first, "' instead.");
                 model_container.setMainModel(first);
             } else {
                 model_container.setMainModel("x86");
@@ -1078,7 +1068,7 @@ int main(int argc, char **argv) {
                 } else { /* Change working mode */
                     process_file_cb_t new_function = parse_job_argument(new_mode);
                     if (!new_function) {
-                        logger << error << "Invalid new working mode: " << new_mode << std::endl;
+                        Logging::error("Invalid new working mode: ", new_mode);
                         continue;
                     }
                     /* now change the pointer and the working mode */
@@ -1097,7 +1087,7 @@ int main(int argc, char **argv) {
                 process_file(file);
                 return EXIT_SUCCESS;
             } else if (pid < 0) {
-                logger << error << "forking failed. Exiting." << std::endl;
+                Logging::error("forking failed. Exiting.");
                 return EXIT_FAILURE;
             } else { /* Father process */
                 wait_for_forked_child(pid, threads, file.c_str());

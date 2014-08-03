@@ -1,7 +1,7 @@
 /*
- *   undertaker - analyze preprocessor blocks in code
+ *   undertaker-logger - a thread-safe logging class
  *
- * Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,10 +24,7 @@
 #include <sstream>
 
 
-class Logging {
-public:
-    Logging();
-
+namespace Logging {
     enum LogLevel {
         LOG_EVERYTHING = 0,
         LOG_DEBUG = 10,
@@ -35,47 +32,56 @@ public:
         LOG_WARNING = 30,
         LOG_ERROR = 40,
     };
-    void log(int level, std::string input);
 
-    void debug(std::string input);
-    void info(std::string input);
-    void warn(std::string input);
-    void error(std::string input);
-
-    void setLogLevel(int l) { loglevel = l; };
-    void setDefaultLogLevel(int l) { default_level = l; };
-    void setActualLogLevel(int l) { actual_level = l; };
-    int getLogLevel() { return loglevel; }
-
-    void init(std::ostream &out_stream=std::cout,
-              std::ostream &error_stream=std::cerr,
-              LogLevel loglevel=LOG_WARNING,
-              LogLevel default_loglevel=LOG_WARNING);
-
-    /* Catchall for all other stream operator<< arguments */
-    template<typename T>
-    Logging & operator<< (const T &t) {
-        buffer << t;
-        return *this;
+    struct Logger {
+        int logLevel = LogLevel::LOG_WARNING;
     };
+    extern Logger logger;
 
-    Logging & operator<< (std::ostream& (*f)(std::ostream &));
-    Logging & operator<< (Logging& (*f)(Logging &));
+    namespace {
+        int getLogLevel() { return logger.logLevel; }
+        void setLogLevel(int l) { logger.logLevel = l; }
+    }
 
-private:
-    std::string logPrefix(int level);
-    int loglevel, default_level, actual_level;
-    std::ostream *out;
-    std::ostream *err;
-    std::stringstream buffer;
-};
+    // TODO gcc 4.8.1 currently has a bug and evaluates the parameters backwards...this
+    // implementation is faster but prints in reverse order..
+//    template <typename... Ts>
+//    void l_helper(Ts...) {}
 
-extern Logging logger;
+    template <typename... Ts>
+    std::string buildStringFromArgs(Ts... args) {
+        std::stringstream s;
+#pragma GCC diagnostic ignored "-Wunused-variable"
+        auto t = {(s << args, 0)...};
+#pragma GCC diagnostic ignored "-Wunused-variable"
+//        l_helper((s << args, 0)...);
+        s << std::endl;
+        return s.str();
+    }
 
-Logging& debug(Logging &l);
-Logging& info(Logging &l);
-Logging& warn(Logging &l);
-Logging& error(Logging &l);
+    template <typename... Ts>
+    void debug(Ts... args) {
+        if (logger.logLevel <= LOG_DEBUG)
+            std::cout << buildStringFromArgs("D: ", std::forward<Ts>(args)...);
+    }
 
+    template <typename... Ts>
+    void info(Ts... args) {
+        if (logger.logLevel <= LOG_INFO)
+            std::cout << buildStringFromArgs("I: ", std::forward<Ts>(args)...);
+    }
+
+    template <typename... Ts>
+    void warn(Ts... args) {
+        if (logger.logLevel <= LOG_WARNING)
+            std::cerr << buildStringFromArgs("W: ", std::forward<Ts>(args)...);
+    }
+
+    template <typename... Ts>
+    void error(Ts... args) {
+        if (logger.logLevel <= LOG_ERROR)
+            std::cerr << buildStringFromArgs("E: ", std::forward<Ts>(args)...);
+    }
+}  // namspace Logging
 
 #endif /* _LOGGING_H_ */

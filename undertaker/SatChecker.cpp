@@ -57,9 +57,9 @@ bool SatChecker::check(const std::string &sat) {
     try {
         return c();
     } catch (CNFBuilderError &e) {
-        logger << error << "Syntax Error:" << std::endl;
-        logger << error << sat << std::endl;
-        logger << error << "End of Syntax Error" << std::endl;
+        Logging::error("Syntax Error:");
+        Logging::error(sat);
+        Logging::error("End of Syntax Error");
         throw e;
     }
 }
@@ -74,7 +74,7 @@ getCnfWithModelInit(const std::string &formula, Picosat::SATMode mode, std::stri
         CnfConfigurationModel *cm = dynamic_cast<CnfConfigurationModel *>(
             ModelContainer::getInstance().lookupModel(modelname));
         if (!cm) {
-            logger << error << "Could not add model \"" << modelname << "\" to cnf" << std::endl;
+            Logging::error("Could not add model \"", modelname, "\" to cnf");
             return nullptr;
         }
         *result = boost::regex_replace(formula, modelvar_regexp, "1");
@@ -147,7 +147,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
                                              const MissingSet &missingSet) const {
     std::map<std::string, state> selection, other_variables;
 
-    logger << debug << "---- Dumping new assignment map" << std::endl;
+    Logging::debug("---- Dumping new assignment map");
 
     for (const auto &entry : *this) {  // pair<string, bool>
         static const boost::regex item_regexp("^CONFIG_(.*[^.])$", boost::regex::perl);
@@ -163,7 +163,7 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
             std::string basename = "CONFIG_" + tmpName;
             if (missingSet.find(basename) != missingSet.end()
                 || missingSet.find(what[0]) != missingSet.end()) {
-                logger << debug << "Ignoring 'missing' module item " << what[0] << std::endl;
+                Logging::debug("Ignoring 'missing' module item ", what[0]);
                 other_variables[basename] = valid ? state::yes : state::no;
             } else {
                 selection[basename] = state::module;
@@ -178,10 +178,10 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
             ConfigurationModel *model = ModelContainer::lookupMainModel();
             const std::string &item_name = what[1];
 
-            logger << debug << "considering " << what[0] << std::endl;
+            Logging::debug("considering ", what[0]);
 
             if (missingSet.find(what[0]) != missingSet.end()) {
-                logger << debug << "Ignoring 'missing' item " << what[0] << std::endl;
+                Logging::debug("Ignoring 'missing' item ", what[0]);
                 other_variables[what[0]] = valid ? state::yes : state::no;
                 continue;
             }
@@ -189,13 +189,13 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
             // ignore entries if already set (e.g., by the module variant).
             if (selection.find(what[0]) == selection.end()) {
                 selection[what[0]] = valid ? state::yes : state::no;
-                logger << debug << "Setting " << what[0] << " to " << valid << std::endl;
+                Logging::debug("Setting ", what[0], " to ", valid);
             }
 
             // skip item if it is neither a 'boolean' nor a tristate one
             if (!boost::regex_match(name, module_regexp) && model && !model->isBoolean(item_name)
                 && !model->isTristate(item_name)) {
-                logger << debug << "Ignoring 'non-boolean' item " << what[0] << std::endl;
+                Logging::debug("Ignoring 'non-boolean' item ", what[0]);
 
                 other_variables[what[0]] = valid ? state::yes : state::no;
                 continue;
@@ -432,7 +432,7 @@ int SatChecker::AssignmentMap::formatCombined(const CppFile &file, const Configu
 int SatChecker::AssignmentMap::formatExec(const CppFile &file, const char *cmd) const {
     redi::opstream cmd_process(cmd);
 
-    logger << info << "Calling: " << cmd << std::endl;
+    Logging::info("Calling: ", cmd);
     formatCommented(cmd_process, file);
     cmd_process.close();
 

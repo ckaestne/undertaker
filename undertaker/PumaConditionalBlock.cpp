@@ -165,7 +165,7 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const std::string &filename
     _project = make_unique<Puma::CProject>(_err, nullptr, nullptr);
     _unit = _project->scanFile(filename.c_str());
     if (!_unit) {
-        logger << error << "Failed to parse: " << filename << std::endl;
+        Logging::error("Failed to parse: ", filename);
         return nullptr;
     }
 
@@ -197,7 +197,7 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const std::string &filename
 
     Puma::PreTree *ptree = _cpp->syntaxTree();
     if (!ptree) {
-        logger << error << "Failed to create cpp tree from file : " << filename << std::endl;
+        Logging::error("Failed to create cpp tree from file : ", filename);
         return nullptr;
     }
     ptree->accept(*this);
@@ -205,11 +205,9 @@ ConditionalBlock *PumaConditionalBlockBuilder::parse(const std::string &filename
 }
 
 #if 0
-#define TRACECALL \
-    logger << error << __PRETTY_FUNCTION__ << ": "                   \
-              << "Start: " << node->startToken()->location().line() << ", "       \
-              << "End: " << node->endToken()->location().line() \
-              << std::endl
+#define TRACECALL                                                                                 \
+    Logging::error(__PRETTY_FUNCTION__, ": ", "Start: ", node->startToken()->location().line(),   \
+                   ", ", "End: ", node->endToken()->location().line());
 #else
 #define TRACECALL
 #endif
@@ -436,7 +434,7 @@ void remove_cpp_statements(Puma::Unit *unit) {
     if (!error)
         mc.commit();
     else
-        logger << error << "ERROR: " << error << std::endl;
+        Logging::error("ERROR: ", error);
 }
 
 /// \brief replaces #define CONFIG_FOO 0 -> #undef CONFIG_FOO
@@ -467,7 +465,7 @@ void normalize_define_null(Puma::Unit *unit) {
     if (!error)
         mc.commit();
     else
-        logger << error << "ERROR: " << error << std::endl;
+        Logging::error("ERROR: ", error);
 }
 
 /// \brief replaces IS_ENABLED/IS_BUILTIN/IS_MODULE - Makros
@@ -498,7 +496,7 @@ void normalize_defined_makros(Puma::Unit *unit) {
     if (!error)
         mc.commit();
     else
-        logger << error << "ERROR: " << error << std::endl;
+        Logging::error("ERROR: ", error);
 }
 
 void print_tokens(Puma::Unit *unit) {

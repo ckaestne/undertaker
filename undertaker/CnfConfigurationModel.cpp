@@ -43,8 +43,8 @@ CnfConfigurationModel::CnfConfigurationModel(const std::string &filename) {
     configuration_space_regex = _cnf->getMetaValue("CONFIGURATION_SPACE_REGEX");
 
     if (configuration_space_regex != nullptr && configuration_space_regex->size() > 0) {
-        logger << info << "Set configuration space regex to '"
-               << configuration_space_regex->front() << "'" << std::endl;
+        Logging::info("Set configuration space regex to '", configuration_space_regex->front(),
+                      "'");
         _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
     } else {
         _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);
@@ -126,7 +126,7 @@ int CnfConfigurationModel::doIntersect(const std::set<std::string> start_items,
         } else {
             // check if the symbol might be in the model space.
             // if not it can't be missing!
-            logger << debug << str  << std::endl;
+            Logging::debug(str);
             if (!inConfigurationSpace(str))
                 continue;
             // iff we are given a checker for items, skip if it doesn't pass the test
@@ -140,9 +140,8 @@ int CnfConfigurationModel::doIntersect(const std::set<std::string> start_items,
     }
     sj.push_back("._." + _name + "._.");
     intersected = sj.join("\n&& ");
-    logger << debug << "Out of " << start_items.size() << " items "
-           << missing.size() << " have been put in the MissingSet" << " using " << _name
-           << std::endl;
+    Logging::debug("Out of ", start_items.size(), " items ", missing.size(),
+                   " have been put in the MissingSet using ", _name);
     return valid_items;
 }
 

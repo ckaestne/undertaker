@@ -49,7 +49,7 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
         const std::string magic1("ALWAYS_ON");
         const StringList *always_on = model->getMetaValue(magic1);
         if (always_on) {
-            logger << info << always_on->size() << " Items have been forcefully set" << std::endl;
+            Logging::info(always_on->size(), " Items have been forcefully set");
             for (const std::string &str : *always_on)
                 formula.push_back(str);
         }
@@ -57,13 +57,12 @@ std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model
         const std::string magic2("ALWAYS_OFF");
         const StringList *always_off = model->getMetaValue(magic2);
         if (always_off) {
-            logger << info << always_off->size() << " Items have been forcefully unset"
-                   << std::endl;
+            Logging::info(always_off->size(), " Items have been forcefully unset");
             for (const std::string &str : *always_off)
                 formula.push_back("!" + str);
         }
     }
-    logger << debug << "baseFileExpression: " << formula.join("\n&& ") << std::endl;
+    Logging::debug("baseFileExpression: ", formula.join("\n&& "));
     return formula.join(" && ");
 }
 
@@ -125,11 +124,9 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
             }
         }
     } catch (CNFBuilderError &e) {
-        logger << error << "Couldn't process " << file->getFilename()
-            << ": " << e.what() << std::endl;
+        Logging::error("Couldn't process ", file->getFilename(), ": ", e.what());
     } catch (std::bad_alloc &e) {
-        logger << error << "Couldn't process " << file->getFilename()
-            << ": Out of Memory." << std::endl;
+        Logging::error("Couldn't process ", file->getFilename(), ": Out of Memory.");
     }
     return ret;
 }
@@ -224,11 +221,9 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
             assert(configuration.size() == 0);
         }
     } catch (CNFBuilderError &e) {
-        logger << error << "Couldn't process " << file->getFilename()
-            << ": " << e.what() << std::endl;
+        Logging::error("Couldn't process ", file->getFilename(), ": ", e.what());
     } catch (std::bad_alloc &) {
-        logger << error << "Couldn't process " << file->getFilename()
-            << ": Out of Memory." << std::endl;
+        Logging::error("Couldn't process ", file->getFilename(), ": Out of Memory.");
     }
     return ret;
 }

@@ -38,9 +38,9 @@ void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {
         return;
 
     if (sym->name)
-        logger << debug << "CONFIG " << sym->name << " (bool)" << std::endl;
+        Logging::debug("CONFIG ", sym->name, " (bool)");
     else
-        logger << debug << "CONFIG <unnamed> (?)" << std::endl;
+        Logging::debug("CONFIG <unnamed> (?)");
 
     ExpressionTranslator expTranslator(this->symbolSet);
 
@@ -94,7 +94,7 @@ void kconfig::SymbolTranslator::visit_tristate_symbol(struct symbol *sym) {
     expr *dep = dependsExpression(sym);
     expr *def = defaultExpression_bool_tristate(sym);
 
-    logger << debug << "CONFIG " << sym->name << " (tristate)" << std::endl;
+    Logging::debug("CONFIG ", sym->name, " (tristate)");
     BoolExp &f1yes = *B_VAR(sym, rel_yes);
     BoolExp &f1mod = *B_VAR(sym, rel_mod);
 
@@ -164,7 +164,7 @@ void kconfig::SymbolTranslator::visit_hex_symbol(struct symbol *sym) {
 }
 
 void kconfig::SymbolTranslator::visit_string_symbol(struct symbol *sym) {
-    logger << debug << "CONFIG " << sym->name << " (string-like)" << std::endl;
+    Logging::debug("CONFIG ", sym->name, " (string-like)");
     ExpressionTranslator expTranslator(this->symbolSet);
 
     expr *rev = reverseDepExpression(sym);
@@ -193,14 +193,14 @@ void kconfig::SymbolTranslator::visit_choice_symbol(struct symbol *sym) {
     BoolExp &f1yes = *B_VAR(sym, rel_yes);
 
     if (sym->type == S_BOOLEAN) {
-        logger << debug << "CONFIG " << sym->name << " (choice bool)" << std::endl;
+        Logging::debug("CONFIG ", sym->name, " (choice bool)");
         visit_bool_symbol(sym);
         // F1.yes-> choice.yes
         BoolExp &CYes = !f1yes || *transChoice.yes || *transChoice.mod;
 
         this->addClause(CYes.simplify());
     } else if (sym->type == S_TRISTATE) {
-        logger << debug << "CONFIG " << sym->name << " (choice tri)" << std::endl;
+        Logging::debug("CONFIG ", sym->name, " (choice tri)");
         visit_tristate_symbol(sym);
         // F1.yes-> choice.yes
         BoolExp &CYes = !f1yes || *transChoice.yes;

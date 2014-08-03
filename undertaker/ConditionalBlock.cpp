@@ -58,7 +58,7 @@ static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i, Condition
                                                   ConditionalBlock *prev) {
     ConditionalBlockImpl *superblock = dynamic_cast<ConditionalBlockImpl *>(i);
     if (!superblock) {
-        logger << error << "failed to access the super-class of Conditionalblock" << std::endl;
+        Logging::error("failed to access the super-class of Conditionalblock");
         exit(1);
     }
     PumaConditionalBlockBuilder &builder = superblock->getBuilder();
@@ -155,31 +155,30 @@ const std::string &CppFile::getFileVar() {
 
 void CppFile::decisionCoverage() {
 #if 0
-    logger << debug << "======== before TRANSFORMATION ========" << std::endl;
+    Logging::debug("======== before TRANSFORMATION ========");
     this->topBlock()->printConditionalBlocks(0);
 #endif
     this->topBlock()->processForDecisionCoverage();
 #if 0
-    logger << debug << "======== after TRANSFORMATION ========" << std::endl;
+    Logging::debug("======== after TRANSFORMATION ========");
     this->topBlock()->printConditionalBlocks(0);
     printCppFile();
 #endif
 }
 
 void CppFile::printCppFile() {
-    logger << debug << "------ FILE ------" << std::endl;
+    Logging::debug("------ FILE ------");
     for (const auto &block : *this) {  // ConditionalBlock *
         if (block->ifdefExpression() == "") {
             if (block->getName().compare("B00"))
-                logger << debug << "ELSE " << block->isElseBlock() << " "
-                       << block->getName() << " " << block << std::endl;
+                Logging::debug("ELSE ", block->isElseBlock(), " ", block->getName(), " ", block);
         } else {
-            logger << debug << block->ifdefExpression() << " " << block->isIfndefine()
-                   << " " << block->isIfBlock() << " " << block->isElseIfBlock() << " "
-                   << block->getName() << " " << block << std::endl;
+            Logging::debug(block->ifdefExpression(), " ", block->isIfndefine(), " ",
+                           block->isIfBlock(), " ", block->isElseIfBlock(), " ", block->getName(),
+                           " ", block);
         }
     }
-    logger << debug << "------ END FILE ------" << std::endl;
+    Logging::debug("------ END FILE ------");
 }
 
 /************************************************************************/
@@ -234,14 +233,13 @@ void ConditionalBlock::processForDecisionCoverage() {
 void ConditionalBlock::printConditionalBlocks(int indent) {
     for (const auto &block : *this) {  // ConditionalBlock *
         if (block->ifdefExpression() == "") {
-            logger << debug << std::string(indent, ' ') << "ELSE " << block->isElseBlock()
-                   << " " << block->getName() << " " << block << " prev: "
-                   << block->getPrev() << std::endl;
+            Logging::debug(std::string(indent, ' '), "ELSE ", block->isElseBlock(), " ",
+                           block->getName(), " ", block, " prev: ", block->getPrev());
         } else {
-            logger << debug << std::string(indent, ' ') << block->ifdefExpression()
-                   << " " << block->isIfndefine() << " " << block->isIfBlock() << " "
-                   << block->isElseIfBlock() << " " << block->getName() << " " << block
-                   << " prev: " << block->getPrev() << std::endl;
+            Logging::debug(std::string(indent, ' '), block->ifdefExpression(), " ",
+                           block->isIfndefine(), " ", block->isIfBlock(), " ",
+                           block->isElseIfBlock(), " ", block->getName(), " ", block, " prev: ",
+                           block->getPrev());
         }
         if (block->size() > 0)
             block->printConditionalBlocks(indent + 4);
