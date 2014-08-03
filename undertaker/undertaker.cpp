@@ -422,8 +422,10 @@ void process_file_coverage_helper(const std::string &filename) {
 void process_file_coverage(const std::string &filename) {
     boost::thread t(process_file_coverage_helper, filename);
 
-    if (!t.timed_join(boost::posix_time::seconds(120)))
+    if (!t.timed_join(boost::posix_time::seconds(120))) {
         logger << error << "timeout passed while processing " << filename << std::endl;
+        RETVALUE = EXIT_FAILURE;
+    }
 }
 
 void process_file_cpppc(const std::string &filename) {
@@ -541,8 +543,10 @@ void process_file_cppsym_helper(const std::string &filename) {
 void process_file_cppsym(const std::string &filename) {
     boost::thread t(process_file_cppsym_helper, filename);
 
-    if (!t.timed_join(boost::posix_time::seconds(30)))
+    if (!t.timed_join(boost::posix_time::seconds(30))) {
         logger << error << "timeout passed while processing " << filename << std::endl;
+        RETVALUE = EXIT_FAILURE;
+    }
 }
 
 void process_file_blockrange(const std::string &filename) {
@@ -650,8 +654,10 @@ void process_file_dead(const std::string &filename) {
         timeout = 3600;
     }
 
-    if (!t.timed_join(boost::posix_time::seconds(timeout)))
+    if (!t.timed_join(boost::posix_time::seconds(timeout))) {
         logger << error << "timeout passed while processing " << filename << std::endl;
+        RETVALUE = EXIT_FAILURE;
+    }
 }
 
 void process_file_interesting(const std::string &check_item) {
