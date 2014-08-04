@@ -20,6 +20,7 @@
  */
 
 #include "CNFBuilder.h"
+#include "PicosatCNF.h"
 #include "Tools.h"
 #include "KconfigWhitelist.h"
 #include "exceptions/CNFBuilderError.h"
@@ -27,7 +28,7 @@
 using namespace kconfig;
 
 
-CNFBuilder::CNFBuilder(CNF *cnf, std::string sat, bool useKconfigWhitelist,
+CNFBuilder::CNFBuilder(PicosatCNF *cnf, std::string sat, bool useKconfigWhitelist,
                        ConstantPolicy constPolicy)
         : cnf(cnf), constPolicy(constPolicy), useKconfigWhitelist(useKconfigWhitelist) {
     if (sat != "") {

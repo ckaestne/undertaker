@@ -25,36 +25,25 @@
 
 #include "bool.h"
 #include "BoolVisitor.h"
-#include "CNF.h"
 
 #include <string>
 
 
 namespace kconfig {
+    class PicosatCNF;
+
     class CNFBuilder : public BoolVisitor {
     public:
         enum class ConstantPolicy {BOUND, FREE};
-        CNF *cnf;
+        PicosatCNF *cnf;
     private:
         int boolvar = 0;
         ConstantPolicy constPolicy;
         bool useKconfigWhitelist = false;
 
     public:
-        CNFBuilder(CNF *cnf, std::string sat = "", bool useKconfigWhitelist=false,
+        CNFBuilder(PicosatCNF *cnf, std::string sat = "", bool useKconfigWhitelist=false,
                 ConstantPolicy constPolicy=ConstantPolicy::BOUND);
-
-        #ifdef USE_ZCONF
-        void pushSymbolInfo(struct symbol * sym) {
-            std::string name(sym->name);
-            cnf->setSymbolType(name, (kconfig_symbol_type) sym->type);
-            std::string config = "CONFIG_";
-            this->addVar(config + sym->name);
-            if (sym->type == S_TRISTATE) {
-                this->addVar(config + sym->name + "_MODULE");
-            }
-        }
-        #endif
 
         //! Add clauses from the parsed boolean expression e
         /**

@@ -20,11 +20,6 @@
 #ifndef KCONFIG_SYMBOLTRANSLATOR_H
 #define KCONFIG_SYMBOLTRANSLATOR_H
 
-// this ensures the CNFBuilder will get the pushSymbolInfo Method
-#ifndef USE_ZCONF
-#define USE_ZCONF
-#endif
-
 #include "SymbolParser.h"
 #include "CNFBuilder.h"
 
@@ -33,17 +28,21 @@
 
 namespace kconfig {
     class SymbolTranslator : public SymbolParser {
+        // statistic data
+        int _featuresWithStringDep = 0;
+        int _totalStringComp = 0;
+        CNFBuilder cnfbuilder;
+
+        void addClause(BoolExp *clause);
+        void pushSymbolInfo(struct symbol *sym);
     public:
-        SymbolTranslator (CNF *cnf) : cnfbuilder(cnf) { }
+        SymbolTranslator(PicosatCNF *cnf) : cnfbuilder(cnf) {}
 
         std::set<struct symbol *> *symbolSet = nullptr;
 
         int featuresWithStringDependencies() { return _featuresWithStringDep; }
         int totalStringComparisons() { return _totalStringComp; }
-
     protected:
-        CNFBuilder cnfbuilder;
-
         virtual void visit_bool_symbol (struct symbol *sym)     final override;
         virtual void visit_tristate_symbol (struct symbol *sym) final override;
         virtual void visit_int_symbol (struct symbol *sym)      final override;
@@ -51,13 +50,6 @@ namespace kconfig {
         virtual void visit_string_symbol (struct symbol *sym)   final override;
         virtual void visit_symbol (struct symbol *sym)          final override;
         virtual void visit_choice_symbol (struct symbol *sym)   final override;
-
-        void addClause (BoolExp *clause);
-
-    private:
-        // statistic data
-        int _featuresWithStringDep = 0;
-        int _totalStringComp = 0;
     };
 }
 #endif

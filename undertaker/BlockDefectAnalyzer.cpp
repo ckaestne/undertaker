@@ -243,7 +243,7 @@ void DeadBlockDefect::reportMUS() const {
     // call Satchecker and get the CNF-Object
     SatChecker code_constraints(_musFormula);
     code_constraints();
-    kconfig::CNF *cnf = code_constraints.getCNF();
+    kconfig::PicosatCNF *cnf = code_constraints.getCNF();
     // call picosat in quiet mode with stdin as input and stdout as output
     redi::pstream cmd_process("picomus - -");
     // write to stdin of the process

@@ -21,9 +21,9 @@
 #ifndef KCONFIG_SYMBOLPARSER_H
 #define KCONFIG_SYMBOLPARSER_H
 
-#include "SymbolTools.h"
-
 #include <string>
+
+struct symbol;
 
 
 namespace kconfig {
@@ -33,6 +33,7 @@ namespace kconfig {
         void traverse(void);
 
     protected:
+        virtual void visit_symbol(struct symbol *sym) = 0;
         virtual void visit_bool_symbol(struct symbol *sym) {
             visit_symbol(sym);
         };
@@ -51,7 +52,6 @@ namespace kconfig {
         virtual void visit_choice_symbol(struct symbol *sym) {
             visit_symbol(sym);
         };
-        virtual void visit_symbol(struct symbol *sym) = 0;
     };
 }
 #endif

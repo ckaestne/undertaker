@@ -40,49 +40,17 @@ using namespace kconfig;
 static bool picosatIsInitalized = false;
 static PicosatCNF *currentContext = nullptr;
 
-PicosatCNF::PicosatCNF(Picosat::SATMode defaultPhase) : defaultPhase (defaultPhase) {
-    resetContext();
-}
+PicosatCNF::PicosatCNF(Picosat::SATMode defaultPhase) : defaultPhase(defaultPhase) {}
 
 // copy delegate constructor with initializing _picosat and setting default_phase
 PicosatCNF::PicosatCNF(const PicosatCNF &cnf, Picosat::SATMode defaultPhase) : PicosatCNF(cnf) {
     this->defaultPhase = defaultPhase;
-    resetContext();
 }
 
 PicosatCNF::~PicosatCNF() {
     if (this == currentContext) {
         currentContext = nullptr;
     }
-}
-
-void PicosatCNF::setDefaultPhase(Picosat::SATMode phase) {
-    this->defaultPhase = phase;
-    //force a reload of the context to avoid random mixed phases
-    if (this == currentContext) {
-        currentContext = nullptr;
-    }
-}
-
-void PicosatCNF::loadContext(void) {
-    resetContext();
-    currentContext = this;
-    Picosat::picosat_set_global_default_phase(defaultPhase);
-
-    // tell picosat how many different variables it will receive
-    Picosat::picosat_adjust(varcount);
-
-    for (const int &clause : clauses)
-        Picosat::picosat_add(clause);
-}
-
-void PicosatCNF::resetContext(void) {
-    if (picosatIsInitalized) {
-        Picosat::picosat_reset();
-    }
-    Picosat::picosat_init();
-    picosatIsInitalized = true;
-    currentContext = nullptr;
 }
 
 void PicosatCNF::readFromFile(const std::string &filename) {
@@ -186,7 +154,7 @@ void PicosatCNF::toStream(std::ostream &out) const {
 
     for (const int &clause : clauses) {
         char sep = (clause == 0) ? '\n' : ' ';
-        out <<  clause << sep;
+        out << clause << sep;
     }
 }
 
@@ -199,7 +167,7 @@ void PicosatCNF::setSymbolType(const std::string &sym, kconfig_symbol_type type)
     std::string config_sym = "CONFIG_" + sym;
     this->associatedSymbols[config_sym] = sym;
 
-    if (type == 2) {
+    if (type == K_S_TRISTATE) {
         std::string config_sym_mod = "CONFIG_" + sym + "_MODULE";
         this->associatedSymbols[config_sym_mod] = sym;
     }
@@ -270,14 +238,23 @@ void PicosatCNF::pushAssumption(const std::string &v, bool val) {
         this->pushAssumption(-cnfvar);
 }
 
-void PicosatCNF::pushAssumption(const char *v, bool val) {
-    std::string s(v);
-    this->pushAssumption(s, val);
-}
-
 bool PicosatCNF::checkSatisfiable(void) {
+    // make sure the current data is stored within picosat
     if (this != currentContext){
-        this->loadContext();
+        // if not, reset the context....
+        if (picosatIsInitalized) {
+            Picosat::picosat_reset();
+        }
+        Picosat::picosat_init();
+        picosatIsInitalized = true;
+        // and load the current context
+        currentContext = this;
+        Picosat::picosat_set_global_default_phase(defaultPhase);
+        // tell picosat how many different variables it will receive
+        Picosat::picosat_adjust(varcount);
+
+        for (const int &clause : clauses)
+            Picosat::picosat_add(clause);
     }
     for (const int &assumption : assumptions)
         Picosat::picosat_assume(assumption);
@@ -330,14 +307,6 @@ const std::deque<std::string> *PicosatCNF::getMetaValue(const std::string &key) 
         return nullptr;
     return &((*i).second);
 }
-
-int PicosatCNF::getVarCount(void) const { return varcount; }
-
-int PicosatCNF::getClauseCount(void) const { return clausecount; }
-
-const std::vector<int> &PicosatCNF::getClauses(void) const { return clauses; }
-
-const std::map<std::string, int> &PicosatCNF::getSymbolMap() const { return this->cnfvars; }
 
 int PicosatCNF::newVar(void) {
     varcount++;

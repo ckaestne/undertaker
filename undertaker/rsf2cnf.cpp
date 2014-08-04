@@ -45,7 +45,7 @@ static void usage(void){
     exit(1);
 }
 
-static void addTypeInfo(kconfig::CNF &cnf, ItemRsfReader *rsf){
+static void addTypeInfo(kconfig::PicosatCNF &cnf, ItemRsfReader *rsf){
     // add all CONFIG_* items
     for (const auto &entry : *rsf) {  // pair<string, StringList>
         const std::string symbolname = entry.first;

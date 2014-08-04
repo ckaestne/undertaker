@@ -173,10 +173,10 @@ std::string CnfConfigurationModel::getType(const std::string &feature_name) cons
     if (boost::regex_match(feature_name, what, item_regexp)) {
         std::string item = what[2];
         int type = _cnf->getSymbolType(item);
-        static const char *types[] = { "MISSING", "BOOLEAN", "TRISTATE", "INTEGER", "HEX", "STRING", "other"} ;
-        return std::string(types[type]);
+        static const std::string types[] = { "MISSING", "BOOLEAN", "TRISTATE", "INTEGER", "HEX", "STRING", "other"} ;
+        return types[type];
     }
-    return std::string("#ERROR");
+    return "#ERROR";
 }
 
 bool CnfConfigurationModel::containsSymbol(const std::string &symbol) const {

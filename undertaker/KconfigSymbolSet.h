@@ -20,14 +20,11 @@
 #ifndef KCONFIG_KCONFIGSYMBOLSET_H
 #define KCONFIG_KCONFIGSYMBOLSET_H
 
+#include "SymbolParser.h"
+#include "bool.h"
+
 #include <set>
 
-#ifndef USE_ZCONF
-#define USE_ZCONF
-#endif
-
-#include "bool.h"
-#include "SymbolParser.h"
 
 namespace kconfig {
     class KconfigSymbolSet : public SymbolParser, public std::set<struct symbol *> {

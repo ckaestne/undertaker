@@ -197,7 +197,7 @@ public:
         return assignmentTable;
     }
 
-    kconfig::CNF *getCNF() {
+    kconfig::PicosatCNF *getCNF() {
         return _cnf.get();
     }
 
@@ -210,7 +210,7 @@ public:
         const MissingSet &missingSet);
 
 protected:
-    std::unique_ptr<kconfig::CNF> _cnf;
+    std::unique_ptr<kconfig::PicosatCNF> _cnf;
     std::map<std::string, int> symbolTable;
     AssignmentMap assignmentTable;
     int debug_flags;

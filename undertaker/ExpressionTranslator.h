@@ -20,9 +20,6 @@
 #ifndef KCONFIG_TRANSLATEEXPRESSION_H
 #define KCONFIG_TRANSLATEEXPRESSION_H
 
-#ifndef USE_ZCONF
-#define USE_ZCONF
-#endif
 #include "ExpressionVisitor.h"
 
 #include <set>
@@ -39,16 +36,13 @@ namespace kconfig {
     };
 
     class ExpressionTranslator : public ExpressionVisitor<TristateRepr> {
-    private:
         //some statistical data
         int _processedValComp = 0;
-
     public:
         ExpressionTranslator() = default;
         std::set<struct symbol *> *symbolSet = nullptr;
 
         int getValueComparisonCounter() { return _processedValComp; }
-
     protected:
         virtual TristateRepr visit_symbol(struct symbol *)                     final override;
         virtual TristateRepr visit_and(expr *, TristateRepr, TristateRepr)     final override;

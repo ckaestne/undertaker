@@ -24,9 +24,12 @@
 #ifndef KCONFIG_PICOSATCNF_H
 #define KCONFIG_PICOSATCNF_H
 
-#include "CNF.h"
+#include "Kconfig.h"
 
 #include <vector>
+#include <map>
+#include <string>
+#include <deque>
 
 namespace Picosat {
     // Modes taken from picosat.h
@@ -40,8 +43,7 @@ namespace Picosat {
 
 
 namespace kconfig {
-    class PicosatCNF: public CNF {
-    private:
+    class PicosatCNF {
         //! this map contains the the type of each Kconfig symbol
         std::map<std::string, kconfig_symbol_type> symboltypes;
 
@@ -67,54 +69,45 @@ namespace kconfig {
         Picosat::SATMode defaultPhase;
         int varcount = 0;
         int clausecount = 0;
-        std::string musTmpDirName;
-
-        void loadContext(void);
-        void resetContext(void);
-
     public:
         PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
         PicosatCNF(const PicosatCNF &, Picosat::SATMode);
-        virtual ~PicosatCNF();
-        void setDefaultPhase(Picosat::SATMode phase);
-        virtual void readFromFile(const std::string &filename)         final override;
-        virtual void readFromStream(std::istream &i)                   final override;
-        virtual void toFile(const std::string &filename)         const final override;
-        virtual void toStream(std::ostream &out)                 const final override;
-        virtual kconfig_symbol_type getSymbolType(const std::string &name)     const final override;
-        virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type) final override;
-        virtual int getCNFVar(const std::string &var)            const final override;
-        virtual void setCNFVar(const std::string &var, int CNFVar)     final override;
-        virtual std::string &getSymbolName(int CNFVar)                 final override;
-        virtual void pushVar(int v)                                    final override;
-        virtual void pushVar(std::string  &v, bool val)                final override;
-        virtual void pushClause(void)                                  final override;
-        virtual void pushClause(int *c)                                final override;
-        virtual void pushAssumption(int v)                             final override;
-        virtual void pushAssumption(const std::string &v,bool val)     final override;
-        virtual void pushAssumption(const char *v,bool val)            final override;
-        virtual void pushAssumptions(std::map<std::string, bool> &a)   final override;
-        virtual bool checkSatisfiable(void)                            final override;
+        ~PicosatCNF();
+        void readFromFile(const std::string &filename);
+        void readFromStream(std::istream &i);
+        void toFile(const std::string &filename) const;
+        void toStream(std::ostream &out) const;
+        kconfig_symbol_type getSymbolType(const std::string &name) const;
+        void setSymbolType(const std::string &sym, kconfig_symbol_type type);
+        int getCNFVar(const std::string &var) const;
+        void setCNFVar(const std::string &var, int CNFVar);
+        std::string &getSymbolName(int CNFVar);
+        void pushVar(int v);
+        void pushVar(std::string  &v, bool val);
+        void pushClause(void);
+        void pushClause(int *c);
+        void pushAssumption(int v);
+        void pushAssumption(const std::string &v,bool val);
+        void pushAssumptions(std::map<std::string, bool> &a);
+        bool checkSatisfiable(void);
         /** returns cnf-id of assumtions, that cause unresolvable conflicts.
             If checkSatisfiable returns false, this returns an array of assumptions
             that derived unsatisfiability (= failed assumptions).
             It does not contain all unsatisfiable assumptions.
             @returns array if of failed cnf-ids
         **/
-        virtual const int *failedAssumptions(void)               const final override;
-        virtual bool deref(int s)                                const final override;
-        virtual bool deref(const std::string &s)                 const final override;
-        virtual bool deref(const char *s)                        const final override;
-        virtual int getVarCount(void)                            const final override;
-        virtual int getClauseCount(void)                         const final override;
-        virtual const std::vector<int> & getClauses(void)        const final override;
-        virtual int newVar(void)                                       final override;
-        virtual const std::string *getAssociatedSymbol(const std::string &var) const final override;
-        virtual const std::map<std::string, int>& getSymbolMap() const final override;
-        virtual const std::deque<std::string> *getMetaValue(const std::string &key)
-                                                                 const final override;
-        virtual void addMetaValue(const std::string &key, const std::string &value)
-                                                                       final override;
+        const int *failedAssumptions(void) const;
+        bool deref(int s) const;
+        bool deref(const std::string &s) const;
+        bool deref(const char *s) const;
+        int getVarCount(void) const { return varcount; }
+        int getClauseCount(void) const { return clausecount; }
+        const std::vector<int> &getClauses(void) const { return clauses; }
+        int newVar(void);
+        const std::string *getAssociatedSymbol(const std::string &var) const;
+        const std::map<std::string, int> &getSymbolMap() const { return cnfvars; }
+        const std::deque<std::string> *getMetaValue(const std::string &key) const;
+        void addMetaValue(const std::string &key, const std::string &value);
     };
 }
 #endif

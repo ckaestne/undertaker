@@ -18,7 +18,7 @@
 
 #include "KconfigAssumptionMap.h"
 #include "Logging.h"
-#include "CNF.h"
+#include "PicosatCNF.h"
 #include "Kconfig.h"
 
 #include <boost/regex.hpp>
