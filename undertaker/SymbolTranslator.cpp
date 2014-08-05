@@ -42,8 +42,7 @@ void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {
     else
         logger << debug << "CONFIG <unnamed> (?)" << std::endl;
 
-    ExpressionTranslator expTranslator;
-    expTranslator.symbolSet = this->symbolSet;
+    ExpressionTranslator expTranslator(this->symbolSet);
 
     expr *rev = reverseDepExpression(sym);
     expr *vis = visibilityExpression(sym);
@@ -57,17 +56,18 @@ void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {
     TristateRepr transDef = expTranslator.process(def);
     TristateRepr transRev = expTranslator.process(rev);
 
-    //invisible  symbols
+    // invisible  symbols
     // F1.yes->(rev.yes || rev.mod || def.yes ||def.mod)
-    BoolExp &FDef =  !f1yes || *transDef.yes || *transDef.mod || *transRev.yes  || *transRev.mod;
+    BoolExp &FDef = !f1yes || *transDef.yes || *transDef.mod || *transRev.yes || *transRev.mod;
     // ((def.yes||def.mod) && (dep.yes ||dep.mod)) -> f1
-    BoolExp &FDefRev = !((*transDef.yes || *transDef.mod ) && (*transDep.yes || *transDep.mod)) || f1yes;
+    BoolExp &FDefRev = !((*transDef.yes || *transDef.mod) && (*transDep.yes || *transDep.mod))
+                       || f1yes;
     // !vis -> (FDef && FDefRev)
     BoolExp &completeInv = *transVis.yes || *transVis.mod || (FDef && FDefRev);
 
-    //visible symbols:
+    // visible symbols:
     // F1.yes-> dep.yes || dep.mod || rev.yes || rev.mod
-    BoolExp &FYes = !f1yes || *transDep.yes || *transDep.mod || *transRev.yes  || *transRev.mod;
+    BoolExp &FYes = !f1yes || *transDep.yes || *transDep.mod || *transRev.yes || *transRev.mod;
     // rev.yes -> F1.yes
     BoolExp &FRevYes = !*transRev.yes || f1yes;
     // rev.mod -> F1.yes
@@ -88,14 +88,13 @@ void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {
 };
 
 void kconfig::SymbolTranslator::visit_tristate_symbol(struct symbol *sym) {
-    ExpressionTranslator expTranslator;
-    expTranslator.symbolSet = this->symbolSet;
+    ExpressionTranslator expTranslator(this->symbolSet);
     expr *rev = reverseDepExpression(sym);
     expr *vis = visibilityExpression(sym);
     expr *dep = dependsExpression(sym);
     expr *def = defaultExpression_bool_tristate(sym);
 
-    logger <<  debug << "CONFIG " << sym->name << " (tristate)" << std::endl;
+    logger << debug << "CONFIG " << sym->name << " (tristate)" << std::endl;
     BoolExp &f1yes = *B_VAR(sym, rel_yes);
     BoolExp &f1mod = *B_VAR(sym, rel_mod);
 
@@ -104,21 +103,22 @@ void kconfig::SymbolTranslator::visit_tristate_symbol(struct symbol *sym) {
     TristateRepr transDef = expTranslator.process(def);
     TristateRepr transRev = expTranslator.process(rev);
 
-    //invisible  symbols
+    // invisible  symbols
     // f1->(s1|r1)
-    BoolExp &Inv0 = !f1yes||(*transDef.yes||*transRev.yes);
+    BoolExp &Inv0 = !f1yes || (*transDef.yes || *transRev.yes);
     // f0 -> (s1|s0|r0)
-    BoolExp &Inv1 = !f1mod || (*transDef.yes||*transDef.mod||*transRev.mod);
+    BoolExp &Inv1 = !f1mod || (*transDef.yes || *transDef.mod || *transRev.mod);
     // (s0|s1) -> (~(d1|d0) |f1 |f0)
-    BoolExp &Inv2 = !(*transDef.mod||*transDef.yes) || (!(*transDep.yes||*transDep.mod) ||f1yes ||f1mod);
+    BoolExp &Inv2 = !(*transDef.mod || *transDef.yes)
+                    || (!(*transDep.yes || *transDep.mod) || f1yes || f1mod);
     // (s1 & d1)-> f1
-    BoolExp &Inv3 = !(*transDef.yes && *transDep.yes)||f1yes;
+    BoolExp &Inv3 = !(*transDef.yes && *transDep.yes) || f1yes;
 
-    BoolExp &completeInv = (*transVis.yes||*transVis.mod)|| (Inv0 && Inv1 && Inv2 &&Inv3);
+    BoolExp &completeInv = (*transVis.yes || *transVis.mod) || (Inv0 && Inv1 && Inv2 && Inv3);
 
-    //visible symbols:
+    // visible symbols:
     // F1.yes-> dep.yes ||rev.yes
-    BoolExp &FYes = *B_IMPL(&f1yes ,&( *transDep.yes || *transRev.yes));
+    BoolExp &FYes = *B_IMPL(&f1yes, &(*transDep.yes || *transRev.yes));
     // F1.mod-> rev.mod || dep.yes|| dep.mod ;
     BoolExp &FMod = !f1mod || *transRev.mod || *transDep.yes || *transDep.mod;
     // rev.yes -> F1.yes
@@ -127,7 +127,7 @@ void kconfig::SymbolTranslator::visit_tristate_symbol(struct symbol *sym) {
     BoolExp &FRevMod = !*transRev.mod || f1yes || f1mod;
 
     // mustn't become '11'
-    BoolExp &guard = sym->type == S_BOOLEAN ? (!f1mod ) : (!(f1yes && f1mod));
+    BoolExp &guard = sym->type == S_BOOLEAN ? (!f1mod) : (!(f1yes && f1mod));
 
     this->pushSymbolInfo(sym);
     // this->addComment(sym->name ? sym->name : "Unnamed Menu Or Choice");
@@ -165,8 +165,7 @@ void kconfig::SymbolTranslator::visit_hex_symbol(struct symbol *sym) {
 
 void kconfig::SymbolTranslator::visit_string_symbol(struct symbol *sym) {
     logger << debug << "CONFIG " << sym->name << " (string-like)" << std::endl;
-    ExpressionTranslator expTranslator;
-    expTranslator.symbolSet = this->symbolSet;
+    ExpressionTranslator expTranslator(this->symbolSet);
 
     expr *rev = reverseDepExpression(sym);
     expr *dep = dependsExpression(sym);
@@ -189,20 +188,19 @@ void kconfig::SymbolTranslator::visit_string_symbol(struct symbol *sym) {
 }
 
 void kconfig::SymbolTranslator::visit_choice_symbol(struct symbol *sym) {
-    ExpressionTranslator expTranslator;
-    expTranslator.symbolSet = this->symbolSet;
+    ExpressionTranslator expTranslator(this->symbolSet);
     TristateRepr transChoice = expTranslator.process(choiceExpression(sym));
     BoolExp &f1yes = *B_VAR(sym, rel_yes);
 
     if (sym->type == S_BOOLEAN) {
-        logger << debug << "CONFIG " << sym->name << " (choice bool)" <<std::endl;
+        logger << debug << "CONFIG " << sym->name << " (choice bool)" << std::endl;
         visit_bool_symbol(sym);
         // F1.yes-> choice.yes
         BoolExp &CYes = !f1yes || *transChoice.yes || *transChoice.mod;
 
         this->addClause(CYes.simplify());
     } else if (sym->type == S_TRISTATE) {
-        logger << debug << "CONFIG " << sym->name << " (choice tri)" <<std::endl;
+        logger << debug << "CONFIG " << sym->name << " (choice tri)" << std::endl;
         visit_tristate_symbol(sym);
         // F1.yes-> choice.yes
         BoolExp &CYes = !f1yes || *transChoice.yes;

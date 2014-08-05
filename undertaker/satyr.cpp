@@ -151,10 +151,10 @@ int main(int argc, char **argv) {
 
         logger << debug << "parsing" << std::endl;
         translator.parse(filepath.string());
-        translator.symbolSet = &symbolSet;
         logger << debug << "traversing symbolset" << std::endl;
         symbolSet.traverse();
         logger << debug << "translating" << std::endl;
+        translator.symbolSet = &symbolSet;
         translator.traverse();
 
         if (translator.featuresWithStringDependencies()) {

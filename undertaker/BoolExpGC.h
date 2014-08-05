@@ -31,9 +31,7 @@ namespace kconfig {
     public:
         void sweep(BoolExp *root = nullptr);
 
-        void trash(BoolExp * e) {
-            e->accept(this);
-        }
+        void trash(BoolExp *e) { e->accept(this); }
 
     protected:
         virtual void visit(BoolExp *)      final override {}

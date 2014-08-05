@@ -21,6 +21,9 @@
 
 
 int kconfig::SymbolParser::parse(const std::string &path) {
+    // the state is stored in a global array
+    // "struct symbol *symbol_hash[SYMBOL_HASHSIZE];"
+    // which is defined in zconf.tab.c_shipped, for_all_symbols traverses through that array
     conf_parse(path.c_str());
     return 0;
 }

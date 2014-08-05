@@ -29,7 +29,6 @@
 #include <string>
 #include <list>
 #include <ostream>
-#include <sstream>
 
 #define B_AND new kconfig::BoolExpAnd
 #define B_OR new kconfig::BoolExpOr
@@ -42,13 +41,9 @@
 namespace kconfig {
     class BoolVisitor;
 
-    enum TristateRelation {
-        rel_yes, rel_mod, rel_pres, rel_helper, rel_meta
-    };
+    enum TristateRelation { rel_yes, rel_mod, rel_pres, rel_helper, rel_meta };
 
-    const std::string TristateRelationNames[] = {
-        "", "_MODULE", "_PRESENT", "", "_META"
-    };
+    const std::string TristateRelationNames[] = {"", "_MODULE", "_PRESENT", "", "_META"};
 
 /************************************************************************/
 /* BoolExp                                                              */
@@ -177,9 +172,7 @@ namespace kconfig {
 
     class BoolExpNot : public BoolExp {
     public:
-        BoolExpNot(BoolExp *e) {
-            right = e;
-        }
+        BoolExpNot(BoolExp *e) { right = e; }
 
         virtual void accept(BoolVisitor *visitor) final override;
         virtual int getEvaluationPriority(void) const final override { return 70; }
@@ -190,10 +183,8 @@ namespace kconfig {
 /************************************************************************/
 
     class BoolExpConst : public BoolExp {
-    private:
-        BoolExpConst(bool val) {
-            value = val ;
-        }
+        BoolExpConst(bool val) { value = val; }
+
     public:
         bool value;
 
@@ -213,7 +204,7 @@ namespace kconfig {
         TristateRelation rel;
         struct symbol *sym;
 
-        BoolExpVar(std::string name, bool addPrefix=true) {
+        BoolExpVar(std::string name, bool addPrefix = true) {
             this->rel = rel_helper;
             this->name = addPrefix ? "CONFIG_" + name : name;
         }
@@ -235,10 +226,10 @@ namespace kconfig {
 /* Operators                                                            */
 /************************************************************************/
 
-    std::ostream& operator<< (std::ostream &s, BoolExp &exp);
+    std::ostream &operator<<(std::ostream &s, BoolExp &exp);
 
-    BoolExp &operator &&(BoolExp &l, BoolExp &r);
-    BoolExp &operator ||(BoolExp &l, BoolExp &r);
-    BoolExp &operator !(BoolExp &l);
+    BoolExp &operator&&(BoolExp &l, BoolExp &r);
+    BoolExp &operator||(BoolExp &l, BoolExp &r);
+    BoolExp &operator!(BoolExp & l);
 }
 #endif

@@ -25,17 +25,17 @@ using namespace kconfig;
 
 TristateRepr ExpressionTranslator::visit_symbol(struct symbol *sym) {
     if (sym == &symbol_no) {
-        return { B_CONST(false), B_CONST(false), false, S_TRISTATE };
+        return {B_CONST(false), B_CONST(false), false, S_TRISTATE};
     } else if (sym == &symbol_yes) {
-        return { B_CONST(true), B_CONST(false), false, S_TRISTATE };
+        return {B_CONST(true), B_CONST(false), false, S_TRISTATE};
     } else if (sym == &symbol_mod) {
-        return { B_CONST(false), B_CONST(true), false, S_TRISTATE };
+        return {B_CONST(false), B_CONST(true), false, S_TRISTATE};
     } else if (sym->type == S_STRING || sym->type == S_HEX || sym->type == S_INT) {
-        return { B_CONST(false), B_CONST(false), true, sym->type };
+        return {B_CONST(false), B_CONST(false), true, sym->type};
     } else if (sym == modules_sym) {
-        return { B_VAR(sym, rel_yes), B_CONST(false), true, S_BOOLEAN };
-    } else if (this->symbolSet && this->symbolSet->find(sym) ==  this->symbolSet->end()) {
-        return { B_CONST(false), B_CONST(false), false, S_BOOLEAN };
+        return {B_VAR(sym, rel_yes), B_CONST(false), true, S_BOOLEAN};
+    } else if (this->symbolSet && this->symbolSet->find(sym) == this->symbolSet->end()) {
+        return {B_CONST(false), B_CONST(false), false, S_BOOLEAN};
     } else {
         struct TristateRepr res;
         res.yes = B_VAR(sym, rel_yes);
@@ -52,7 +52,7 @@ TristateRepr ExpressionTranslator::visit_symbol(struct symbol *sym) {
 
 TristateRepr ExpressionTranslator::visit_and(expr *, TristateRepr left, TristateRepr right) {
     struct TristateRepr res;
-    res.yes =  &(*left.yes && *right.yes);
+    res.yes = &(*left.yes && *right.yes);
     res.mod = &((*left.mod || *right.mod) && (*left.yes || *left.mod) && (*right.yes || *right.mod));
     return res;
 }
@@ -66,46 +66,41 @@ TristateRepr ExpressionTranslator::visit_or(expr *, TristateRepr left, TristateR
 
 TristateRepr ExpressionTranslator::visit_not(expr *, TristateRepr left) {
     struct TristateRepr res;
-    res.yes =  &(!*left.yes && !*left.mod);
+    res.yes = &(!*left.yes && !*left.mod);
     res.mod = left.mod;
     return res;
 }
 
-TristateRepr ExpressionTranslator::visit_equal(struct expr *e, TristateRepr left, TristateRepr right) {
+TristateRepr ExpressionTranslator::visit_equal(struct expr *e, TristateRepr left,
+                                               TristateRepr right) {
     struct TristateRepr res;
-    if (! (e->left.sym->type == S_BOOLEAN  || e->right.sym->type == S_BOOLEAN ||
-          e->left.sym->type == S_TRISTATE || e->right.sym->type == S_TRISTATE )) {
+    if (!(e->left.sym->type == S_BOOLEAN || e->right.sym->type == S_BOOLEAN
+          || e->left.sym->type == S_TRISTATE || e->right.sym->type == S_TRISTATE)) {
         static int counter;
-        std::stringstream n;
-        n << "__FREE__EQ" << counter;
-        counter++;
-        res.yes=B_VAR(n.str());
-        res.mod=B_CONST (false);
+        res.yes = B_VAR("__FREE__EQ" + std::to_string(counter++));
+        res.mod = B_CONST(false);
         this->_processedValComp++;
         return res;
     }
-    res.yes =  &((*left.yes && *right.yes) || (*left.mod && *right.mod) ||
-                (!*left.yes && !*right.yes && !*left.mod && !*right.mod ) );
+    res.yes = &((*left.yes && *right.yes) || (*left.mod && *right.mod)
+                || (!*left.yes && !*right.yes && !*left.mod && !*right.mod));
     res.mod = B_CONST(false);
     return res;
 }
 
-TristateRepr ExpressionTranslator::visit_unequal(struct expr *e, TristateRepr left, TristateRepr right) {
+TristateRepr ExpressionTranslator::visit_unequal(struct expr *e, TristateRepr left,
+                                                 TristateRepr right) {
     struct TristateRepr res;
-
-    if (! (e->left.sym->type == S_BOOLEAN  || e->right.sym->type == S_BOOLEAN ||
-          e->left.sym->type == S_TRISTATE || e->right.sym->type == S_TRISTATE )) {
+    if (!(e->left.sym->type == S_BOOLEAN || e->right.sym->type == S_BOOLEAN
+          || e->left.sym->type == S_TRISTATE || e->right.sym->type == S_TRISTATE)) {
         static int counter;
-        std::stringstream n;
-        n << "__FREE__NE"<< counter;
-        counter++;
-        res.yes=B_VAR(n.str());
-        res.mod=B_CONST (false);
+        res.yes = B_VAR("__FREE__NE" + std::to_string(counter++));
+        res.mod = B_CONST(false);
         this->_processedValComp++;
         return res;
     }
-    res.yes = &((!*left.yes || !*right.yes) && (!*left.mod || !*right.mod) &&
-                ( *left.yes || *right.yes || *left.mod || *right.mod ) );
+    res.yes = &((!*left.yes || !*right.yes) && (!*left.mod || !*right.mod)
+                && (*left.yes || *right.yes || *left.mod || *right.mod));
     res.mod = B_CONST(false);
 
     return res;
@@ -116,16 +111,17 @@ TristateRepr ExpressionTranslator::visit_list(struct expr *e) {
 
     BoolExp *all = nullptr;
     BoolExp *mod = nullptr;
-    for (struct expr * itnode = e; itnode != nullptr; itnode = itnode->left.expr) {
-        struct symbol * yessym = itnode->right.sym;
+    for (struct expr *itnode = e; itnode != nullptr; itnode = itnode->left.expr) {
+        struct symbol *yessym = itnode->right.sym;
         BoolExp *xorExp = nullptr;
-        for (struct expr * itnode1 = e; itnode1 != nullptr; itnode1 = itnode1->left.expr) {
-            struct symbol * cursym = itnode1->right.sym;
-            BoolExp *lit = (cursym == yessym) ? B_VAR(cursym, rel_yes) : &( ! *B_VAR(cursym, rel_yes));
-            xorExp = xorExp ? &( *xorExp && *lit): lit;
+        for (struct expr *itnode1 = e; itnode1 != nullptr; itnode1 = itnode1->left.expr) {
+            struct symbol *cursym = itnode1->right.sym;
+            BoolExp *lit = (cursym == yessym) ? B_VAR(cursym, rel_yes)
+                                              : &(!*B_VAR(cursym, rel_yes));
+            xorExp = xorExp ? &(*xorExp && *lit) : lit;
         }
-        all = all ? &( *all || *xorExp): xorExp;
-        mod = mod ? &( *mod || *B_VAR(yessym, rel_mod)) : B_VAR(yessym, rel_mod) ;
+        all = all ? &(*all || *xorExp) : xorExp;
+        mod = mod ? &(*mod || *B_VAR(yessym, rel_mod)) : B_VAR(yessym, rel_mod);
     }
     res.yes = all;
     res.mod = mod;
@@ -134,10 +130,10 @@ TristateRepr ExpressionTranslator::visit_list(struct expr *e) {
 
 TristateRepr ExpressionTranslator::visit_range(struct expr *, TristateRepr, TristateRepr) {
     throw UnsupportedFeatureException("cannot handle ranges yet");
-    return { nullptr, nullptr, true, S_OTHER };
+    return {nullptr, nullptr, true, S_OTHER};
 }
 
-TristateRepr ExpressionTranslator::visit_others(struct expr *)  {
+TristateRepr ExpressionTranslator::visit_others(struct expr *) {
     throw InvalidNodeException("kconfig expression with unknown type");
-    return { nullptr, nullptr, true, S_OTHER };
+    return {nullptr, nullptr, true, S_OTHER};
 }
