@@ -19,16 +19,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "ConditionalBlock.h"
 #include "CNFBuilder.h"
+#include "PicosatCNF.h"
+#include "Tools.h"
+#include "KconfigWhitelist.h"
+#include "exceptions/CNFBuilderError.h"
 
 using namespace kconfig;
 
-CNFBuilder::CNFBuilder(CNF *cnf, BoolExp *exp, bool useKconfigWhitelist,
-        enum ConstantPolicy constPolicy) : cnf(cnf), boolvar(0),
-        wl(useKconfigWhitelist ? KconfigWhitelist::getIgnorelist() : 0), constPolicy(constPolicy) {
-    if(exp)
+
+CNFBuilder::CNFBuilder(PicosatCNF *cnf, std::string sat, bool useKconfigWhitelist,
+                       ConstantPolicy constPolicy)
+        : cnf(cnf), constPolicy(constPolicy), useKconfigWhitelist(useKconfigWhitelist) {
+    if (sat != "") {
+        BoolExp *exp = BoolExp::parseString(sat);
+        if (!exp) {
+            throw CNFBuilderError("CNFBuilder: Couldn't parse: " + sat);
+        }
         this->pushClause(exp);
+        delete exp;
+    }
 }
 
 void CNFBuilder::pushClause(BoolExp *e) {
@@ -56,7 +66,7 @@ void CNFBuilder::pushClause(BoolExp *e) {
 }
 
 int CNFBuilder::addVar(std::string symname) {
-    symname = ConditionalBlock::normalize_filename(symname.c_str());
+    symname = undertaker::normalize_filename(symname);
     int cv = cnf->getCNFVar(symname);
 
     if (cv == 0) {
@@ -208,7 +218,7 @@ void CNFBuilder::visit(BoolExpConst *e) {
     if (e->CNFVar)
         return;
 
-    if (constPolicy == CNFBuilder::FREE){
+    if (constPolicy == ConstantPolicy::FREE){
         //handle consts as free var
         e->CNFVar = this->cnf->newVar();
         return;
@@ -223,13 +233,12 @@ void CNFBuilder::visit(BoolExpConst *e) {
 
 void CNFBuilder::visit(BoolExpVar *e) {
     std::string symname = e->str();
-    if (e->CNFVar) {
+    if (e->CNFVar)
         return;
-    }
-    if (this->wl && wl->isWhitelisted(symname.c_str())) {
+
+    if (useKconfigWhitelist && KconfigWhitelist::getIgnorelist().isWhitelisted(symname))
         // use free variables for symbols in wl
         e->CNFVar = this->cnf->newVar();
-    } else {
+    else
         e->CNFVar = this->addVar(symname);
-    }
 }

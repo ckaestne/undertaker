@@ -20,22 +20,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/regex.hpp>
+#include "RsfReader.h"
+
+#include <boost/algorithm/string/predicate.hpp>
 #include <sstream>
-#include <deque>
-#include <fstream>
 #include <iostream>
 
-#include "RsfReader.h"
-#include "Logging.h"
 
-RsfReader::RsfReader(std::istream &f, std::string metaflag) : metaflag(metaflag) {
+RsfReader::RsfReader(std::istream &f, std::string metaflag) : metaflag(std::move(metaflag)) {
     this->read_rsf(f);
 }
 
-
 void RsfReader::print_contents(std::ostream &out) {
-    for (auto &entry : *this)  // pair<string, deque<string>>
+    for (const auto &entry : *this)  // pair<string, deque<string>>
         out << entry.first << " : " << entry.second.front() << std::endl;
 }
 
@@ -45,10 +42,10 @@ StringList RsfReader::parse(const std::string& line) {
     std::stringstream ss(line);
 
     while(ss >> item){
-        if (item[0]=='"') {
-            if (item[item.length() - 1]=='"') {
+        if (item[0] == '"') {
+            if (item[item.length() - 1] == '"') {
                 // special case: single word was needlessly quoted
-                result.push_back(item.substr(1, item.length()-2));
+                result.push_back(item.substr(1, item.length() - 2));
             } else {
                 // use the free-standing std::getline to read a "line"
                 // into another string
@@ -82,26 +79,17 @@ size_t RsfReader::read_rsf(std::istream &rsf_file) {
         // if so, put it there
         // UNDERTAKER_SET ALWAYS_ON fooooo
         // self.meta_information("ALWAYS_ON") == ["foooo"]
-        if (metaflag.size() > 0 && key.compare(metaflag) == 0) {
+        if (metaflag.size() > 0 && key == metaflag) {
             if (columns.size() == 0)
                 continue;
             std::string key = columns.front();
             columns.pop_front();
             meta_information.emplace(key, columns);
         } else {
-            static const boost::regex file_identifier("^FILE_.*$");
-
-            if (boost::regex_match(key, file_identifier)) {
-//                logger << debug << "found a file presence condition for " << key << std::endl;
-//                bool dirty=false;
-                for (size_t pos = 0; pos < key.length(); pos++) {
-                    if (key.at(pos) == '/' || key.at(pos) == '-') {
-                        key[pos] = '_';
-//                        dirty = true;
-                    }
-                }
-//                if (dirty)
-//                    logger << debug << "Normalized item: " << key << std::endl;
+            if (boost::starts_with(key, "FILE_")) {
+                for (char &elem : key)
+                    if (elem == '/' || elem == '-')
+                        elem = '_';
             }
             this->emplace(key, columns);
         }
@@ -111,9 +99,9 @@ size_t RsfReader::read_rsf(std::istream &rsf_file) {
 
 const std::string *RsfReader::getValue(const std::string &key) const {
     static std::string null_string("");
-    const_iterator i = find(key);
+    auto i = find(key);
 
-    if (i == end())
+    if (i == end())  // key not found
         return nullptr;
     if (i->second.size() == 0)
         return &null_string;
@@ -122,26 +110,20 @@ const std::string *RsfReader::getValue(const std::string &key) const {
 }
 
 const StringList *RsfReader::getMetaValue(const std::string &key) const {
-    static std::string null_string("");
-
-    std::map<std::string, StringList>::const_iterator i = meta_information.find(key);
-    if (i == meta_information.end())
+    const auto &it = meta_information.find(key); // pair<string, StringList>
+    if (it == meta_information.end())  // key not found
         return nullptr;
-    return &((*i).second);
+    return &((*it).second);
 }
 
 void RsfReader::addMetaValue(const std::string &key, const std::string &value) {
-    StringList values;
-    std::map<std::string, StringList>::const_iterator i = meta_information.find(key);
-    if (i != meta_information.end()) {
-        values = (*i).second;
-        meta_information.erase(key);
-    }
-    values.push_back(value);
-    meta_information.emplace(key, values);
+    StringList &values = meta_information[key];
+    if (std::find(values.begin(), values.end(), value) == values.end())
+        // value wasn't found within values, add it
+        values.push_back(value);
 }
 
-ItemRsfReader::ItemRsfReader(std::istream &f) : RsfReader() {
+ItemRsfReader::ItemRsfReader(std::istream &f) {
     read_rsf(f);
 }
 
@@ -159,7 +141,7 @@ size_t ItemRsfReader::read_rsf(std::istream &rsf_file) {
         columns.pop_front();
 
         // Skip lines that do not start with 'Item'
-        if (0 != key.compare("Item"))
+        if (key != "Item")
             continue;
 
         key = columns.front(); columns.pop_front();

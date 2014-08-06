@@ -19,16 +19,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
-#ifndef KCONFIG_UNSUPPORTED_FEATURE_EXCEPTION_H
-#define KCONFIG_UNSUPPORTED_FEATURE_EXCEPTION_H
+#ifndef KCONFIG_INVALID_NODE_EXCEPTION_H
+#define KCONFIG_INVALID_NODE_EXCEPTION_H
 
 #include <stdexcept>
 
 namespace kconfig {
-    struct UnsupportedFeatureException : public std::logic_error {
-        UnsupportedFeatureException(const char *s) : logic_error(s) {}
-        UnsupportedFeatureException(std::string s) : logic_error(s.c_str()) {}
+    struct InvalidNodeException : public std::logic_error {
+        InvalidNodeException(std::string s) : logic_error(s) {}
     };
 }
 #endif

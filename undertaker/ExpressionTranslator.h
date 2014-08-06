@@ -20,19 +20,14 @@
 #ifndef KCONFIG_TRANSLATEEXPRESSION_H
 #define KCONFIG_TRANSLATEEXPRESSION_H
 
-#include <string>
-#include <map>
-#include <set>
-#include <stdlib.h>
-
-#ifndef USE_ZCONF
-#define USE_ZCONF
-#endif
-#include "bool.h"
 #include "ExpressionVisitor.h"
-#include "InvalidNodeException.h"
+
+#include <set>
+
 
 namespace kconfig {
+    class BoolExp;
+
     struct TristateRepr {
         BoolExp *yes;
         BoolExp *mod;
@@ -41,26 +36,23 @@ namespace kconfig {
     };
 
     class ExpressionTranslator : public ExpressionVisitor<TristateRepr> {
-    private:
         //some statistical data
-        int _processedValComp;
-
+        int _processedValComp = 0;
     public:
-        ExpressionTranslator() : _processedValComp(0), symbolSet(0) {};
-        std::set<struct symbol *> *symbolSet;
+        ExpressionTranslator() = default;
+        std::set<struct symbol *> *symbolSet = nullptr;
 
         int getValueComparisonCounter() { return _processedValComp; }
-
     protected:
-        virtual TristateRepr visit_symbol(struct symbol *sym);
-        virtual TristateRepr visit_and(expr *e, TristateRepr left, TristateRepr right);
-        virtual TristateRepr visit_or(expr *e, TristateRepr left, TristateRepr right);
-        virtual TristateRepr visit_not(expr *e, TristateRepr left);
-        virtual TristateRepr visit_equal(struct expr *e, TristateRepr left, TristateRepr right);
-        virtual TristateRepr visit_unequal(struct expr *e, TristateRepr left, TristateRepr right);
-        virtual TristateRepr visit_list(struct expr *e);
-        virtual TristateRepr visit_range(struct expr *e);
-        virtual TristateRepr visit_others(expr *);
+        virtual TristateRepr visit_symbol(struct symbol *)                     final override;
+        virtual TristateRepr visit_and(expr *, TristateRepr, TristateRepr)     final override;
+        virtual TristateRepr visit_or(expr *, TristateRepr, TristateRepr)      final override;
+        virtual TristateRepr visit_not(expr *, TristateRepr)                   final override;
+        virtual TristateRepr visit_equal(expr *, TristateRepr, TristateRepr)   final override;
+        virtual TristateRepr visit_unequal(expr *, TristateRepr, TristateRepr) final override;
+        virtual TristateRepr visit_list(expr *e)                               final override;
+        virtual TristateRepr visit_range(expr *, TristateRepr, TristateRepr)   final override;
+        virtual TristateRepr visit_others(expr *)                              final override;
     };
 }
 #endif

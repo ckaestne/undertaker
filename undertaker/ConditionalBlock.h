@@ -24,20 +24,27 @@
 #ifndef _CONDITIONALBLOCK_H_
 #define _CONDITIONALBLOCK_H_
 
-#include <boost/regex.hpp>
-#include "StringJoiner.h"
 #include "ConfigurationModel.h"
+#include "BlockDefectAnalyzer.h"
+
+#include <boost/regex.hpp>
 
 class ConditionalBlock;
 class CppDefine;
-
+class PumaConditionalBlockBuilder;
+struct UniqueStringJoiner;
 
 typedef std::list<ConditionalBlock *> CondBlockList;
+
+
+/************************************************************************/
+/* CppFile                                                              */
+/************************************************************************/
 
 class CppFile : public CondBlockList {
  public:
     //! \param filename file with cpp expressions to parse
-    CppFile(const char *filename);
+    CppFile(const std::string &filename);
     ~CppFile();
 
     //! Check if the file was correctly parsed
@@ -45,8 +52,7 @@ class CppFile : public CondBlockList {
 
     /**
      * The top block of an parsed file is an artificial block, which
-     * doesn't represent an concrete block, but the
-     * whole file.
+     * doesn't represent an concrete block, but the whole file.
      * \return top block
     */
     ConditionalBlock *topBlock() const { return top_block; };
@@ -58,7 +64,7 @@ class CppFile : public CondBlockList {
     DefineMap * getDefines() { return &define_map; };
 
     //! \return filename given in the constructor
-    std::string getFilename() const { return filename; };
+    const std::string &getFilename() const { return filename; };
 
     /**
      * \param postition format: "filename:line:pos"
@@ -69,11 +75,14 @@ class CppFile : public CondBlockList {
     //! start modification of ConditionalBlocks for decision coverage analysis
     void decisionCoverage();
 
+    //! get specific_arch string
+    const std::string &getSpecificArch() const { return specific_arch; }
+
     //! Functor that checks if a given symbol was touched by an define
     class ItemChecker : public ConfigurationModel::Checker {
     public:
         ItemChecker(CppFile *cf) : file(cf) {}
-        bool operator()(const std::string &item) const;
+        virtual bool operator()(const std::string &item) const final override;
     private:
         CppFile * file;
     };
@@ -82,35 +91,42 @@ class CppFile : public CondBlockList {
 
  private:
     std::string filename;
+    std::string specific_arch;
     ConditionalBlock *top_block = nullptr;
     std::map<std::string, CppDefine *> define_map;
     const CppFile::ItemChecker checker;
+    std::unique_ptr<PumaConditionalBlockBuilder> _builder;
 
     void printCppFile();
+
+    static const boost::regex filename_regex;
 };
 
+/************************************************************************/
+/* ConditionalBlock                                                     */
+/************************************************************************/
 
 class ConditionalBlock : public CondBlockList {
- public:
+public:
     //! defect type used in block defect analysis
-    int defectType;
+    BlockDefect::DEFECTTYPE defectType;
     //! location related accessors
-    virtual const char *filename()   const = 0;
-    virtual unsigned int lineStart() const = 0;
-    virtual unsigned int colStart()  const = 0;
-    virtual unsigned int lineEnd()   const = 0;
-    virtual unsigned int colEnd()    const = 0;
+    virtual const std::string &filename()  const = 0;
+    virtual unsigned int lineStart()       const = 0;
+    virtual unsigned int colStart()        const = 0;
+    virtual unsigned int lineEnd()         const = 0;
+    virtual unsigned int colEnd()          const = 0;
     /// @}
 
     //! \return original untouched expression
     virtual const char * ExpressionStr() const = 0;
-    virtual bool isIfBlock() const             = 0; //!< is if or ifdef block
-    virtual bool isIfndefine() const           = 0; //!< is ifndef
-    virtual bool isElseIfBlock() const         = 0; //!< is elif
-    virtual bool isElseBlock() const           = 0; //!< is else
-    virtual bool isDummyBlock() const          = 0; //!< is Dummy-Block
+    virtual bool isIfBlock()             const = 0; //!< is if or ifdef block
+    virtual bool isIfndefine()           const = 0; //!< is ifndef
+    virtual bool isElseIfBlock()         const = 0; //!< is elif
+    virtual bool isElseBlock()           const = 0; //!< is else
+    virtual bool isDummyBlock()          const = 0; //!< is Dummy-Block
     virtual void setDummyBlock()               = 0; //!< set Block to dummy state
-    virtual const std::string getName() const  = 0; //!< unique identifier for block
+    virtual const std::string getName()  const = 0; //!< unique identifier for block
 
     /**
      * This function doesn't affect the logic of the CPPPC algorithm, but changes
@@ -120,17 +136,14 @@ class ConditionalBlock : public CondBlockList {
      * This allows to combine formulas for blocks from different files.
      * \param verbose_blocks if set, normalized filenames are appended to the block name
      */
-    static void setBlocknameWithFilename(bool verbose_blocks){ useBlockWithFilename = verbose_blocks; }
-    //!< replaces invalid characters with '_'
-    static std::string normalize_filename(const char *);
+    static void setBlocknameWithFilename(bool verbose_blocks) {
+        useBlockWithFilename = verbose_blocks;
+    }
 
     /* None virtual functions follow */
 
     ConditionalBlock(CppFile *file, ConditionalBlock *parent, ConditionalBlock *prev)
         : cpp_file(file), _parent(parent), _prev(prev) {};
-
-    //! returns all (configuration) items of the given string
-    static std::set<std::string> itemsOfString(const std::string &str);
 
     //! Has to be called after constructing a ConditionalBlock
     void lateConstructor();
@@ -150,12 +163,12 @@ class ConditionalBlock : public CondBlockList {
     //! \return rewritten (define) macro expression
     std::string ifdefExpression() const { return _exp; };
 
-    std::string getCodeConstraints(UniqueStringJoiner *and_clause = 0,
-                                  std::set<ConditionalBlock *> *visited = 0);
+    std::string getCodeConstraints(UniqueStringJoiner *and_clause = nullptr,
+                                  std::set<ConditionalBlock *> *visited = nullptr);
 
     void addDefine(CppDefine* define) { _defines.push_back(define); }
 
-    std::string getConstraintsHelper(UniqueStringJoiner *and_clause = 0);
+    std::string getConstraintsHelper(UniqueStringJoiner *and_clause = nullptr);
     const std::list<CppDefine *> &getDefines() const { return _defines; };
 
     //! the following functions have to be public because decisionCoverage() is
@@ -172,7 +185,8 @@ protected:
     CppFile * cpp_file;
     const ConditionalBlock *_parent, *_prev;
     std::list<CppDefine *> _defines;
-    static bool useBlockWithFilename; //!< if set blocknames of getName() are extended with a normalized filename
+    //!< if set blocknames of getName() are extended with a normalized filename
+    static bool useBlockWithFilename;
 
 private:
     std::string _exp;
@@ -182,6 +196,10 @@ private:
             bool insertAfter = false);
 };
 
+/************************************************************************/
+/* CppDefine                                                            */
+/************************************************************************/
+
 class CppDefine {
 public:
     CppDefine(ConditionalBlock *parent, bool define, const std::string &id);
@@ -189,8 +207,8 @@ public:
 
     void replaceDefinedSymbol(std::string &exp);
 
-    std::string getConstraints(UniqueStringJoiner *and_clause = 0,
-                                  std::set<ConditionalBlock *> *visited = 0);
+    std::string getConstraints(UniqueStringJoiner *and_clause = nullptr,
+                                  std::set<ConditionalBlock *> *visited = nullptr);
 
     void getConstraintsHelper(UniqueStringJoiner *and_clause) const;
 

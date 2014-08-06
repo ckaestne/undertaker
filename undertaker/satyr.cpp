@@ -17,33 +17,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/filesystem.hpp>
+#ifdef DEBUG
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+#endif
 
 #include "SymbolTranslator.h"
 #include "KconfigSymbolSet.h"
-
-#include "bool.h"
 #include "PicosatCNF.h"
 #include "KconfigAssumptionMap.h"
 #include "Logging.h"
 #include "../version.h"
 
+#include <boost/filesystem.hpp>
 #include <locale.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <iostream>
 #include <vector>
 #include <fstream>
 #include <string>
-#include <libgen.h>
 
 using namespace kconfig;
+
 
 void usage(std::ostream &out) {
     out << "usage: satyr [-V] [-a <assumtion.config> | -c <out.cnf>] <model>" << std::endl;
@@ -55,37 +48,36 @@ void usage(std::ostream &out) {
     exit(EXIT_FAILURE);
 }
 
-int process_assumptions(CNF *cnf, std::vector<boost::filesystem::path> assumptions) {
+int process_assumptions(PicosatCNF &cnf, const std::vector<boost::filesystem::path> assumptions) {
     int errors = 0;
-    for (auto &assumption : assumptions) {  // boost::filesystem::path
+    for (const auto &assumption : assumptions) {  // boost::filesystem::path
         logger << info << "processing assumption " << assumption << std::endl;
 
         if (boost::filesystem::exists(assumption)) {
-            std::ifstream in(assumption.string().c_str());
-            KconfigAssumptionMap a(cnf);
+            std::ifstream in(assumption.string());
+            KconfigAssumptionMap a(&cnf);
             a.readAssumptionsFromFile(in);
-            logger << info
-                   << "processed " << a.size() << " items" << std::endl;
-            cnf->pushAssumptions(a);
+            logger << info << "processed " << a.size() << " items" << std::endl;
+            cnf.pushAssumptions(a);
         }
-        bool sat = cnf->checkSatisfiable();
-        const char* result = sat ? "satisfiable" : "not satisfiable";
+        bool sat = cnf.checkSatisfiable();
+        const std::string result = sat ? "satisfiable" : "not satisfiable";
         if (!sat) {
-            const int *failed = cnf->failedAssumptions();
-            for (int i=0; failed != 0 && failed[i] != 0; i++) {
-                std::string vn = cnf->getSymbolName(abs(failed[i]));
-                logger << debug << "failed Assumption: " << failed[i] << " " << vn <<std::endl;
+            const int *failed = cnf.failedAssumptions();
+            for (int i = 0; failed != nullptr && failed[i] != 0; i++) {
+                std::string vn = cnf.getSymbolName(abs(failed[i]));
+                logger << debug << "failed Assumption: " << failed[i] << " " << vn << std::endl;
             }
         }
-        errors += (int) !sat;
+        errors += (int)!sat;
         logger << info << assumption << " is " << result << std::endl;
     }
     return errors;
 }
 
 int main(int argc, char **argv) {
-    static bool saveTranslatedModel = false;
-    static std::vector<boost::filesystem::path> assumptions;
+    bool saveTranslatedModel = false;
+    std::vector<boost::filesystem::path> assumptions;
     boost::filesystem::path saveFile;
     int exitstatus = 0;
     int opt;
@@ -125,8 +117,7 @@ int main(int argc, char **argv) {
     }
     boost::filesystem::path filepath(argv[optind]);
     if (!boost::filesystem::exists(filepath)) {
-        logger << error << "File '" << filepath << "' does not exist"
-               << std::endl;
+        logger << error << "File '" << filepath << "' does not exist" << std::endl;
         exit(EXIT_FAILURE);
     }
     setlocale(LC_ALL, "");
@@ -142,42 +133,40 @@ int main(int argc, char **argv) {
     if (!srcarch) {
         srcarch = arch;
     }
-    fprintf(stderr, "using arch %s\n", arch);
+    std::cerr << "using arch " << arch << std::endl;
 
     setenv("ARCH", arch, 1);
     setenv("SRCARCH", srcarch, 0);
     setenv("KERNELVERSION", "2.6.30-vamos", 0);
 
-    CNF *cnf = new PicosatCNF();
+    PicosatCNF cnf;
 
     if (filepath.extension() == ".cnf") {
         logger << info << "Loading CNF model " << filepath << std::endl;
-        cnf->readFromFile(filepath.string().c_str());
+        cnf.readFromFile(filepath.string());
     } else {
         logger << info << "Parsing Kconfig file " << filepath << std::endl;
-        SymbolTranslator *translator = new SymbolTranslator(cnf);
-        KconfigSymbolSet *symbolSet = new KconfigSymbolSet();
+        SymbolTranslator translator(&cnf);
+        KconfigSymbolSet symbolSet;
 
         logger << debug << "parsing" << std::endl;
-        translator->parse(filepath.string().c_str());
-        translator->symbolSet = symbolSet;
+        translator.parse(filepath.string());
+        translator.symbolSet = &symbolSet;
         logger << debug << "traversing symbolset" << std::endl;
-        symbolSet->traverse();
+        symbolSet.traverse();
         logger << debug << "translating" << std::endl;
-        translator->traverse();
+        translator.traverse();
 
-        if (translator->featuresWithStringDependencies()) {
-            logger << info << "Features w string dep (" << arch << "): "
-                   << translator->featuresWithStringDependencies()
-                   << " with " << translator->totalStringComparisons()
-                   << " comparisons." << std::endl;
+        if (translator.featuresWithStringDependencies()) {
+            logger << info << "Features w string dep (" << arch
+                   << "): " << translator.featuresWithStringDependencies() << " with "
+                   << translator.totalStringComparisons() << " comparisons." << std::endl;
         }
-        logger << info << "features in model: " << symbolSet->size() << std::endl;
+        logger << info << "features in model: " << symbolSet.size() << std::endl;
     }
     if (saveTranslatedModel) {
-        cnf->toFile(saveFile.string().c_str());
-        logger << info << cnf->getVarCount() << " variables written to "
-               << saveFile << std::endl;
+        cnf.toFile(saveFile.string());
+        logger << info << cnf.getVarCount() << " variables written to " << saveFile << std::endl;
     }
     exitstatus += process_assumptions(cnf, assumptions);
     return exitstatus;

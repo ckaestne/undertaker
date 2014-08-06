@@ -22,21 +22,23 @@
 
 #include <map>
 #include <string>
-#include <iostream>
+#include <istream>
 
-#include "CNF.h"
 
 namespace kconfig {
+    class PicosatCNF;
+
     /**
      * Read partial configuration fragments
      *
      * This represents a partial configuration (sometimes called a
      * configuration fragement).
      */
-    class KconfigAssumptionMap: public std::map<std::string, bool> {
+    class KconfigAssumptionMap : public std::map<std::string, bool> {
+        PicosatCNF *_model;
     public:
         //! loads the given models
-        KconfigAssumptionMap(CNF *model);
+        KconfigAssumptionMap(PicosatCNF *model) : _model(model) { };
 
         /**
          * \brief load a partial configuration
@@ -44,9 +46,6 @@ namespace kconfig {
          * \return the number of items that have been processed
          */
         size_type readAssumptionsFromFile(std::istream &i);
-
-    private:
-        CNF *_model;
     };
 }
 #endif

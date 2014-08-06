@@ -22,36 +22,55 @@
 #ifndef _COVERAGEANALYZER_H_
 #define _COVERAGEANALYZER_H_
 
-#include "ConditionalBlock.h"
-#include "ConfigurationModel.h"
 #include "SatChecker.h"
+
+#include <list>
+#include <set>
+#include <string>
+
+class ConditionalBlock;
+class ConfigurationModel;
+
+
+/************************************************************************/
+/* CoverageAnalyzer                                                     */
+/************************************************************************/
 
 class CoverageAnalyzer {
 public:
-    CoverageAnalyzer(const CppFile *);
-
     virtual std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *) = 0;
 
     // NB: missingSet is filled during blockCoverage run
     MissingSet getMissingSet() const { return missingSet; }
 
 protected:
-    std::string baseFileExpression(const ConfigurationModel *model,
-                                   std::set<ConditionalBlock *> *blocks = nullptr);
+    /* c'tor */
+    CoverageAnalyzer(const CppFile *file) : file(file) {};
+
+    std::string baseFileExpression(const ConfigurationModel *model);
+
     const CppFile * file;
     MissingSet missingSet; // set of strings
 };
 
+/************************************************************************/
+/* SimpleCoverageAnalyzer                                               */
+/************************************************************************/
+
 class SimpleCoverageAnalyzer : public CoverageAnalyzer {
 public:
     SimpleCoverageAnalyzer(CppFile *f) : CoverageAnalyzer(f) {};
-    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *);
+    virtual std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *) final override;
 };
+
+/************************************************************************/
+/* MinimizeCoverageAnalyzer                                             */
+/************************************************************************/
 
 class MinimizeCoverageAnalyzer : public CoverageAnalyzer {
 public:
     MinimizeCoverageAnalyzer(CppFile *f) : CoverageAnalyzer(f) {};
-    std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *);
+    virtual std::list<SatChecker::AssignmentMap> blockCoverage(ConfigurationModel *) final override;
 };
 
 #endif /* _COVERAGEANALYZER_H_ */

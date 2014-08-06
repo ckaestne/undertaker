@@ -20,30 +20,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <boost/regex.hpp>
-#include <boost/lexical_cast.hpp>
-
 #include "PicosatCNF.h"
-#include "IOException.h"
-#include "KconfigWhitelist.h"
+#include "exceptions/IOException.h"
 #include "Logging.h"
-#include "StringJoiner.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <iostream>
-#include <sstream>
 #include <fstream>
 #include <algorithm>
-#include <fstream>
+
+namespace Picosat {
+// include picosat header as C
+    extern "C" {
+        #include "picosat.h"
+    }
+}
 
 using namespace kconfig;
+
 
 static bool picosatIsInitalized = false;
 static PicosatCNF *currentContext = nullptr;
 
-PicosatCNF::PicosatCNF(Picosat::SATMode defaultPhase) : defaultPhase (defaultPhase) {
-    resetContext();
+PicosatCNF::PicosatCNF(Picosat::SATMode defaultPhase) : defaultPhase(defaultPhase) {}
+
+// copy delegate constructor with initializing _picosat and setting default_phase
+PicosatCNF::PicosatCNF(const PicosatCNF &cnf, Picosat::SATMode defaultPhase) : PicosatCNF(cnf) {
+    this->defaultPhase = defaultPhase;
 }
 
 PicosatCNF::~PicosatCNF() {
@@ -52,55 +53,7 @@ PicosatCNF::~PicosatCNF() {
     }
 }
 
-void PicosatCNF::setDefaultPhase(Picosat::SATMode phase) {
-    this->defaultPhase = phase;
-    //force a reload of the context to avoid random mixed phases
-    if (this == currentContext) {
-        currentContext = nullptr;
-    }
-}
-
-void PicosatCNF::loadContext(void) {
-    resetContext();
-    currentContext = this;
-    Picosat::picosat_set_global_default_phase(defaultPhase);
-
-    for (int &clause : clauses)
-        Picosat::picosat_add(clause);
-
-    if (do_mus_analysis) {
-        // create a unique temporary directory
-        std::string pref("/tmp/undertakermusXXXXXX");
-        char *t =  mkdtemp(&pref[0]);
-        if(!t) {
-            logger << error << "Couldn't create tmpdir" << std::endl;
-            exit(1);
-        }
-        musTmpDirName = t;
-        std::string tmpf = t;
-        tmpf += "/infile";
-
-        std::ofstream out(tmpf.c_str());
-        out << "p cnf " << varcount << " " << this->clausecount << std::endl;
-
-        for (int &clause : clauses) {
-            char sep = (clause == 0) ? '\n' : ' ';
-            out << clause << sep;
-        }
-        out.close();
-    }
-}
-
-void PicosatCNF::resetContext(void) {
-    if (picosatIsInitalized) {
-        Picosat::picosat_reset();
-    }
-    Picosat::picosat_init();
-    picosatIsInitalized = true;
-    currentContext = nullptr;
-}
-
-void PicosatCNF::readFromFile(const char *filename) {
+void PicosatCNF::readFromFile(const std::string &filename) {
     std::ifstream i(filename);
     if (!i.good()) {
         throw IOException("Could not open CNF-File");
@@ -109,51 +62,55 @@ void PicosatCNF::readFromFile(const char *filename) {
 }
 
 void PicosatCNF::readFromStream(std::istream &i) {
-    std::string line;
-    while(std::getline (i, line)) {
-        static const boost::regex var_regexp("^c var (.+) (\\d+)$");
-        static const boost::regex sym_regexp("^c sym (.+) (\\d)$");
-        static const boost::regex dim_regexp("^p cnf (\\d+) (\\d+)$");
-        static const boost::regex meta_regexp("^c meta_value ([^\\s]+)\\s+(.+)$");
-        static const boost::regex comment_regexp("^c ");
-        boost::match_results<std::string::const_iterator> what;
-
-        if (boost::regex_match(line, what, var_regexp)) {
-            std::string varname = what[1];
-            int cnfnumber = boost::lexical_cast<int>(what[2]);
-            this->setCNFVar(varname, cnfnumber);
-        } else if (boost::regex_match(line, what, sym_regexp)) {
-            std::string varname = what[1];
-            int typeId = boost::lexical_cast<int>(what[2]);
-            this->setSymbolType(varname, (kconfig_symbol_type) typeId);
-        } else if (boost::regex_match(line, what, meta_regexp)) {
-            std::string metavalue = what[1];
-            std::stringstream content(what[2]);
-            std::string item;
-
-            while (content >> item)
-                this->addMetaValue(metavalue, item);
-        } else if (boost::regex_search(line, comment_regexp)) {
-            //ignore
-        } else if (boost::regex_match(line, what, dim_regexp)) {
-            // handle dimension descriptor line: after this, only lines in DIMACs CNF Format remain
-            int val;
-            while(i >> val) {
-                switch(val) {
-                case 0:
-                    this->pushClause(); break;
-                default:
-                    this->pushVar(val);
-                }
+    std::string tmp;
+    while (i >> tmp) {
+        if (tmp == "c") {
+            i >> tmp;
+            if (tmp == "var") {
+                // beginning of this line matches: ("^c var (.+) (\\d+)$")
+                std::string varname;
+                int cnfnumber;
+                i >> varname; i >> cnfnumber;
+                this->setCNFVar(varname, cnfnumber);
+            } else if (tmp == "sym") {
+                // beginning of this line matches: ("^c sym (.+) (\\d)$")
+                std::string varname;
+                int typeId;
+                i >> varname; i >> typeId;
+                this->setSymbolType(varname, (kconfig_symbol_type) typeId);
+            } else if (tmp == "meta_value") {
+                // beginning of this line matches: ("^c meta_value ([^\\s]+)\\s+(.+)$")
+                std::string metavalue, item;
+                i >> metavalue;
+                while (i.peek() != '\n' && i >> item)
+                    this->addMetaValue(metavalue, item);
+            } else {
+                // beginning of this line matches: ("^c ") and will be ignored
+                std::getline(i, tmp);
             }
+        } else if (tmp == "p") {
+            // beginning of this line matches: ("^p cnf (\\d+) (\\d+)$")
+            // Which is the CNF dimension descriptor line.
+            // After this, only lines in DIMACs CNF Format remain
+            i >> tmp;
+            if (tmp != "cnf") {
+                logger << error << "Invalid DIMACs CNF dimension descriptor." << std::endl;
+                throw IOException("parse error while reading CNF file");
+            }
+            i >> varcount; i >> clausecount;
+            // minimize reallocation of the clauses vector, each clause has 3-4 variables
+            clauses.reserve(4*clausecount);
+            int val;
+            while(i >> val)
+                clauses.push_back(val);
         } else {
-            logger << error << "Failed to parse line: '" << line << "'" << std::endl;
+            logger << error << "Line not starting with c or p." << std::endl;
             throw IOException("parse error while reading CNF file");
         }
     }
 }
 
-void PicosatCNF::toFile(const char *filename) const {
+void PicosatCNF::toFile(const std::string &filename) const {
     std::ofstream out(filename);
     if (!out.good()) {
         logger << error << "Couldn't write to " << filename << std::endl;
@@ -162,6 +119,7 @@ void PicosatCNF::toFile(const char *filename) const {
     toStream(out);
 }
 
+// XXX do not modify the output format without adjusting: readFromStream
 void PicosatCNF::toStream(std::ostream &out) const {
     out << "c File Format Version: 2.0" << std::endl;
     out << "c Generated by satyr" << std::endl;
@@ -173,36 +131,35 @@ void PicosatCNF::toStream(std::ostream &out) const {
     out << "c variable names:" << std::endl;
     out << "c c var <variablename> <cnfvar>" << std::endl;
 
-    for (auto &entry : meta_information) {  // pair<string, deque<string>>
-        StringJoiner sj;
+    for (const auto &entry : meta_information) {  // pair<string, deque<string>>
+        std::stringstream sj;
 
-        sj.push_back("c meta_value");
-        sj.push_back(entry.first);
+        sj << "c meta_value " << entry.first;
         for (const std::string &str : entry.second)
-            sj.push_back(str);
+            sj << " " << str;
 
-        out << sj.join(" ") << std::endl;
+        out << sj.str() << std::endl;
     }
-    for (auto &entry : this->symboltypes) {  // pair<string, kconfig_symbol_type>
+    for (const auto &entry : this->symboltypes) {  // pair<string, kconfig_symbol_type>
         const std::string &sym = entry.first;
         int type = entry.second;
-        out << "c sym " << sym.c_str() << " " << type << std::endl;
+        out << "c sym " << sym << " " << type << std::endl;
     }
-    for (auto &entry : this->cnfvars) {  // pair<string, int>
+    for (const auto &entry : this->cnfvars) {  // pair<string, int>
         const std::string &sym = entry.first;
         int var = entry.second;
-        out << "c var " << sym.c_str() << " " << var << std::endl;
+        out << "c var " << sym << " " << var << std::endl;
     }
     out << "p cnf " << varcount << " " << this->clausecount << std::endl;
 
     for (const int &clause : clauses) {
         char sep = (clause == 0) ? '\n' : ' ';
-        out <<  clause << sep;
+        out << clause << sep;
     }
 }
 
-kconfig_symbol_type PicosatCNF::getSymbolType(const std::string &name) {
-    std::map<std::string, kconfig_symbol_type>::const_iterator it = this->symboltypes.find(name);
+kconfig_symbol_type PicosatCNF::getSymbolType(const std::string &name) const {
+    const auto &it = this->symboltypes.find(name); // pair<string, kconfig_symbol_type>
     return (it == this->symboltypes.end()) ? K_S_UNKNOWN : it->second;
 }
 
@@ -210,15 +167,15 @@ void PicosatCNF::setSymbolType(const std::string &sym, kconfig_symbol_type type)
     std::string config_sym = "CONFIG_" + sym;
     this->associatedSymbols[config_sym] = sym;
 
-    if (type == 2) {
+    if (type == K_S_TRISTATE) {
         std::string config_sym_mod = "CONFIG_" + sym + "_MODULE";
         this->associatedSymbols[config_sym_mod] = sym;
     }
     this->symboltypes[sym] = type;
 }
 
-int PicosatCNF::getCNFVar(const std::string &var) {
-    std::map<std::string, int>::const_iterator it = this->cnfvars.find(var);
+int PicosatCNF::getCNFVar(const std::string &var) const {
+    const auto &it = this->cnfvars.find(var); // pair<string, int>
     return (it == this->cnfvars.end()) ? 0 : it->second;
 }
 
@@ -281,16 +238,25 @@ void PicosatCNF::pushAssumption(const std::string &v, bool val) {
         this->pushAssumption(-cnfvar);
 }
 
-void PicosatCNF::pushAssumption(const char *v, bool val) {
-    std::string s(v);
-    this->pushAssumption(s, val);
-}
-
 bool PicosatCNF::checkSatisfiable(void) {
+    // make sure the current data is stored within picosat
     if (this != currentContext){
-        this->loadContext();
+        // if not, reset the context....
+        if (picosatIsInitalized) {
+            Picosat::picosat_reset();
+        }
+        Picosat::picosat_init();
+        picosatIsInitalized = true;
+        // and load the current context
+        currentContext = this;
+        Picosat::picosat_set_global_default_phase(defaultPhase);
+        // tell picosat how many different variables it will receive
+        Picosat::picosat_adjust(varcount);
+
+        for (const int &clause : clauses)
+            Picosat::picosat_add(clause);
     }
-    for (int &assumption : assumptions)
+    for (const int &assumption : assumptions)
         Picosat::picosat_assume(assumption);
 
     assumptions.clear();
@@ -298,30 +264,29 @@ bool PicosatCNF::checkSatisfiable(void) {
 }
 
 void PicosatCNF::pushAssumptions(std::map<std::string, bool> &a) {
-    for (auto &entry : a) {  // pair<string, bool>
+    for (const auto &entry : a) {  // pair<string, bool>
         std::string symbol = entry.first;
         bool value = entry.second;
         this->pushAssumption(symbol, value);
     }
 }
 
-bool PicosatCNF::deref(int s) {
+bool PicosatCNF::deref(int s) const {
     return Picosat::picosat_deref(s) == 1;
 }
 
-bool PicosatCNF::deref(const std::string &s) {
+bool PicosatCNF::deref(const std::string &s) const {
     int cnfvar = this->getCNFVar(s);
     return this->deref(cnfvar);
 }
 
-bool PicosatCNF::deref(const char *c) {
-    std::string s(c);
-    int cnfvar = this->getCNFVar(s);
+bool PicosatCNF::deref(const char *c) const {
+    int cnfvar = this->getCNFVar(c);
     return this->deref(cnfvar);
 }
 
 const std::string *PicosatCNF::getAssociatedSymbol(const std::string &var) const {
-    std::map<std::string, std::string>::const_iterator it = this->associatedSymbols.find(var);
+    const auto &it = this->associatedSymbols.find(var); // pair<string, string>
     return (it == this->associatedSymbols.end()) ? nullptr : &(it->second);
 }
 
@@ -330,31 +295,17 @@ const int *PicosatCNF::failedAssumptions(void) const {
 }
 
 void PicosatCNF::addMetaValue(const std::string &key, const std::string &value) {
-    std::map<std::string, std::deque<std::string> >::const_iterator i = this->meta_information.find(key);
-    std::deque<std::string> values;
-    std::deque<std::string>::const_iterator j;
-
-    if (i != meta_information.end()) {
-        values = (*i).second;
-        meta_information.erase(key);
-    }
-    j = std::find(values.begin(), values.end(), value);
-
-    if (j == values.end()) {
+    std::deque<std::string> &values = meta_information[key];
+    if (std::find(values.begin(), values.end(), value) == values.end())
+        // value wasn't found within values, add it
         values.push_back(value);
-    }
-    meta_information.emplace(key, values);
 }
 
 const std::deque<std::string> *PicosatCNF::getMetaValue(const std::string &key) const {
-    std::map<std::string, std::deque<std::string>>::const_iterator i = meta_information.find(key);
-    if (i == meta_information.end()) // not found
+    const auto &i = meta_information.find(key); // pair<string, deque<string>>
+    if (i == meta_information.end()) // key not found
         return nullptr;
     return &((*i).second);
-}
-
-int PicosatCNF::getVarCount(void) {
-    return varcount;
 }
 
 int PicosatCNF::newVar(void) {

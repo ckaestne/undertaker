@@ -24,23 +24,14 @@
 #ifndef KCONFIG_PICOSATCNF_H
 #define KCONFIG_PICOSATCNF_H
 
-#include <map>
+#include "Kconfig.h"
+
 #include <vector>
+#include <map>
 #include <string>
 #include <deque>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "CNF.h"
 
 namespace Picosat {
-    #include <ctype.h>
-    #include <assert.h>
-
-    extern "C" {
-        #include "picosat.h"
-    }
-
     // Modes taken from picosat.h
     enum SATMode {
         SAT_MIN     = 0,
@@ -50,9 +41,9 @@ namespace Picosat {
     };
 };
 
+
 namespace kconfig {
-    class PicosatCNF: public CNF {
-    protected:
+    class PicosatCNF {
         //! this map contains the the type of each Kconfig symbol
         std::map<std::string, kconfig_symbol_type> symboltypes;
 
@@ -78,42 +69,27 @@ namespace kconfig {
         Picosat::SATMode defaultPhase;
         int varcount = 0;
         int clausecount = 0;
-        bool do_mus_analysis = false;;
-        std::string musTmpDirName;
-
-        void loadContext(void);
-        void resetContext(void);
-
     public:
         PicosatCNF(Picosat::SATMode = Picosat::SAT_MIN);
-        virtual ~PicosatCNF();
-        void setDefaultPhase(Picosat::SATMode phase);
-        virtual void setMusAnalysis(bool mus_analysis) { this->do_mus_analysis = mus_analysis; }
-        virtual std::string getMusDirName() { return musTmpDirName; }
-        virtual void readFromFile(const char *filename);
-        virtual void readFromStream(std::istream &i);
-        virtual void toFile(const char *filename) const;
-        virtual void toStream(std::ostream &out) const;
-        virtual kconfig_symbol_type getSymbolType(const std::string &name);
-        virtual void setSymbolType(const std::string &sym, kconfig_symbol_type type);
-        virtual int getCNFVar(const std::string &var);
-        virtual void setCNFVar(const std::string &var, int CNFVar);
-        virtual std::string &getSymbolName(int CNFVar);
-        virtual void pushVar(int v);
-        virtual void pushVar(std::string  &v, bool val);
-        virtual void pushClause(void);
-        virtual void pushClause(int *c);
-        virtual void pushAssumption(int v);
-        virtual void pushAssumption(const std::string &v,bool val);
-        virtual void pushAssumption(const char *v,bool val);
-        virtual void pushAssumptions(std::map<std::string, bool> &a);
-        virtual bool checkSatisfiable(void);
-        virtual bool deref(int s);
-        virtual bool deref(const std::string &s);
-        virtual bool deref(const char *s);
-        virtual int getVarCount(void);
-        virtual int newVar(void);
-        virtual const std::string *getAssociatedSymbol(const std::string &var) const;
+        PicosatCNF(const PicosatCNF &, Picosat::SATMode);
+        ~PicosatCNF();
+        void readFromFile(const std::string &filename);
+        void readFromStream(std::istream &i);
+        void toFile(const std::string &filename) const;
+        void toStream(std::ostream &out) const;
+        kconfig_symbol_type getSymbolType(const std::string &name) const;
+        void setSymbolType(const std::string &sym, kconfig_symbol_type type);
+        int getCNFVar(const std::string &var) const;
+        void setCNFVar(const std::string &var, int CNFVar);
+        std::string &getSymbolName(int CNFVar);
+        void pushVar(int v);
+        void pushVar(std::string  &v, bool val);
+        void pushClause(void);
+        void pushClause(int *c);
+        void pushAssumption(int v);
+        void pushAssumption(const std::string &v,bool val);
+        void pushAssumptions(std::map<std::string, bool> &a);
+        bool checkSatisfiable(void);
         /** returns cnf-id of assumtions, that cause unresolvable conflicts.
             If checkSatisfiable returns false, this returns an array of assumptions
             that derived unsatisfiability (= failed assumptions).
@@ -121,8 +97,15 @@ namespace kconfig {
             @returns array if of failed cnf-ids
         **/
         const int *failedAssumptions(void) const;
-
-        virtual const std::map<std::string, int>& getSymbolMap() { return this->cnfvars; }
+        bool deref(int s) const;
+        bool deref(const std::string &s) const;
+        bool deref(const char *s) const;
+        int getVarCount(void) const { return varcount; }
+        int getClauseCount(void) const { return clausecount; }
+        const std::vector<int> &getClauses(void) const { return clauses; }
+        int newVar(void);
+        const std::string *getAssociatedSymbol(const std::string &var) const;
+        const std::map<std::string, int> &getSymbolMap() const { return cnfvars; }
         const std::deque<std::string> *getMetaValue(const std::string &key) const;
         void addMetaValue(const std::string &key, const std::string &value);
     };

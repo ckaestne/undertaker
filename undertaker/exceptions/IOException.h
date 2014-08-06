@@ -1,3 +1,4 @@
+// -*- mode: c++ -*-
 /*
  *   boolean framework for undertaker and satyr
  *
@@ -18,13 +19,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef KCONFIG_BOOL_EXP_PARSER_EXCEPTION_H
-#define KCONFIG_BOOL_EXP_PARSER_EXCEPTION_H
+#ifndef KCONFIG_IO_EXCEPTION_H
+#define KCONFIG_IO_EXCEPTION_H
 
 #include <stdexcept>
 
-struct BoolExpParserException : public std::runtime_error {
-    BoolExpParserException(const char *s) : runtime_error(s) {}
-    BoolExpParserException(std::string s) : runtime_error(s.c_str()) {}
-};
+namespace kconfig {
+    struct IOException : public std::runtime_error {
+        IOException(std::string s) : runtime_error(s) {}
+    };
+}
 #endif

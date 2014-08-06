@@ -18,6 +18,7 @@
  */
 
 #include "ModelContainer.h"
+#include "ConfigurationModel.h"
 #include "Logging.h"
 
 #include <check.h>
@@ -61,9 +62,8 @@ START_TEST(whitelistManagement) {
     fail_unless (always_on->size() == 36,
                  "Whitelist size: %d", always_on->size());
 
-    for (StringList::const_iterator it = always_on->begin();
-         it != always_on->end(); it++) {
-        if (0 == (*it).compare("CONFIG_SHINY_FEATURE"))
+    for (const auto & elem : *always_on) {
+        if (elem == "CONFIG_SHINY_FEATURE")
             needle = true;
     }
     fail_unless(needle);
@@ -84,9 +84,8 @@ START_TEST(blacklistManagement) {
     fail_unless (always_off->size() == 1,
                  "Blacklist size: %d", always_off->size());
 
-    for (StringList::const_iterator it = always_off->begin();
-         it !=  always_off->end(); it++) {
-        if (0 == (*it).compare("CONFIG_SHINY_FEATURE"))
+    for (const auto & elem : *always_off) {
+        if (elem == "CONFIG_SHINY_FEATURE")
             needle = true;
     }
     fail_unless(needle);

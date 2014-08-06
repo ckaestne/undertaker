@@ -19,31 +19,91 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "StringJoiner.h"
-#include "ConditionalBlock.h"
-#include "ModelContainer.h"
+#ifdef DEBUG
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+#endif
 
+#include "ConditionalBlock.h"
+#include "StringJoiner.h"
+#include "ModelContainer.h"
+#include "Logging.h"
+#include "Tools.h"
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
-typedef PumaConditionalBlockBuilder ConditionalBlockImplBuilder;
-#include <Puma/PreParser.h>
-
-#include "SatChecker.h"
-#include "BoolExpSymbolSet.h"
-
-#include "Logging.h"
+#include "cpp14.h"
 
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 #include <set>
 
-bool ConditionalBlock::useBlockWithFilename = false;
 
-CppFile::CppFile(const char *f) : checker(this) {
-    if (strncmp("./", f, 2))
+/************************************************************************/
+/* static functions                                                     */
+/************************************************************************/
+
+static int lineFromPosition(std::string line) {
+    // INPUT: foo:121:2
+    // OUTPUT: 121
+
+    size_t start = line.find_first_of(':');
+    assert (start != line.npos);
+    size_t stop = line.find_first_of(':', start);
+    assert (stop != line.npos);
+
+    std::stringstream ss(line.substr(start+1, stop));
+    int i;
+    ss >> i;
+    return i;
+}
+
+static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
+        ConditionalBlock *parent, ConditionalBlock *prev) {
+    ConditionalBlockImpl *superblock = dynamic_cast<ConditionalBlockImpl *>(i);
+    if (!superblock) {
+        logger << error << "failed to access the super-class of Conditionalblock" << std::endl;
+        exit(1);
+    }
+    PumaConditionalBlockBuilder &builder = superblock->getBuilder();
+
+    auto tok = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "#else");
+    auto ptok = new Puma::PreTreeToken(tok);
+
+    auto tok2 = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "");
+    auto ptok2 = new Puma::PreTreeToken(tok2);
+
+    auto node = new Puma::PreElseDirective(ptok, ptok2);
+    unsigned long *nodeNum = builder.getNodeNum();
+
+    auto newBlock = new ConditionalBlockImpl(i->getFile(), parent,
+            prev, node, (*nodeNum)++, builder);
+    newBlock->setDummyBlock();
+    return newBlock;
+}
+
+/************************************************************************/
+/* CppFile                                                              */
+/************************************************************************/
+
+// initialize static filename_regex at startup
+const boost::regex CppFile::filename_regex(R"(^.*/arch/([A-Za-z0-9]+)/.*$)");
+
+CppFile::CppFile(const std::string &f) : checker(this) {
+    if (!boost::filesystem::exists(f))
+        return;
+    if (f[0] != '.' && f[1] != '/')
         filename = f;
     else
-        filename = f+2; // skip leading './'
-    top_block = ConditionalBlockImpl::parse(f, this);
+        filename = f.substr(2); // skip leading "./"
+    _builder = make_unique<PumaConditionalBlockBuilder>(this, f);
+    top_block = _builder->topBlock();
+
+    boost::filesystem::path filepath(filename);
+    // check if the 'absolute path' to the given file matches the regex
+    boost::smatch what;
+    if (boost::regex_match(absolute(filepath).string(), what, filename_regex))
+        // check if a matching model has been loaded for the found arch in filename
+        if (nullptr != ModelContainer::lookupModel(what[1]))
+            specific_arch = what[1];
 }
 
 CppFile::~CppFile() {
@@ -63,30 +123,6 @@ bool CppFile::ItemChecker::operator()(const std::string &item) const {
     std::map<std::string, CppDefine*> *defines =  file->getDefines();
     return defines->find(item.substr(0, item.find('.'))) == defines->end();
 }
-
-static int lineFromPosition(std::string line) {
-    // INPUT: foo:121:2
-    // OUTPUT: 121
-
-    size_t start = line.find_first_of(':');
-    assert (start != line.npos);
-    size_t stop = line.find_first_of(':', start);
-    assert (stop != line.npos);
-
-    std::stringstream ss(line.substr(start+1, stop));
-    int i;
-    ss >> i;
-    return i;
-}
-
-
-std::set<std::string> ConditionalBlock::itemsOfString(const std::string &str) {
-    kconfig::BoolExp *e = kconfig::BoolExp::parseString(str);
-    kconfig::BoolExpSymbolSet symset(e);
-    delete e;
-    return symset.getSymbolSet();
-}
-
 
 ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
     int line = lineFromPosition(position);
@@ -109,30 +145,6 @@ ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
     return block;
 }
 
-static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
-        ConditionalBlock *parent, ConditionalBlock *prev) {
-    ConditionalBlockImpl *superblock = dynamic_cast<ConditionalBlockImpl *>(i);
-    if (!superblock) {
-        logger << error << "failed to access the super-class of Conditionalblock" << std::endl;
-        exit(1);
-    }
-    ConditionalBlockImplBuilder &builder = superblock->getBuilder();
-
-    Puma::Token *tok = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "#else");
-    Puma::PreTreeToken *ptok = new Puma::PreTreeToken(tok);
-
-    Puma::Token *tok2 = new Puma::Token(TOK_PRE_ELSE, Puma::Token::pre_id, "");
-    Puma::PreTreeToken *ptok2 = new Puma::PreTreeToken(tok2);
-
-    Puma::PreElseDirective *node = new Puma::PreElseDirective(ptok, ptok2);
-    unsigned long *nodeNum = builder.getNodeNum();
-
-    ConditionalBlockImpl *newBlock = new ConditionalBlockImpl(i->getFile(), parent,
-            prev, node, (*nodeNum)++, builder);
-    newBlock->setDummyBlock();
-    return newBlock;
-}
-
 void CppFile::decisionCoverage() {
 #if 0
     logger << debug << "======== before TRANSFORMATION ========" << std::endl;
@@ -148,7 +160,7 @@ void CppFile::decisionCoverage() {
 
 void CppFile::printCppFile() {
     logger << debug << "------ FILE ------" << std::endl;
-    for (auto &block : *this) {  // ConditionalBlock *
+    for (const auto &block : *this) {  // ConditionalBlock *
         if (block->ifdefExpression() == "") {
             if (block->getName().compare("B00"))
                 logger << debug << "ELSE " << block->isElseBlock() << " "
@@ -162,10 +174,16 @@ void CppFile::printCppFile() {
     logger << debug << "------ END FILE ------" << std::endl;
 }
 
+/************************************************************************/
+/* ConditionalBlock                                                     */
+/************************************************************************/
+
+bool ConditionalBlock::useBlockWithFilename = false;
+
 void ConditionalBlock::insertBlockIntoFile(ConditionalBlock *prevBlock, ConditionalBlock *nblock,
         bool insertAfter) {
     CppFile *file = this->getFile();
-    for (std::list<ConditionalBlock *>::iterator i = file->begin(); i != file->end(); ++i) {
+    for (auto i = file->begin(); i != file->end(); ++i) {
         if ((*i) == prevBlock) {
             if (insertAfter)
                 file->insert(++i, nblock);
@@ -177,9 +195,7 @@ void ConditionalBlock::insertBlockIntoFile(ConditionalBlock *prevBlock, Conditio
 }
 
 void ConditionalBlock::processForDecisionCoverage() {
-    for (std::list<ConditionalBlock *>::iterator i = this->begin(), prev = this->end();
-            i != this->end(); prev = i, ++i) {
-
+    for (auto i = this->begin(), prev = this->end(); i != this->end(); prev = i, ++i) {
         // insert else when:  1. we are in an if-block 2. the previous block was a if / elseif
         if (prev != this->end() && (*i)->isIfBlock() &&
                 ((*prev)->isIfBlock() || (*prev)->isElseIfBlock())) {
@@ -208,7 +224,7 @@ void ConditionalBlock::processForDecisionCoverage() {
 }
 
 void ConditionalBlock::printConditionalBlocks(int indent) {
-    for (auto &block : *this) {  // ConditionalBlock *
+    for (const auto &block : *this) {  // ConditionalBlock *
         if (block->ifdefExpression() == "") {
             logger << debug << std::string(indent, ' ') << "ELSE " << block->isElseBlock()
                    << " " << block->getName() << " " << block << " prev: "
@@ -274,16 +290,6 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
     return join ? and_clause->join(" && ") : "";
 }
 
-std::string ConditionalBlock::normalize_filename(const char * name) {
-    std::string normalized(name);
-
-    for (char &c : normalized)
-        if (c == '/' || c == '-' || c == '+' || c == ':')
-            c = '_';
-
-    return normalized;
-}
-
 std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                                                  std::set<ConditionalBlock *> *visited) {
     UniqueStringJoiner sj; // on our stack
@@ -291,7 +297,7 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
     bool join = false;
 
     fi << "FILE_";
-    fi << normalize_filename(this->filename());
+    fi << undertaker::normalize_filename(this->filename());
 
     if (!and_clause) {
         if (cached_code_expression)
@@ -348,8 +354,7 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
             }
         }
 
-        ModelContainer *mc = ModelContainer::getInstance();
-        if (mc && mc->size() > 0) {
+        if (ModelContainer::getInstance().size() > 0) {
             StringJoiner file_joiner;
 
             file_joiner.push_back("(");
@@ -367,6 +372,10 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
     // Do the join of the and clause only if we are the toplevel clause
     return join ? and_clause->join("\n&& ") : "";
 }
+
+/************************************************************************/
+/* CppDefine                                                            */
+/************************************************************************/
 
 CppDefine::CppDefine(ConditionalBlock *defined_in, bool define, const std::string &id)
         : actual_symbol(id), defined_symbol(id) {
@@ -404,18 +413,16 @@ void CppDefine::newDefine(ConditionalBlock *parent, bool define) {
 }
 
 void CppDefine::replaceDefinedSymbol(std::string &exp) {
-    if (!strstr(exp.c_str(), defined_symbol.c_str()))
+    if (exp.find(defined_symbol) == exp.npos)  // exp doesn't contain defined_symbol
         return;
 
     boost::match_results<std::string::iterator> what;
-    boost::match_flag_type flags = boost::match_default;
-
-    while (boost::regex_search(exp.begin(), exp.end(), what, replaceRegex, flags))
+    while (boost::regex_search(exp.begin(), exp.end(), what, replaceRegex))
         exp.replace(what[2].first, what[2].second, actual_symbol);
 }
 
 bool CppDefine::containsDefinedSymbol(const std::string &exp) {
-    if (!strstr(exp.c_str(), defined_symbol.c_str()))
+    if (exp.find(defined_symbol) == exp.npos)  // exp doesn't contain defined_symbol
         return false;
     return boost::regex_search(exp, replaceRegex);
 }
@@ -443,7 +450,7 @@ std::string CppDefine::getConstraints(UniqueStringJoiner *and_clause,
 
     for (auto &block : defined_in) {  // ConditionalBlock *
         // Not yet visited and not the toplevel block
-        if (visited->count(block) == 0 && block->getParent() != 0) {
+        if (visited->count(block) == 0 && block->getParent() != nullptr) {
             block->getCodeConstraints(and_clause, visited);
         }
     }

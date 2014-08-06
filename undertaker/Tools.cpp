@@ -1,9 +1,7 @@
 /*
- *   undertaker - analyze preprocessor blocks in code
+ *   undertaker - common helper functions
  *
- * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
- * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
- * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,18 +17,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ConfigurationModel.h"
-#include "StringJoiner.h"
+#include "Tools.h"
+#include "BoolExpSymbolSet.h"
 
+std::set<std::string> undertaker::itemsOfString(const std::string &str) {
+    kconfig::BoolExp *e = kconfig::BoolExp::parseString(str);
+    kconfig::BoolExpSymbolSet symset(e);
+    delete e;
+    return symset.getSymbolSet();
+}
 
-std::string ConfigurationModel::getMissingItemsConstraints(const std::set<std::string> &missing) {
-    StringJoiner sj;
+std::string undertaker::normalize_filename(std::string normalized) {
+    for (char &c : normalized)
+        if (c == '/' || c == '-' || c == '+' || c == ':')
+            c = '_';
 
-    for (const std::string &str : missing)
-        sj.push_back(str);
+    return normalized;
+}
 
-    std::stringstream ss;
-    if (sj.size() > 0)
-        ss << "( ! ( " <<  sj.join(" || ") << " ) )";
-    return ss.str();
-};

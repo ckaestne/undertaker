@@ -39,14 +39,14 @@ static Ziz::Defines defines;
 std::list<std::string> search_defs(Block const &b) {
     std::list<std::string> found;
 
-    for (Defines::iterator i = defines.begin(); i != defines.end(); i++) {
-        const std::string &s = (*i).first;
-        const std::list<Define*> &list = (*i).second;
+    for (auto & define : defines) {
+        const std::string &s = define.first;
+        const std::list<Define*> &list = define.second;
         if (list.empty())
             continue;
 
-        for (std::list<Define*>::const_iterator d = list.begin(); d != list.end(); d++) {
-            if (&b == (const Block *) (*d)->Parent())
+        for (const auto & elem : list) {
+            if (&b == (const Block *) elem->Parent())
                 found.push_back(s);
         }
     }
@@ -57,12 +57,10 @@ std::list<std::string> search_defs(Block const &b) {
 
 // + short output (--short mode)
 std::ostream & operator+(std::ostream &stream, File const * p_f) {
-    std::vector<Block*>::const_iterator it;
-
-    assert(p_f != NULL);
+    assert(p_f != nullptr);
     defines = p_f->_defines_map;
-    for (it = p_f->begin(); it != p_f->end(); ++it)
-        stream + **it;
+    for (const auto &block : *p_f)
+        stream + *block;
     return stream;
 }
 
@@ -93,8 +91,8 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b) {
     found = search_defs(b);
     if (!found.empty()) {
         stream << "[D=";
-        for (std::list<std::string>::iterator i = found.begin(); i!=found.end(); i++)
-            stream << (*i) << " ";
+        for (auto & elem : found)
+            stream << elem << " ";
         stream << "] ";
     }
 
@@ -103,7 +101,7 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b) {
     stream << "[F=" << footer << "] [P=";
 
     BlockContainer* p_parent = b.Parent();
-    assert(p_parent != NULL);
+    assert(p_parent != nullptr);
     if (p_parent->ContainerType() == OuterBlock) {
         stream << "<none>";
     } else if (p_parent->ContainerType() == InnerBlock) {
@@ -114,7 +112,7 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b) {
 
     stream << "] [PS=";
     ConditionalBlock* p_prevSibling = b.PrevSibling();
-    if (p_prevSibling == NULL) {
+    if (p_prevSibling == nullptr) {
         stream << "<none>";
     } else {
         stream << p_prevSibling->Id();
@@ -122,9 +120,8 @@ std::ostream & operator+(std::ostream &stream, ConditionalBlock const &b) {
 
     stream << "]\n";
 
-    std::vector<Block*>::const_iterator it;
-    for (it = b.begin(); it != b.end(); ++it)
-        stream + **it;
+    for (const auto &block : b)
+        stream + *block;
 
     stream << "END BLOCK " << b.Id() << "\n";
     return stream;
@@ -148,7 +145,6 @@ static int subtree_CONFIG_blocks(BlockContainer const &parent, Block const &b) {
         if (block_has_CONFIG(cb))
             return 1;
 
-        std::vector<Block*>::const_iterator it;
         bool skip = true;
 
         ConditionalBlock *ptr = (ConditionalBlock *) &b;
@@ -158,19 +154,19 @@ static int subtree_CONFIG_blocks(BlockContainer const &parent, Block const &b) {
                 || ptr->CondBlockType() == Ziz::Ifndef))
             ptr = ptr->PrevSibling();
 
-        for (it = parent.begin(); it != parent.end(); ++it) {
-            if (*it == ptr)
+        for (const auto &block : parent) {
+            if (block == ptr)
                 skip = false;
             if (skip == true)
                 continue;
 
-            if ((*it)->BlockType() != Conditional)
+            if (block->BlockType() != Conditional)
                 continue;
 
-            ConditionalBlock const &inner_block = dynamic_cast<ConditionalBlock const &>(**it);
+            ConditionalBlock const &inner_block = dynamic_cast<ConditionalBlock const &>(*block);
 
             // COPIED from undertaker/ConditionalBlock.cpp
-            if (*it != ptr) {
+            if (block != ptr) {
                 if (inner_block.CondBlockType() == Ziz::If
                     || inner_block.CondBlockType() == Ziz::Ifdef
                     || inner_block.CondBlockType() == Ziz::Ifndef)
@@ -181,12 +177,10 @@ static int subtree_CONFIG_blocks(BlockContainer const &parent, Block const &b) {
             if (block_has_CONFIG(inner_block))
                 return 1;
 
-            std::vector<Block*>::const_iterator iit;
-
-            for (iit = inner_block.begin(); iit != inner_block.end(); ++iit) {
-                if ((*iit)->BlockType() != Conditional)
+            for (const auto & elem : inner_block) {
+                if (elem->BlockType() != Conditional)
                     continue;
-                blocks += subtree_CONFIG_blocks(inner_block, **iit);
+                blocks += subtree_CONFIG_blocks(inner_block, *elem);
                 if (blocks > 0)
                     return blocks;
             }
@@ -206,15 +200,12 @@ std::vector<int> code_lines_stack;
 std::ostream & operator*(std::ostream &stream, File const * p_f) {
     code_lines_stack.push_back(0);
 
-    std::vector<Block*>::const_iterator it;
-
-    assert(p_f != NULL);
+    assert(p_f != nullptr);
     defines = p_f->_defines_map;
-    for (it = p_f->begin(); it != p_f->end(); ++it) {
-        if (remove_non_CONFIG_blocks
-            && subtree_CONFIG_blocks(*p_f, **it) == 0)
+    for (const auto &elem : *p_f) {
+        if (remove_non_CONFIG_blocks && subtree_CONFIG_blocks(*p_f, *elem) == 0)
             continue;
-        stream * **it;
+        stream * *elem;
     }
     stream << "B00 " << code_lines_stack.back() << std::endl;
     code_lines_stack.pop_back();
@@ -238,16 +229,12 @@ std::ostream & operator*(std::ostream &stream, Block const &b) {
 
 std::ostream & operator*(std::ostream &stream, ConditionalBlock const &b) {
     code_lines_stack.push_back(0);
-    std::list<std::string> found;
-
     stream << b.Header() << std::endl;
 
-    std::vector<Block*>::const_iterator it;
-    for (it = b.begin(); it != b.end(); ++it) {
-        if (remove_non_CONFIG_blocks
-            && subtree_CONFIG_blocks(b, **it) == 0)
+    for (const auto &block : b) {
+        if (remove_non_CONFIG_blocks && subtree_CONFIG_blocks(b, *block) == 0)
             continue;
-        stream * **it;
+        stream * *block;
     }
     stream << "B" << b.Id() << " " << code_lines_stack.back() << std::endl;
 
@@ -259,7 +246,6 @@ std::ostream & operator*(std::ostream &stream, ConditionalBlock const &b) {
 }
 
 std::ostream & operator*(std::ostream &stream, CodeBlock const &b) {
-    std::list<std::string> found;
     std::stringstream content (b.Content());
     std::string line;
 
@@ -284,10 +270,9 @@ std::ostream & operator*(std::ostream &stream, CodeBlock const &b) {
 
 // << normal output (default mode)
 std::ostream & operator<<(std::ostream &stream, File const * p_f) {
-    assert(p_f != NULL);
-    std::vector<Block*>::const_iterator it;
-    for (it = p_f->begin(); it != p_f->end(); ++it)
-        stream << **it;
+    assert(p_f != nullptr);
+    for (const auto & elem : *p_f)
+        stream << *elem;
     return stream;
 }
 
@@ -312,8 +297,8 @@ std::ostream & operator<<(std::ostream &stream, CodeBlock const &b) {
     found = search_defs(b);
     if (!found.empty()) {
         stream << "[#defines: ";
-        for (std::list<std::string>::iterator i = found.begin(); i!=found.end(); i++)
-            stream << (*i) << " ";
+        for (auto & elem : found)
+            stream << elem << " ";
         stream << "] ";
     }
     stream << "END CODE BLOCK " << b.Id() << "\n";
@@ -327,9 +312,8 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b) {
     //stream << "expression=" << b.Expression()  << "\n"; // FIXME
     stream << "footer="     << b.Footer()      << "\n";
 
-    std::vector<Block*>::const_iterator it;
-    for (it = b.begin(); it != b.end(); ++it)
-        stream << **it;
+    for (const auto & elem : b)
+        stream << *elem;
 
     stream << "END CONDITIONAL BLOCK " << b.Id() << "\n";
     return stream;
@@ -337,11 +321,10 @@ std::ostream & operator<<(std::ostream &stream, ConditionalBlock const &b) {
 
 // >> verbose output (--long mode)
 std::ostream & operator>>(std::ostream &stream, File const * p_f) {
-    assert(p_f != NULL);
+    assert(p_f != nullptr);
     std::cout << "File has " << p_f->size() << " outer blocks\n\n";
-    std::vector<Block*>::const_iterator it;
-    for (it = p_f->begin(); it != p_f->end(); ++it)
-        stream >> **it;
+    for (const auto & elem : *p_f)
+        stream >> *elem;
     return stream;
 }
 
@@ -405,9 +388,8 @@ std::ostream & operator>>(std::ostream &stream, ConditionalBlock const &b) {
     stream << indent << " footer:      " << footer                << "\n";
 
     stream << indent <<" inner blocks: " << b.size() << "\n";
-    std::vector<Block*>::const_iterator it;
-    for (it = b.begin(); it != b.end(); ++it)
-        stream >> **it;
+    for (const auto & elem : b)
+        stream >> *elem;
 
     stream << indent
            << "=[" << b.Id() << "]============   END  CONDITIONAL BLOCK  "

@@ -46,11 +46,11 @@
 namespace kconfig {
     class BoolExpLexer : public KconfigFlexLexer {
     public:
-        BoolExpLexer(std::istream* arg_yyin = 0, std::ostream* arg_yyout = 0);
+        BoolExpLexer(std::istream* arg_yyin = nullptr, std::ostream* arg_yyout = nullptr);
 
         virtual ~BoolExpLexer();
 
-        virtual BoolExpParser::token_type lex(
+        BoolExpParser::token_type lex(
                 BoolExpParser::semantic_type* yylval,
                 BoolExpParser::location_type* yylloc);
 

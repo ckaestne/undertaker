@@ -17,34 +17,25 @@
  */
 
 #include "ExpressionTranslator.h"
-#include "UnsupportedFeatureException.h"
+#include "exceptions/UnsupportedFeatureException.h"
+#include "bool.h"
 
-#include <sstream>
-#include <iostream>
-#include <stdio.h>
-
-#include <string.h>
 using namespace kconfig;
+
 
 TristateRepr ExpressionTranslator::visit_symbol(struct symbol *sym) {
     if (sym == &symbol_no) {
-        struct TristateRepr res = { B_CONST(false), B_CONST(false), false, S_TRISTATE };
-        return res;
+        return { B_CONST(false), B_CONST(false), false, S_TRISTATE };
     } else if (sym == &symbol_yes) {
-        struct TristateRepr res = { B_CONST(true), B_CONST(false), false, S_TRISTATE };
-        return res;
+        return { B_CONST(true), B_CONST(false), false, S_TRISTATE };
     } else if (sym == &symbol_mod) {
-        struct TristateRepr res = { B_CONST(false), B_CONST(true), false, S_TRISTATE };
-        return res;
+        return { B_CONST(false), B_CONST(true), false, S_TRISTATE };
     } else if (sym->type == S_STRING || sym->type == S_HEX || sym->type == S_INT) {
-        struct TristateRepr res = { B_CONST(false), B_CONST(false), true, sym->type };
-        return res;
+        return { B_CONST(false), B_CONST(false), true, sym->type };
     } else if (sym == modules_sym) {
-        struct TristateRepr res = { B_VAR(sym, rel_yes), B_CONST(false), true, S_BOOLEAN };
-        return res;
+        return { B_VAR(sym, rel_yes), B_CONST(false), true, S_BOOLEAN };
     } else if (this->symbolSet && this->symbolSet->find(sym) ==  this->symbolSet->end()) {
-        struct TristateRepr res = { B_CONST(false), B_CONST(false), false, S_BOOLEAN };
-        return res;
+        return { B_CONST(false), B_CONST(false), false, S_BOOLEAN };
     } else {
         struct TristateRepr res;
         res.yes = B_VAR(sym, rel_yes);
@@ -86,7 +77,7 @@ TristateRepr ExpressionTranslator::visit_equal(struct expr *e, TristateRepr left
           e->left.sym->type == S_TRISTATE || e->right.sym->type == S_TRISTATE )) {
         static int counter;
         std::stringstream n;
-        n << "__FREE__EQ"<< counter;
+        n << "__FREE__EQ" << counter;
         counter++;
         res.yes=B_VAR(n.str());
         res.mod=B_CONST (false);
@@ -123,12 +114,12 @@ TristateRepr ExpressionTranslator::visit_unequal(struct expr *e, TristateRepr le
 TristateRepr ExpressionTranslator::visit_list(struct expr *e) {
     struct TristateRepr res;
 
-    BoolExp *all = 0;
-    BoolExp *mod = 0;
-    for (struct expr * itnode = e; itnode != 0; itnode = itnode->left.expr) {
+    BoolExp *all = nullptr;
+    BoolExp *mod = nullptr;
+    for (struct expr * itnode = e; itnode != nullptr; itnode = itnode->left.expr) {
         struct symbol * yessym = itnode->right.sym;
-        BoolExp *xorExp = 0;
-        for (struct expr * itnode1 = e; itnode1 != 0; itnode1 = itnode1->left.expr) {
+        BoolExp *xorExp = nullptr;
+        for (struct expr * itnode1 = e; itnode1 != nullptr; itnode1 = itnode1->left.expr) {
             struct symbol * cursym = itnode1->right.sym;
             BoolExp *lit = (cursym == yessym) ? B_VAR(cursym, rel_yes) : &( ! *B_VAR(cursym, rel_yes));
             xorExp = xorExp ? &( *xorExp && *lit): lit;
@@ -141,14 +132,12 @@ TristateRepr ExpressionTranslator::visit_list(struct expr *e) {
     return res;
 }
 
-TristateRepr ExpressionTranslator::visit_range(struct expr *) {
-    struct TristateRepr res = { 0, 0, true, S_OTHER };
-    throw new UnsupportedFeatureException("cannot handle ranges yet");
-    return res;
+TristateRepr ExpressionTranslator::visit_range(struct expr *, TristateRepr, TristateRepr) {
+    throw UnsupportedFeatureException("cannot handle ranges yet");
+    return { nullptr, nullptr, true, S_OTHER };
 }
 
 TristateRepr ExpressionTranslator::visit_others(struct expr *)  {
-    struct TristateRepr res = { 0, 0, true, S_OTHER };
-    throw new InvalidNodeException("kconfig expression with unknown type");
-    return res;
+    throw InvalidNodeException("kconfig expression with unknown type");
+    return { nullptr, nullptr, true, S_OTHER };
 }

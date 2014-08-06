@@ -2,6 +2,7 @@
  *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,20 +17,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Logging.h"
 #include "SymbolTranslator.h"
+#include "Logging.h"
 #include "SymbolTools.h"
-
-#include "PicosatCNF.h"
-#include "KconfigAssumptionMap.h"
 #include "ExpressionTranslator.h"
+#include "PicosatCNF.h"
 
-#include <iostream>
-#include <stack>
-#include <iomanip>
-#include <string.h>
-#include <fstream>
 
+void kconfig::SymbolTranslator::pushSymbolInfo(struct symbol *sym) {
+    std::string name(sym->name);
+    this->cnfbuilder.cnf->setSymbolType(name, (kconfig_symbol_type)sym->type);
+    std::string config_symbol = "CONFIG_" + name;
+    this->cnfbuilder.addVar(config_symbol);
+    if (sym->type == S_TRISTATE)
+        this->cnfbuilder.addVar(config_symbol + "_MODULE");
+}
 
 void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {
     if (!sym)
@@ -70,7 +72,7 @@ void kconfig::SymbolTranslator::visit_bool_symbol(struct symbol *sym) {
     BoolExp &FRevYes = !*transRev.yes || f1yes;
     // rev.mod -> F1.yes
     BoolExp &FRevMod = !*transRev.mod || f1yes;
-    this->cnfbuilder.pushSymbolInfo(sym);
+    this->pushSymbolInfo(sym);
     this->addClause(FYes.simplify());
     this->addClause(FRevYes.simplify());
     this->addClause(FRevMod.simplify());
@@ -127,7 +129,7 @@ void kconfig::SymbolTranslator::visit_tristate_symbol(struct symbol *sym) {
     // mustn't become '11'
     BoolExp &guard = sym->type == S_BOOLEAN ? (!f1mod ) : (!(f1yes && f1mod));
 
-    this->cnfbuilder.pushSymbolInfo(sym);
+    this->pushSymbolInfo(sym);
     // this->addComment(sym->name ? sym->name : "Unnamed Menu Or Choice");
     this->addClause(FYes.simplify());
 
@@ -177,7 +179,7 @@ void kconfig::SymbolTranslator::visit_string_symbol(struct symbol *sym) {
 
     // (rev.yes || rev.mod || dep.yes ||dep.mod) -> f1
 //    BoolExp &F2 = !(*transDep.yes || *transDep.mod || *transRev.yes  || *transRev.mod) || f1yes;
-    this->cnfbuilder.pushSymbolInfo(sym);
+    this->pushSymbolInfo(sym);
 
     this->_featuresWithStringDep += (expTranslator.getValueComparisonCounter() > 0) ? 1 : 0;
     this->_totalStringComp += expTranslator.getValueComparisonCounter();

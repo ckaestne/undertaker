@@ -30,8 +30,8 @@
 #include <string>
 #include <iostream>
 
-
 typedef std::deque<std::string> StringList;
+
 
 /**
  * \brief Reads RSF files
@@ -71,7 +71,7 @@ protected:
 class ItemRsfReader : public RsfReader {
 public:
     ItemRsfReader(std::istream &f);
-    virtual size_t read_rsf(std::istream &rsf_file);
+    virtual size_t read_rsf(std::istream &rsf_file) final override;
 };
 
 #endif

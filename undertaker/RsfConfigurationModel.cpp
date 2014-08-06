@@ -19,9 +19,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ConditionalBlock.h"
+#ifdef DEBUG
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+#endif
+
 #include "RsfConfigurationModel.h"
-#include "KconfigWhitelist.h"
+#include "Tools.h"
 #include "StringJoiner.h"
 #include "RsfReader.h"
 #include "Logging.h"
@@ -29,27 +32,23 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
-#include <algorithm>
-#include <cassert>
-#include <cstdlib>
-#include <sstream>
 #include <fstream>
-#include <list>
 #include <stack>
 
-RsfConfigurationModel::RsfConfigurationModel(const char *filename) {
+
+RsfConfigurationModel::RsfConfigurationModel(const std::string &filename) {
     const StringList *configuration_space_regex;
     boost::filesystem::path filepath(filename);
+    _name = filepath.stem().string();
 
-    _name = boost::filesystem::basename(filepath);
     _model_stream = new std::ifstream(filename);
 
-    if (strcmp(filename, "/dev/null") != 0 && _model_stream->good()) {
+    if (filename != "/dev/null" && _model_stream->good()) {
         bool have_rsf = false;
 
         if (filepath.extension() == ".model") {
             filepath.replace_extension(".rsf");
-            _rsf_stream = new std::ifstream(filepath.string().c_str());
+            _rsf_stream = new std::ifstream(filepath.string());
             have_rsf = true;
         } else {
             _rsf_stream = new std::ifstream("/dev/null");
@@ -120,7 +119,7 @@ std::set<std::string> RsfConfigurationModel::findSetOfInterestingItems(const std
         const std::string *item = _model->getValue(workingStack.top());
         workingStack.pop();
         if (item != nullptr && item->compare("") != 0) {
-            for (const std::string &str : ConditionalBlock::itemsOfString(*item)) {
+            for (const std::string &str : undertaker::itemsOfString(*item)) {
                 /* Item already seen? continue */
                 if (result.count(str) == 0) {
                     workingStack.push(str);
@@ -136,7 +135,7 @@ int RsfConfigurationModel::doIntersect(const std::string exp,
                                     const ConfigurationModel::Checker *c,
                                     std::set<std::string> &missing,
                                     std::string &intersected) const {
-    const std::set<std::string> start_items = ConditionalBlock::itemsOfString(exp);
+    const std::set<std::string> start_items = undertaker::itemsOfString(exp);
     return doIntersect(start_items, c, missing, intersected);
 }
 
@@ -176,13 +175,13 @@ int RsfConfigurationModel::doIntersect(const std::set<std::string> start_items,
                 sj.push_back("(" + str + " -> (" + *item + "))");
             }
             if (always_on) {
-                StringList::const_iterator cit = std::find(always_on->begin(), always_on->end(), str);
-                if (cit != always_on->end())
+                const auto &cit = std::find(always_on->begin(), always_on->end(), str);
+                if (cit != always_on->end()) // str is found
                     sj.push_back(str);
             }
             if (always_off) {
-                StringList::const_iterator cit = std::find(always_off->begin(), always_off->end(), str);
-                if (cit != always_off->end())
+                const auto &cit = std::find(always_off->begin(), always_off->end(), str);
+                if (cit != always_off->end()) // str is found
                     sj.push_back("!" + str);
             }
         } else {
@@ -241,7 +240,7 @@ bool RsfConfigurationModel::isTristate(const std::string &item) const {
 
 std::string RsfConfigurationModel::getType(const std::string &feature_name) const {
     static const boost::regex item_regexp("^CONFIG_([0-9A-Za-z_]+)(_MODULE)?$");
-    boost::match_results<std::string::const_iterator> what;
+    boost::smatch what;
 
     if (boost::regex_match(feature_name, what, item_regexp)) {
         std::string item = what[1];

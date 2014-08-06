@@ -23,47 +23,27 @@
 #ifndef KCONFIG_CNFBUILDER_H
 #define KCONFIG_CNFBUILDER_H
 
-#ifdef USE_ZCONF
-#ifndef LKC_DIRECT_LINK
-#define LKC_DIRECT_LINK
-#endif
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "lkc.h"
-#pragma GCC diagnostic warning "-Wunused-parameter"
-#endif
-
 #include "bool.h"
 #include "BoolVisitor.h"
-#include "CNF.h"
-
-#include "KconfigWhitelist.h"
 
 #include <string>
 
+
 namespace kconfig {
+    class PicosatCNF;
+
     class CNFBuilder : public BoolVisitor {
     public:
-        enum ConstantPolicy {BOUND = 0, FREE};
-        CNF *cnf;
+        enum class ConstantPolicy {BOUND, FREE};
+        PicosatCNF *cnf;
     private:
-        int boolvar;
-        KconfigWhitelist *wl;
-        enum ConstantPolicy constPolicy;
+        int boolvar = 0;
+        ConstantPolicy constPolicy;
+        bool useKconfigWhitelist = false;
 
     public:
-        CNFBuilder(CNF *cnf, BoolExp *exp = nullptr,
-                bool useKconfigWhitelist=false, enum ConstantPolicy constPolicy=BOUND);
-        #ifdef USE_ZCONF
-        void pushSymbolInfo(struct symbol * sym) {
-            std::string name(sym->name);
-            cnf->setSymbolType(name, (kconfig_symbol_type) sym->type);
-            std::string config = "CONFIG_";
-            this->addVar(config + sym->name);
-            if (sym->type == S_TRISTATE) {
-                this->addVar(config + sym->name + "_MODULE");
-            }
-        }
-        #endif
+        CNFBuilder(PicosatCNF *cnf, std::string sat = "", bool useKconfigWhitelist=false,
+                ConstantPolicy constPolicy=ConstantPolicy::BOUND);
 
         //! Add clauses from the parsed boolean expression e
         /**
@@ -87,16 +67,16 @@ namespace kconfig {
         int addVar(std::string s);
 
     protected:
-        virtual void visit(BoolExp *e);
-        virtual void visit(BoolExpAnd *e);
-        virtual void visit(BoolExpOr *e);
-        virtual void visit(BoolExpNot *e);
-        virtual void visit(BoolExpConst *e);
-        virtual void visit(BoolExpVar *e);
-        virtual void visit(BoolExpImpl *e);
-        virtual void visit(BoolExpEq *e);
-        virtual void visit(BoolExpCall *e);
-        virtual void visit(BoolExpAny *e);
+        virtual void visit(BoolExp *e)      final override;
+        virtual void visit(BoolExpAnd *e)   final override;
+        virtual void visit(BoolExpOr *e)    final override;
+        virtual void visit(BoolExpNot *e)   final override;
+        virtual void visit(BoolExpConst *e) final override;
+        virtual void visit(BoolExpVar *e)   final override;
+        virtual void visit(BoolExpImpl *e)  final override;
+        virtual void visit(BoolExpEq *e)    final override;
+        virtual void visit(BoolExpCall *e)  final override;
+        virtual void visit(BoolExpAny *e)   final override;
     };
 }
 #endif

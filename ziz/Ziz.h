@@ -77,7 +77,7 @@ class Block {
     protected:
         // only allow in derived classes
         Block(int i, int d, position_type s, BlockContainer* pbc)
-            : _id(i), _depth(d), _start(s), _pParent(pbc) {}
+            : _id(i), _depth(d), _start(std::move(s)), _pParent(pbc) {}
     private:
         Block(Block&);                        // disable copy c'tor
 
@@ -115,7 +115,7 @@ class CodeBlock : public Block {
         CodeBlock(CodeBlock&);   // disable copy c'tor
 
     public:
-        virtual block_type BlockType()  const { return Code; }
+        virtual block_type BlockType()  const override { return Code; }
 
         std::string     Content() const { return _content.str(); }
 
@@ -132,7 +132,7 @@ class ConditionalBlock : public Block, public BlockContainer {
         ConditionalBlock(int i, int d, position_type s, token_type t,
                          BlockContainer* pbc)
             : Block(i, d, s, pbc),
-               _type(t), _evalExpr(NotYetEvaluated), _p_prevSib(NULL) {}
+               _type(t), _evalExpr(NotYetEvaluated), _p_prevSib(nullptr) {}
 
         virtual ~ConditionalBlock() {}
 
@@ -140,8 +140,8 @@ class ConditionalBlock : public Block, public BlockContainer {
         ConditionalBlock(ConditionalBlock&);   // disable copy c'tor
 
     public:
-        virtual block_type      BlockType()      const { return Conditional; }
-        virtual container_type  ContainerType()  const { return InnerBlock; }
+        virtual block_type      BlockType()      const override { return Conditional; }
+        virtual container_type  ContainerType()  const override { return InnerBlock; }
 
         condblock_type          CondBlockType()  const;
 
@@ -176,7 +176,7 @@ class ConditionalBlock : public Block, public BlockContainer {
      Define (int id, int depth, position_type start, BlockContainer* pbc,
              std::string flag, bool isDefine)
          : Block(id, depth, start, pbc),
-         _flag(flag), _define(isDefine) { };
+         _flag(std::move(flag)), _define(isDefine) { };
 
     private:
         Define(Define&);   // disable copy c'tor
@@ -185,7 +185,7 @@ class ConditionalBlock : public Block, public BlockContainer {
      std::string getFlag() const { return _flag; }
      bool isDefine() const { return _define; }
 
-     virtual block_type      BlockType()      const { return DefineBlock; }
+     virtual block_type      BlockType()      const override { return DefineBlock; }
 
      std::string     _flag;
      bool            _define; // 1 define, 0 undef
@@ -199,7 +199,7 @@ class File : public BlockContainer {
 
         File() : _blocks(0), _cond_blocks(0),_defines(0) {}
 
-        virtual container_type ContainerType() const { return OuterBlock; }
+        virtual container_type ContainerType() const override { return OuterBlock; }
 
         CodeBlock*        CreateCodeBlock       (int, position_type,
                                                  BlockContainer*);
@@ -228,7 +228,7 @@ class ZizException : public std::runtime_error {
 class Parser {
     public:
         Parser() :
-            _p_file(NULL), _p_curCodeBlock(NULL), _p_curBlockContainer(NULL) {}
+            _p_file(nullptr), _p_curCodeBlock(nullptr), _p_curBlockContainer(nullptr) {}
 
         File* Parse(const std::string file);
 

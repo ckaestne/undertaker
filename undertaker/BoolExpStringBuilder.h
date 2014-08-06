@@ -26,8 +26,6 @@
 #include "bool.h"
 #include "BoolVisitor.h"
 
-#include <map>
-
 namespace kconfig {
     class BoolExpStringBuilder : public BoolVisitor {
     public:
@@ -42,57 +40,52 @@ namespace kconfig {
         }
 
     protected:
-        virtual void visit(BoolExp *) {
+        virtual void visit(BoolExp *)       final override {
             this->result = new std::string("__something_went_horribly_wrong__");
         }
 
-        virtual void visit(BoolExpAnd *e) {
+        virtual void visit(BoolExpAnd *e)   final override {
             makestr(" && ", e);
         }
 
-        virtual void visit(BoolExpOr *e) {
+        virtual void visit(BoolExpOr *e)    final override {
             makestr(" || ", e);
         }
 
-        virtual void visit(BoolExpNot *e) {
-            makestr("!",e);
+        virtual void visit(BoolExpNot *e)   final override {
+            makestr("!", e);
         }
 
-        virtual void visit(BoolExpConst *e) {
+        virtual void visit(BoolExpConst *e) final override {
             const char *v = e->value ? "1" : "0";
             this->result = new std::string(v);
         }
 
-        virtual void visit(BoolExpVar *e) {
+        virtual void visit(BoolExpVar *e)   final override {
             this->result = new std::string(e->getName());
         }
 
-        virtual void visit(BoolExpImpl *e) {
+        virtual void visit(BoolExpImpl *e)  final override {
             makestr(" -> ", e);
         }
 
-        virtual void visit(BoolExpEq *e) {
+        virtual void visit(BoolExpEq *e)    final override {
             makestr(" <-> ", e);
         }
 
-        virtual void visit(BoolExpCall *e) {
+        virtual void visit(BoolExpCall *e)  final override {
             bool first = true;
-            std::string *res = new std::string("");
             std::string paramstring("");
-            for (auto &ptr : *e->param) {  // BoolExp *
+            for (const auto &ptr : *e->param) {  // BoolExp *
                 paramstring += first ? "" : ", ";
                 paramstring += ptr->str();
                 first = false;
             }
-            *res += e->getName() + " (" + paramstring + ")";
-            this->result=res;
+            this->result = new std::string{ e->getName() + " (" + paramstring + ")" };
         }
 
-        virtual void visit(BoolExpAny *e) {
-            std::string op(" ");
-            op += e->getName();
-            op += " ";
-            makestr(op.c_str(), e);
+        virtual void visit(BoolExpAny *e)   final override {
+            makestr({ " " + e->getName() + " " }, e);
         }
 
     private:
@@ -104,10 +97,10 @@ namespace kconfig {
             return (child->getEvaluationPriority() >= parent->getEvaluationPriority()) ? "" : ")";
         }
 
-        void makestr(const char *op, BoolExp *e) {
+        void makestr(const std::string &op, BoolExp *e) {
             std::string *l = static_cast<std::string *>(left);
             std::string *r = static_cast<std::string *>(right);
-            std::string *s = new std::string();
+            auto s = new std::string();
             if (l) {
                 *s += lbrace(e, e->left) + *l + rbrace(e, e->left);
             }

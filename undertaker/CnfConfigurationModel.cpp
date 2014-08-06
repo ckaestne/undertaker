@@ -18,29 +18,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ConditionalBlock.h"
+#ifdef DEBUG
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+#endif
+
 #include "CnfConfigurationModel.h"
-#include "KconfigWhitelist.h"
+#include "Tools.h"
 #include "StringJoiner.h"
-#include "RsfReader.h"
 #include "Logging.h"
+#include "PicosatCNF.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
-#include <algorithm>
-#include <cassert>
-#include <cstdlib>
-#include <sstream>
-#include <fstream>
-#include <list>
-#include <stack>
 
 
-CnfConfigurationModel::CnfConfigurationModel(const char *filename) {
+CnfConfigurationModel::CnfConfigurationModel(const std::string &filename) {
     const StringList *configuration_space_regex = nullptr;
     boost::filesystem::path filepath(filename);
-    _name = boost::filesystem::basename(filepath);
+    _name = filepath.stem().string();
 
     _cnf = new kconfig::PicosatCNF();
     _cnf->readFromFile(filename);
@@ -83,17 +79,20 @@ const StringList *CnfConfigurationModel::getBlacklist() const {
     return _cnf->getMetaValue(magic);
 }
 
+const StringList *CnfConfigurationModel::getMetaValue(const std::string &key) const {
+    return _cnf->getMetaValue(key);
+}
+
 std::set<std::string> CnfConfigurationModel::findSetOfInterestingItems(
-                                    const std::set<std::string> &initialItems) const {
-    std::set<std::string> result;
-    return result;
+                                    const std::set<std::string> &) const {
+    return {};
 }
 
 int CnfConfigurationModel::doIntersect(const std::string exp,
                                     const ConfigurationModel::Checker *c,
                                     std::set<std::string> &missing,
                                     std::string &intersected) const {
-    const std::set<std::string> start_items = ConditionalBlock::itemsOfString(exp);
+    const std::set<std::string> start_items = undertaker::itemsOfString(exp);
     return doIntersect(start_items, c, missing, intersected);
 }
 
@@ -108,22 +107,20 @@ int CnfConfigurationModel::doIntersect(const std::set<std::string> start_items,
 
     const std::string magic_on("ALWAYS_ON");
     const std::string magic_off("ALWAYS_OFF");
-    const StringList *always_on = this->getMetaValue(magic_on);
-    const StringList *always_off = this->getMetaValue(magic_off);
+    const StringList *always_on = _cnf->getMetaValue(magic_on);
+    const StringList *always_off = _cnf->getMetaValue(magic_off);
 
     for (const std::string &str : start_items) {
         if (containsSymbol(str)) {
             valid_items++;
             if (always_on) {
-                StringList::const_iterator cit = std::find(always_on->begin(),
-                        always_on->end(), str);
-                if (cit != always_on->end())
+                const auto &cit = std::find(always_on->begin(), always_on->end(), str);
+                if (cit != always_on->end()) // str is found
                     sj.push_back(str);
             }
             if (always_off) {
-                StringList::const_iterator cit = std::find(always_off->begin(),
-                        always_off->end(), str);
-                if (cit != always_off->end())
+                const auto &cit = std::find(always_off->begin(), always_off->end(), str);
+                if (cit != always_off->end()) // str is found
                     sj.push_back("!" + str);
             }
         } else {
@@ -171,15 +168,15 @@ bool CnfConfigurationModel::isTristate(const std::string &item) const {
 
 std::string CnfConfigurationModel::getType(const std::string &feature_name) const {
     static const boost::regex item_regexp("^(CONFIG_)?([0-9A-Za-z_]+)(_MODULE)?$");
-    boost::match_results<std::string::const_iterator> what;
+    boost::smatch what;
 
     if (boost::regex_match(feature_name, what, item_regexp)) {
         std::string item = what[2];
         int type = _cnf->getSymbolType(item);
-        static const char *types[] = { "MISSING", "BOOLEAN", "TRISTATE", "INTEGER", "HEX", "STRING", "other"} ;
-        return std::string(types[type]);
+        static const std::string types[] = { "MISSING", "BOOLEAN", "TRISTATE", "INTEGER", "HEX", "STRING", "other"} ;
+        return types[type];
     }
-    return std::string("#ERROR");
+    return "#ERROR";
 }
 
 bool CnfConfigurationModel::containsSymbol(const std::string &symbol) const {

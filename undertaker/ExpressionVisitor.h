@@ -20,15 +20,9 @@
 #ifndef KCONFIG_EXPRESSIONVISITOR_H
 #define KCONFIG_EXPRESSIONVISITOR_H
 
-#ifndef LKC_DIRECT_LINK
-#define LKC_DIRECT_LINK
-#endif
+#include "expr.h"
+#include "exceptions/InvalidNodeException.h"
 
-#include "bool.h"
-#include "InvalidNodeException.h"
-
-#include <string>
-#include <iostream>
 
 namespace kconfig {
     template <typename rt>
@@ -62,7 +56,7 @@ rt ExpressionVisitor<rt>::process(struct expr *e)  {
 
     switch (e->type) {
     case E_NONE:
-        throw new InvalidNodeException("kconfig expression with unknown type");
+        throw InvalidNodeException("kconfig expression with unknown type");
         break;
     case E_OR:
         left = process(e->left.expr);

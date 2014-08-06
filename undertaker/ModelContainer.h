@@ -20,7 +20,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 // -*- mode: c++ -*-
 #ifndef modelcontainer_h__
 #define modelcontainer_h__
@@ -28,7 +27,8 @@
 #include <string>
 #include <map>
 
-#include "ConfigurationModel.h"
+class ConfigurationModel;
+
 
 /**
  * \brief Container that maps ConfigurationModel classes to its architectures
@@ -39,21 +39,22 @@
  */
 class ModelContainer : public std::map<std::string, ConfigurationModel*> {
 public:
-    static ConfigurationModel *loadModels(std::string modeldir); ///< load models from the given directory
-    static ConfigurationModel *lookupModel(const char *arch);
-    static const char *lookupArch(const ConfigurationModel *model);
-    static ModelContainer *getInstance();
+    ///< load models from the given directory
+    static ConfigurationModel *loadModels(std::string modeldir);
+    static ConfigurationModel *lookupModel(const std::string &arch);
+    static const std::string lookupArch(const ConfigurationModel *model);
+    static ModelContainer &getInstance();
 
     static ConfigurationModel *lookupMainModel();
     static void setMainModel(std::string);
 
     /// returns the main model as string or nullptr, if not set
-    static const char *getMainModel();
-
-    ~ModelContainer();
+    static const std::string &getMainModel();
 
 private:
-    ModelContainer() {}
+    ModelContainer() = default;
+    ~ModelContainer();
+
     std::string main_model;
     ConfigurationModel *registerModelFile(std::string filename, std::string arch);
 };

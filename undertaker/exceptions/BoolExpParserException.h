@@ -1,4 +1,3 @@
-// -*- mode: c++ -*-
 /*
  *   boolean framework for undertaker and satyr
  *
@@ -19,15 +18,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef KCONFIG_INVALID_NODE_EXCEPTION_H
-#define KCONFIG_INVALID_NODE_EXCEPTION_H
+#ifndef KCONFIG_BOOL_EXP_PARSER_EXCEPTION_H
+#define KCONFIG_BOOL_EXP_PARSER_EXCEPTION_H
 
 #include <stdexcept>
 
-namespace kconfig {
-    struct InvalidNodeException : public std::logic_error {
-        InvalidNodeException(const char *s) : logic_error(s) {}
-        InvalidNodeException(std::string s) : logic_error(s.c_str()) {}
-    };
-}
+struct BoolExpParserException : public std::runtime_error {
+    BoolExpParserException(std::string s) : runtime_error(s) {}
+};
 #endif

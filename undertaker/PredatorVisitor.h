@@ -25,22 +25,23 @@
 
 class PredatorVisitor : public Puma::PreVisitor {
 
-    void iterateNodes (Puma::PreTree *);
-    unsigned long _nodeNum;
+    virtual void iterateNodes (Puma::PreTree *)                           final override;
+    unsigned long _nodeNum = 0;
     Puma::ErrorStream &_err;
 
 public:
-    PredatorVisitor(Puma::ErrorStream &err) : _nodeNum(0), _err(err) {};
+    PredatorVisitor(Puma::ErrorStream &err) : _err(err) {};
 
     std::string buildExpression (Puma::PreTree *);
-    void visitPreIfDirective_Pre (Puma::PreIfDirective *);
-    void visitPreIfdefDirective_Pre (Puma::PreIfdefDirective *);
-    void visitPreIfndefDirective_Pre (Puma::PreIfndefDirective *);
-    void visitPreElifDirective_Pre (Puma::PreElifDirective *);
-    void visitPreElseDirective_Pre (Puma::PreElseDirective *);
-    void visitPreDefineConstantDirective_Pre (Puma::PreDefineConstantDirective *);
-    void visitPreUndefDirective_Pre (Puma::PreUndefDirective *);
-    void visitPreEndifDirective_Pre (Puma::PreEndifDirective *);
+    virtual void visitPreIfDirective_Pre (Puma::PreIfDirective *)         final override;
+    virtual void visitPreIfdefDirective_Pre (Puma::PreIfdefDirective *)   final override;
+    virtual void visitPreIfndefDirective_Pre (Puma::PreIfndefDirective *) final override;
+    virtual void visitPreElifDirective_Pre (Puma::PreElifDirective *)     final override;
+    virtual void visitPreElseDirective_Pre (Puma::PreElseDirective *)     final override;
+    virtual void visitPreDefineConstantDirective_Pre (Puma::PreDefineConstantDirective *)
+                                                                          final override;
+    virtual void visitPreUndefDirective_Pre (Puma::PreUndefDirective *)   final override;
+    virtual void visitPreEndifDirective_Pre (Puma::PreEndifDirective *)   final override;
 };
 
 #endif

@@ -1,9 +1,7 @@
 /*
- *   undertaker - analyze preprocessor blocks in code
+ *   undertaker - temporary header for features which will be introduced in c++14
  *
- * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
- * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
- * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,18 +17,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ConfigurationModel.h"
-#include "StringJoiner.h"
 
+#ifndef _CPP14_H_
+#define _CPP14_H_
 
-std::string ConfigurationModel::getMissingItemsConstraints(const std::set<std::string> &missing) {
-    StringJoiner sj;
+#include <memory>
 
-    for (const std::string &str : missing)
-        sj.push_back(str);
+template <typename T, typename ...Args>
+std::unique_ptr<T> make_unique(Args && ...args) {
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
-    std::stringstream ss;
-    if (sj.size() > 0)
-        ss << "( ! ( " <<  sj.join(" || ") << " ) )";
-    return ss.str();
-};
+template <class T>
+auto cbegin(const T &t) -> decltype(t.cbegin()) {
+    return t.cbegin();
+}
+
+template <class T>
+auto cend(const T &t) -> decltype(t.cend()) {
+    return t.cend();
+}
+
+#endif

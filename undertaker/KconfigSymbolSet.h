@@ -20,14 +20,11 @@
 #ifndef KCONFIG_KCONFIGSYMBOLSET_H
 #define KCONFIG_KCONFIGSYMBOLSET_H
 
+#include "SymbolParser.h"
+#include "bool.h"
+
 #include <set>
 
-#ifndef USE_ZCONF
-#define USE_ZCONF
-#endif
-
-#include "bool.h"
-#include "SymbolParser.h"
 
 namespace kconfig {
     class KconfigSymbolSet : public SymbolParser, public std::set<struct symbol *> {
@@ -35,25 +32,25 @@ namespace kconfig {
         KconfigSymbolSet(void) {}
 
     protected:
-        void visit_bool_symbol(struct symbol *sym) {
+        virtual void visit_bool_symbol(struct symbol *sym)     final override {
             this->insert(sym);
         }
-        void visit_tristate_symbol(struct symbol *sym) {
+        virtual void visit_tristate_symbol(struct symbol *sym) final override {
             this->insert(sym);
         }
-        void visit_int_symbol(struct symbol *sym) {
+        virtual void visit_int_symbol(struct symbol *sym)      final override {
             this->insert(sym);
         }
-        void visit_hex_symbol(struct symbol *sym) {
+        virtual void visit_hex_symbol(struct symbol *sym)      final override {
             this->insert(sym);
         }
-        void visit_string_symbol(struct symbol *sym) {
+        virtual void visit_string_symbol(struct symbol *sym)   final override {
             this->insert(sym);
         }
-        void visit_symbol(struct symbol *) {
+        virtual void visit_symbol(struct symbol *)             final override {
             //do nothing
         }
-        void visit_choice_symbol(struct symbol *sym) {
+        virtual void visit_choice_symbol(struct symbol *sym)   final override {
             this->insert(sym);
         }
     };

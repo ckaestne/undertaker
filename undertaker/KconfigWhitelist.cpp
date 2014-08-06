@@ -22,44 +22,27 @@
 
 
 #include "KconfigWhitelist.h"
-#include "ModelContainer.h"
 
 #include <fstream>
-#include <boost/regex.hpp>
+#include <algorithm>
 
-bool KconfigWhitelist::isWhitelisted(const char *item) const {
-    for (const std::string &str : *this)
-        if(str.compare(item) == 0)
-            return true;
-    return false;
+bool KconfigWhitelist::isWhitelisted(const std::string &item) const {
+    return std::find(begin(), end(), item) != end();
 }
 
-void KconfigWhitelist::addToWhitelist(const std::string item) {
-    if(!isWhitelisted(item.c_str()))
-        push_back(item);
+KconfigWhitelist &KconfigWhitelist::getIgnorelist() {
+    static KconfigWhitelist instance;
+    return instance;
 }
 
-KconfigWhitelist *KconfigWhitelist::getIgnorelist() {
-    static std::unique_ptr<KconfigWhitelist> instance;
-    if (!instance) {
-        instance = std::unique_ptr<KconfigWhitelist>(new KconfigWhitelist());
-    }
-    return instance.get();
+KconfigWhitelist &KconfigWhitelist::getWhitelist() {
+    static KconfigWhitelist instance;
+    return instance;
 }
 
-KconfigWhitelist *KconfigWhitelist::getWhitelist() {
-    static std::unique_ptr<KconfigWhitelist> instance;
-    if (!instance) {
-        instance = std::unique_ptr<KconfigWhitelist>(new KconfigWhitelist());
-    }
-    return instance.get();
-}
-KconfigWhitelist *KconfigWhitelist::getBlacklist() {
-    static std::unique_ptr<KconfigWhitelist> instance;
-    if (!instance) {
-        instance = std::unique_ptr<KconfigWhitelist>(new KconfigWhitelist());
-    }
-    return instance.get();
+KconfigWhitelist &KconfigWhitelist::getBlacklist() {
+    static KconfigWhitelist instance;
+    return instance;
 }
 
 int KconfigWhitelist::loadWhitelist(const char *file) {
@@ -69,18 +52,14 @@ int KconfigWhitelist::loadWhitelist(const char *file) {
         return -1;
 
     std::string line;
-    const boost::regex r("^#.*", boost::regex::perl);
-
-    int n = 0;
+    int n = size();
 
     while (std::getline(whitelist, line)) {
-        boost::match_results<const char*> what;
-
-        if (boost::regex_search(line.c_str(), what, r))
+        if (line[0] == '#')
             continue;
 
-        n++;
-        this->addToWhitelist(line.c_str());
+        if (!isWhitelisted(line))
+            emplace_back(line);
     }
-    return n;
+    return size() - n;
 }

@@ -114,7 +114,7 @@ File* Parser::Parse(const std::string file) {
 }
 
 void Parser::HandleOpeningCondBlock(lexer_type& lexer) {
-    assert(_p_curBlockContainer != NULL);
+    assert(_p_curBlockContainer != nullptr);
 
     FinishSaveCurrentCodeBlock();
 
@@ -127,7 +127,7 @@ void Parser::HandleOpeningCondBlock(lexer_type& lexer) {
 }
 
 void Parser::HandleElseBlock(lexer_type& lexer) {
-    assert(_p_curBlockContainer != NULL);
+    assert(_p_curBlockContainer != nullptr);
 
     FinishSaveCurrentCodeBlock();
 
@@ -197,7 +197,7 @@ void Parser::HandleDefines(bool define, lexer_type& lexer) {
      *  _define (define)
      */
 
-    if (_p_curCodeBlock == NULL)
+    if (_p_curCodeBlock == nullptr)
         _p_curCodeBlock = _p_file->CreateCodeBlock(_condBlockStack.size(),
                                            _curPos, _p_curBlockContainer);
 
@@ -261,7 +261,7 @@ void Parser::HandleENDIF(lexer_type& lexer) {
 
 
 void Parser::HandleToken(lexer_type& lexer) {
-    assert(_p_curBlockContainer != NULL);
+    assert(_p_curBlockContainer != nullptr);
 
     /*
     boost::wave::token_id id = boost::wave::token_id(*lexer);
@@ -270,7 +270,7 @@ void Parser::HandleToken(lexer_type& lexer) {
         << lexer->get_value() << std::endl;
     */
 
-    if (_p_curCodeBlock == NULL)
+    if (_p_curCodeBlock == nullptr)
         _p_curCodeBlock = _p_file->CreateCodeBlock(_condBlockStack.size(),
                                            _curPos, _p_curBlockContainer);
     _p_curCodeBlock->AppendContent(lexer->get_value());
@@ -278,18 +278,18 @@ void Parser::HandleToken(lexer_type& lexer) {
 
 
 void Parser::FinishSaveCurrentCodeBlock() {
-    assert(_p_curBlockContainer != NULL);
+    assert(_p_curBlockContainer != nullptr);
 
-    if (_p_curCodeBlock == NULL)
+    if (_p_curCodeBlock == nullptr)
         return;
 
     _p_curCodeBlock->SetEnd(_prevPos);
     _p_curBlockContainer->push_back(_p_curCodeBlock);
-    _p_curCodeBlock = NULL;
+    _p_curCodeBlock = nullptr;
 }
 
 void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer) {
-    assert(_p_curBlockContainer != NULL);
+    assert(_p_curBlockContainer != nullptr);
 
     if (_condBlockStack.empty()) {
 #ifdef DEBUG
@@ -335,14 +335,14 @@ void Parser::FinishSaveCurrentConditionalBlock(lexer_type& lexer) {
 
 CodeBlock*
 File::CreateCodeBlock(int depth, position_type startPos, BlockContainer* pbc) {
-    assert(pbc != NULL);
+    assert(pbc != nullptr);
     return new CodeBlock(_blocks++, depth, startPos, pbc);
 }
 
 ConditionalBlock*
 File::CreateConditionalBlock(int depth, position_type startPos,
                              BlockContainer* pbc, lexer_type& lexer) {
-    assert(pbc != NULL);  // a parent block container is always needed
+    assert(pbc != nullptr);  // a parent block container is always needed
 
     lexer_type end = lexer_type();
     assert(lexer != end); // lexer has to point to first token (#if, #else, ...)

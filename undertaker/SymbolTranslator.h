@@ -20,45 +20,36 @@
 #ifndef KCONFIG_SYMBOLTRANSLATOR_H
 #define KCONFIG_SYMBOLTRANSLATOR_H
 
-#include <list>
-#include <set>
-
-#ifndef USE_ZCONF
-#define USE_ZCONF
-#endif
-
-#include "bool.h"
 #include "SymbolParser.h"
 #include "CNFBuilder.h"
 
+#include <set>
+
+
 namespace kconfig {
     class SymbolTranslator : public SymbolParser {
-    public:
-        SymbolTranslator (CNF *cnf) : symbolSet(0), cnfbuilder(cnf),
-            _featuresWithStringDep(0), _totalStringComp(0) { }
+        // statistic data
+        int _featuresWithStringDep = 0;
+        int _totalStringComp = 0;
+        CNFBuilder cnfbuilder;
 
-        std::set<struct symbol *> *symbolSet;
+        void addClause(BoolExp *clause);
+        void pushSymbolInfo(struct symbol *sym);
+    public:
+        SymbolTranslator(PicosatCNF *cnf) : cnfbuilder(cnf) {}
+
+        std::set<struct symbol *> *symbolSet = nullptr;
 
         int featuresWithStringDependencies() { return _featuresWithStringDep; }
         int totalStringComparisons() { return _totalStringComp; }
-
     protected:
-        CNFBuilder cnfbuilder;
-
-        virtual void visit_bool_symbol (struct symbol *sym);
-        virtual void visit_tristate_symbol (struct symbol *sym);
-        virtual void visit_int_symbol (struct symbol *sym);
-        virtual void visit_hex_symbol (struct symbol *sym);
-        virtual void visit_string_symbol (struct symbol *sym);
-        virtual void visit_symbol (struct symbol *sym);
-        virtual void visit_choice_symbol (struct symbol *sym);
-        virtual void addClause (BoolExp *clause);
-
-    private:
-        std::list<std::string> clauses;
-        // statistic data
-        int _featuresWithStringDep;
-        int _totalStringComp;
+        virtual void visit_bool_symbol (struct symbol *sym)     final override;
+        virtual void visit_tristate_symbol (struct symbol *sym) final override;
+        virtual void visit_int_symbol (struct symbol *sym)      final override;
+        virtual void visit_hex_symbol (struct symbol *sym)      final override;
+        virtual void visit_string_symbol (struct symbol *sym)   final override;
+        virtual void visit_symbol (struct symbol *sym)          final override;
+        virtual void visit_choice_symbol (struct symbol *sym)   final override;
     };
 }
 #endif

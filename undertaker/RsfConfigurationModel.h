@@ -20,21 +20,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 // -*- mode: c++ -*-
 #ifndef rsf_configuration_model_h__
 #define rsf_configuration_model_h__
 
+#include "ConfigurationModel.h"
+
 #include <string>
-#include <map>
-#include <deque>
 #include <set>
 #include <list>
 #include <boost/regex.hpp>
 
-#include "ConfigurationModel.h"
-
-std::list<std::string> itemsOfString(const std::string &str);
 
 class RsfConfigurationModel: public ConfigurationModel {
 public:
@@ -44,13 +40,13 @@ public:
      * \param filename filepath to the model file.
                        NB: The basename is taken as architecture name.
      */
-    RsfConfigurationModel(const char *filename);
+    RsfConfigurationModel(const std::string &filename);
 
     //! destructor
-    ~RsfConfigurationModel();
+    virtual ~RsfConfigurationModel();
 
     //! add feature to whitelist ('ALWAYS_ON')
-    void addFeatureToWhitelist(const std::string feature);
+    virtual void addFeatureToWhitelist(const std::string feature)        final override;
 
     //! gets the current feature whitelist ('ALWAYS_ON')
     /*!
@@ -58,7 +54,7 @@ public:
      *
      * The referenced object must not be freed, the model class manages it.
      */
-    const StringList *getWhitelist() const;
+    virtual const StringList *getWhitelist()                       const final override;
 
     //! add feature to blacklist ('ALWAYS_OFF')
     /*!
@@ -66,53 +62,55 @@ public:
      * referenced by getWhitelist(). Be sure to call getWhitelist()
      * again after using this method.
      */
-    void addFeatureToBlacklist(const std::string feature);
+    virtual void addFeatureToBlacklist(const std::string feature)        final override;
 
     //!< gets the current feature blacklist ('ALWAYS_OFF')
-    const StringList *getBlacklist() const;
+    virtual const StringList *getBlacklist()                       const final override;
 
 
-    int doIntersect(const std::string exp,
+    virtual int doIntersect(const std::string exp,
                     const ConfigurationModel::Checker *c,
                     std::set<std::string> &missing,
-                    std::string &intersected) const;
+                    std::string &intersected)                      const final override;
 
-    int doIntersect(const std::set<std::string> exp,
+    virtual int doIntersect(const std::set<std::string> exp,
                     const ConfigurationModel::Checker *c,
                     std::set<std::string> &missing,
-                    std::string &intersected) const;
+                    std::string &intersected)                      const final override;
 
-    std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &working) const;
-    std::string getName() const { return _name; }
+    virtual std::set<std::string> findSetOfInterestingItems(const std::set<std::string> &)
+                                                                   const final override;
+
+    //! returns the version identifier for the current model
+    virtual const std::string getModelVersionIdentifier()          const final override {
+        return "rsf";
+    }
 
     //! checks if a given item should be in the model space
-    bool inConfigurationSpace(const std::string &symbol) const;
+    virtual bool inConfigurationSpace(const std::string &symbol)   const final override;
 
     //! checks if we can assume that the configuration space is complete
-    bool isComplete() const;
+    virtual bool isComplete()                                      const final override;
 
     //@{
     //! checks the type of a given symbol.
     //! @return false if not found
-    bool isBoolean(const std::string&) const;
-    bool isTristate(const std::string&) const;
+    virtual bool isBoolean(const std::string&)                     const final override;
+    virtual bool isTristate(const std::string&)                    const final override;
     //@}
 
-    //! returns the version identifier for the current model
-    const char *getModelVersionIdentifier() const { return "rsf"; }
-
     //! returns the type of the given symbol
-    std::string getType(const std::string &feature_name) const;
+    virtual std::string getType(const std::string &feature_name)   const final override;
 
     RsfReader::iterator find(const RsfReader::key_type &x) const { return _model->find(x); }
     RsfReader::iterator begin() const { return _model->begin(); }
     RsfReader::iterator end()   const { return _model->end(); }
 
-    bool containsSymbol(const std::string &symbol) const {
+    virtual bool containsSymbol(const std::string &symbol)         const final override {
         return (this->find(symbol) != this->end());
     }
 
-    const StringList *getMetaValue(const std::string &key) const {
+    virtual const StringList *getMetaValue(const std::string &key) const final override {
         return _model->getMetaValue(key);
     }
 

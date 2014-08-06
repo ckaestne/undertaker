@@ -20,15 +20,19 @@
  */
 
 #include "bool.h"
-#include "BoolExpParserException.h"
+#include "exceptions/BoolExpParserException.h"
 #include "BoolExpGC.h"
 #include "BoolExpSimplifier.h"
 #include "BoolExpStringBuilder.h"
+#include "BoolExpLexer.h"
 
-#include <sstream>
 #include <typeinfo> // for typeid()
 
-/* accept Methods for BoolExp and subclasses. Needed by BoolExpVisitor */
+
+/************************************************************************/
+/* accept Methods for BoolExp and subclasses. Needed by BoolExpVisitor  */
+/************************************************************************/
+
 void kconfig::BoolExp::accept(kconfig::BoolVisitor *visitor) {
     void *l = nullptr, *r = nullptr;
     if (this->left) {
@@ -213,15 +217,14 @@ void kconfig::BoolExpVar::accept(kconfig::BoolVisitor *visitor) {
 }
 
 void kconfig::BoolExpCall::accept(kconfig::BoolVisitor *visitor) {
-    for (auto &bool_exp : *this->param)  // BoolExp *
+    for (const auto &bool_exp : *this->param)  // BoolExp *
         bool_exp->accept(visitor);
     visitor->visit(this);
 }
-/*
- * END: accept methods
- */
 
-/* Equal methods*/
+/************************************************************************/
+/* Equals methods                                                       */
+/************************************************************************/
 
 bool kconfig::BoolExp::equals(const BoolExp *other) const {
     if (other == nullptr || typeid(*other) != typeid(*this)) {
@@ -235,15 +238,14 @@ bool kconfig::BoolExp::equals(const BoolExp *other) const {
 bool kconfig::BoolExpCall::equals(const BoolExp *other) const {
     const BoolExpCall *otherc = dynamic_cast<const BoolExpCall *>(other);
     if (otherc == nullptr || this->name != otherc->name
-                       || this->param->size() != otherc->param->size()) {
+                          || this->param->size() != otherc->param->size()) {
         return false;
     }
-    std::list<BoolExp *>::const_iterator itt = param->begin();
-    std::list<BoolExp *>::const_iterator ito  = otherc->param->begin();
-    for ( ; itt !=param->end(); itt++, ito++) {
-        if (! (*itt)->equals(*ito)) {
+    auto ito  = otherc->param->begin(); // BoolExp *
+    for (const auto &entry : *param) {  // BoolExp *
+        if (!entry->equals(*ito))
             return false;
-        }
+        ++ito;
     }
     return true;
 }
@@ -265,7 +267,49 @@ bool kconfig::BoolExpAny::equals(const BoolExp *other) const {
          && (this->right == otherc->right || this->right->equals(otherc->right)) );
 }
 
-/* END: Equal methods*/
+/************************************************************************/
+/* BoolExp baseclass methods                                            */
+/************************************************************************/
+
+kconfig::BoolExp::~BoolExp() {
+    if (!gcMarked) {
+        BoolExpGC gc;
+        gc.trash(this);
+        gc.sweep(this);
+    }
+}
+
+kconfig::BoolExp *kconfig::BoolExp::parseString(std::string s) {
+    BoolExp *result;
+    std::stringstream ins(s);
+    BoolExpLexer lexer(&ins, nullptr);
+
+    BoolExpParser parser(&result, &lexer);
+    try {
+        if (parser.parse() == 0) {
+            return result;
+        }
+    } catch (BoolExpParserException *e) {
+        return nullptr;
+    }
+    return nullptr;
+}
+
+std::string kconfig::BoolExp::str(void) {
+    BoolExpStringBuilder sb;
+    this->accept(&sb);
+    return sb.str();
+}
+
+kconfig::BoolExp *kconfig::BoolExp::simplify() {
+    BoolExpSimplifier sim;
+    this->accept(&sim);
+    return sim.getResult();
+}
+
+/************************************************************************/
+/* Operators                                                            */
+/************************************************************************/
 
 std::ostream& kconfig::operator<<(std::ostream &s, kconfig::BoolExp &exp) {
     s << exp.str();
@@ -312,40 +356,4 @@ kconfig::BoolExp & kconfig::operator !(kconfig::BoolExp &l) {
         return *B_CONST(newval);
     }
     return *B_NOT(&l);
-}
-
-kconfig::BoolExp::~BoolExp() {
-    if (!gcMarked) {
-        BoolExpGC gc;
-        gc.trash(this);
-        gc.sweep(this);
-    }
-}
-
-kconfig::BoolExp *kconfig::BoolExp::parseString(std::string s) {
-    BoolExp *result;
-    std::stringstream ins(s);
-    BoolExpLexer lexer(&ins, nullptr);
-
-    BoolExpParser parser(&result, &lexer);
-    try {
-        if (parser.parse() == 0) {
-            return result;
-        }
-    } catch (BoolExpParserException *e) {
-        return nullptr;
-    }
-    return nullptr;
-}
-
-std::string kconfig::BoolExp::str(void) {
-    BoolExpStringBuilder sb;
-    this->accept(&sb);
-    return sb.str();
-}
-
-kconfig::BoolExp *kconfig::BoolExp::simplify() {
-    BoolExpSimplifier sim;
-    this->accept(&sim);
-    return sim.getResult();
 }

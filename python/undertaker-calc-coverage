@@ -476,24 +476,21 @@ def main():
     setup_logging(options.verbose)
 
     if len(args) == 0:
-        logging.critical("please specify a worklist")
-        sys.exit(1)
+        sys.exit("please specify a worklist")
 
     worklist = args[0]
     try:
         with open(worklist) as f:
             filenames = [x.strip() for x in f.readlines()]
     except IOError as error:
-        logging.critical("failed to open worklist: " + error.__str__())
-        sys.exit(1)
+        sys.exit("Failed to open worklist: '%s'" % error.__str__())
 
     if len(filenames) > 0:
         logging.debug("Worklist contains %d items", len(filenames))
         do_work(filenames, options)
         sys.exit(0)
     else:
-        logging.error("Worklist contains no work items!")
-        sys.exit(1)
+        sys.exit("Worklist contains no work items!")
 
 if __name__ == "__main__":
     main()

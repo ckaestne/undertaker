@@ -19,76 +19,57 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "StringJoiner.h"
 #include "CoverageAnalyzer.h"
+#include "StringJoiner.h"
+#include "ConditionalBlock.h"
+#include "ConfigurationModel.h"
+#include "exceptions/CNFBuilderError.h"
 #include "Logging.h"
 
-/* c'tor */
-CoverageAnalyzer::CoverageAnalyzer(const CppFile *file) : file(file) {};
 
-std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model,
-                                                 std::set<ConditionalBlock *> *blocks) {
-    const StringList *always_on = nullptr;
-    const StringList *always_off = nullptr;
+/************************************************************************/
+/* CoverageAnalyzer                                                     */
+/************************************************************************/
 
-    if (model) {
-        const std::string magic1("ALWAYS_ON");
-        const std::string magic2("ALWAYS_OFF");
-        always_on = model->getMetaValue(magic1);
-        if (always_on && !blocks) {
-            logger << info << always_on->size()
-                   << " Items have been forcefully set" << std::endl;
-        }
-
-        always_off = model->getMetaValue(magic2);
-        if (always_off && !blocks) {
-            logger << info << always_off->size()
-                   << " Items have been forcefully unset" << std::endl;
-        }
-    }
-
+std::string CoverageAnalyzer::baseFileExpression(const ConfigurationModel *model) {
     StringJoiner formula;
-    std::string code_formula;
-    if (!blocks)
-        code_formula = file->topBlock()->getCodeConstraints();
-    else {
-        UniqueStringJoiner expression;
-        for (auto &block : *blocks) {    // ConditionalBlock *
-            block->getCodeConstraints(&expression);
-            expression.push_back(block->getName());
-        }
-        code_formula = expression.join(" && ");
-    }
-
+    std::string code_formula = file->topBlock()->getCodeConstraints();
     formula.push_back(code_formula);
 
     if (model) {
         std::string kconfig_formula;
-        model->doIntersect(code_formula, file->getChecker(),
-                           missingSet, kconfig_formula);
+        model->doIntersect(code_formula, file->getChecker(), missingSet, kconfig_formula);
         formula.push_back(kconfig_formula);
-        /* only add missing items if we can assume the model is
-           complete */
-        if (model && model->isComplete()) {
+        // only add missing items if we can assume the model is complete
+        if (model->isComplete()) {
             for (const std::string &str : missingSet)
                 formula.push_back("!" + str);
         }
+        // add ALWAYS_ON items to the formula
+        const std::string magic1("ALWAYS_ON");
+        const StringList *always_on = model->getMetaValue(magic1);
+        if (always_on) {
+            logger << info << always_on->size() << " Items have been forcefully set" << std::endl;
+            for (const std::string &str : *always_on)
+                formula.push_back(str);
+        }
+        // add ALWAYS_OFF items to the formula
+        const std::string magic2("ALWAYS_OFF");
+        const StringList *always_off = model->getMetaValue(magic2);
+        if (always_off) {
+            logger << info << always_off->size() << " Items have been forcefully unset"
+                   << std::endl;
+            for (const std::string &str : *always_off)
+                formula.push_back("!" + str);
+        }
     }
-
-    if (always_on) {
-        for (const std::string &str : *always_on)
-            formula.push_back(str);
-    }
-    if (always_off) {
-        for (const std::string &str : *always_off)
-            formula.push_back("!" + str);
-    }
-
-
     logger << debug << "baseFileExpression: " << formula.join("\n&& ") << std::endl;
-
     return formula.join(" && ");
 }
+
+/************************************************************************/
+/* SimpleCoverageAnalyzer                                               */
+/************************************************************************/
 
 std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(ConfigurationModel *model) {
     std::set<std::string> blocks_set;
@@ -98,9 +79,9 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
     const std::string base_formula = baseFileExpression(model);
 
     try {
-        BaseExpressionSatChecker sc(base_formula.c_str());
+        BaseExpressionSatChecker sc(base_formula);
 
-        for (auto &block : *file) {      // ConditionalBlock *
+        for (const auto &block : *file) {      // ConditionalBlock *
             SatChecker::AssignmentMap current_solution;
 
             if (blocks_set.find(block->getName()) == blocks_set.end()) {
@@ -108,13 +89,11 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
                 bool new_solution = false;
 
                 // unsolvable, i.e. we have found some defect!
-                std::set<std::string> dummy;
-                dummy.insert(block->getName());
-                if (!sc(dummy))
+                if (!sc( { block->getName() } ))
                     continue;
 
                 static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
-                for (auto &assignment : sc.getAssignment()) { // pair<string, bool>
+                for (const auto &assignment : sc.getAssignment()) { // pair<string, bool>
                     const std::string &name = assignment.first;
                     const bool enabled = assignment.second;
 
@@ -145,13 +124,19 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
                 }
             }
         }
-    } catch (SatCheckerError &e) {
-        logger << error << "Couldn't process " << file->getFilename() << ": "
-               << e.what() << std::endl;
+    } catch (CNFBuilderError &e) {
+        logger << error << "Couldn't process " << file->getFilename()
+            << ": " << e.what() << std::endl;
+    } catch (std::bad_alloc &e) {
+        logger << error << "Couldn't process " << file->getFilename()
+            << ": Out of Memory." << std::endl;
     }
-
     return ret;
 }
+
+/************************************************************************/
+/* MinimizeCoverageAnalyzer                                             */
+/************************************************************************/
 
 std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(ConfigurationModel *model) {
     std::set<std::string> blocks_set;
@@ -166,13 +151,13 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
         // in the simple algorithm. For the all blocks not enabled
         // there we do the minimizer algorithm
         const std::string base_formula = baseFileExpression(model);
-        BaseExpressionSatChecker sc(base_formula.c_str());
+        BaseExpressionSatChecker sc(base_formula);
 
         if(sc(configuration)) { // Configuration is an empty list here
-            for (auto &assignment : sc.getAssignment()) {  // pair<string, bool>
+            static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+            for (const auto &assignment : sc.getAssignment()) {  // pair<string, bool>
                 if (assignment.second == false) continue; // Not enabled
                 const std::string &block_name = assignment.first;
-                static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
                 if (boost::regex_match(block_name, block_regexp)) {
                     configuration.insert(block_name);
                     blocks_set.insert(block_name);
@@ -183,7 +168,7 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
 
         // For the first round, configuration size will be non-zero at this point
         while (blocks_set.size() < file->size()) {
-            for(auto &block : *file) {  // ConditionalBlock *
+            for(const auto &block : *file) {  // ConditionalBlock *
                 std::string block_name = block->getName();
 
                 // Was already enabled in an other configuration
@@ -238,12 +223,12 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
             configuration.clear();
             assert(configuration.size() == 0);
         }
-    } catch (SatCheckerError &e) {
-        logger << error << "Couldn't process " << file->getFilename() << ": "
-               << e.what() << std::endl;
-    } catch (std::bad_alloc &e) {
-        logger << error << "Couldn't process " << file->getFilename() << ": "
-               << e.what() << std::endl;
+    } catch (CNFBuilderError &e) {
+        logger << error << "Couldn't process " << file->getFilename()
+            << ": " << e.what() << std::endl;
+    } catch (std::bad_alloc &) {
+        logger << error << "Couldn't process " << file->getFilename()
+            << ": Out of Memory." << std::endl;
     }
     return ret;
 }

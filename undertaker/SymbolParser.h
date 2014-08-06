@@ -3,6 +3,7 @@
  *   satyr - compiles KConfig files to boolean formulas
  *
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,15 +21,19 @@
 #ifndef KCONFIG_SYMBOLPARSER_H
 #define KCONFIG_SYMBOLPARSER_H
 
-#include "SymbolTools.h"
+#include <string>
+
+struct symbol;
+
 
 namespace kconfig {
     class SymbolParser {
     public:
-        int parse(const char *path);
+        int parse(const std::string &path);
         void traverse(void);
 
     protected:
+        virtual void visit_symbol(struct symbol *sym) = 0;
         virtual void visit_bool_symbol(struct symbol *sym) {
             visit_symbol(sym);
         };
@@ -47,7 +52,6 @@ namespace kconfig {
         virtual void visit_choice_symbol(struct symbol *sym) {
             visit_symbol(sym);
         };
-        virtual void visit_symbol(struct symbol *sym) = 0;
     };
 }
 #endif

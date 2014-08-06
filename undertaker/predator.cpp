@@ -17,19 +17,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "PredatorVisitor.h"
+
 #include <Puma/CParser.h>
 #include <Puma/CProject.h>
 #include <Puma/CTranslationUnit.h>
 #include <Puma/PreTree.h>
 #include <Puma/ManipCommander.h>
-#include <Puma/PreParser.h>
 
-#include "PredatorVisitor.h"
-
-#include <boost/thread.hpp>
-
-Puma::CProject *project;
-Puma::ErrorStream err;
 
 /// \brief cuts out all \#include statements
 Puma::Unit *cut_includes(Puma::Unit *unit) {
@@ -38,7 +33,7 @@ Puma::Unit *cut_includes(Puma::Unit *unit) {
 
 restart:
     for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
-        switch(s->type()) {
+        switch (s->type()) {
         case TOK_PRE_ASSERT:
         case TOK_PRE_ERROR:
         case TOK_PRE_INCLUDE:
@@ -56,25 +51,30 @@ restart:
     return unit;
 }
 
-void usage(const char *msg, bool fail=true) {
+void usage(const char *msg, bool fail = true) {
     std::cout << "predator <file>" << std::endl;
     std::cout << msg << std::endl;
     if (fail)
         exit(EXIT_FAILURE);
 }
 
-void normalize_file(const char *f) {
+void normalize_file(int argc, char **argv) {
+    const char *filename = argv[argc - 1];
+
     // See manual or Config.cc in the Puma sources for Puma command line arguments
+    Puma::ErrorStream err;
+    Puma::CProject project(err, argc, argv);
+
     Puma::CParser parser;
 
-    Puma::Unit *unit = project->scanFile(f);
+    Puma::Unit *unit = project.scanFile(filename);
     if (!unit) {
-        std::cout << "Failed to parse: " << f << std::endl;
+        std::cout << "Failed to parse: " << filename << std::endl;
         exit(EXIT_FAILURE);
     }
 
     unit = cut_includes(unit);
-    Puma::CTranslationUnit *file = parser.parse(*unit, *project, 2); // cpp tree only!
+    Puma::CTranslationUnit *file = parser.parse(*unit, project, 2);  // cpp tree only!
 
     Puma::PreTree *ptree = file->cpp_tree();
     assert(ptree);
@@ -85,21 +85,9 @@ void normalize_file(const char *f) {
 }
 
 int main(int argc, char **argv) {
-    const char *filename = argv[argc-1];
-
-    project = new Puma::CProject(err, argc, argv);
-    if (argc <2)
+    if (argc < 2)
         usage("Need at least two arguments");
 
-    boost::thread t(normalize_file, filename);
-
-    if (!t.timed_join(boost::posix_time::seconds(300))) {
-        std::cerr << "E: timeout passed while processing " << filename
-                  << std::endl;
-        delete project;
-        return 1;
-    }
-
-    delete project;
+    normalize_file(argc, argv);
     return 0;
 }

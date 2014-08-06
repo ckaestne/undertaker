@@ -1,9 +1,7 @@
 /*
- *   undertaker - analyze preprocessor blocks in code
+ *   undertaker - temporary header for features which will be introduced in c++14
  *
- * Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
- * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
- * Copyright (C) 2013-2014 Stefan Hengelein <stefan.hengelein@fau.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,18 +17,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ConfigurationModel.h"
-#include "StringJoiner.h"
+
+#ifndef _UNDERTAKER_TOOLS_H_
+#define _UNDERTAKER_TOOLS_H_
+
+#include <string>
+#include <set>
 
 
-std::string ConfigurationModel::getMissingItemsConstraints(const std::set<std::string> &missing) {
-    StringJoiner sj;
+namespace undertaker {
 
-    for (const std::string &str : missing)
-        sj.push_back(str);
+    //! returns all (configuration) items of the given string
+    std::set<std::string> itemsOfString(const std::string &);
 
-    std::stringstream ss;
-    if (sj.size() > 0)
-        ss << "( ! ( " <<  sj.join(" || ") << " ) )";
-    return ss.str();
-};
+    //!< replaces invalid characters with '_'
+    std::string normalize_filename(std::string);
+
+}
+
+#endif

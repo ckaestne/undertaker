@@ -19,8 +19,9 @@
 #include "SymbolParser.h"
 #include "SymbolTools.h"
 
-int kconfig::SymbolParser::parse(const char *path) {
-    conf_parse(path);
+
+int kconfig::SymbolParser::parse(const std::string &path) {
+    conf_parse(path.c_str());
     return 0;
 }
 

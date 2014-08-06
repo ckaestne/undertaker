@@ -5,6 +5,7 @@
  * Copyright (C) 2009-2011 Julio Sincero <Julio.Sincero@informatik.uni-erlangen.de>
  * Copyright (C) 2010-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
  * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,39 +21,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <assert.h>
-#include <typeinfo>
-
-#include <string>
-
-#include <set>
-
 #include "SatChecker.h"
 
+#include <assert.h>
+#include <typeinfo>
+#include <string>
+#include <sstream>
+#include <set>
 #include <check.h>
 
-int cnf_test(std::string s, bool result, std::runtime_error *error = 0) {
+
+int cnf_test(std::string s, bool result, std::runtime_error *error = nullptr) {
     SatChecker checker(s);
 
-    if (error == 0)  {
-        fail_unless(checker() == result,
-                    "%s should evaluate to %d",
+    if (error == nullptr)  {
+        fail_unless(checker() == result, "%s should evaluate to %d",
                     s.c_str(), (int) result);
-        return checker.countClauses();
+        return 0;
     } else {
         try {
-            fail_unless(checker() == result,
-                        "%s should evaluate to %d",
+            fail_unless(checker() == result, "%s should evaluate to %d",
                         s.c_str(), (int) result);
-            return checker.countClauses();
+            return 0;
         } catch (std::runtime_error &e) {
             fail_unless(typeid(*error) == typeid(e),
                         "%s didn't throw the right exception should be %s, but is %s.",
                         typeid(*error).name(), typeid(e).name());
-            return checker.countClauses();
+            return 0;
         }
     }
-    return checker.countClauses();
+    return 0;
 }
 
 START_TEST(format_config_items_simple) {

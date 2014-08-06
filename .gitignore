@@ -21,4 +21,5 @@ build
 /picosat/picomus
 *.swp
 *.swo
+*.mus
 tags

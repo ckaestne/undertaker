@@ -2,7 +2,7 @@
 /*
  *   boolean framework for undertaker and satyr
  *
- * Copyright (C) 2012 Ralf Hackner <rh@ralf-hackner.de>
+ * Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,15 +19,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef KCONFIG_IO_EXCEPTION_H
-#define KCONFIG_IO_EXCEPTION_H
+#ifndef CNFBUILDER_ERROR_H
+#define CNFBUILDER_ERROR_H
 
 #include <stdexcept>
 
-namespace kconfig {
-    struct IOException : public std::runtime_error {
-        IOException(const char *s) : runtime_error(s) {}
-        IOException(std::string s) : runtime_error(s.c_str()) {}
-    };
-}
+
+struct CNFBuilderError : public std::runtime_error {
+    CNFBuilderError(std::string s) : runtime_error(s) {}
+};
 #endif

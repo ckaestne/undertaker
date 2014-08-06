@@ -17,12 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-#include <cstdlib>
-#include <sstream>
-
 #ifndef _LOGGING_H_
 #define _LOGGING_H_
+
+#include <iostream>
+#include <sstream>
+
 
 class Logging {
 public:

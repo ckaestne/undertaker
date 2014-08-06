@@ -237,6 +237,11 @@ function do_rsf2model_conversion() {
         echo $ALL_NOT_CONFIG_ARCH | sed 's/ / \&\& /g; s/$/"/; s/^/'"CONFIG_$UPCASE_ARCH "'"/;' \
             >> "$MODELS/$ARCH.model"
     fi
+
+    # append CONFIG_n / CONFIG_y / CONFIG_m to models
+    echo "CONFIG_n" >> "$MODELS/$ARCH.model"
+    echo "CONFIG_y" >> "$MODELS/$ARCH.model"
+    echo "CONFIG_m" >> "$MODELS/$ARCH.model"
 }
 
 # Parameters {Project/Arch} {Subarch}
@@ -281,6 +286,11 @@ function do_rsf_or_satyr_call() {
 
         # kill warnings and errors from golem and rsf2model
         sed -i "/^[EWI]: /d" "$MODELS/$1.model"
+
+        # append CONFIG_n / CONFIG_y / CONFIG_m to models
+        echo "CONFIG_n" >> "$MODELS/$1.model"
+        echo "CONFIG_y" >> "$MODELS/$1.model"
+        echo "CONFIG_m" >> "$MODELS/$1.model"
     fi
 
     if [ "$MODE" = "cnf" ]; then
