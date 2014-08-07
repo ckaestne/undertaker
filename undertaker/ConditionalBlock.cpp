@@ -27,7 +27,6 @@
 #include "StringJoiner.h"
 #include "ModelContainer.h"
 #include "Logging.h"
-#include "Tools.h"
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
 #include "cpp14.h"
@@ -142,6 +141,16 @@ ConditionalBlock *CppFile::getBlockAtPosition(const std::string &position) {
         }
     }
     return block;
+}
+
+const std::string &CppFile::getFileVar() {
+    if (fileVar != "")
+        return fileVar;
+    fileVar = "FILE_" + filename;
+    for (char &c : fileVar)
+        if (c == '/' || c == '-' || c == '+' || c == ':' || c == ',')
+            c = '_';
+    return fileVar;
 }
 
 void CppFile::decisionCoverage() {
@@ -292,11 +301,7 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
 std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                                                  std::set<ConditionalBlock *> *visited) {
     UniqueStringJoiner sj; // on our stack
-    std::stringstream fi; // file identifier
     bool join = false;
-
-    fi << "FILE_";
-    fi << undertaker::normalize_filename(this->filename());
 
     if (!and_clause) {
         if (cached_code_expression)
@@ -359,7 +364,8 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
             file_joiner.push_back("(");
             file_joiner.push_back("B00");
             file_joiner.push_back("<->");
-            file_joiner.push_back(fi.str());
+            // push the file inference symbol
+            file_joiner.push_back(fileVar());
             file_joiner.push_back(")");
             and_clause->push_back(file_joiner.join(" "));
         }

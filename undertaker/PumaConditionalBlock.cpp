@@ -25,7 +25,6 @@
 #include "PumaConditionalBlock.h"
 #include "Logging.h"
 #include "cpp14.h"
-#include "Tools.h"
 
 #include <Puma/CTranslationUnit.h>
 #include <Puma/CUnit.h>
@@ -128,11 +127,12 @@ const std::string PumaConditionalBlock::getName() const {
     if (!_parent) {
         return "B00"; // top level block, represents file
     } else {
-        std::stringstream ss;
-        ss << "B" <<  _number;
+        std::string s("B");
+        s += std::to_string(_number);
         if (useBlockWithFilename)
-            ss << "_" << undertaker::normalize_filename(this->filename());
-        return ss.str();
+            // get the normalized file variable without "FILE" prefix and append to the block name
+            s += &fileVar()[4];
+        return s;
     }
 }
 

@@ -26,12 +26,3 @@ std::set<std::string> undertaker::itemsOfString(const std::string &str) {
     delete e;
     return symset.getSymbolSet();
 }
-
-std::string undertaker::normalize_filename(std::string normalized) {
-    for (char &c : normalized)
-        if (c == '/' || c == '-' || c == '+' || c == ':' || c == ',')
-            c = '_';
-
-    return normalized;
-}
-

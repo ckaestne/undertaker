@@ -66,6 +66,9 @@ class CppFile : public CondBlockList {
     //! \return filename given in the constructor
     const std::string &getFilename() const { return filename; };
 
+    //! \return file variable to identify the correct file inferences
+    const std::string &getFileVar();
+
     /**
      * \param postition format: "filename:line:pos"
      * \return innermost block at specific position
@@ -91,6 +94,7 @@ class CppFile : public CondBlockList {
 
  private:
     std::string filename;
+    std::string fileVar;  // the inference Variable for this file
     std::string specific_arch;
     ConditionalBlock *top_block = nullptr;
     std::map<std::string, CppDefine *> define_map;
@@ -111,7 +115,6 @@ public:
     //! defect type used in block defect analysis
     BlockDefect::DEFECTTYPE defectType;
     //! location related accessors
-    virtual const std::string &filename()  const = 0;
     virtual unsigned int lineStart()       const = 0;
     virtual unsigned int colStart()        const = 0;
     virtual unsigned int lineEnd()         const = 0;
@@ -150,6 +153,10 @@ public:
 
     virtual ~ConditionalBlock() { delete cached_code_expression; };
 
+    //! \return name of the file containing this block
+    const std::string &filename() const { return cpp_file->getFilename(); };
+    //! \return name of the file variable from inferences
+    const std::string &fileVar() const { return cpp_file->getFileVar(); };
     //! \return enclosing block or 0 if == cpp_file->topBlock()
     const ConditionalBlock * getParent() const { return _parent; }
     //! \return previous block on current level or 0 if first block on level
@@ -158,7 +165,7 @@ public:
     const ConditionalBlock * getPrev() const { return _prev; }
 
     //! \return associated file
-    CppFile * getFile() const { return cpp_file; }
+    CppFile *getFile() const { return cpp_file; }
 
     //! \return rewritten (define) macro expression
     std::string ifdefExpression() const { return _exp; };
@@ -182,7 +189,7 @@ public:
     void printConditionalBlocks(int indent);
 
 protected:
-    CppFile * cpp_file;
+    CppFile *cpp_file;
     const ConditionalBlock *_parent, *_prev;
     std::list<CppDefine *> _defines;
     //!< if set blocknames of getName() are extended with a normalized filename

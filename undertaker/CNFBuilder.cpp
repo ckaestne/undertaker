@@ -21,7 +21,6 @@
 
 #include "CNFBuilder.h"
 #include "PicosatCNF.h"
-#include "Tools.h"
 #include "KconfigWhitelist.h"
 #include "exceptions/CNFBuilderError.h"
 
@@ -66,7 +65,6 @@ void CNFBuilder::pushClause(BoolExp *e) {
 }
 
 int CNFBuilder::addVar(std::string symname) {
-    symname = undertaker::normalize_filename(symname);
     int cv = cnf->getCNFVar(symname);
 
     if (cv == 0) {

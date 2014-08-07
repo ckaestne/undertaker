@@ -22,9 +22,9 @@
 
 #include "RsfReader.h"
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 
 
 RsfReader::RsfReader(std::istream &f, std::string metaflag) : metaflag(std::move(metaflag)) {
@@ -75,8 +75,7 @@ size_t RsfReader::read_rsf(std::istream &rsf_file) {
 
         std::string key = columns.front();
         columns.pop_front();
-        // Check if the current line is an metainformation line
-        // if so, put it there
+        // Check if the current line is a metainformation line if so, put it there
         // UNDERTAKER_SET ALWAYS_ON fooooo
         // self.meta_information("ALWAYS_ON") == ["foooo"]
         if (metaflag.size() > 0 && key == metaflag) {
@@ -86,11 +85,6 @@ size_t RsfReader::read_rsf(std::istream &rsf_file) {
             columns.pop_front();
             meta_information.emplace(key, columns);
         } else {
-            if (boost::starts_with(key, "FILE_")) {
-                for (char &elem : key)
-                    if (elem == '/' || elem == '-')
-                        elem = '_';
-            }
             this->emplace(key, columns);
         }
     }

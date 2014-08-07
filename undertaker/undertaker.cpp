@@ -160,11 +160,7 @@ bool process_blockconf_helper(StringJoiner &sj, std::map<std::string, bool> &fil
     else
         main_model = ModelContainer::lookupMainModel();
 
-    int offset = strncmp("./", file.c_str(), 2) ? 0 : 2;
-    std::stringstream fileCondition;
-    fileCondition << "FILE_";
-    fileCondition << undertaker::normalize_filename(file.substr(offset));
-    std::string fileVar(fileCondition.str());
+    const std::string &fileVar = cpp.getFileVar();
 
     // if file precondition has already been tested...
     if (filesolvable.find(fileVar) != filesolvable.end()) {
@@ -177,16 +173,18 @@ bool process_blockconf_helper(StringJoiner &sj, std::map<std::string, bool> &fil
     } else {
         // ...otherwise test it and remember the result
         if (main_model) {
+            std::string fileCondition = fileVar;
             std::set<std::string> missing;
             std::string intersected;
 
-            main_model->doIntersect("(" + fileCondition.str() + ")", nullptr, missing,
+            main_model->doIntersect("(" + fileCondition + ")", nullptr, missing,
                                     intersected);
             if (!intersected.empty()) {
-                fileCondition << " && " << intersected;
+                fileCondition += " && ";
+                fileCondition += intersected;
             }
 
-            SatChecker fileChecker(fileCondition.str());
+            SatChecker fileChecker(fileCondition);
             if (!fileChecker()) {
                 filesolvable[fileVar] = false;
                 logger << warn << "File condition for location " << locationname
