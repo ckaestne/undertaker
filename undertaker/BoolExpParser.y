@@ -37,8 +37,8 @@
 
 %skeleton "lalr1.cc"
 
-%name-prefix="kconfig"
-%define "parser_class_name" "BoolExpParser"
+%name-prefix "kconfig"
+%define parser_class_name {BoolExpParser}
 
 %locations
 
