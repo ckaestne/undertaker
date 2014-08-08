@@ -44,20 +44,19 @@ typedef PumaConditionalBlock ConditionalBlockImpl;
 static int lineFromPosition(std::string line) {
     // INPUT: foo:121:2
     // OUTPUT: 121
-
     size_t start = line.find_first_of(':');
     assert (start != line.npos);
     size_t stop = line.find_first_of(':', start);
     assert (stop != line.npos);
-
-    std::stringstream ss(line.substr(start+1, stop));
-    int i;
-    ss >> i;
-    return i;
+    try {
+        return std::stoi(line.substr(start+1, stop));
+    } catch (std::invalid_argument &) {
+        return 0;
+    }
 }
 
-static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
-        ConditionalBlock *parent, ConditionalBlock *prev) {
+static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i, ConditionalBlock *parent,
+                                                  ConditionalBlock *prev) {
     ConditionalBlockImpl *superblock = dynamic_cast<ConditionalBlockImpl *>(i);
     if (!superblock) {
         logger << error << "failed to access the super-class of Conditionalblock" << std::endl;
@@ -124,7 +123,7 @@ bool CppFile::ItemChecker::operator()(const std::string &item) const {
     return defines->find(item.substr(0, item.find('.'))) == defines->end();
 }
 
-ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
+ConditionalBlock *CppFile::getBlockAtPosition(const std::string &position) {
     int line = lineFromPosition(position);
     ConditionalBlock *block = nullptr;
     int block_length = -1;

@@ -243,7 +243,7 @@ void process_mergeblockconf(const std::string &filename) {
 
     std::string line;
     StringJoiner sj;
-    std::map<std::string, bool> filesolvable;  // TODO why do we need this?
+    std::map<std::string, bool> filesolvable;
     while (std::getline(workfile, line))
         process_blockconf_helper(sj, filesolvable, line);
 
@@ -258,10 +258,7 @@ void process_mergeblockconf(const std::string &filename) {
     // We want minimal configs, so we try to get many 'n's from the sat checker
     if (sc(Picosat::SAT_MIN)) {
         logger << info << "Solution found, result:" << std::endl;
-        SatChecker::AssignmentMap current_solution = sc.getAssignment();
-        stringstream configstream;
-        current_solution.formatKconfig(configstream, {});
-        std::cout << configstream.str();
+        sc.getAssignment().formatKconfig(std::cout, {});
     } else {
         logger << error << "Wasn't able to generate a valid configuration" << std::endl;
     }
@@ -269,17 +266,13 @@ void process_mergeblockconf(const std::string &filename) {
 
 void process_blockconf(const std::string &locationname) {
     StringJoiner sj;
-    std::map<std::string, bool> filesolvable;  // TODO why do we need this?
+    std::map<std::string, bool> filesolvable;
     process_blockconf_helper(sj, filesolvable, locationname);
 
     SatChecker sc(sj.join("\n&&\n"));
 
-    if (sc(Picosat::SAT_MIN)) {
-        SatChecker::AssignmentMap current_solution = sc.getAssignment();
-        stringstream configstream;
-        current_solution.formatKconfig(configstream, {});
-        std::cout << configstream.str();
-    }
+    if (sc(Picosat::SAT_MIN))
+        sc.getAssignment().formatKconfig(std::cout, {});
 }
 
 void process_file_coverage_helper(const std::string &filename) {

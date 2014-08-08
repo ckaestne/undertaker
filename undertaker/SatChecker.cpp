@@ -143,7 +143,8 @@ void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
     }
 }
 
-int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet &missingSet) {
+int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
+                                             const MissingSet &missingSet) const {
     std::map<std::string, state> selection, other_variables;
 
     logger << debug << "---- Dumping new assignment map" << std::endl;
@@ -247,7 +248,8 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out, const MissingSet
     return selection.size();
 }
 
-int SatChecker::AssignmentMap::formatModel(std::ostream &out, const ConfigurationModel *model) {
+int SatChecker::AssignmentMap::formatModel(std::ostream &out,
+                                           const ConfigurationModel *model) const {
     int items = 0;
 
     for (const auto &entry : *this) {  // pair<string, bool>
@@ -261,7 +263,7 @@ int SatChecker::AssignmentMap::formatModel(std::ostream &out, const Configuratio
     return items;
 }
 
-int SatChecker::AssignmentMap::formatAll(std::ostream &out) {
+int SatChecker::AssignmentMap::formatAll(std::ostream &out) const {
     for (const auto &entry : *this) {  // pair<string, bool>
         const std::string &name = entry.first;
         const bool &valid = entry.second;
@@ -270,7 +272,8 @@ int SatChecker::AssignmentMap::formatAll(std::ostream &out) {
     return size();
 }
 
-int SatChecker::AssignmentMap::formatCPP(std::ostream &out, const ConfigurationModel *model) {
+int SatChecker::AssignmentMap::formatCPP(std::ostream &out,
+                                         const ConfigurationModel *model) const {
     static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
     static const boost::regex valid_regexp("^[_a-zA-Z].*$", boost::regex::perl);
 
@@ -304,7 +307,7 @@ int SatChecker::AssignmentMap::formatCPP(std::ostream &out, const ConfigurationM
     return size();
 }
 
-int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile &file) {
+int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile &file) const {
     std::map<Puma::Token *, bool> flag_map;
     Puma::Token *next;
     Puma::TokenStream stream;
@@ -331,8 +334,9 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
         PumaConditionalBlock *block = (PumaConditionalBlock *)(*it);
         if (block->isDummyBlock()) {
             continue;
-        } else if ((*this)[block->getName()] == true) {
-            // Block is enabled in this assignment
+        } else if (this->find(block->getName()) != this->end()
+                   && this->at(block->getName()) == true) {
+            // Block is present and enabled in this assignment
             next = block->pumaStartToken();
             flag_map[next] = false;
             do {
@@ -402,7 +406,8 @@ int SatChecker::AssignmentMap::formatCommented(std::ostream &out, const CppFile 
 }
 
 int SatChecker::AssignmentMap::formatCombined(const CppFile &file, const ConfigurationModel *model,
-                                              const MissingSet &missingSet, unsigned number) {
+                                              const MissingSet &missingSet,
+                                              unsigned number) const {
     std::stringstream s;
     s << file.getFilename() << ".cppflags" << number;
 
@@ -424,7 +429,7 @@ int SatChecker::AssignmentMap::formatCombined(const CppFile &file, const Configu
     return size();
 }
 
-int SatChecker::AssignmentMap::formatExec(const CppFile &file, const char *cmd) {
+int SatChecker::AssignmentMap::formatExec(const CppFile &file, const char *cmd) const {
     redi::opstream cmd_process(cmd);
 
     logger << info << "Calling: " << cmd << std::endl;
