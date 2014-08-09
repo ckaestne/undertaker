@@ -2,6 +2,7 @@
 #
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
 # Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,12 +24,11 @@
 # on it.
 #
 
-set -e
 set -o pipefail
 
-giturl="git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git"
+giturl="https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux"
 
-function usage() {
+usage() {
     echo "usage: ${0##*/} <-d DIR> [-c REV] [-t PROCS]"
     echo " -d   directory the linux tree will be cloned to"
     echo " -t   undertaker processes to be run"
@@ -77,6 +77,10 @@ if ! type -p undertaker-linux-tree >/dev/null; then
     exit 1
 fi
 
+#################################################################################
+# clone linux tree (if necessary), checkout the current head and cleanup        #
+#################################################################################
+
 if [ ! -d "$GIT_DIRECTORY" ]; then
     if ! git clone "$giturl" "$GIT_DIRECTORY"; then
         echo "Repository on kernel.org failed, fetching sources from github instead"
@@ -87,8 +91,8 @@ if [ ! -d "$GIT_DIRECTORY" ]; then
     fi
 fi
 
-resultdir="$GIT_DIRECTORY"/results
 cd "$GIT_DIRECTORY"
+resultdir=results
 mkdir -p "$resultdir"
 
 if ! git fetch -q --tags "$giturl" "$COMMIT"; then
@@ -117,77 +121,92 @@ deadlist="${resultdir}/${version}-deads.txt"
 
 echo "Scanning version ${version}, logging to ${report}"
 
+#################################################################################
+# STEP 0 - generate all models plus inferences only for x86                     #
+#################################################################################
 
 echo "Step 0: Extract Kconfig feature dependencies"
 echo "     -> General constraints from all architectures"
-if $TIME -v -o kconfigdump.stats -- undertaker-kconfigdump  >"$report" \
+if $TIME -v -o kconfigdump.stats -- undertaker-kconfigdump >"$report" \
       2>kconfigdump-error-output.txt; then
     cat kconfigdump.stats
 else
-    echo "Failed to dump models. Check your installation"
-    cat kconfigdump-error-output.txt
+    echo "Failed to dump models. Check your installation and inspect 'kconfigdump-error-output.txt'
+    for details"
     exit 1
 fi
 if ! test -s kconfigdump-error-output.txt; then
     rm -f kconfigdump-error-output.txt
-fi
-echo "     -> From Makefiles for x86"
-if $TIME -v -o inference.stats -- undertaker-linux-tree -i -t ${PROCESSORS} >>"$report" \
-      2>inference-errors.txt; then
-    cat inference.stats
-    echo "Extracted $(grep -c ^FILE_ models/x86.makefile-constraints) source file implications for arch-x86."
-    echo "Used $(grep -c "partial configuartion" models/x86.makefile-constraints) partial configurations"
-    grep "^FILE_" models/x86.makefile-constraints >> models/x86.model
 else
-    echo "Dependency extraction from makefiles failed."
-    cat inference-errors.txt
+    echo "undertaker-kconfigdump had errors, inspect 'kconfigdump-error-output.txt' for details"
+    mv kconfigdump-error-output.txt "${resultdir}"
 fi
-if ! test -s inference.errors; then
-    rm -f inference-errors.txt
+
+echo "     -> From Makefiles for x86"
+if $TIME -v -o inference.stats -- undertaker-kconfigdump -i x86 >> "$report" \
+      2>>kconfigdump-error-output.txt; then
+    cat inference.stats
+    echo "Extracted $(grep -c ^FILE_ models/x86.inferences) source file implications for arch-x86."
+else
+    echo "Dependency extraction from makefiles failed. inspect 'x86.golem-errors' for details."
+    mv models/x86.golem-errors "${resultdir}"
 fi
+
+#################################################################################
+# STEP 1 - dead/undead analysis                                                 #
+#################################################################################
 
 echo "Step 1: Dead/Undead analysis"
-if $TIME -v -o undertaker.stats -- undertaker-linux-tree -t ${PROCESSORS} >>"$report" \
-      2>undertaker-errors.txt; then
-    cat undertaker.stats
-    find . -name '*dead' > "$deadlist"
-    echo "Found $(grep globally $deadlist | grep -v no_kconfig | wc -l) globally dead blocks"
-else
-    echo "Scanning for Dead features failed, check the error logfiles!"
-    cat undertaker-errors.txt
-fi
+$TIME -v -o undertaker.stats -- undertaker-linux-tree -t ${PROCESSORS} >>"$report" \
+    2>undertaker-errors.txt
+
+cat undertaker.stats
+find . -name '*dead' > "$deadlist"
+echo "Found $(grep globally $deadlist | grep -v no_kconfig | wc -l) globally dead blocks"
+
 if ! test -s undertaker-errors.txt; then
-    rm -f kconfigdump-error-output.txt
+    rm -f undertaker-errors.txt
+else
+    echo "undertaker dead analysis had errors, inspect 'undertaker-errors.txt' for details"
+    mv undertaker-errors.txt "${resultdir}"
 fi
 
+#################################################################################
+# STEP 2 - coverage analysis                                                    #
+#################################################################################
 
 echo "Step 2: Coverage analysis"
-if $TIME -v -o undertaker-coverage.stats -- undertaker-linux-tree -t ${PROCESSORS} -c \
-      2>undertaker-coverage-errors.txt; then
-    cat undertaker-coverage.stats
-    found_configs=`grep -c ^CONFIG undertaker-calc-coverage.output`
-    processed_files=`grep -c ^RESULT undertaker-calc-coverage.output`
-    echo "Processed $found_configs (partial) configurations on $processed_files files"
-else
-    echo "Coverage analysis failed with exit code $?, check the error logfiles!"
-    cat undertaker-coverage-errors.txt
-fi
+$TIME -v -o undertaker-coverage.stats -- undertaker-linux-tree -c -t ${PROCESSORS} \
+      2>undertaker-coverage-errors.txt
+
+cat undertaker-coverage.stats
+found_configs=$(grep -c ^CONFIG undertaker-calc-coverage.output)
+processed_files=$(grep -c ^RESULT undertaker-calc-coverage.output)
+echo "Processed $found_configs (partial) configurations on $processed_files files"
+
 if ! test -s undertaker-coverage-errors.txt; then
     rm -f undertaker-coverage-errors.txt
+else
+    echo "coverage analysis had errors, inspect 'undertaker-coverage-errors.txt' for details"
+    mv undertaker-coverage-errors.txt "${resultdir}"
 fi
 
+#################################################################################
+# STEP 3 - CPP symbol statistics                                                #
+#################################################################################
 
 echo "Step 3: CPP symbol statistics"
-if $TIME -v -o undertaker-cppsym.stats -- undertaker-linux-tree -t ${PROCESSORS} -s \
-      2>undertaker-cppsym-stat-errors.txt; then
-    cat undertaker-cppsym.stats
-    echo "CPP symbols statistics done, check undertaker-stat/*"
-else
-    echo "CPP symbols statistics failed with exit code $?. check the error logfiles."
-    cat undertaker-cppsym-stat-errors.txt
-fi
+$TIME -v -o undertaker-cppsym.stats -- undertaker-linux-tree -s 2>undertaker-cppsym-stat-errors.txt
+
+cat undertaker-cppsym.stats
+echo "CPP symbols statistics done, check undertaker-stat/* and undertaker-kbuild/*"
+
 if ! test -s undertaker-cppsym-stat-errors.txt; then
-    rm -rf undertaker-cppsym-stat-errors.txt
+    rm -f undertaker-cppsym-stat-errors.txt
+else
+    echo "coverage analysis had errors, inspect 'undertaker-cppsym-stat-errors.txt' for details"
+    mv undertaker-cppsym-stat-errors.txt "${resultdir}"
 fi
+
 
 exit 0
