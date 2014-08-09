@@ -457,7 +457,7 @@ void process_file_cpppc(const std::string &filename) {
     }
 }
 
-void process_file_cppsym(const std::string &filename) {
+void process_file_cppsym_helper(const std::string &filename) {
     // vector of length 2, first: #references, second: #rewrites
     typedef std::vector<size_t> ItemStats;
     // key: name of the item.
@@ -530,6 +530,15 @@ void process_file_cppsym(const std::string &filename) {
         }
         assert(sj.size() == 5);
         std::cout << sj.join(", ") << std::endl;
+    }
+}
+
+void process_file_cppsym(const std::string &filename) {
+    boost::thread t(process_file_cppsym_helper, filename);
+
+    if (!t.timed_join(boost::posix_time::seconds(30))) {
+        logger << error << "timeout passed while processing " << filename << std::endl;
+        RETVALUE = EXIT_FAILURE;
     }
 }
 
