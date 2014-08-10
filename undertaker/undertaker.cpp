@@ -36,7 +36,6 @@
 #include "Tools.h"
 #include "../version.h"
 
-#include <errno.h>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -66,7 +65,6 @@ enum class CoverageMode {
 } coverageMode;
 
 static const char *coverage_exec_cmd = "cat";
-static int RETVALUE = EXIT_SUCCESS;
 static bool skip_non_configuration_based_defects = false;
 static bool decision_coverage = false;
 static bool do_mus_analysis = false;
@@ -235,7 +233,7 @@ void process_mergeblockconf(const std::string &filename) {
     std::ifstream workfile(filename);
     if (!workfile.good()) {
         usage(std::cout, "worklist was not found");
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 
     /* set extended Blockname */
@@ -254,7 +252,6 @@ void process_mergeblockconf(const std::string &filename) {
         sj.push_back("!" + str);
 
     SatChecker sc(sj.join("\n&&\n"));
-
     // We want minimal configs, so we try to get many 'n's from the sat checker
     if (sc(Picosat::SAT_MIN)) {
         logger << info << "Solution found, result:" << std::endl;
@@ -267,7 +264,8 @@ void process_mergeblockconf(const std::string &filename) {
 void process_blockconf(const std::string &locationname) {
     StringJoiner sj;
     std::map<std::string, bool> filesolvable;
-    process_blockconf_helper(sj, filesolvable, locationname);
+    if(!process_blockconf_helper(sj, filesolvable, locationname) && sj.size() == 0)
+        std::exit(EXIT_FAILURE);
 
     SatChecker sc(sj.join("\n&&\n"));
 
@@ -280,7 +278,7 @@ void process_file_coverage_helper(const std::string &filename) {
 
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     } else if (decision_coverage) {
         file.decisionCoverage();
     }
@@ -368,7 +366,7 @@ void process_file_coverage_helper(const std::string &filename) {
         case CoverageOutput::MODEL:
             if (!main_model) {
                 logger << error << "no model loaded but, model output mode specified" << std::endl;
-                exit(1);
+                std::exit(EXIT_FAILURE);
             }
             solution.formatModel(outf, main_model);
             break;
@@ -417,7 +415,7 @@ void process_file_coverage(const std::string &filename) {
 
     if (!t.timed_join(boost::posix_time::seconds(120))) {
         logger << error << "timeout passed while processing " << filename << std::endl;
-        RETVALUE = EXIT_FAILURE;
+        std::exit(EXIT_FAILURE);
     }
 }
 
@@ -426,7 +424,7 @@ void process_file_cpppc(const std::string &filename) {
 
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     } else if (decision_coverage) {
         file.decisionCoverage();
     }
@@ -464,10 +462,9 @@ void process_file_cppsym_helper(const std::string &filename) {
     typedef std::map<std::string, ItemStats> FoundItems;
 
     CppFile file(filename);
-
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     }
     // if the current file is arch specific, use only the matching model for analyses
     ConfigurationModel *main_model;
@@ -538,7 +535,7 @@ void process_file_cppsym(const std::string &filename) {
 
     if (!t.timed_join(boost::posix_time::seconds(30))) {
         logger << error << "timeout passed while processing " << filename << std::endl;
-        RETVALUE = EXIT_FAILURE;
+        std::exit(EXIT_FAILURE);
     }
 }
 
@@ -547,7 +544,7 @@ void process_file_blockrange(const std::string &filename) {
 
     if (!cpp.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     }
 
     std::cout << filename << ":" << cpp.topBlock()->getName() << ":";
@@ -565,7 +562,7 @@ void process_file_blockpc(const std::string &filename) {
 
     if (colon_pos == filename.npos) {
         logger << error << "invalid format for block precondition" << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     }
 
     file = filename.substr(0, colon_pos);
@@ -574,14 +571,14 @@ void process_file_blockpc(const std::string &filename) {
     CppFile cpp(file);
     if (!cpp.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     }
 
     ConditionalBlock *block = cpp.getBlockAtPosition(filename);
 
     if (block == nullptr) {
         logger << info << "No block at " << filename << " was found." << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     }
     // if the current file is arch specific, use only the matching model for analyses
     ConfigurationModel *main_model;
@@ -606,7 +603,7 @@ void process_file_dead_helper(const std::string &filename) {
     CppFile file(filename);
     if (!file.good()) {
         logger << error << "failed to open file: `" << filename << "'" << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     }
     // delete potential leftovers from previous run
     std::string pattern(filename);
@@ -649,7 +646,7 @@ void process_file_dead(const std::string &filename) {
 
     if (!t.timed_join(boost::posix_time::seconds(timeout))) {
         logger << error << "timeout passed while processing " << filename << std::endl;
-        RETVALUE = EXIT_FAILURE;
+        std::exit(EXIT_FAILURE);
     }
 }
 
@@ -660,7 +657,7 @@ void process_file_interesting(const std::string &check_item) {
     if (!main_model) {
         logger << error << "for finding interessting items a (rsf based) model must be loaded"
                << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     }
     /* Find all items that are related to the given item */
     std::set<std::string> interesting = main_model->findSetOfInterestingItems({check_item});
@@ -687,7 +684,7 @@ void process_file_checkexpr(const std::string &expression) {
 
     if (!main_model) {
         logger << error << "for finding interesting items a model must be loaded" << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     }
     StringJoiner sj;
     std::set<std::string> missing;
@@ -707,11 +704,10 @@ void process_file_checkexpr(const std::string &expression) {
 
     SatChecker sc(formula);
     if (sc()) {
-        SatChecker::AssignmentMap current_solution = sc.getAssignment();
-        current_solution.formatKconfig(std::cout, missing);
+        sc.getAssignment().formatKconfig(std::cout, missing);
     } else {
         logger << info << "Expression is NOT satisfiable" << std::endl;
-        RETVALUE = EXIT_FAILURE;
+        std::exit(EXIT_FAILURE);
     }
 }
 
@@ -719,7 +715,7 @@ void process_file_symbolpc(const std::string &symbol) {
     ConfigurationModel *main_model = ModelContainer::lookupMainModel();
     if (!main_model) {
         logger << error << "for symbolpc models must be loaded" << std::endl;
-        return;
+        std::exit(EXIT_FAILURE);
     }
     std::set<std::string> missingItems;
     logger << info << "Symbol Precondition for `" << symbol << "'" << std::endl;
@@ -768,8 +764,8 @@ process_file_cb_t parse_job_argument(const std::string arg) {
     return nullptr;
 }
 
-void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument = nullptr,
-                           bool print_stats = false) {
+int wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument = nullptr,
+                          bool print_stats = false) {
     static struct { int ok, failed, signaled; } process_stats;
 
     static std::map<pid_t, const char *> arguments;
@@ -805,10 +801,6 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
         }
         running_processes--;
     }
-
-    if (process_stats.failed > 0)
-        RETVALUE = EXIT_FAILURE;
-
     if (print_stats) {
         /* Shutdown phase */
         logger << info << "Sucessful processed:  " << process_stats.ok << std::endl;
@@ -817,12 +809,16 @@ void wait_for_forked_child(pid_t new_pid, int threads = 1, const char *argument 
         for (const auto &it : arguments)  // pair<pid_t, const char *>
             logger << info << "Failed file: " << it.second << std::endl;
     }
+    if (process_stats.failed > 0)
+        return EXIT_FAILURE;
+
+    return EXIT_SUCCESS;
 }
 
 int main(int argc, char **argv) {
     int opt;
     std::string worklist;
-    long threads = 1;
+    int threads = 1;
     std::vector<std::string> models_from_parameters;
     /* Default main model will be x86 or the first one in model container if x86 is not loaded */
     std::string main_model = "default";
@@ -853,7 +849,7 @@ int main(int argc, char **argv) {
                 logger << info << "loaded " << n << " items to ignorelist" << std::endl;
             } else {
                 logger << error << "couldn't load ignorelist" << std::endl;
-                exit(-1);
+                return EXIT_FAILURE;
             }
             break;
         case 'W':
@@ -862,7 +858,7 @@ int main(int argc, char **argv) {
                 logger << info << "loaded " << n << " items to whitelist" << std::endl;
             } else {
                 logger << error << "couldn't load whitelist" << std::endl;
-                exit(-1);
+                return EXIT_FAILURE;
             }
             break;
         case 'B':
@@ -871,7 +867,7 @@ int main(int argc, char **argv) {
                 logger << info << "loaded " << n << " items to blacklist" << std::endl;
             } else {
                 logger << error << "couldn't load blacklist" << std::endl;
-                exit(-1);
+                return EXIT_FAILURE;
             }
             break;
         case 'b':
@@ -928,12 +924,7 @@ int main(int argc, char **argv) {
             }
             break;
         case 't':
-            threads = strtol(optarg, nullptr, 10);
-            if ((errno == ERANGE && (threads == LONG_MAX || threads == LONG_MIN))
-                || (errno != 0 && threads == 0)) {
-                perror("strtol");
-                exit(EXIT_FAILURE);
-            }
+            threads = std::stoi(optarg);
             if (threads < 1) {
                 logger << warn << "Invalid numbers of threads, using 1 instead." << std::endl;
                 threads = 1;
@@ -964,12 +955,10 @@ int main(int argc, char **argv) {
             break;
         case 'h':
             usage(std::cout, nullptr);
-            exit(0);
-            break;
+            return EXIT_SUCCESS;
         case 'V':
             std::cout << "undertaker " << version << std::endl;
-            exit(0);
-            break;
+            return EXIT_SUCCESS;
         case 'q':
             loglevel = loglevel + 10;
             logger.setLogLevel(loglevel);
@@ -1028,7 +1017,7 @@ int main(int argc, char **argv) {
         std::string line;
         if (!workfile.good()) {
             usage(std::cout, "worklist was not found");
-            exit(EXIT_FAILURE);
+            return EXIT_FAILURE;
         }
         /* Collect all files that should be worked on */
         while (std::getline(workfile, line))
@@ -1102,26 +1091,24 @@ int main(int argc, char **argv) {
             if (line.size() > 0)
                 process_file(line);
         }
-    } else {
-        if (workfiles.size() > 1) {
-            for (const std::string &file : workfiles) {
-                pid_t pid = fork();
-                if (pid == 0) { /* child */
-                    /* calling the function pointer */
-                    process_file(file);
-                    return RETVALUE;
-                } else if (pid < 0) {
-                    logger << error << "forking failed. Exiting." << std::endl;
-                    return EXIT_FAILURE;
-                } else { /* Father process */
-                    wait_for_forked_child(pid, threads, file.c_str());
-                }
+    } else if (workfiles.size() > 1) {
+        for (const std::string &file : workfiles) {
+            pid_t pid = fork();
+            if (pid == 0) { /* child */
+                /* calling the function pointer */
+                process_file(file);
+                return EXIT_SUCCESS;
+            } else if (pid < 0) {
+                logger << error << "forking failed. Exiting." << std::endl;
+                return EXIT_FAILURE;
+            } else { /* Father process */
+                wait_for_forked_child(pid, threads, file.c_str());
             }
-            /* Wait until fork count reaches zero */
-            wait_for_forked_child(0, 0, nullptr, threads > 1);
-        } else if (workfiles.size() == 1) {
-            process_file(workfiles[0]);
         }
+        /* Wait until fork count reaches zero */
+        return wait_for_forked_child(0, 0, nullptr, threads > 1);
+    } else if (workfiles.size() == 1) {
+        process_file(workfiles[0]);
     }
-    return RETVALUE;
+    return EXIT_SUCCESS;
 }
