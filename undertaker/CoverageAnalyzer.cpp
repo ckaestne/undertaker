@@ -91,7 +91,7 @@ std::list<SatChecker::AssignmentMap> SimpleCoverageAnalyzer::blockCoverage(Confi
                 if (!sc( { block->getName() } ))
                     continue;
 
-                static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+                static const boost::regex block_regexp("^B\\d+$");
                 for (const auto &assignment : sc.getAssignment()) { // pair<string, bool>
                     const std::string &name = assignment.first;
                     const bool enabled = assignment.second;
@@ -151,7 +151,7 @@ std::list<SatChecker::AssignmentMap> MinimizeCoverageAnalyzer::blockCoverage(Con
         BaseExpressionSatChecker sc(base_formula);
 
         if(sc(configuration)) { // Configuration is an empty list here
-            static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
+            static const boost::regex block_regexp("^B\\d+$");
             for (const auto &assignment : sc.getAssignment()) {  // pair<string, bool>
                 if (assignment.second == false) continue; // Not enabled
                 const std::string &block_name = assignment.first;

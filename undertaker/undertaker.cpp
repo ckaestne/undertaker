@@ -335,7 +335,7 @@ void process_file_coverage_helper(const std::string &filename) {
 
     unsigned int current = 0;
     for (auto &solution : solutions) {  // Satchecker::AssignmentMap
-        static const boost::regex block_regexp("B[0-9]+", boost::regex::perl);
+        static const boost::regex block_regexp("B[0-9]+");
         std::stringstream outfstream;
         outfstream << filename << ".config" << config_count++;
         std::ofstream outf;

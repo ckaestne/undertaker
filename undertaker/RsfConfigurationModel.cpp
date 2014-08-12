@@ -70,9 +70,9 @@ RsfConfigurationModel::RsfConfigurationModel(const std::string &filename) {
     if (configuration_space_regex != nullptr && configuration_space_regex->size() > 0) {
         Logging::info("Set configuration space regex to '", configuration_space_regex->front(),
                       "'");
-        _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front(), boost::regex::perl);
+        _inConfigurationSpace_regexp = boost::regex(configuration_space_regex->front());
     } else {
-        _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$", boost::regex::perl);
+        _inConfigurationSpace_regexp = boost::regex("^CONFIG_[^ ]+$");
     }
     if (_model->size() == 0) {
         // if the model is empty (e.g., if /dev/null was loaded), it cannot possibly be complete

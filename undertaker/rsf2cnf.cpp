@@ -68,7 +68,7 @@ static void addTypeInfo(kconfig::PicosatCNF &cnf, ItemRsfReader *rsf){
 }
 
 static void addClauses(kconfig::CNFBuilder &builder, RsfReader &model){
-    boost::regex isconfig = boost::regex("^(CONFIG|FILE)_[^ ]+$", boost::regex::perl);
+    boost::regex isconfig = boost::regex("^(CONFIG|FILE)_[^ ]+$");
     // add all CONFIG_* items
     for (const auto &entry : model) {  // pair<string, StringList>
         if(boost::regex_match(entry.first, isconfig)){

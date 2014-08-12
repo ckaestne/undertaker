@@ -411,8 +411,7 @@ void CppDefine::newDefine(ConditionalBlock *parent, bool define) {
 
     const std::string symbolSpace = "([() ><&|!-]|^|$)";
 
-    replaceRegex = boost::regex(symbolSpace + "(" + defined_symbol + ")" + symbolSpace,
-                                boost::regex::perl);
+    replaceRegex = boost::regex(symbolSpace + "(" + defined_symbol + ")" + symbolSpace);
 }
 
 void CppDefine::replaceDefinedSymbol(std::string &exp) {

@@ -121,7 +121,7 @@ std::string SatChecker::pprint() {
 /************************************************************************/
 
 void SatChecker::AssignmentMap::setEnabledBlocks(std::vector<bool> &blocks) {
-    static const boost::regex block_regexp("^B(\\d+)$", boost::regex::perl);
+    static const boost::regex block_regexp("^B(\\d+)$");
     for (const auto &entry : *this) {  // pair<string, bool>
         const std::string &name = entry.first;
         const bool &valid = entry.second;
@@ -150,10 +150,10 @@ int SatChecker::AssignmentMap::formatKconfig(std::ostream &out,
     Logging::debug("---- Dumping new assignment map");
 
     for (const auto &entry : *this) {  // pair<string, bool>
-        static const boost::regex item_regexp("^CONFIG_(.*[^.])$", boost::regex::perl);
-        static const boost::regex module_regexp("^CONFIG_(.*)_MODULE$", boost::regex::perl);
-        static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
-        static const boost::regex choice_regexp("^CONFIG_CHOICE_.*$", boost::regex::perl);
+        static const boost::regex item_regexp("^CONFIG_(.*[^.])$");
+        static const boost::regex module_regexp("^CONFIG_(.*)_MODULE$");
+        static const boost::regex block_regexp("^B\\d+$");
+        static const boost::regex choice_regexp("^CONFIG_CHOICE_.*$");
         const std::string &name = entry.first;
         const bool &valid = entry.second;
         boost::match_results<std::string::const_iterator> what;
@@ -274,8 +274,8 @@ int SatChecker::AssignmentMap::formatAll(std::ostream &out) const {
 
 int SatChecker::AssignmentMap::formatCPP(std::ostream &out,
                                          const ConfigurationModel *model) const {
-    static const boost::regex block_regexp("^B\\d+$", boost::regex::perl);
-    static const boost::regex valid_regexp("^[_a-zA-Z].*$", boost::regex::perl);
+    static const boost::regex block_regexp("^B\\d+$");
+    static const boost::regex valid_regexp("^[_a-zA-Z].*$");
 
     for (const auto &entry : *this) {  // pair<string, bool>
         const std::string &name = entry.first;
