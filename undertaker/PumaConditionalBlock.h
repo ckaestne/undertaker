@@ -77,9 +77,6 @@ public:
     virtual ~PumaConditionalBlock() { delete[] _expressionStr_cache; }
 
     //! location related accessors
-    virtual const std::string &filename() const final override {
-        return cpp_file->getFilename();
-    };
     virtual unsigned int lineStart()     const final override {
         return getParent() ? _start->location().line() : 0;
     };
@@ -109,7 +106,7 @@ public:
     virtual bool isDummyBlock()          const final override { return _isDummyBlock; }
     virtual void setDummyBlock()               final override { _isDummyBlock = true; }
     virtual const std::string getName()  const final override;
-    PumaConditionalBlockBuilder & getBuilder() const { return _builder; }
+    PumaConditionalBlockBuilder &getBuilder() const { return _builder; }
 
     friend class PumaConditionalBlockBuilder;
 };

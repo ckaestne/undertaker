@@ -150,7 +150,7 @@ class FiascoInferenceAtoms(InferenceAtoms):
         return set(["n", "y"])
 
     def format_var_impl(self, var_impl):
-        return "HOMUTH_" + var_impl
+        return "HOMUTH_" + re.sub('[-+:,/]', '_', var_impl)
 
     def format_selections(self, selections):
         replacements = {"=y": "",
@@ -229,7 +229,7 @@ class LinuxInferenceAtoms(InferenceAtoms):
     def format_var_impl(self, var_impl):
         sourcefile = guess_source_for_target(var_impl, self.arch)
         if sourcefile:
-            var_impl = sourcefile
+            var_impl = re.sub('[-+:,/]', '_', sourcefile)
         else:
             logging.warning("Failed to guess source file for %s", var_impl)
         return "FILE_" + var_impl

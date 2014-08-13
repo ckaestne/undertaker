@@ -68,7 +68,7 @@ static void addTypeInfo(kconfig::PicosatCNF &cnf, ItemRsfReader *rsf){
 }
 
 static void addClauses(kconfig::CNFBuilder &builder, RsfReader &model){
-    boost::regex isconfig = boost::regex("^(CONFIG|FILE)_[^ ]+$", boost::regex::perl);
+    boost::regex isconfig = boost::regex("^(CONFIG|FILE)_[^ ]+$");
     // add all CONFIG_* items
     for (const auto &entry : model) {  // pair<string, StringList>
         if(boost::regex_match(entry.first, isconfig)){
@@ -83,8 +83,7 @@ static void addClauses(kconfig::CNFBuilder &builder, RsfReader &model){
                     builder.pushClause(exp);
                     delete exp;
                 } else {
-                    logger << error
-                           << "failed to parse '" << clause << "'" << std::endl;
+                    Logging::error("failed to parse '", clause, "'");
                 }
             } else {
                 // CONFIG_FOO depnends on Y
@@ -131,7 +130,7 @@ int main(int argc, char **argv) {
     std::string rsf_file;
     std::string cnf_file;
 
-    int loglevel = logger.getLogLevel();
+    int loglevel = Logging::getLogLevel();
 
     while ((opt = getopt(argc, argv, "m:r:c:W:B:vh")) != -1) {
         switch (opt) {
@@ -147,29 +146,29 @@ int main(int argc, char **argv) {
             break;
         case 'q':
             loglevel = loglevel + 10;
-            logger.setLogLevel(loglevel);
+            Logging::setLogLevel(loglevel);
             break;
         case 'v':
             loglevel = loglevel - 10;
             if (loglevel < 0)
                 loglevel = Logging::LOG_EVERYTHING;
-            logger.setLogLevel(loglevel);
+            Logging::setLogLevel(loglevel);
             break;
         case 'W':
             n = KconfigWhitelist::getWhitelist().loadWhitelist(optarg);
             if (n >= 0) {
-                logger << info << "loaded " << n << " items to whitelist" << std::endl;
+                Logging::info("loaded ", n, " items to whitelist");
             } else {
-                logger << error << "couldn't load whitelist" << std::endl;
+                Logging::error("couldn't load whitelist");
                 exit(-1);
             }
             break;
         case 'B':
             n = KconfigWhitelist::getBlacklist().loadWhitelist(optarg);
             if (n >= 0) {
-                logger << info << "loaded " << n << " items to blacklist" << std::endl;
+                Logging::info("loaded ", n, " items to blacklist");
             } else {
-                logger << error << "couldn't load blacklist" << std::endl;
+                Logging::error("couldn't load blacklist");
                 exit(-1);
             }
             break;
@@ -194,7 +193,7 @@ int main(int argc, char **argv) {
 
     std::fstream model_stream (model_file, std::fstream::in);
     if (!model_stream.good()) {
-        logger << error << "could not open modelfile \"" << model_file << "\"" << std::endl;
+        Logging::error("could not open modelfile \"", model_file, "\"");
         return 1;
     }
     RsfReader model(model_stream, "UNDERTAKER_SET");
@@ -202,7 +201,7 @@ int main(int argc, char **argv) {
     if (rsf_file != "") {
         std::fstream rsf_stream (rsf_file, std::fstream::in);
         if (!rsf_stream.good()) {
-            logger << error << "could not open rsffile \"" << argv[2] << "\"" << std::endl;
+            Logging::error("could not open rsffile \"", argv[2], "\"");
             return 1;
         }
         rsf = new ItemRsfReader(rsf_stream);
@@ -220,7 +219,7 @@ int main(int argc, char **argv) {
     try {
         cnf.toStream(std::cout);
     } catch (IOException e) {
-        logger << error << e.what() << std::endl;
+        Logging::error(e.what());
         return 1;
     }
     delete rsf;

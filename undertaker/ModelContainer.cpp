@@ -30,91 +30,71 @@
 #include "CnfConfigurationModel.h"
 #include "Logging.h"
 
-#include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
+#include <future>
 
 
-static const boost::regex model_regex("^([-[:alnum:]]+)\\.(model|cnf)$");
+// parameter filename will look like: 'models/x86.model', ext: 'model'
+static ConfigurationModel *loadModelFile(const std::string &filename, const std::string &ext) {
+    // return value cannot be nullptr! if allocation fails, a std::bad_alloc is thrown
+    if (ext == ".cnf")
+        return new CnfConfigurationModel(filename);
+    else
+        return new RsfConfigurationModel(filename);
+}
 
 ConfigurationModel* ModelContainer::loadModels(std::string model) {
-    ModelContainer &f = getInstance();
-    int found_models = 0;
-    std::list<std::string> filenames;
-    ConfigurationModel *ret = nullptr;
-
-    if (! boost::filesystem::exists(model)){
-        logger << error << "model '" << model << "' doesn't exist (neither directory nor file)" << std::endl;
+    if (!boost::filesystem::exists(model)) {
+        Logging::error("model '", model, "' doesn't exist (neither directory nor file)");
         return nullptr;
     }
-    if (! boost::filesystem::is_directory(model)) {
-        /* A model file was specified, so load exactly this one */
-        boost::filesystem::path p(model);
-        std::string model_name = p.stem().string();
+    ModelContainer &f = getInstance();
+    ConfigurationModel *ret = nullptr;
 
-        ret = f.registerModelFile(model, model_name);
-        if (ret) {
-            logger << info << "loaded " << ret->getModelVersionIdentifier()
-                   << " model for " << model_name << std::endl;
-        } else {
-            logger << error << "failed to load model from " << model << std::endl;
+    // only one model file was specified, so load exactly this one
+    if (!boost::filesystem::is_directory(model)) {
+        boost::filesystem::path p(model);
+        std::string found_arch = p.stem().string();
+
+        if (f.find(found_arch) == f.end()) {
+            ret = loadModelFile(model, p.extension().string());
+            Logging::info("loaded ", ret->getModelVersionIdentifier(), " model for ", found_arch);
+            f.emplace(found_arch, ret);
         }
         return ret;
     }
+    // a directory was specified, parse all models within this directory (asynchronously)
+    std::map<std::string, std::future<ConfigurationModel *>> futures;
+    int found_models = 0;
 
-    for (boost::filesystem::directory_iterator dir(model);
-         dir != boost::filesystem::directory_iterator();
-         ++dir) {
-#if !defined(BOOST_FILESYSTEM_VERSION) || BOOST_FILESYSTEM_VERSION == 2
-        filenames.push_back(dir->path().filename());
-#else
-        filenames.push_back(dir->path().filename().string());
-#endif
+    for (boost::filesystem::directory_iterator dir(model), end; dir != end; ++dir) {
+        const boost::filesystem::path dir_entry = dir->path();
+        const std::string ext = dir_entry.extension().string();
+        if (ext == ".cnf" || ext == ".model") {
+            const std::string found_arch = dir_entry.stem().string();
+            futures.emplace(found_arch, std::async(std::launch::async, loadModelFile,
+                                                   dir_entry.string(), ext));
+        }
     }
-    filenames.sort();
-
-    for (const std::string &filename : filenames) {
-        boost::smatch what;
-        if (boost::regex_search(filename, what, model_regex)) {
-            std::string found_arch = what[1];
-
-            // if there is no model for 'found_arch' in f, load it
-            if (f.find(found_arch) == f.end()) {
-                ConfigurationModel *mod = f.registerModelFile(model + "/" + filename, found_arch);
-                /* overwrite the return value */
-                if (mod) ret = mod;
-                found_models++;
-
-                logger << info << "loaded " << mod->getModelVersionIdentifier()
-                       << " model for " << found_arch << std::endl;
-            }
+    // collect all ConfigurationModel pointers, calculated by the futures
+    for (auto &fut : futures) {
+        // get() blocks until the future is finished
+        ConfigurationModel *mod = fut.second.get();
+        if (f.find(fut.first) == f.end()) {
+            found_models++;
+            ret = mod;
+            Logging::info("loaded ", mod->getModelVersionIdentifier(), " model for ", fut.first);
+            f.emplace(fut.first, mod);
         }
     }
     if (found_models > 0) {
-        logger << info << "found " << found_models << " models" << std::endl;
+        Logging::info("found ", found_models, " models");
         return ret;
     } else {
-        logger << error << "could not find any models" << std::endl;
+        Logging::error("could not find any models");
         return nullptr;
     }
 }
-
-// parameter filename will look like: 'models/x86.model', string like 'x86'
-ConfigurationModel *ModelContainer::registerModelFile(std::string filename, std::string arch) {
-    ConfigurationModel *db = lookupModel(arch);
-    /* Was already loaded */
-    if (db != nullptr) {
-        logger << info << "A model for " << arch << " was already loaded." << std::endl;
-        return db;
-    }
-    boost::filesystem::path filepath(filename);
-    if (filepath.extension() == ".cnf") {
-        db = new CnfConfigurationModel(filename);
-    } else {
-        db = new RsfConfigurationModel(filename);
-    }
-    this->emplace(arch, db);
-    return db;
-};
 
 ConfigurationModel *ModelContainer::lookupModel(const std::string &arch)  {
     ModelContainer &f = getInstance();
@@ -138,20 +118,17 @@ const std::string ModelContainer::lookupArch(const ConfigurationModel *model) {
 }
 
 ConfigurationModel *ModelContainer::lookupMainModel() {
-    ModelContainer &f = getInstance();
-    return ModelContainer::lookupModel(f.main_model);
+    return ModelContainer::lookupModel(getInstance().main_model);
 }
 
 void ModelContainer::setMainModel(std::string main_model) {
-    ModelContainer &f = getInstance();
-
     if (!ModelContainer::lookupModel(main_model)) {
-        logger << error << "Could not specify main model "
-               << main_model << ", because no such model is loaded" << std::endl;
+        Logging::error("Could not specify main model ", main_model,
+                       ", because no such model is loaded");
         return;
     }
-    logger << info << "Using " << main_model << " as primary model" << std::endl;
-    f.main_model = main_model;
+    Logging::info("Using ", main_model, " as primary model");
+    getInstance().main_model = main_model;
 }
 
 const std::string &ModelContainer::getMainModel() {

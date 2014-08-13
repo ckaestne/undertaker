@@ -51,13 +51,13 @@ void usage(std::ostream &out) {
 int process_assumptions(PicosatCNF &cnf, const std::vector<boost::filesystem::path> assumptions) {
     int errors = 0;
     for (const auto &assumption : assumptions) {  // boost::filesystem::path
-        logger << info << "processing assumption " << assumption << std::endl;
+        Logging::info("processing assumption ", assumption);
 
         if (boost::filesystem::exists(assumption)) {
             std::ifstream in(assumption.string());
             KconfigAssumptionMap a(&cnf);
             a.readAssumptionsFromFile(in);
-            logger << info << "processed " << a.size() << " items" << std::endl;
+            Logging::info("processed ", a.size(), " items");
             cnf.pushAssumptions(a);
         }
         bool sat = cnf.checkSatisfiable();
@@ -66,11 +66,11 @@ int process_assumptions(PicosatCNF &cnf, const std::vector<boost::filesystem::pa
             const int *failed = cnf.failedAssumptions();
             for (int i = 0; failed != nullptr && failed[i] != 0; i++) {
                 std::string vn = cnf.getSymbolName(abs(failed[i]));
-                logger << debug << "failed Assumption: " << failed[i] << " " << vn << std::endl;
+                Logging::debug("failed Assumption: ", failed[i], " ", vn);
             }
         }
         errors += (int)!sat;
-        logger << info << assumption << " is " << result << std::endl;
+        Logging::info(assumption, " is ", result);
     }
     return errors;
 }
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
     int exitstatus = 0;
     int opt;
 
-    static int loglevel = logger.getLogLevel();
+    int loglevel = Logging::getLogLevel();
 
     while ((opt = getopt(argc, argv, "Vvc:a:")) != -1) {
         switch (opt) {
@@ -102,22 +102,22 @@ int main(int argc, char **argv) {
             usage(std::cerr);
             break;
         case 'V':
-            logger.setLogLevel(Logging::LOG_EVERYTHING);
-            logger << info << "satyr " << version << std::endl;
+            Logging::setLogLevel(Logging::LOG_EVERYTHING);
+            Logging::info("satyr ", version);
             exit(0);
         default:
             usage(std::cerr);
         }
     }
 
-    logger.setLogLevel(loglevel);
+    Logging::setLogLevel(loglevel);
 
     if (optind >= argc) {
         usage(std::cerr);
     }
     boost::filesystem::path filepath(argv[optind]);
     if (!boost::filesystem::exists(filepath)) {
-        logger << error << "File '" << filepath << "' does not exist" << std::endl;
+        Logging::error("File '", filepath, "' does not exist");
         exit(EXIT_FAILURE);
     }
     setlocale(LC_ALL, "");
@@ -142,31 +142,31 @@ int main(int argc, char **argv) {
     PicosatCNF cnf;
 
     if (filepath.extension() == ".cnf") {
-        logger << info << "Loading CNF model " << filepath << std::endl;
+        Logging::info("Loading CNF model ", filepath);
         cnf.readFromFile(filepath.string());
     } else {
-        logger << info << "Parsing Kconfig file " << filepath << std::endl;
+        Logging::info("Parsing Kconfig file ", filepath);
         SymbolTranslator translator(&cnf);
         KconfigSymbolSet symbolSet;
 
-        logger << debug << "parsing" << std::endl;
+        Logging::debug("parsing");
         translator.parse(filepath.string());
-        translator.symbolSet = &symbolSet;
-        logger << debug << "traversing symbolset" << std::endl;
+        Logging::debug("traversing symbolset");
         symbolSet.traverse();
-        logger << debug << "translating" << std::endl;
+        Logging::debug("translating");
+        translator.symbolSet = &symbolSet;
         translator.traverse();
 
         if (translator.featuresWithStringDependencies()) {
-            logger << info << "Features w string dep (" << arch
-                   << "): " << translator.featuresWithStringDependencies() << " with "
-                   << translator.totalStringComparisons() << " comparisons." << std::endl;
+            Logging::info("Features w string dep (", arch, "): ",
+                          translator.featuresWithStringDependencies(), " with ",
+                          translator.totalStringComparisons(), " comparisons.");
         }
-        logger << info << "features in model: " << symbolSet.size() << std::endl;
+        Logging::info("features in model: ", symbolSet.size());
     }
     if (saveTranslatedModel) {
         cnf.toFile(saveFile.string());
-        logger << info << cnf.getVarCount() << " variables written to " << saveFile << std::endl;
+        Logging::info(cnf.getVarCount(), " variables written to ", saveFile);
     }
     exitstatus += process_assumptions(cnf, assumptions);
     return exitstatus;

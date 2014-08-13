@@ -27,7 +27,6 @@
 #include "StringJoiner.h"
 #include "ModelContainer.h"
 #include "Logging.h"
-#include "Tools.h"
 #include "PumaConditionalBlock.h"
 typedef PumaConditionalBlock ConditionalBlockImpl;
 #include "cpp14.h"
@@ -44,23 +43,22 @@ typedef PumaConditionalBlock ConditionalBlockImpl;
 static int lineFromPosition(std::string line) {
     // INPUT: foo:121:2
     // OUTPUT: 121
-
     size_t start = line.find_first_of(':');
     assert (start != line.npos);
     size_t stop = line.find_first_of(':', start);
     assert (stop != line.npos);
-
-    std::stringstream ss(line.substr(start+1, stop));
-    int i;
-    ss >> i;
-    return i;
+    try {
+        return std::stoi(line.substr(start+1, stop));
+    } catch (std::invalid_argument &) {
+        return 0;
+    }
 }
 
-static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i,
-        ConditionalBlock *parent, ConditionalBlock *prev) {
+static ConditionalBlockImpl *createDummyElseBlock(ConditionalBlock *i, ConditionalBlock *parent,
+                                                  ConditionalBlock *prev) {
     ConditionalBlockImpl *superblock = dynamic_cast<ConditionalBlockImpl *>(i);
     if (!superblock) {
-        logger << error << "failed to access the super-class of Conditionalblock" << std::endl;
+        Logging::error("failed to access the super-class of Conditionalblock");
         exit(1);
     }
     PumaConditionalBlockBuilder &builder = superblock->getBuilder();
@@ -124,7 +122,7 @@ bool CppFile::ItemChecker::operator()(const std::string &item) const {
     return defines->find(item.substr(0, item.find('.'))) == defines->end();
 }
 
-ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
+ConditionalBlock *CppFile::getBlockAtPosition(const std::string &position) {
     int line = lineFromPosition(position);
     ConditionalBlock *block = nullptr;
     int block_length = -1;
@@ -145,33 +143,42 @@ ConditionalBlock * CppFile::getBlockAtPosition(const std::string &position) {
     return block;
 }
 
+const std::string &CppFile::getFileVar() {
+    if (fileVar != "")
+        return fileVar;
+    fileVar = "FILE_" + filename;
+    for (char &c : fileVar)
+        if (c == '/' || c == '-' || c == '+' || c == ':' || c == ',')
+            c = '_';
+    return fileVar;
+}
+
 void CppFile::decisionCoverage() {
 #if 0
-    logger << debug << "======== before TRANSFORMATION ========" << std::endl;
+    Logging::debug("======== before TRANSFORMATION ========");
     this->topBlock()->printConditionalBlocks(0);
 #endif
     this->topBlock()->processForDecisionCoverage();
 #if 0
-    logger << debug << "======== after TRANSFORMATION ========" << std::endl;
+    Logging::debug("======== after TRANSFORMATION ========");
     this->topBlock()->printConditionalBlocks(0);
     printCppFile();
 #endif
 }
 
 void CppFile::printCppFile() {
-    logger << debug << "------ FILE ------" << std::endl;
+    Logging::debug("------ FILE ------");
     for (const auto &block : *this) {  // ConditionalBlock *
         if (block->ifdefExpression() == "") {
             if (block->getName().compare("B00"))
-                logger << debug << "ELSE " << block->isElseBlock() << " "
-                       << block->getName() << " " << block << std::endl;
+                Logging::debug("ELSE ", block->isElseBlock(), " ", block->getName(), " ", block);
         } else {
-            logger << debug << block->ifdefExpression() << " " << block->isIfndefine()
-                   << " " << block->isIfBlock() << " " << block->isElseIfBlock() << " "
-                   << block->getName() << " " << block << std::endl;
+            Logging::debug(block->ifdefExpression(), " ", block->isIfndefine(), " ",
+                           block->isIfBlock(), " ", block->isElseIfBlock(), " ", block->getName(),
+                           " ", block);
         }
     }
-    logger << debug << "------ END FILE ------" << std::endl;
+    Logging::debug("------ END FILE ------");
 }
 
 /************************************************************************/
@@ -226,14 +233,13 @@ void ConditionalBlock::processForDecisionCoverage() {
 void ConditionalBlock::printConditionalBlocks(int indent) {
     for (const auto &block : *this) {  // ConditionalBlock *
         if (block->ifdefExpression() == "") {
-            logger << debug << std::string(indent, ' ') << "ELSE " << block->isElseBlock()
-                   << " " << block->getName() << " " << block << " prev: "
-                   << block->getPrev() << std::endl;
+            Logging::debug(std::string(indent, ' '), "ELSE ", block->isElseBlock(), " ",
+                           block->getName(), " ", block, " prev: ", block->getPrev());
         } else {
-            logger << debug << std::string(indent, ' ') << block->ifdefExpression()
-                   << " " << block->isIfndefine() << " " << block->isIfBlock() << " "
-                   << block->isElseIfBlock() << " " << block->getName() << " " << block
-                   << " prev: " << block->getPrev() << std::endl;
+            Logging::debug(std::string(indent, ' '), block->ifdefExpression(), " ",
+                           block->isIfndefine(), " ", block->isIfBlock(), " ",
+                           block->isElseIfBlock(), " ", block->getName(), " ", block, " prev: ",
+                           block->getPrev());
         }
         if (block->size() > 0)
             block->printConditionalBlocks(indent + 4);
@@ -293,11 +299,7 @@ std::string ConditionalBlock::getConstraintsHelper(UniqueStringJoiner *and_claus
 std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
                                                  std::set<ConditionalBlock *> *visited) {
     UniqueStringJoiner sj; // on our stack
-    std::stringstream fi; // file identifier
     bool join = false;
-
-    fi << "FILE_";
-    fi << undertaker::normalize_filename(this->filename());
 
     if (!and_clause) {
         if (cached_code_expression)
@@ -360,7 +362,8 @@ std::string ConditionalBlock::getCodeConstraints(UniqueStringJoiner *and_clause,
             file_joiner.push_back("(");
             file_joiner.push_back("B00");
             file_joiner.push_back("<->");
-            file_joiner.push_back(fi.str());
+            // push the file inference symbol
+            file_joiner.push_back(fileVar());
             file_joiner.push_back(")");
             and_clause->push_back(file_joiner.join(" "));
         }
@@ -408,8 +411,7 @@ void CppDefine::newDefine(ConditionalBlock *parent, bool define) {
 
     const std::string symbolSpace = "([() ><&|!-]|^|$)";
 
-    replaceRegex = boost::regex(symbolSpace + "(" + defined_symbol + ")" + symbolSpace,
-                                boost::regex::perl);
+    replaceRegex = boost::regex(symbolSpace + "(" + defined_symbol + ")" + symbolSpace);
 }
 
 void CppDefine::replaceDefinedSymbol(std::string &exp) {

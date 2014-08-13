@@ -1,8 +1,9 @@
-#!/bin/bash -e
+#!/bin/bash
 #
 # Runs undertaker on a busybox source tree
 #
 # Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud.uni-erlangen.de>
+# Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@informatik.stud.uni-erlangen.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,9 +40,6 @@ while getopts m:t:civh OPT; do
         c)
             MODE="calc-coverage"
             ;;
-        i)
-            MODE="inference"
-            ;;
         v)
             echo "undertaker-busybox-tree"
             exit
@@ -55,7 +53,6 @@ while getopts m:t:civh OPT; do
             echo " -t <count>   Number of analyzing processes"
             echo "        (default: _NPROCESSORS_ONLN)"
             echo " -c  Do coverage analysis instead of dead block search"
-            echo " -i  Infer makefile constraints"
             exit
             ;;
     esac
@@ -117,11 +114,4 @@ if [ "$MODE" = "scan-deads" ]; then
     undertaker -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS"/busybox.model
     printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
     exit 0
-fi
-
-if [ "$MODE" = "inference" ]; then
-    ARCH='busybox'
-    export ARCH
-    golem -iv > models/busybox.makefile-constraints
-    echo "Extracted $(grep -c ^FILE_ models/busybox.makefile-constraints) source file implications"
 fi

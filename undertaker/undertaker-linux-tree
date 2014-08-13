@@ -1,9 +1,10 @@
-#!/bin/bash -e
+#!/bin/bash
 #
 # Applies the Undertaker tool to a Linux source tree
 #
 # Copyright (C) 2009-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
 # Copyright (C) 2011 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+# Copyright (C) 2014 Stefan Hengelein <stefan.hengelein@fau.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +30,7 @@
 # scan for deads by default
 MODE="scan-deads"
 
-while getopts :t:m:a:csivh OPT; do
+while getopts :t:m:a:csvh OPT; do
     case $OPT in
         m)
             MODELS="$OPTARG"
@@ -45,9 +46,6 @@ while getopts :t:m:a:csivh OPT; do
             ;;
         s)
             MODE="feature-statistics"
-            ;;
-        i)
-            MODE="inference"
             ;;
         v)
             echo "undertaker-linux-tree"
@@ -76,7 +74,7 @@ MODELS=${MODELS:-models}
 DEFAULT_ARCH=${DEFAULT_ARCH:-x86}
 PROCESSORS=${PROCESSORS:-$(getconf _NPROCESSORS_ONLN)}
 
-if [ ! -f arch/x86/Kconfig ]; then
+if [ ! -f arch/"$DEFAULT_ARCH"/Kconfig ]; then
     echo "Not run in an linux tree. Please run inside an linux tree without arguments"
     exit 1
 else
@@ -93,17 +91,20 @@ if ! ls "$MODELS"/*.model >/dev/null 2>&1 && ! ls "$MODELS"/*.cnf >/dev/null 2>&
     exit
 fi
 
+#################################################################################
+# calculate coverage                                                            #
+#################################################################################
+
 if [ "$MODE" = "calc-coverage" ]; then
     find -type f -name '*.c' \
         ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
         -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-coverage-worklist
 
-    files=`wc -l <undertaker-coverage-worklist`
+    files=$(wc -l < undertaker-coverage-worklist)
     echo "Calculating partial configurations (greedy variant) on $files files"
 
     undertaker -v -j coverage -C min -t "$PROCESSORS" -b undertaker-coverage-worklist \
-        -m "$MODELS" -M "$DEFAULT_ARCH" 2>&1 |
-            grep '^I: ./' > coverage.txt
+        -m "$MODELS" -M "$DEFAULT_ARCH" 2>&1 | grep '^I: ./' > coverage.txt
 
     if [ ! -s coverage.txt ]; then
         echo "Coverage analysis failed!"
@@ -113,20 +114,23 @@ if [ "$MODE" = "calc-coverage" ]; then
     echo "TOP 50 variable files:"
     awk -F'I: ' '/^I: / { print $2 }' < coverage.txt |
             awk -F, '/Found Solutions/ { printf "%s %s\n", $2, $1 }' |
-            sort -n -r |
-            head -n 50 | tee coverage.stats
+            sort -n -r | head -n 50 | tee coverage.stats
 
     awk '/c$/ { print $4 }' coverage.stats > undertaker-calc-coverage-worklist
-    if ! undertaker-calc-coverage -m models/x86.model undertaker-calc-coverage-worklist \
-              --run-sparse 2> undertaker-calc-coverage.error >undertaker-calc-coverage.output; then
-        echo "undertaker-calc-coverage failed, error messages follow:"
-        cat undertaker-calc-coverage.error
+    if ! undertaker-calc-coverage -m models/"$DEFAULT_ARCH".model \
+              undertaker-calc-coverage-worklist --run-sparse \
+              2>undertaker-calc-coverage.error >undertaker-calc-coverage.output; then
+        echo "undertaker-calc-coverage failed, check 'undertaker-calc-coverage.error' for details"
         exit 1
     fi
     if ! test -s undertaker-calc-coverage.error; then
         rm -f undertaker-calc-coverage.error
     fi
 fi
+
+#################################################################################
+# global dead analysis                                                          #
+#################################################################################
 
 if [ "$MODE" = "scan-deads" ]; then
     find -type f -name "*.[hcS]" \
@@ -138,16 +142,27 @@ if [ "$MODE" = "scan-deads" ]; then
 
     echo "Analyzing $(wc -l < undertaker-worklist) files with $PROCESSORS threads."
     undertaker -t "$PROCESSORS" -b undertaker-worklist -m "$MODELS" -M "$DEFAULT_ARCH"
-    printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | wc -l)"
+    printf "\n\nFound %s global defects\n" "$(find . -name '*dead'| grep globally | grep -v no_kconfig | wc -l)"
     exit 0
 fi
+
+#################################################################################
+# global feature statistics analysis                                            #
+#################################################################################
 
 do_archstat () {
     CONFIG=$1
     ARCH=$2
     CROSS_COMPILE=
     # normalize x86
-    if [ "$ARCH" = "x86" ]; then ARCH="i386"; fi
+    if [ "$ARCH" = "x86" ]; then
+        if env | grep -q ^VAMOS_PREFER_64BIT= ; then
+            ARCH="x86_64"
+        else
+            ARCH="i386"
+        fi
+    fi
+
     export ARCH CROSS_COMPILE
 
     if ! make $CONFIG >/dev/null 2>&1; then
@@ -159,36 +174,42 @@ do_archstat () {
         echo "golem -l failed on $ARCH with $CONFIG, skipping"
         return
     fi
-    echo -n "Architecture $ARCH uses $(cat undertaker-stat/$CONFIG-$ARCH.list | wc -l) source files for $CONFIG"
+    echo -n "Architecture $ARCH uses $(wc -l < undertaker-stat/$CONFIG-$ARCH.list) source files for $CONFIG"
     echo " (plus possibly $(grep -c 'Failed to guess' undertaker-stat/$CONFIG-$ARCH.failed) additional files)"
-    if ! undertaker -j cppsym -t $PROCESSORS -b undertaker-stat/$CONFIG-$ARCH.list -m models/$ARCH.model |
-         grep -v -E '(MISSING|NON_KCONFIG)' | sort |
-         uniq >undertaker-stat/$CONFIG-$ARCH.cppsym 2>undertaker-stat/$CONFIG-$ARCH.cppsym-errors; then
-        echo "Failed to extract CPP symbols for $ARCH with $CONFIG:"
-        cat undertaker-stat/$CONFIG-$ARCH.cppsym-errors
-    fi
-    if ! test -s undertaker-stat/$CONFIG-$ARCH.cppsym-errors; then
-        rm -f undertaker-stat/$CONFIG-$ARCH.cppsym-errors
-    fi
+
+# FIXME since we don't do anything with the results below, we can simply skip it
+#    undertaker -j cppsym -b undertaker-stat/$CONFIG-$ARCH.list -m models/$ARCH.model \
+#        2> undertaker-stat/$CONFIG-$ARCH.cppsym-errors | \
+#        grep -v -E '(MISSING|NON_KCONFIG)' | sort -u > undertaker-stat/$CONFIG-$ARCH.cppsym
+#
+#    if ! test -s undertaker-stat/$CONFIG-$ARCH.cppsym-errors; then
+#        rm -f undertaker-stat/$CONFIG-$ARCH.cppsym-errors
+#    else
+#        echo "extraction of CPP symbols for $ARCH with $CONFIG had errors, inspect 'undertaker-stat/$CONFIG-$ARCH.cppsym-errors' for details"
+#    fi
+}
+
+do_archspecific_cppsym() {
+    # TODO add architecture specific cppsym analysis here, when ghoul is merged.
+    echo ""
 }
 
 if [ "$MODE" = "feature-statistics" ]; then
-    allmodels="$(ls models/*.model)"
-    allrsfs="$(ls models/*.rsf)"
-    mkdir -p undertaker-stat
+    mkdir -p undertaker-kbuild
+    for f in `ls -1 arch/ | grep -v Kconfig`; do
+        ARCH=$f golem -o | sort > undertaker-kbuild/kbuild-$f
+    done
+    cat undertaker-kbuild/* | sort -u > undertaker-kbuild-variables
 
-    golem -o | sort -u > undertaker-kbuild-variables
-    ARCH=x86 golem -o | sort -u > undertaker-kbuild-variables-x86
+    echo "Found $(wc -l < undertaker-kbuild-variables) configuration variables mentioned in Makefiles"
 
-    echo "Found $(cat undertaker-kbuild-variables | wc -l) configuration variables mentioned in Makefiles"
-
+    # create a worklist for cpp-sym analysis
     find -type f -name "*.[hcS]" \
         ! -regex '^./tools.*' ! -regex '^./Documentation.*' ! -regex '^./scripts.*' \
-        -exec grep -q -E '^#else' {} \; -print | shuf > undertaker-worklist
+        -exec grep -q -E '^#[[:space:]]*if' {} \; -print | shuf > undertaker-worklist
 
-    if undertaker -j cppsym -t $PROCESSORS -b undertaker-worklist |
-        grep -v -E '^(E|I|W): '>undertaker-all-cppsym.raw 2>undertaker-cppsym.errors; then
-        awk '
+    undertaker -j cppsym -b undertaker-worklist 2>undertaker-cppsym.errors >undertaker-all-cppsym.raw
+    awk '
 BEGIN { FS="," }
 
 {
@@ -201,27 +222,21 @@ END {
         printf "%s, %d, %d\n", item, references[item], rewrites[item]
     }
 }' < undertaker-all-cppsym.raw > undertaker-all-cppsym
-        echo "Found $(cat undertaker-all-cppsym|wc -l) distinct CPP symbols."
-    else
-        echo "checking for cppsym errors failed, check the error log:"
-        cat undertaker-cppsym.errors
-    fi
+    echo "Found $(wc -l < undertaker-all-cppsym) distinct CPP symbols."
+
     if ! test -s undertaker-cppsym.errors; then
         rm -f undertaker-cppsym.errors
+    else
+        echo "checking for cppsym had errors, inspect 'undertaker-cppsym.errors' for details"
     fi
 
-    for m in $allmodels; do
-        ARCH=$(basename $m .model)
-        do_archstat allnoconfig $ARCH
-        do_archstat allyesconfig $ARCH
-        do_archstat allmodconfig $ARCH
+    modelarches="$(ls models/ | sed 's/.rsf//g;s/.model//g;s/.cnf//g;s/.golem-errors//g;s/.inferences//g' | sort -u)"
+    mkdir -p undertaker-stat
+    for m in $modelarches; do
+        do_archstat allnoconfig $m
+        do_archstat allyesconfig $m
+        do_archstat allmodconfig $m
+        do_archspecific_cppsym $m
     done
     exit 0
-fi
-
-if [ "$MODE" = "inference" ]; then
-    ARCH='x86'
-    export ARCH
-    golem -iv > models/x86.makefile-constraints
-    echo "Extracted $(grep -c ^FILE_ models/x86.makefile-constraints) source file implications for x86"
 fi

@@ -27,6 +27,7 @@
 #include "BoolExpLexer.h"
 
 #include <typeinfo> // for typeid()
+#include <sstream>
 
 
 /************************************************************************/
@@ -231,17 +232,17 @@ bool kconfig::BoolExp::equals(const BoolExp *other) const {
         return false;
     } else {
         return ((this->left == other->left || this->left->equals(other->left))
-              && (this->right == other->right || this->right->equals(other->right)));
+                && (this->right == other->right || this->right->equals(other->right)));
     }
 }
 
 bool kconfig::BoolExpCall::equals(const BoolExp *other) const {
     const BoolExpCall *otherc = dynamic_cast<const BoolExpCall *>(other);
     if (otherc == nullptr || this->name != otherc->name
-                          || this->param->size() != otherc->param->size()) {
+        || this->param->size() != otherc->param->size()) {
         return false;
     }
-    auto ito  = otherc->param->begin(); // BoolExp *
+    auto ito = otherc->param->begin();  // BoolExp *
     for (const auto &entry : *param) {  // BoolExp *
         if (!entry->equals(*ito))
             return false;
@@ -263,8 +264,8 @@ bool kconfig::BoolExpConst::equals(const BoolExp *other) const {
 bool kconfig::BoolExpAny::equals(const BoolExp *other) const {
     const BoolExpAny *otherc = dynamic_cast<const BoolExpAny *>(other);
     return otherc != nullptr && this->name == otherc->name
-         && ( (this->left == otherc->left || this->left->equals(otherc->left))
-         && (this->right == otherc->right || this->right->equals(otherc->right)) );
+           && ((this->left == otherc->left || this->left->equals(otherc->left))
+               && (this->right == otherc->right || this->right->equals(otherc->right)));
 }
 
 /************************************************************************/
@@ -311,14 +312,14 @@ kconfig::BoolExp *kconfig::BoolExp::simplify() {
 /* Operators                                                            */
 /************************************************************************/
 
-std::ostream& kconfig::operator<<(std::ostream &s, kconfig::BoolExp &exp) {
+std::ostream &kconfig::operator<<(std::ostream &s, kconfig::BoolExp &exp) {
     s << exp.str();
     return s;
 }
 
-kconfig::BoolExp & kconfig::operator &&(kconfig::BoolExp &l, kconfig::BoolExp &r) {
-    BoolExpConst *right = dynamic_cast<BoolExpConst*>(&r);
-    BoolExpConst *left = dynamic_cast<BoolExpConst*>(&l);
+kconfig::BoolExp &kconfig::operator&&(kconfig::BoolExp &l, kconfig::BoolExp &r) {
+    BoolExpConst *right = dynamic_cast<BoolExpConst *>(&r);
+    BoolExpConst *left = dynamic_cast<BoolExpConst *>(&l);
 
     if (left != nullptr || right != nullptr) {
         BoolExpConst &c = left ? *left : *right;
@@ -326,15 +327,15 @@ kconfig::BoolExp & kconfig::operator &&(kconfig::BoolExp &l, kconfig::BoolExp &r
         if (c.value == true) {
             return var;
         } else {
-            return c;            //false
+            return c;  // false
         }
     }
     return *B_AND(&l, &r);
 }
 
-kconfig::BoolExp & kconfig::operator ||(kconfig::BoolExp &l, kconfig::BoolExp &r) {
-    BoolExpConst *right = dynamic_cast<BoolExpConst*>(&r);
-    BoolExpConst *left = dynamic_cast<BoolExpConst*>(&l);
+kconfig::BoolExp &kconfig::operator||(kconfig::BoolExp &l, kconfig::BoolExp &r) {
+    BoolExpConst *right = dynamic_cast<BoolExpConst *>(&r);
+    BoolExpConst *left = dynamic_cast<BoolExpConst *>(&l);
 
     if (left != nullptr || right != nullptr) {
         BoolExpConst &c = left ? *left : *right;
@@ -342,14 +343,14 @@ kconfig::BoolExp & kconfig::operator ||(kconfig::BoolExp &l, kconfig::BoolExp &r
         if (c.value == false) {
             return var;
         } else {
-            return c;            //true
+            return c;  // true
         }
     }
     return *B_OR(&l, &r);
 }
 
-kconfig::BoolExp & kconfig::operator !(kconfig::BoolExp &l) {
-    BoolExpConst *lConst =  dynamic_cast<BoolExpConst *>(&l);
+kconfig::BoolExp &kconfig::operator!(kconfig::BoolExp & l) {
+    BoolExpConst *lConst = dynamic_cast<BoolExpConst *>(&l);
 
     if (lConst) {
         bool newval = !(lConst->value);

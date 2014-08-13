@@ -25,6 +25,8 @@
 #include <Puma/PreTree.h>
 #include <Puma/ManipCommander.h>
 
+#include <boost/thread.hpp>
+
 
 /// \brief cuts out all \#include statements
 Puma::Unit *cut_includes(Puma::Unit *unit) {
@@ -33,7 +35,7 @@ Puma::Unit *cut_includes(Puma::Unit *unit) {
 
 restart:
     for (s = unit->first(); s != unit->last(); s = unit->next(s)) {
-        switch (s->type()) {
+        switch(s->type()) {
         case TOK_PRE_ASSERT:
         case TOK_PRE_ERROR:
         case TOK_PRE_INCLUDE:
@@ -51,7 +53,7 @@ restart:
     return unit;
 }
 
-void usage(const char *msg, bool fail = true) {
+void usage(const char *msg, bool fail=true) {
     std::cout << "predator <file>" << std::endl;
     std::cout << msg << std::endl;
     if (fail)
@@ -60,25 +62,25 @@ void usage(const char *msg, bool fail = true) {
 
 void normalize_file(int argc, char **argv) {
     const char *filename = argv[argc - 1];
-
     // See manual or Config.cc in the Puma sources for Puma command line arguments
+    Puma::CParser parser;
+
     Puma::ErrorStream err;
     Puma::CProject project(err, argc, argv);
 
-    Puma::CParser parser;
-
     Puma::Unit *unit = project.scanFile(filename);
     if (!unit) {
-        std::cout << "Failed to parse: " << filename << std::endl;
+        std::cerr << "Failed to parse: " << filename << std::endl;
         exit(EXIT_FAILURE);
     }
-
     unit = cut_includes(unit);
     Puma::CTranslationUnit *file = parser.parse(*unit, project, 2);  // cpp tree only!
 
     Puma::PreTree *ptree = file->cpp_tree();
-    assert(ptree);
-
+    if (!ptree) {
+        std::cerr << "Failed to create cpp-tree: " << filename << std::endl;
+        exit(EXIT_FAILURE);
+    }
     PredatorVisitor predator(err);
     ptree->accept(predator);
     delete file;
@@ -88,6 +90,10 @@ int main(int argc, char **argv) {
     if (argc < 2)
         usage("Need at least two arguments");
 
-    normalize_file(argc, argv);
+    boost::thread t(normalize_file, argc, argv);
+    if (!t.timed_join(boost::posix_time::seconds(30))) {
+        std::cerr << "E: timeout passed while processing " << argv[argc - 1] << std::endl;
+        return 1;
+    }
     return 0;
 }

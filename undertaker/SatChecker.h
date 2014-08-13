@@ -123,7 +123,7 @@ public:
          * \param out an output stream on which the solution shall be printed
          * \param missingSet set of items that are not available in the model
          */
-        int formatKconfig(std::ostream &out, const MissingSet &missingSet);
+        int formatKconfig(std::ostream &out, const MissingSet &missingSet) const;
 
         /**
          * \brief format solutions (model)
@@ -135,7 +135,7 @@ public:
          * \param configuration model, that specifies the
          *     configuration space
          */
-        int formatModel(std::ostream &out, const ConfigurationModel *model);
+        int formatModel(std::ostream &out, const ConfigurationModel *model) const;
 
         /**
          * \brief format solutions (all)
@@ -145,7 +145,7 @@ public:
          * \param out an output stream on which the solution shall be
          *     printed
          */
-        int formatAll(std::ostream &out);
+        int formatAll(std::ostream &out) const;
 
         /**
          * \brief format solutions as CPP compatible arguments
@@ -155,7 +155,7 @@ public:
          * \param out an output stream on which the solution shall be
          *     printed
          */
-        int formatCPP(std::ostream &out, const ConfigurationModel *model);
+        int formatCPP(std::ostream &out, const ConfigurationModel *model) const;
 
         /**
          * \brief pipe all activated blocks into command
@@ -163,7 +163,7 @@ public:
          * \param CPP file which is basis for the analysis
          * \param cmd the command that is spawned
          */
-        int formatExec(const CppFile &file, const char *cmd);
+        int formatExec(const CppFile &file, const char *cmd) const;
 
         /**
          * \brief comments out all unselected blocks
@@ -171,7 +171,7 @@ public:
          * \param out the output stream to work on
          * \param file the corresponding CppFile for this AssignmentMap
          */
-        int formatCommented(std::ostream &out, const CppFile &file);
+        int formatCommented(std::ostream &out, const CppFile &file) const;
 
         /**
          * \brief combination of formatCPP, formatCommented and formatKconfig.
@@ -186,16 +186,14 @@ public:
          * \param number a running numer that is encoded in the filename
          */
         int formatCombined(const CppFile &file, const ConfigurationModel *model,
-            const MissingSet& missingSet, unsigned number);
+            const MissingSet& missingSet, unsigned number) const;
     }; // end struct AssignmentMap
 
     /**
      * After doing the check, you can get the assignments for the
      * formula
      */
-    const AssignmentMap& getAssignment() {
-        return assignmentTable;
-    }
+    const AssignmentMap &getAssignment() const { return assignmentTable; }
 
     kconfig::PicosatCNF *getCNF() {
         return _cnf.get();

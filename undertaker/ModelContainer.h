@@ -38,6 +38,11 @@ class ConfigurationModel;
  * convenience methods for model loading and lookups.
  */
 class ModelContainer : public std::map<std::string, ConfigurationModel*> {
+    ModelContainer() = default;
+    ~ModelContainer();
+
+    std::string main_model;
+
 public:
     ///< load models from the given directory
     static ConfigurationModel *loadModels(std::string modeldir);
@@ -50,13 +55,6 @@ public:
 
     /// returns the main model as string or nullptr, if not set
     static const std::string &getMainModel();
-
-private:
-    ModelContainer() = default;
-    ~ModelContainer();
-
-    std::string main_model;
-    ConfigurationModel *registerModelFile(std::string filename, std::string arch);
 };
 
 #endif

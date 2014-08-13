@@ -249,11 +249,8 @@ std::ostream & operator*(std::ostream &stream, CodeBlock const &b) {
     std::stringstream content (b.Content());
     std::string line;
 
-    boost::regex cpp_regexp(print_include
-                            ? "^[ \t]*#[ \t]*(define|undef|include)"
-                            : "^[ \t]*#[ \t]*(define|undef)",
-                            boost::regex::perl);
-
+    boost::regex cpp_regexp(print_include ? "^[ \t]*#[ \t]*(define|undef|include)"
+                                          : "^[ \t]*#[ \t]*(define|undef)");
 
     int lines = 0;
     while (getline (content, line)) {

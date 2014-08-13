@@ -36,11 +36,11 @@ namespace kconfig {
     };
 
     class ExpressionTranslator : public ExpressionVisitor<TristateRepr> {
-        //some statistical data
+        // some statistical data
         int _processedValComp = 0;
-    public:
-        ExpressionTranslator() = default;
         std::set<struct symbol *> *symbolSet = nullptr;
+    public:
+        ExpressionTranslator(std::set<struct symbol *> *s = nullptr) : symbolSet(s) {}
 
         int getValueComparisonCounter() { return _processedValComp; }
     protected:

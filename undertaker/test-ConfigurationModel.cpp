@@ -19,7 +19,6 @@
 
 #include "ModelContainer.h"
 #include "ConfigurationModel.h"
-#include "Logging.h"
 
 #include <check.h>
 
@@ -118,10 +117,6 @@ int main() {
 
     Suite *s = cond_block_suite();
     SRunner *sr = srunner_create(s);
-
-#if 0
-    logger.init(std::cout, Logging::LOG_DEBUG, Logging::LOG_DEBUG);
-#endif
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

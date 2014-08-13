@@ -61,8 +61,7 @@ expr * kconfig::visibilityExpression(struct symbol *sym) {
         str_free(&t);
     }
     if (sym && sym->name) {
-        logger << debug
-               << sym->name << " " << visible<< " pc: " << promptc << std::endl;
+        Logging::debug(sym->name, " ", visible, " pc: ", promptc);
     }
     return visible ? visible : expr_alloc_symbol(&symbol_no);
 }

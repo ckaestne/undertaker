@@ -94,7 +94,7 @@ void PicosatCNF::readFromStream(std::istream &i) {
             // After this, only lines in DIMACs CNF Format remain
             i >> tmp;
             if (tmp != "cnf") {
-                logger << error << "Invalid DIMACs CNF dimension descriptor." << std::endl;
+                Logging::error("Invalid DIMACs CNF dimension descriptor.");
                 throw IOException("parse error while reading CNF file");
             }
             i >> varcount; i >> clausecount;
@@ -104,7 +104,7 @@ void PicosatCNF::readFromStream(std::istream &i) {
             while(i >> val)
                 clauses.push_back(val);
         } else {
-            logger << error << "Line not starting with c or p." << std::endl;
+            Logging::error("Line not starting with c or p.");
             throw IOException("parse error while reading CNF file");
         }
     }
@@ -113,7 +113,7 @@ void PicosatCNF::readFromStream(std::istream &i) {
 void PicosatCNF::toFile(const std::string &filename) const {
     std::ofstream out(filename);
     if (!out.good()) {
-        logger << error << "Couldn't write to " << filename << std::endl;
+        Logging::error("Couldn't write to ", filename);
         return;
     }
     toStream(out);
@@ -228,8 +228,7 @@ void PicosatCNF::pushAssumption(const std::string &v, bool val) {
     int cnfvar = this->getCNFVar(v);
 
     if (cnfvar == 0) {
-        logger << error << "Picosat: ignoring variable " << v
-               << "as it has not been registered yet!" << std::endl;
+        Logging::error("Picosat: ignoring variable ", v, "as it has not been registered yet!");
         return;
     }
     if (val)

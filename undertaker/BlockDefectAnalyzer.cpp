@@ -120,11 +120,11 @@ const BlockDefect *BlockDefectAnalyzer::analyzeBlock(ConditionalBlock *block,
     try {
         return analyzeBlock_helper(block, main_model);
     } catch (CNFBuilderError &e) {
-        logger << error << "Couldn't process " << block->getFile()->getFilename() << ":"
-               << block->getName() << ": " << e.what() << std::endl;
+        Logging::error("Couldn't process ", block->getFile()->getFilename(), ":", block->getName(),
+                       ": ", e.what());
     } catch (std::bad_alloc &) {
-        logger << error << "Couldn't process " << block->getFile()->getFilename() << ":"
-               << block->getName() << ": Out of Memory." << std::endl;
+        Logging::error("Couldn't process ", block->getFile()->getFilename(), ":", block->getName(),
+                       ": Out of Memory.");
     }
     return nullptr;
 }
@@ -214,10 +214,10 @@ bool BlockDefect::writeReportToFile(bool skip_no_kconfig) const {
     std::ofstream out(filename);
 
     if (!out.good()) {
-        logger << error << "failed to open " << filename << " for writing " << std::endl;
+        Logging::error("failed to open ", filename, " for writing ");
         return false;
     } else {
-        logger << info << "creating " << filename << std::endl;
+        Logging::info("creating ", filename);
         out << "#" << _cb->getName() << ":"
             << _cb->filename() << ":" << _cb->lineStart() << ":" << _cb->colStart() << ":"
             << _cb->filename() << ":" << _cb->lineEnd() << ":" << _cb->colEnd() << ":"
@@ -269,7 +269,7 @@ void DeadBlockDefect::reportMUS() const {
     int vars, lines; std::string p, cnfstr;
     ss >> p; ss >> cnfstr; ss >> vars; ss >> lines;
     if (p != "p" || cnfstr != "cnf") {
-        logger << error << "Mismatched output format, skipping MUS analysis." << std::endl;
+        Logging::error("Mismatched output format, skipping MUS analysis.");
         return;
     }
     std::vector<std::string> vec;
@@ -310,11 +310,11 @@ void DeadBlockDefect::reportMUS() const {
 
     std::ofstream ofs(filename);
     if (!ofs.good()) {
-        logger << error << "Failed to open " << filename << " for writing." << std::endl;
+        Logging::error("Failed to open ", filename, " for writing.");
         return;
     }
     // prepend some statistics about the picomus performance
-    logger << info << "creating " << filename << std::endl;
+    Logging::info("creating ", filename);
     ofs << "ATTENTION: This formula _might_ be incomplete or even inconclusive!" << std::endl;
     ofs << "Minimized Formula from:" << std::endl;
     ofs << "p cnf " << cnf->getVarCount() << " " << cnf->getClauseCount() << std::endl;
@@ -351,7 +351,7 @@ bool DeadBlockDefect::isDefect(const ConfigurationModel *model, bool is_main_mod
         std::string formula_str = formula.join("\n&&\n");
         SatChecker kconfig_constraints(formula_str);
 
-        // logger << debug << "kconfig_constraints: " << formula_str << std::endl;
+//        Logging::debug("kconfig_constraints: ", formula_str);
 
         if (!kconfig_constraints()) {
             if (_defectType != DEFECTTYPE::Configuration) {
